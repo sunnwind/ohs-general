@@ -16,6 +16,7 @@ import ohs.ml.eval.PerformanceEvaluator;
 import ohs.ml.neuralnet.com.NeuralNetTrainerOld.Worker;
 import ohs.ml.neuralnet.cost.CrossEntropyCostFunction;
 import ohs.ml.neuralnet.layer.BatchNormalizationLayer;
+import ohs.ml.neuralnet.layer.BiRnnLayer;
 import ohs.ml.neuralnet.layer.DropoutLayer;
 import ohs.ml.neuralnet.layer.EmbeddingLayer;
 import ohs.ml.neuralnet.layer.FullyConnectedLayer;
@@ -176,6 +177,16 @@ public class NeuralNetTrainer {
 			} else if (l instanceof LstmLayer) {
 				LstmLayer n = (LstmLayer) l;
 				ret.add(new LstmLayer(n.getWxh(), n.getWhh(), n.getB().row(0), n.getNonlinearity()));
+			} else if (l instanceof BiRnnLayer) {
+				BiRnnLayer n = (BiRnnLayer) l;
+				RnnLayer fwd1 = n.getForwardLayer();
+				RnnLayer fwd2 = new RnnLayer(fwd1.getWxh(), fwd1.getWhh(), fwd1.getBh(), fwd1.getBpttSize(), fwd1.getNonlinearity());
+				RnnLayer bwd1 = n.getBackwardLayer();
+				RnnLayer bwd2 = new RnnLayer(bwd1.getWxh(), bwd1.getWhh(), bwd1.getBh(), bwd1.getBpttSize(), bwd1.getNonlinearity());
+				ret.add(new BiRnnLayer(fwd2, bwd2));
+			} else {
+				System.err.println("unknown layer");
+				System.exit(0);
 			}
 		}
 		return ret;
@@ -201,7 +212,7 @@ public class NeuralNetTrainer {
 
 	private DenseMatrix rW2;
 
-	private DenseMatrix Wb;
+	private DenseMatrix W_best;
 
 	private DenseMatrix W_no_bias;
 
@@ -225,6 +236,8 @@ public class NeuralNetTrainer {
 
 	private PerformanceEvaluator eval = new PerformanceEvaluator();
 
+	private Timer timer1 = Timer.newTimer();
+
 	public NeuralNetTrainer(NeuralNet nn, NeuralNetParams param, int data_size, Indexer<String> labelIndexer) throws Exception {
 		prepare(nn, param, data_size, labelIndexer);
 	}
@@ -234,7 +247,7 @@ public class NeuralNetTrainer {
 
 		nn.setIsTesting(true);
 
-		VectorUtils.copy(Wb, W);
+		VectorUtils.copy(W_best, W);
 	}
 
 	public void prepare(NeuralNet nn, NeuralNetParams param, int data_size, Indexer<String> labelIndexer) throws Exception {
@@ -255,7 +268,7 @@ public class NeuralNetTrainer {
 		rW1 = W.copy(true);
 		rW2 = W.copy(true);
 
-		Wb = W.copy(true);
+		W_best = W.copy(true);
 		W_no_bias = nn.getW();
 
 		tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
@@ -265,10 +278,6 @@ public class NeuralNetTrainer {
 		for (int i = 0; i < thread_size; i++) {
 			ws.add(new Worker(nns.get(i)));
 		}
-	}
-
-	public void setPadLabel(int pad_label) {
-		this.pad_label = pad_label;
 	}
 
 	// public void train(NeuralNetParams param, NeuralNet nn, Object X, Object Y, Object Xt, Object Yt, int max_iter,
@@ -306,7 +315,7 @@ public class NeuralNetTrainer {
 	// rW1 = W.copy(true);
 	// rW2 = W.copy(true);
 	//
-	// DenseMatrix Wb = W.copy(true);
+	// DenseMatrix W_best = W.copy(true);
 	// DenseMatrix W_no_bias = nn.getW();
 	//
 	// ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
@@ -356,7 +365,7 @@ public class NeuralNetTrainer {
 	// best_cor_cnt = cor_cnt;
 	// best_acc = acc;
 	//
-	// VectorUtils.copy(W, Wb);
+	// VectorUtils.copy(W, W_best);
 	// }
 	//
 	// double norm = VectorMath.normL2(W_no_bias);
@@ -403,11 +412,14 @@ public class NeuralNetTrainer {
 	//
 	// nn.setIsTesting(true);
 	//
-	// VectorUtils.copy(Wb, W);
+	// VectorUtils.copy(W_best, W);
 	// }
 
+	public void setPadLabel(int pad_label) {
+		this.pad_label = pad_label;
+	}
+
 	public void train(Object X, Object Y, Object Xt, Object Yt, int max_iter) throws Exception {
-		Timer timer1 = Timer.newTimer();
 		this.X = X;
 		this.Y = Y;
 
@@ -418,11 +430,11 @@ public class NeuralNetTrainer {
 			data_locs = ArrayUtils.range(data_size);
 			ranges = BatchUtils.getBatchRanges(data_size, param.getBatchSize());
 		} else {
-			IntegerArrayMatrix XX = ((IntegerArrayMatrix) X);
-			for (IntegerArray x : XX) {
+			IntegerArrayMatrix X_ = ((IntegerArrayMatrix) X);
+			for (IntegerArray x : X_) {
 				data_size += x.size();
 			}
-			data_locs = ArrayUtils.range(XX.size());
+			data_locs = ArrayUtils.range(X_.size());
 		}
 
 		double best_acc = 0;
@@ -463,7 +475,7 @@ public class NeuralNetTrainer {
 				best_cor_cnt = cor_cnt;
 				best_acc = acc;
 
-				VectorUtils.copy(W, Wb);
+				VectorUtils.copy(W, W_best);
 			}
 
 			double norm = VectorMath.normL2(W_no_bias);

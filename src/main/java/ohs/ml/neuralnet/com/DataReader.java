@@ -110,7 +110,7 @@ public class DataReader {
 		for (int i = 0; i < lines.size() && i < size; i++) {
 			String str = lines.get(i).toLowerCase();
 			str = "<" + str + ">";
-			IntegerArray s = new IntegerArray();
+			IntegerArray s = new IntegerArray(str.length() + 2);
 
 			for (int j = 0; j < str.length(); j++) {
 				s.add(vocab.getIndex(str.charAt(j) + ""));

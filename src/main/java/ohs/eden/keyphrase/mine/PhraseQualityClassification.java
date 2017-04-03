@@ -25,14 +25,13 @@ import ohs.ml.neuralnet.nonlinearity.Tanh;
 import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
 import ohs.types.generic.ListMap;
-import ohs.types.generic.Pair;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
 import ohs.types.number.IntegerArrayMatrix;
 import ohs.utils.DataSplitter;
 import ohs.utils.Generics;
-import ohs.utils.StrUtils;
 import ohs.utils.Generics.ListType;
+import ohs.utils.StrUtils;
 
 public class PhraseQualityClassification {
 
@@ -47,8 +46,8 @@ public class PhraseQualityClassification {
 
 		// qc.buildLabeledData();
 		// qc.buildUnlabeledData();
-		// qc.trainClassifier();
-		qc.test();
+		qc.trainClassifier();
+		// qc.test();
 
 		System.out.println("process ends.");
 	}
@@ -573,7 +572,7 @@ public class PhraseQualityClassification {
 		IntegerArray negLocs = G.get(0);
 		IntegerArray posLocs = G.get(1);
 
-		for (int i = 0; i < 1; i++) {
+		for (int i = 0; i < 3; i++) {
 			ArrayUtils.shuffle(negLocs.values());
 			int pos_size = posLocs.size();
 
@@ -610,7 +609,7 @@ public class PhraseQualityClassification {
 		DenseMatrix X = new DenseMatrix(dir + "phrs/data_unlabeled.ser.gz");
 		List<String> phrss = FileUtils.readLinesFromText(dir + "phrs/phrs_unlabeled.txt");
 		Counter<String> c = Generics.newCounter();
-		
+
 		for (int i = 0; i < X.rowSize(); i++) {
 			DenseVector x = X.row(i);
 			DenseVector scores = nn.score(x);
@@ -621,7 +620,7 @@ public class PhraseQualityClassification {
 			phrss.set(i, label + "\t" + phrs);
 			c.incrementCount(label, 1);
 		}
-		
+
 		System.out.println(c.toString());
 
 		FileUtils.writeStringCollection(dir + "phrs/phrs_unlabeled_labeled.txt", phrss);

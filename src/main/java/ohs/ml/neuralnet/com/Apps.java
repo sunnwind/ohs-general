@@ -5,10 +5,10 @@ import java.util.Set;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.SparseMatrix;
 import ohs.ml.neuralnet.layer.BatchNormalizationLayer;
+import ohs.ml.neuralnet.layer.BiRnnLayer;
 import ohs.ml.neuralnet.layer.ConvolutionalLayer;
 import ohs.ml.neuralnet.layer.EmbeddingLayer;
 import ohs.ml.neuralnet.layer.FullyConnectedLayer;
-import ohs.ml.neuralnet.layer.GruLayer;
 import ohs.ml.neuralnet.layer.LstmLayer;
 import ohs.ml.neuralnet.layer.NonlinearityLayer;
 import ohs.ml.neuralnet.layer.RnnLayer;
@@ -52,8 +52,8 @@ public class Apps {
 
 		IntegerArrayMatrix X = new IntegerArrayMatrix();
 		IntegerArrayMatrix Y = new IntegerArrayMatrix();
-		IntegerArrayMatrix tX = new IntegerArrayMatrix();
-		IntegerArrayMatrix tY = new IntegerArrayMatrix();
+		IntegerArrayMatrix Xt = new IntegerArrayMatrix();
+		IntegerArrayMatrix Yt = new IntegerArrayMatrix();
 		Vocab vocab = data.getThird();
 
 		{
@@ -93,7 +93,7 @@ public class Apps {
 		int l1_size = 100;
 		int l2_size = 20;
 		int output_size = vocab.size();
-		int type = 4;
+		int type = 3;
 
 		System.out.println(vocab.info());
 
@@ -157,7 +157,7 @@ public class Apps {
 			nn.add(new EmbeddingLayer(vocab_size, embedding_size, true));
 			// nn.add(new BatchNormalizationLayer(embedding_size));
 			nn.add(new LstmLayer(embedding_size, l1_size, new Tanh()));
-			nn.add(new BatchNormalizationLayer(l1_size));
+			// nn.add(new BatchNormalizationLayer(l1_size));
 			// nn.add(new DropoutLayer(l1_size));
 			nn.add(new FullyConnectedLayer(l1_size, output_size));
 			nn.add(new SoftmaxLayer(output_size));
@@ -170,8 +170,9 @@ public class Apps {
 		} else if (type == 4) {
 			nn.add(new EmbeddingLayer(vocab_size, embedding_size, true));
 			// nn.add(new BatchNormalizationLayer(embedding_size));
-			nn.add(new GruLayer(embedding_size, l1_size, new Tanh()));
-			nn.add(new BatchNormalizationLayer(l1_size));
+			// nn.add(new GruLayer(embedding_size, l1_size, new Tanh()));
+			nn.add(new BiRnnLayer(embedding_size, l1_size, param.getBpttSize(), new Tanh()));
+			// nn.add(new BatchNormalizationLayer(l1_size));
 			// nn.add(new DropoutLayer(l1_size));
 			nn.add(new FullyConnectedLayer(l1_size, output_size));
 			nn.add(new SoftmaxLayer(output_size));

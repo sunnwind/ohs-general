@@ -247,7 +247,7 @@ public class BatchNormalizationLayer extends Layer {
 	}
 
 	@Override
-	public void prepareTraining() {
+	public void prepare() {
 		dgamma = gamma.copy(true);
 		dbeta = gamma.copy(true);
 	}

@@ -35,9 +35,9 @@ public class EmbeddingLayer extends Layer {
 	}
 
 	@Override
-	public Object backward(Object O) {
-		if (O != null && learn_embedding) {
-			DenseMatrix dY = (DenseMatrix) O;
+	public Object backward(Object I) {
+		if (I != null && learn_embedding) {
+			DenseMatrix dY = (DenseMatrix) I;
 			for (int i = 0; i < X.size(); i++) {
 				int w = X.get(i);
 				VectorMath.add(dY.row(i), dW.row(w));
@@ -91,7 +91,7 @@ public class EmbeddingLayer extends Layer {
 	}
 
 	@Override
-	public void prepareTraining() {
+	public void prepare() {
 		dW = W.copy(true);
 	}
 

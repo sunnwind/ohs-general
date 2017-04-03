@@ -53,7 +53,7 @@ public class RnnLayer extends Layer {
 
 	private DenseMatrix dWhh;
 
-	private Object pI;
+	private Object fwd_I;
 
 	private int bptt_size = 5;
 
@@ -110,7 +110,6 @@ public class RnnLayer extends Layer {
 	/**
 	 * Sutskever, I. (2013). Training Recurrent neural Networks. PhD thesis. University of Toronto.
 	 * 
-	 * +
 	 * 
 	 * http://www.wildml.com/2015/10/recurrent-neural-networks-tutorial-part-3-backpropagation-through-time-and-vanishing-gradients/
 	 * 
@@ -157,13 +156,13 @@ public class RnnLayer extends Layer {
 			int size = Math.max(0, t - bptt_size);
 
 			for (int tt = t; tt >= size; tt--) {
-				if (pI instanceof IntegerArray) {
-					IntegerArray X = ((IntegerArray) pI);
+				if (fwd_I instanceof IntegerArray) {
+					IntegerArray X = ((IntegerArray) fwd_I);
 					int idx = X.get(tt);
 					DenseVector dwx = dWxh.row(idx);
 					VectorMath.add(tmp, dwx);
 				} else {
-					DenseMatrix X = ((DenseMatrix) pI);
+					DenseMatrix X = ((DenseMatrix) fwd_I);
 					DenseVector x = X.row(tt);
 					VectorMath.outerProduct(x, tmp, dWxh, true);
 
@@ -202,6 +201,7 @@ public class RnnLayer extends Layer {
 		}
 
 		H = tmp_H.rowsAsMatrix(data_size);
+		H.setAll(0);
 
 		for (int t = 0; t < data_size; t++) {
 			DenseVector h = H.row(t);
@@ -226,7 +226,7 @@ public class RnnLayer extends Layer {
 		VectorUtils.copy(h0, h0_prev);
 		VectorUtils.copy(H.row(data_size - 1), h0);
 
-		pI = I;
+		fwd_I = I;
 
 		return H;
 	}
@@ -313,7 +313,7 @@ public class RnnLayer extends Layer {
 	}
 
 	@Override
-	public void prepareTraining() {
+	public void prepare() {
 		dWxh = Wxh.copy(true);
 		dWhh = Whh.copy(true);
 		dbh = bh.copy(true);

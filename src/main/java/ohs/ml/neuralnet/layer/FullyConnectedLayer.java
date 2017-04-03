@@ -34,7 +34,7 @@ public class FullyConnectedLayer extends Layer {
 	/**
 	 * input of this layer
 	 */
-	private Object I;
+	private Object fwd_I;
 
 	private DenseMatrix tmp_Y;
 
@@ -61,13 +61,13 @@ public class FullyConnectedLayer extends Layer {
 	}
 
 	@Override
-	public DenseMatrix backward(Object O) {
-		DenseMatrix dY = (DenseMatrix) O;
+	public DenseMatrix backward(Object I) {
+		DenseMatrix dY = (DenseMatrix) I;
 		DenseMatrix dX = null;
 		int data_size = dY.rowSize();
 
-		if (I instanceof DenseMatrix) {
-			DenseMatrix X = (DenseMatrix) I;
+		if (fwd_I instanceof DenseMatrix) {
+			DenseMatrix X = (DenseMatrix) fwd_I;
 			for (int i = 0; i < X.rowSize(); i++) {
 				VectorMath.outerProduct(X.row(i), dY.row(i), dW, true);
 				VectorMath.add(dY.row(i), db);
@@ -78,14 +78,13 @@ public class FullyConnectedLayer extends Layer {
 			dX = tmp_dX.rowsAsMatrix(data_size);
 			VectorMath.productColumns(dY, W, dX, false);
 		} else {
-			IntegerArray X = (IntegerArray) I;
+			IntegerArray X = (IntegerArray) fwd_I;
 			for (int i = 0; i < X.size(); i++) {
 				int idx = X.get(i);
 				DenseVector dw = dW.row(idx);
 				VectorMath.add(dw, dY.row(i), dw);
 			}
 		}
-
 		return dX;
 	}
 
@@ -95,7 +94,7 @@ public class FullyConnectedLayer extends Layer {
 
 	@Override
 	public DenseMatrix forward(Object I) {
-		this.I = I;
+		this.fwd_I = I;
 
 		int data_size = I instanceof DenseMatrix ? ((DenseMatrix) I).rowSize() : ((IntegerArray) I).size();
 
@@ -156,7 +155,7 @@ public class FullyConnectedLayer extends Layer {
 	}
 
 	@Override
-	public void prepareTraining() {
+	public void prepare() {
 		dW = W.copy(true);
 		db = b.copy(true);
 	}

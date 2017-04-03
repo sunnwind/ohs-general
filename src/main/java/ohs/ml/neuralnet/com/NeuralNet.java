@@ -221,7 +221,7 @@ public class NeuralNet extends ArrayList<Layer> {
 
 	public void prepare() {
 		for (Layer l : this) {
-			l.prepareTraining();
+			l.prepare();
 		}
 	}
 

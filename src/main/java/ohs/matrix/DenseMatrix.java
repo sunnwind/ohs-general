@@ -213,7 +213,17 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 
 	@Override
 	public DenseVector row(int i) {
+		checkRange(i);
+
 		return get(i);
+	}
+
+	private boolean checkRange(int i) {
+		boolean ret = true;
+		if (i < 0 || i >= rowSize()) {
+			ret = false;
+		}
+		return ret;
 	}
 
 	@Override

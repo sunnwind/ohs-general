@@ -274,7 +274,7 @@ public class GruLayer extends Layer {
 	}
 
 	@Override
-	public void prepareTraining() {
+	public void prepare() {
 		dWxh = Wxh.copy(true);
 		dWhh = Whh.copy(true);
 		dbh = bh.copy(true);

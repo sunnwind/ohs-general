@@ -6,7 +6,7 @@ import java.io.Serializable;
 
 import ohs.matrix.DenseMatrix;
 
-public class Layer implements Serializable {
+public abstract class Layer implements Serializable {
 
 	/**
 	 * 
@@ -15,7 +15,7 @@ public class Layer implements Serializable {
 
 	protected boolean is_testing = false;
 
-	public Object backward(Object O) {
+	public Object backward(Object I) {
 		return null;
 	}
 
@@ -54,7 +54,7 @@ public class Layer implements Serializable {
 		return is_testing;
 	}
 
-	public void prepareTraining() {
+	public void prepare() {
 
 	}
 

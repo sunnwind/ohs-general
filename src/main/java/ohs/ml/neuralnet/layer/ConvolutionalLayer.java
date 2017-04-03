@@ -33,13 +33,13 @@ public class ConvolutionalLayer extends Layer {
 
 		conns = Generics.newArrayList(window_sizes.length);
 
-		for (int i = 0; i < window_sizes.length; i++) {
-			NeuralNet nn = new NeuralNet();
-			nn.add(new ConvLayer(embedding_size, window_sizes[i], num_filters));
-			nn.add(new NonlinearityLayer(0, new ReLU()));
-			nn.add(new MaxPoolingLayer(num_filters));
-			conns.add(nn);
-		}
+		// for (int i = 0; i < window_sizes.length; i++) {
+		// NeuralNet nn = new NeuralNet();
+		// nn.add(new ConvLayer(embedding_size, window_sizes[i], num_filters));
+		// nn.add(new NonlinearityLayer(0, new ReLU()));
+		// nn.add(new MaxPoolingLayer(num_filters));
+		// conns.add(nn);
+		// }
 
 		y = new DenseVector(output_size);
 	}

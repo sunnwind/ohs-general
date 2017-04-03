@@ -33,7 +33,7 @@ public class NonlinearityLayer extends Layer {
 		this.non = non;
 	}
 
-	public NonlinearityLayer(ObjectInputStream ois) throws Exception{
+	public NonlinearityLayer(ObjectInputStream ois) throws Exception {
 		readObject(ois);
 	}
 
@@ -69,7 +69,7 @@ public class NonlinearityLayer extends Layer {
 	public Nonlinearity getNonlinearity() {
 		return non;
 	}
-	
+
 	@Override
 	public int getOutputSize() {
 		return output_size;
@@ -79,15 +79,12 @@ public class NonlinearityLayer extends Layer {
 	public void readObject(ObjectInputStream ois) throws Exception {
 		output_size = ois.readInt();
 		String name = ois.readUTF();
-		if (name.equals(Tanh.class.getName())) {
-			non = new Tanh();
-		} else if (name.equals(Sigmoid.class.getName())) {
-			non = new Sigmoid();
-		} else if (name.equals(ReLU.class.getName())) {
-			non = new ReLU();
-		} else if (name.equals(LeakReLU.class.getName())) {
-			non = new LeakReLU();
-		}
+		/*
+		 * https://sites.google.com/site/hmhandks/android/classgaegcheclassmyeong-eulogaegcheleulsaengseonghaja
+		 */
+
+		Class c = Class.forName(name);
+		non = (Nonlinearity) c.newInstance();
 	}
 
 	@Override
