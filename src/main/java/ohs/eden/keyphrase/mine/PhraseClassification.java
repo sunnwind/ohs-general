@@ -33,20 +33,21 @@ import ohs.utils.Generics;
 import ohs.utils.Generics.ListType;
 import ohs.utils.StrUtils;
 
-public class PhraseQualityClassification {
+public class PhraseClassification {
 
 	public static String dir = MIRPath.TREC_CDS_2016_DIR;
 
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 
-		PhraseQualityClassification qc = new PhraseQualityClassification();
+		PhraseClassification qc = new PhraseClassification();
 		// qc.generateData();
 		// qc.train();
 
-		// qc.buildLabeledData();
-		// qc.buildUnlabeledData();
-		qc.trainClassifier();
+		// qc.getQualityLabeledData();
+		// qc.getQualityUnlabeledData();
+		// qc.getMedicalLabeledData();
+		qc.trainQualityClassifier();
 		// qc.test();
 
 		System.out.println("process ends.");
@@ -107,30 +108,37 @@ public class PhraseQualityClassification {
 		return ret;
 	}
 
-	public void buildLabeledData() throws Exception {
+	public void getQualityLabeledData() throws Exception {
+		DocumentCollection dc = new DocumentCollection(dir + "col/dc/");
+		Vocab vocab = dc.getVocab();
+
+		RandomAccessDenseMatrix E = new RandomAccessDenseMatrix(dir + "emb/glove_ra.ser", true);
+
 		ListMap<String, String> lm = Generics.newListMap(ListType.LINKED_LIST);
 
 		{
-			Counter<String> c = FileUtils.readStringCounterFromText(dir + "phrs/phrs_good.txt");
+			Counter<String> c = FileUtils.readStringCounterFromText(dir + "phrs/phrs_q_good.txt");
 			for (String phrs : c.getSortedKeys()) {
+				DenseVector e = extractFeatures(E, vocab, phrs);
+				if (e == null) {
+					continue;
+				}
 				lm.put("good", phrs);
 			}
 		}
 
 		{
-			Counter<String> c = FileUtils.readStringCounterFromText(dir + "phrs/phrs_bad.txt");
+			Counter<String> c = FileUtils.readStringCounterFromText(dir + "phrs/phrs_q_bad.txt");
 			c.keepTopNKeys(1000000);
 
 			for (String phrs : c.getSortedKeys()) {
+				DenseVector e = extractFeatures(E, vocab, phrs);
+				if (e == null) {
+					continue;
+				}
 				lm.put("bad", phrs);
 			}
 		}
-
-		DocumentCollection dc = new DocumentCollection(dir + "col/dc/");
-		Vocab vocab = dc.getVocab();
-
-		RandomAccessDenseMatrix E = new RandomAccessDenseMatrix(dir + "emb/glove_ra.ser");
-		// RandomAccessDenseMatrix E = new RandomAccessDenseMatrix("../../data/medical_ir/wiki/" + "emb/glove_ra.ser");
 
 		List<DenseVector> data = Generics.newLinkedList();
 		List<Integer> labels = Generics.newLinkedList();
@@ -141,12 +149,9 @@ public class PhraseQualityClassification {
 		for (String label : lm.keySet()) {
 			List<String> phrss = lm.get(label);
 
-			int l = 2;
-
+			int l = 0;
 			if (label.equals("good")) {
 				l = 1;
-			} else if (label.equals("bad")) {
-				l = 0;
 			}
 
 			for (String phrs : phrss) {
@@ -154,6 +159,7 @@ public class PhraseQualityClassification {
 				if (e == null) {
 					continue;
 				}
+
 				data.add(e);
 				labels.add(l);
 				phrsData.add(label + "\t" + phrs);
@@ -162,14 +168,78 @@ public class PhraseQualityClassification {
 
 		System.out.println(c.toString());
 
-		new DenseMatrix(data).writeObject(dir + "phrs/data_labeled.ser.gz");
-		new IntegerArray(labels).writeObject(dir + "phrs/label.ser.gz");
-		FileUtils.writeStringCollection(dir + "phrs/phrs_labeled.txt", phrsData);
+		new DenseMatrix(data).writeObject(dir + "phrs/data_q_train.ser.gz");
+		new IntegerArray(labels).writeObject(dir + "phrs/label_q_train.ser.gz");
+		FileUtils.writeStringCollection(dir + "phrs/phrs_q_train.txt", phrsData);
 	}
 
-	public void buildUnlabeledData() throws Exception {
-		Counter<String> c = FileUtils.readStringCounterFromText(dir + "phrs/phrs_not_bad.txt");
-		c.keepTopNKeys(500000);
+	public void getMedicalLabeledData() throws Exception {
+		DocumentCollection dc = new DocumentCollection(dir + "col/dc/");
+		Vocab vocab = dc.getVocab();
+
+		RandomAccessDenseMatrix E = new RandomAccessDenseMatrix(dir + "emb/glove_ra.ser", true);
+
+		ListMap<String, String> lm = Generics.newListMap(ListType.LINKED_LIST);
+
+		{
+			Counter<String> c = FileUtils.readStringCounterFromText(dir + "phrs/phrs_m_medical.txt");
+			for (String phrs : c.getSortedKeys()) {
+				DenseVector e = extractFeatures(E, vocab, phrs);
+				if (e == null) {
+					continue;
+				}
+				lm.put("good", phrs);
+			}
+		}
+
+		{
+			Counter<String> c = FileUtils.readStringCounterFromText(dir + "phrs/phrs_m_not_medical.txt");
+			c.keepTopNKeys(1000000);
+
+			for (String phrs : c.getSortedKeys()) {
+				DenseVector e = extractFeatures(E, vocab, phrs);
+				if (e == null) {
+					continue;
+				}
+				lm.put("bad", phrs);
+			}
+		}
+
+		List<DenseVector> data = Generics.newLinkedList();
+		List<Integer> labels = Generics.newLinkedList();
+		List<String> phrsData = Generics.newLinkedList();
+
+		Counter<String> c = Generics.newCounter();
+
+		for (String label : lm.keySet()) {
+			List<String> phrss = lm.get(label);
+
+			int l = 0;
+			if (label.equals("good")) {
+				l = 1;
+			}
+
+			for (String phrs : phrss) {
+				DenseVector e = extractFeatures(E, vocab, phrs);
+				if (e == null) {
+					continue;
+				}
+
+				data.add(e);
+				labels.add(l);
+				phrsData.add(label + "\t" + phrs);
+			}
+		}
+
+		System.out.println(c.toString());
+
+		new DenseMatrix(data).writeObject(dir + "phrs/data_m_train.ser.gz");
+		new IntegerArray(labels).writeObject(dir + "phrs/label_m_train.ser.gz");
+		FileUtils.writeStringCollection(dir + "phrs/phrs_m_train.txt", phrsData);
+	}
+
+	public void getQualityUnlabeledData() throws Exception {
+		Counter<String> c = FileUtils.readStringCounterFromText(dir + "phrs/phrs_q_not_bad.txt");
 
 		DocumentCollection dc = new DocumentCollection(dir + "col/dc/");
 		Vocab vocab = dc.getVocab();
@@ -199,8 +269,8 @@ public class PhraseQualityClassification {
 			phrsData.add(phrs);
 		}
 
-		new DenseMatrix(data).writeObject(dir + "phrs/data_unlabeled.ser.gz");
-		FileUtils.writeStringCollection(dir + "phrs/phrs_unlabeled.txt", phrsData);
+		new DenseMatrix(data).writeObject(dir + "phrs/data_q_unlabel.ser.gz");
+		FileUtils.writeStringCollection(dir + "phrs/data_q_unlabel.txt", phrsData);
 	}
 
 	public void generateData() throws Exception {
@@ -491,10 +561,10 @@ public class PhraseQualityClassification {
 		FileUtils.writeStringCollection(KPPath.KYP_DIR + "phrs_test_S_res.txt.gz", lines);
 	}
 
-	public void trainClassifier() throws Exception {
+	public void trainQualityClassifier() throws Exception {
 
-		DenseMatrix XD = new DenseMatrix(dir + "phrs/data_labeled.ser.gz");
-		IntegerArray YD = new IntegerArray(dir + "phrs/label.ser.gz");
+		DenseMatrix XD = new DenseMatrix(dir + "phrs/data_q_train.ser.gz");
+		IntegerArray YD = new IntegerArray(dir + "phrs/label_q_train.ser.gz");
 
 		DenseMatrix X = new DenseMatrix();
 		IntegerArray Y = new IntegerArray();
@@ -502,10 +572,10 @@ public class PhraseQualityClassification {
 		DenseMatrix Xt = new DenseMatrix();
 		IntegerArray Yt = new IntegerArray();
 
-		int test_size = 1000;
+		int test_size = 2000;
 
 		{
-			IntegerArrayMatrix G = DataSplitter.groupByLabels(YD);
+			IntegerArrayMatrix G = DataSplitter.group(YD);
 
 			for (int i = 0; i < G.size(); i++) {
 				IntegerArray locs = G.get(i);
@@ -545,7 +615,7 @@ public class PhraseQualityClassification {
 		param.setBatchSize(10);
 		param.setLearnRate(0.001);
 		param.setRegLambda(0.001);
-		param.setThreadSize(4);
+		param.setThreadSize(5);
 
 		int feat_size = X.colSize();
 		int l1_size = 200;
@@ -554,7 +624,7 @@ public class PhraseQualityClassification {
 
 		NeuralNet nn = new NeuralNet();
 		nn.add(new FullyConnectedLayer(feat_size, l1_size));
-		// nn.add(new BatchNormalizationLayer(l1_size));
+		nn.add(new BatchNormalizationLayer(l1_size));
 		nn.add(new NonlinearityLayer(l1_size, new Tanh()));
 		// nn.add(new DropoutLayer(l1_size));
 		nn.add(new FullyConnectedLayer(l1_size, l2_size));
@@ -568,7 +638,7 @@ public class PhraseQualityClassification {
 
 		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, XD.rowSize(), null);
 
-		IntegerArrayMatrix G = DataSplitter.groupByLabels(Y);
+		IntegerArrayMatrix G = DataSplitter.group(Y);
 		IntegerArray negLocs = G.get(0);
 		IntegerArray posLocs = G.get(1);
 

@@ -43,7 +43,7 @@ public class OrgDataMerger {
 
 		TextFileReader reader = new TextFileReader(ENTPath.BASE_ORG_HISTORY_FILE, FileUtils.EUC_KR);
 		while (reader.hasNext()) {
-			List<String> lines = reader.getNextLines();
+			List<String> lines = reader.nextLines();
 
 			if (reader.getLineCnt() == 1) {
 				continue;

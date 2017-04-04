@@ -111,7 +111,7 @@ public class DataHandler {
 				TextFileReader reader = new TextFileReader(file);
 
 				while (reader.hasNext()) {
-					List<String> lines = reader.getNextLines();
+					List<String> lines = reader.nextLines();
 
 					List<String> words = new ArrayList<>();
 					List<String> poss = new ArrayList<>();

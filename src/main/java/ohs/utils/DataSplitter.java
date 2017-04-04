@@ -12,7 +12,7 @@ import ohs.utils.Generics.ListType;
 
 public class DataSplitter {
 
-	public static IntegerArrayMatrix groupByLabels(IntegerArray x) {
+	public static IntegerArrayMatrix group(IntegerArray x) {
 		ListMap<Integer, Integer> lm = Generics.newListMap(ListType.LINKED_LIST);
 		for (int i = 0; i < x.size(); i++) {
 			lm.put(x.get(i), i);

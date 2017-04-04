@@ -134,7 +134,7 @@ public class AbbreviationCollector {
 			CounterMap<String, String> cm = new CounterMap<String, String>();
 
 			while (reader.hasNext()) {
-				List<String> lines = reader.getNextLines();
+				List<String> lines = reader.nextLines();
 
 				String data = lines.get(0);
 				Counter<String> c = new Counter<String>();
@@ -260,7 +260,7 @@ public class AbbreviationCollector {
 
 			TextFileReader reader = new TextFileReader(abbrFileNames[i]);
 			while (reader.hasNext()) {
-				List<String> lines = reader.getNextLines();
+				List<String> lines = reader.nextLines();
 
 				for (int j = 0; j < lines.size(); j++) {
 					String line = lines.get(j);

@@ -139,7 +139,7 @@ public class ListMapMap<K, V, F> implements Serializable {
 	public long totalSize() {
 		long ret = 0;
 		for (K k : ents.keySet()) {
-			ret += ents.get(k).totalSize();
+			ret += ents.get(k).sizeOfEntries();
 		}
 		return ret;
 	}

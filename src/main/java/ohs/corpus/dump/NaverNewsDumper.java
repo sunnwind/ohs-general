@@ -40,7 +40,7 @@ public class NaverNewsDumper extends TextDumper {
 
 				int num_docs = 0;
 				while (reader.hasNext()) {
-					List<String> lines = reader.getNextLines();
+					List<String> lines = reader.nextLines();
 
 					for (int i = 0; i < lines.size(); i++) {
 						lines.set(i, StrUtils.normalizeSpaces(lines.get(i)));

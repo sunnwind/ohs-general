@@ -32,7 +32,7 @@ public class SearchResultEvaluator {
 		ListMap<String, CounterMap<String, MetricType>> collCms = new ListMap<String, CounterMap<String, MetricType>>();
 
 		while (reader.hasNext()) {
-			List<String> lines = reader.getNextLines();
+			List<String> lines = reader.nextLines();
 			String collName = lines.get(0).split("\t")[1];
 			String fileName = lines.get(1).split("\t")[1].replace(".txt", "");
 

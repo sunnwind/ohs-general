@@ -28,7 +28,7 @@ public class PerformanceEvaluator {
 			TextFileWriter writer = new TextFileWriter(ENTPath.DATA_DIR + "odk_test_data_compact.txt");
 
 			while (reader.hasNext()) {
-				List<String> lines = reader.getNextLines();
+				List<String> lines = reader.nextLines();
 
 				String type = DataReader.split(lines.get(1))[0];
 				String korInput = DataReader.split(lines.get(3))[1];

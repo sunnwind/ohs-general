@@ -86,7 +86,7 @@ public class TextFileReader {
 		return next_cnt;
 	}
 
-	public List<String> getNextLines() {
+	public List<String> nextLines() {
 		List<String> ret = Generics.newLinkedList();
 		do {
 			if (next() == null || next().equals("")) {
@@ -101,7 +101,22 @@ public class TextFileReader {
 		return Generics.newArrayList(ret);
 	}
 
-	public Timer getStopWatch() {
+	public List<String> nextLines(int size) {
+		List<String> ret = Generics.newLinkedList();
+		do {
+			if (next() == null || next().equals("") || ret.size() == size) {
+				break;
+			} else {
+				ret.add(next());
+			}
+		} while (hasNext());
+
+		next_cnt++;
+
+		return Generics.newArrayList(ret);
+	}
+
+	public Timer getTimer() {
 		return timer;
 	}
 

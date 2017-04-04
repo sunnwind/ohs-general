@@ -156,7 +156,7 @@ public class ListMap<K, V> implements Serializable {
 		return sb.toString();
 	}
 
-	public int totalSize() {
+	public int sizeOfEntries() {
 		int ret = 0;
 		for (K key : ents.keySet()) {
 			ret += ents.get(key).size();

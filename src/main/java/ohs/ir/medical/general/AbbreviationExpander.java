@@ -31,7 +31,7 @@ public class AbbreviationExpander {
 
 		TextFileReader reader = new TextFileReader(fileName);
 		while (reader.hasNext()) {
-			List<String> lines = reader.getNextLines();
+			List<String> lines = reader.nextLines();
 			String shortForm = lines.get(0).split("\t")[1];
 			Counter<String> c = new Counter<String>();
 

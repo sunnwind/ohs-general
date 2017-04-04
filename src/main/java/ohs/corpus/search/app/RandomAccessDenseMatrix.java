@@ -153,9 +153,9 @@ public class RandomAccessDenseMatrix {
 
 	private IntegerArray lens;
 
-	private Map<Integer, DenseVector> rowCache;
+	private Map<Integer, DenseVector> cache1;
 
-	private Map<Integer, DenseVector> colCache;
+	private List<DenseVector> cache2;
 
 	private ReentrantLock lock = new ReentrantLock();
 
@@ -165,12 +165,13 @@ public class RandomAccessDenseMatrix {
 		lens = ByteArrayUtils.toIntegerArray(FileUtils.readByteArrayMatrix(fc));
 		dims = ByteArrayUtils.toIntegerArray(FileUtils.readByteArray(fc));
 
-		rowCache = Generics.newWeakHashMap();
-		colCache = Generics.newWeakHashMap();
+		cache1 = Generics.newWeakHashMap(rowSize());
 
 		if (cache_all) {
-			rowCache = Generics.newHashMap();
-			colCache = Generics.newHashMap();
+			cache2 = Generics.newArrayList(rowSize());
+			for (int i = 0; i < rowSize(); i++) {
+				cache2.add(null);
+			}
 		}
 	}
 
@@ -190,33 +191,12 @@ public class RandomAccessDenseMatrix {
 		return dims.get(1);
 	}
 
-	public DenseVector column(int j) throws Exception {
-		DenseVector ret = null;
-		if (j >= 0 && j < colSize()) {
-			try {
-				lock.lock();
-
-				ret = colCache.get(j);
-				if (ret == null) {
-					ret = new DenseVector(rowSize());
-					for (int i = 0; i < rowSize(); i++) {
-						ret.add(i, row(i).value(j));
-					}
-					colCache.put(j, ret);
-				}
-			} finally {
-				lock.unlock();
-			}
-		}
-		return ret;
-	}
-
 	public Map<Integer, DenseVector> getColumnCache() {
-		return rowCache;
+		return cache1;
 	}
 
 	public Map<Integer, DenseVector> getRowCache() {
-		return rowCache;
+		return cache1;
 	}
 
 	public String info() {
@@ -230,17 +210,33 @@ public class RandomAccessDenseMatrix {
 	public DenseVector row(int i) throws Exception {
 		DenseVector ret = null;
 		if (i >= 0 && i < dims.get(0)) {
-			try {
-				lock.lock();
-				ret = rowCache.get(i);
-				if (ret == null) {
-					fc.position(starts.get(i));
-					ByteArray data = FileUtils.readByteArray(fc);
-					ret = new DenseVector(ByteArrayUtils.toDoubleArray(data));
-					rowCache.put(i, ret);
+
+			if (cache2 != null) {
+				try {
+					lock.lock();
+					ret = cache2.get(i);
+					if (ret == null) {
+						fc.position(starts.get(i));
+						ByteArray data = FileUtils.readByteArray(fc);
+						ret = new DenseVector(ByteArrayUtils.toDoubleArray(data));
+						cache2.set(i, ret);
+					}
+				} finally {
+					lock.unlock();
 				}
-			} finally {
-				lock.unlock();
+			} else {
+				try {
+					lock.lock();
+					ret = cache1.get(i);
+					if (ret == null) {
+						fc.position(starts.get(i));
+						ByteArray data = FileUtils.readByteArray(fc);
+						ret = new DenseVector(ByteArrayUtils.toDoubleArray(data));
+						cache1.put(i, ret);
+					}
+				} finally {
+					lock.unlock();
+				}
 			}
 		}
 

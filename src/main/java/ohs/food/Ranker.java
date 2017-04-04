@@ -62,7 +62,7 @@ public class Ranker {
 		if (isDonga) {
 			TextFileReader reader = new TextFileReader(FoodPath.DONGA_SCIENCE_FILE, "euc-kr");
 			while (reader.hasNext()) {
-				List<String> lines = reader.getNextLines();
+				List<String> lines = reader.nextLines();
 
 				if (lines.size() == 0) {
 					continue;

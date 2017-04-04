@@ -187,7 +187,7 @@ public class DataReader {
 
 		TextFileReader reader = new TextFileReader(fileName, FileUtils.EUC_KR);
 		while (reader.hasNext()) {
-			List<String> lines = reader.getNextLines();
+			List<String> lines = reader.nextLines();
 
 			if (reader.getLineCnt() == 1) {
 				continue;

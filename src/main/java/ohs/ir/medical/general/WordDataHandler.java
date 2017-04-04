@@ -221,7 +221,7 @@ public class WordDataHandler {
 				break;
 			}
 
-			List<String> lines = reader.getNextLines();
+			List<String> lines = reader.nextLines();
 
 			String[] parts = lines.get(0).split("\t");
 			int docId = Integer.parseInt(parts[1]);

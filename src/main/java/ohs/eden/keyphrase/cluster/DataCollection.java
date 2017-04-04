@@ -30,7 +30,7 @@ public class DataCollection {
 	}
 
 	public int totalSize() {
-		return typeToFiles.totalSize();
+		return typeToFiles.sizeOfEntries();
 	}
 
 	public List<String> getDocs(String type, int i) throws Exception {

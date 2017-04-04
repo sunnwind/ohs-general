@@ -987,8 +987,8 @@ public class FileUtils {
 			} else if (len > 2) {
 				ret.setCount(StrUtils.join("\t", parts, 0, len - 1), Double.parseDouble(parts[len - 1]));
 			}
-
 		}
+
 		br.close();
 
 		System.out.printf("read [%d] ents at [%s]\n", ret.size(), fileName);

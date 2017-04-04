@@ -76,8 +76,9 @@ public class DataHandler {
 		// dh.generateDocumentEmbedding();
 		// dh.matchPhrasesToKeywords();
 		// dh.getWikiPhrases();
-		dh.getFrequentPhrases();
-		// dh.getTrainingPhrases();
+		// dh.getFrequentPhrases();
+		// dh.getQualityTrainingPhrases();
+		// dh.getMedicalTrainingPhrases();
 
 		// dh.test();
 		// dh.test2();
@@ -201,6 +202,136 @@ public class DataHandler {
 		FileUtils.writeStringCounterAsText(dataDir + "phrs/phrs_freq.txt", c);
 	}
 
+	public void getMedicalTrainingPhrases() throws Exception {
+		CounterMap<String, String> cm1 = Generics.newCounterMap();
+
+		{
+			Counter<String> c = Generics.newCounter();
+			for (String line : FileUtils.readLinesFromText(MIRPath.WIKI_DIR + "phrs_title.txt")) {
+				String[] parts = line.split("\t");
+				c.incrementCount(parts[0].toLowerCase(), Double.parseDouble(parts[1]));
+			}
+			cm1.setCounter("wiki_title", c);
+		}
+
+		{
+			Counter<String> c = Generics.newCounter();
+			for (String line : FileUtils.readLinesFromText(MIRPath.WIKI_DIR + "phrs_link.txt")) {
+				String[] parts = line.split("\t");
+				String phrs = parts[0].toLowerCase();
+				double cnt = Double.parseDouble(parts[1]);
+				c.incrementCount(phrs, cnt);
+			}
+			cm1.setCounter("wiki_link", c);
+		}
+
+		{
+			Counter<String> c = Generics.newCounter();
+			for (String line : FileUtils.readLinesFromText(MIRPath.MESH_DIR + "phrss.txt")) {
+				String[] parts = line.split("\t");
+				String phrs = parts[0].toLowerCase();
+				double cnt = Double.parseDouble(parts[1]);
+				c.incrementCount(phrs, cnt);
+			}
+			cm1.setCounter("mesh", c);
+		}
+
+		String dir = MIRPath.TREC_CDS_2016_DIR;
+
+		Counter<String> c3 = Generics.newCounter();
+
+		for (String line : FileUtils.readLinesFromText(dir + "phrs/phrs_freq.txt")) {
+			String[] parts = line.split("\t");
+			c3.incrementCount(parts[0].toLowerCase(), Double.parseDouble(parts[1]));
+		}
+
+		CounterMap<String, String> cm2 = Generics.newCounterMap();
+
+		for (String phrs : c3.getSortedKeys()) {
+			double cnt = c3.getCount(phrs);
+			phrs = phrs.replace("_", " ");
+			boolean found_in_mesh = cm1.containKey("mesh", phrs);
+
+			if (found_in_mesh) {
+				cm2.setCount("medical", phrs, cnt);
+			} else {
+				cm2.setCount("not_medical", phrs, cnt);
+			}
+		}
+
+		FileUtils.writeStringCounterAsText(dir + "phrs/phrs_m_medical.txt", cm2.getCounter("medical"));
+		FileUtils.writeStringCounterAsText(dir + "phrs/phrs_m_not_medical.txt", cm2.getCounter("not_medical"));
+	}
+
+	public void getQualityTrainingPhrases() throws Exception {
+		CounterMap<String, String> cm1 = Generics.newCounterMap();
+
+		{
+			Counter<String> c = Generics.newCounter();
+			for (String line : FileUtils.readLinesFromText(MIRPath.WIKI_DIR + "phrs_title.txt")) {
+				String[] parts = line.split("\t");
+				c.incrementCount(parts[0].toLowerCase(), Double.parseDouble(parts[1]));
+			}
+			cm1.setCounter("wiki_title", c);
+		}
+
+		{
+			Counter<String> c = Generics.newCounter();
+			for (String line : FileUtils.readLinesFromText(MIRPath.WIKI_DIR + "phrs_link.txt")) {
+				String[] parts = line.split("\t");
+				String phrs = parts[0].toLowerCase();
+				double cnt = Double.parseDouble(parts[1]);
+				c.incrementCount(phrs, cnt);
+			}
+			cm1.setCounter("wiki_link", c);
+		}
+
+		{
+			Counter<String> c = Generics.newCounter();
+			for (String line : FileUtils.readLinesFromText(MIRPath.MESH_DIR + "phrss.txt")) {
+				String[] parts = line.split("\t");
+				String phrs = parts[0].toLowerCase();
+				double cnt = Double.parseDouble(parts[1]);
+				c.incrementCount(phrs, cnt);
+			}
+			cm1.setCounter("mesh", c);
+		}
+
+		String dir = MIRPath.TREC_CDS_2016_DIR;
+
+		Counter<String> c3 = Generics.newCounter();
+
+		for (String line : FileUtils.readLinesFromText(dir + "phrs/phrs_freq.txt")) {
+			String[] parts = line.split("\t");
+			c3.incrementCount(parts[0].toLowerCase(), Double.parseDouble(parts[1]));
+		}
+
+		CounterMap<String, String> cm2 = Generics.newCounterMap();
+
+		for (String phrs : c3.getSortedKeys()) {
+			double cnt = c3.getCount(phrs);
+			phrs = phrs.replace("_", " ");
+
+			boolean found_in_wiki_title = cm1.containKey("wiki_title", phrs);
+			boolean found_in_wiki_link = cm1.containKey("wiki_link", phrs);
+			boolean found_in_mesh = cm1.containKey("mesh", phrs);
+
+			if (found_in_wiki_title || found_in_mesh) {
+				cm2.setCount("good", phrs, cnt);
+			} else {
+				if (found_in_wiki_link) {
+					cm2.setCount("not_bad", phrs, cnt);
+				} else {
+					cm2.setCount("bad", phrs, cnt);
+				}
+			}
+		}
+
+		FileUtils.writeStringCounterAsText(dir + "phrs/phrs_q_good.txt", cm2.getCounter("good"));
+		FileUtils.writeStringCounterAsText(dir + "phrs/phrs_q_not_bad.txt", cm2.getCounter("not_bad"));
+		FileUtils.writeStringCounterAsText(dir + "phrs/phrs_q_bad.txt", cm2.getCounter("bad"));
+	}
+
 	private String getText(List<List<List<Pair<String, String>>>> result) {
 		StringBuffer sb = new StringBuffer();
 
@@ -237,64 +368,6 @@ public class DataHandler {
 		}
 
 		return sb.toString().trim();
-	}
-
-	public void getTrainingPhrases() throws Exception {
-		Counter<String> c1 = Generics.newCounter();
-
-		for (String line : FileUtils.readLinesFromText(MIRPath.WIKI_DIR + "phrs_title.txt")) {
-			String[] parts = line.split("\t");
-			c1.incrementCount(parts[0].toLowerCase(), Double.parseDouble(parts[1]));
-		}
-
-		Counter<String> c2 = Generics.newCounter();
-
-		for (String line : FileUtils.readLinesFromText(MIRPath.WIKI_DIR + "phrs_link.txt")) {
-			String[] parts = line.split("\t");
-			String phrs = parts[0].toLowerCase();
-			double cnt = Double.parseDouble(parts[1]);
-			c2.incrementCount(phrs, cnt);
-		}
-
-		String dir = MIRPath.TREC_CDS_2016_DIR;
-
-		Counter<String> c3 = Generics.newCounter();
-
-		for (String line : FileUtils.readLinesFromText(dir + "phrs/freq_phrss.txt")) {
-			String[] parts = line.split("\t");
-			c3.incrementCount(parts[0].toLowerCase(), Double.parseDouble(parts[1]));
-		}
-
-		CounterMap<String, String> cm = Generics.newCounterMap();
-
-		for (String phrs : c3.keySet()) {
-			double cnt = c3.getCount(phrs);
-			phrs = phrs.replace("_", " ");
-			int len_phrs = phrs.split(" ").length;
-			int type = 0;
-
-			if (c1.containsKey(phrs)) {
-
-			} else {
-				if (c2.containsKey(phrs)) {
-					type = 1;
-				} else {
-					type = 2;
-				}
-			}
-
-			if (type == 0) {
-				cm.incrementCount("GOOD", phrs, cnt);
-			} else if (type == 1) {
-				cm.incrementCount("NotBad", phrs, cnt);
-			} else if (type == 2) {
-				cm.incrementCount("BAD", phrs, cnt);
-			}
-		}
-
-		FileUtils.writeStringCounterAsText(dir + "phrs/phrs_good.txt", cm.getCounter("GOOD"));
-		FileUtils.writeStringCounterAsText(dir + "phrs/phrs_not_bad.txt", cm.getCounter("NotBad"));
-		FileUtils.writeStringCounterAsText(dir + "phrs/phrs_bad.txt", cm.getCounter("BAD"));
 	}
 
 	public void getWikiPhrases() throws Exception {
@@ -487,130 +560,6 @@ public class DataHandler {
 			}
 
 			FileUtils.writeStringCollection(file.getPath().replace("line", "line_pos"), lines);
-		}
-	}
-
-	public void test() throws Exception {
-		System.out.println("process begins.");
-
-		PhraseCollection pc = new PhraseCollection(MIRPath.OHSUMED_COL_DC_DIR);
-		DocumentCollection dc = new DocumentCollection(MIRPath.OHSUMED_COL_DC_DIR);
-		InvertedIndex ii = new InvertedIndex(MIRPath.OHSUMED_COL_DC_DIR);
-		Vocab vocab = dc.getVocab();
-
-		System.out.println(pc.size());
-
-		Counter<Integer> c = Generics.newCounter();
-
-		for (int len : pc.getPhraseLengths()) {
-			c.incrementCount(len, 1);
-		}
-
-		System.out.println(c.toString());
-
-		for (int i = 0; i < pc.size(); i++) {
-			int phrs_len = pc.getPhraseLengths().get(i);
-
-			if (phrs_len != 2) {
-				continue;
-			}
-
-			SPostingList pl = pc.getPostingList(i);
-			System.out.println(pl.toString());
-
-			String phrs = pl.getPhrase();
-
-			int len_phrs = phrs.split("_").length;
-
-			String[] words = phrs.split("_");
-			IntegerArray Q = dc.getVocab().indexesOf(words);
-
-			// if (Q.size() == 2) {
-			// continue;
-			// }
-
-			for (int k = 1; k < Q.size(); k++) {
-				String prefix = StrUtils.join("_", words, 0, k);
-				String suffix = StrUtils.join("_", words, k, Q.size());
-
-				IntegerArray Q2 = vocab.indexesOf(prefix.split("_"));
-				IntegerArray Q3 = vocab.indexesOf(suffix.split("_"));
-
-				PostingList pl_x = ii.getPostingList(Q2, true, 1);
-				PostingList pl_y = ii.getPostingList(Q3, true, 1);
-				PostingList pl_xy = ii.getPostingList(Q, true, 1);
-
-				double pmi = CommonMath.pmi(pl_x.size(), pl_y.size(), pl_xy.size(), dc.size(), true);
-
-				System.out.printf("[%s, %s, %f]\n", prefix, suffix, pmi);
-			}
-			System.out.println();
-
-		}
-	}
-
-	public void test2() throws Exception {
-		System.out.println("process begins.");
-
-		CounterMap<String, String> cm = Generics.newCounterMap();
-
-		cm.setCounter("POS", FileUtils.readStringCounterFromText(MIRPath.OHSUMED_DIR + "phrs_train/pos.txt"));
-		cm.setCounter("NEG", FileUtils.readStringCounterFromText(MIRPath.OHSUMED_DIR + "phrs_train/neg.txt"));
-
-		PhraseCollection pc = new PhraseCollection(MIRPath.OHSUMED_COL_DC_DIR);
-		DocumentCollection dc = new DocumentCollection(MIRPath.OHSUMED_COL_DC_DIR);
-
-		System.out.println(pc.size());
-
-		Counter<String> posPhrss = cm.getCounter("POS");
-
-		for (int i = 0; i < pc.size(); i++) {
-			SPostingList pl = pc.getPostingList(i);
-			System.out.println(pl.toString());
-
-			String phrs = pl.getPhrase();
-
-			if (!posPhrss.containsKey(phrs)) {
-				continue;
-			}
-
-			int len_phrs = phrs.split("_").length;
-
-			IntegerArray dseqs = pl.getDocseqs();
-			IntegerArrayMatrix posData = pl.getPosData();
-
-			for (int j = 0; j < pl.size(); j++) {
-				Posting p = pl.getPosting(j);
-
-				int dseq = p.getDocseq();
-				IntegerArray poss = p.getPoss();
-
-				List<String> words = dc.getWords(dseq);
-				int window_size = 4;
-
-				for (int start : poss) {
-					int end = start + len_phrs;
-					int left = Math.max(0, start - window_size);
-					int right = Math.min(end + window_size, words.size());
-
-					List<String> context = Generics.newArrayList();
-
-					for (int k = left; k < right; k++) {
-						String word = words.get(k);
-						if (k == start) {
-							context.add("[");
-						} else if (k == end) {
-							context.add("]");
-						}
-						context.add(word);
-					}
-
-					System.out.println(StrUtils.join(" ", context));
-				}
-			}
-
-			System.out.println();
-
 		}
 	}
 

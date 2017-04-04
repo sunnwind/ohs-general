@@ -1,11 +1,14 @@
-package ohs.corpus.search.app;
+package ohs.bioasq;
 
 import java.util.List;
+import java.util.Set;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import ohs.corpus.search.app.DocumentSearcher;
 import ohs.corpus.search.index.WordFilter;
+import ohs.corpus.type.DocumentCollection;
 import ohs.corpus.type.SimpleStringNormalizer;
 import ohs.io.FileUtils;
 import ohs.io.TextFileReader;
@@ -32,8 +35,8 @@ public class MeSHHandler {
 		System.out.println("process begins.");
 
 		MeSHHandler h = new MeSHHandler();
-		h.dump();
-		// h.extract();
+		// h.dump();
+		h.extract();
 		// h.extractQualifierTree();
 
 		System.out.println("process ends.");
@@ -75,7 +78,7 @@ public class MeSHHandler {
 		 * 
 		 * AQ ALLOWABLE TOPICAL QUALIFIERS
 		 * 
-		 * CATSH CATALOGING SUBHEADINGS LIST DATA_NAME
+		 * CATSH CATALOGING SUBHEADINGS LIST NAME
 		 * 
 		 * CX CONSIDER ALSO XREF
 		 * 
@@ -109,7 +112,7 @@ public class MeSHHandler {
 		 * 
 		 * MS MESH SCOPE NOTE
 		 * 
-		 * N1 CAS TYPE 1 DATA_NAME
+		 * N1 CAS TYPE 1 NAME
 		 * 
 		 * OL ONLINE NOTE
 		 * 
@@ -230,6 +233,25 @@ public class MeSHHandler {
 		writer.close();
 	}
 
+	private String normalize(String s) {
+		String[] ps = s.split(", ");
+		if (ps.length > 1) {
+			StringBuffer sb = new StringBuffer();
+			for (int i = 0; i < ps.length; i++) {
+				String p = ps[ps.length - i - 1];
+				sb.append(p);
+				if (i != ps.length - 1) {
+					sb.append(" ");
+				}
+				s = sb.toString();
+			}
+		}
+
+		s = s.replace("*", "");
+
+		return s;
+	}
+
 	public void extract() throws Exception {
 
 		/***
@@ -239,7 +261,7 @@ public class MeSHHandler {
 		 * 
 		 * AQ ALLOWABLE TOPICAL QUALIFIERS
 		 * 
-		 * CATSH CATALOGING SUBHEADINGS LIST DATA_NAME
+		 * CATSH CATALOGING SUBHEADINGS LIST NAME
 		 * 
 		 * CX CONSIDER ALSO XREF
 		 * 
@@ -273,7 +295,7 @@ public class MeSHHandler {
 		 * 
 		 * MS MESH SCOPE NOTE
 		 * 
-		 * N1 CAS TYPE 1 DATA_NAME
+		 * N1 CAS TYPE 1 NAME
 		 * 
 		 * OL ONLINE NOTE
 		 * 
@@ -324,10 +346,13 @@ public class MeSHHandler {
 		 * 
 		 */
 
-		CounterMap<String, String> cm = Generics.newCounterMap();
 		String sep = " = ";
+		Counter<String> c = Generics.newCounter();
 
-		WordFilter filter = new DocumentSearcher(MIRPath.TREC_CDS_2014_COL_INDEX_DIR, MIRPath.STOPWORD_INQUERY_FILE).getWordFilter();
+		DocumentCollection dc = new DocumentCollection(MIRPath.TREC_CDS_2016_COL_DC_DIR);
+		Set<String> stopwords = FileUtils.readStringSetFromText(MIRPath.STOPWORD_INQUERY_FILE);
+		WordFilter filter = new WordFilter(dc.getVocab(), stopwords);
+
 		SimpleStringNormalizer sn = new SimpleStringNormalizer(true);
 
 		{
@@ -360,8 +385,6 @@ public class MeSHHandler {
 				}
 
 				String name = lm.get("MH", true).get(0);
-				String treeNumber = StrUtils.join("|", lm.get("MN", true));
-				String ui = lm.get("UI").get(0);
 
 				List<String> items = Generics.newArrayList();
 
@@ -377,41 +400,13 @@ public class MeSHHandler {
 					items.add(parts[0]);
 				}
 
-				if (lm.get("AN").size() > 0) {
-					items.add(lm.get("AN").get(0));
-				}
-
-				if (lm.containsKey("MH") && lm.containsKey("MN")) {
-
-				} else {
-					continue;
-				}
-
-				Counter<String> c = Generics.newCounter();
-
+				Counter<String> c1 = Generics.newCounter();
 				for (String item : items) {
-					for (String sent : NLPUtils.tokenize(item)) {
-						sent = sn.normalize(sent);
-						for (String word : sent.split(" ")) {
-							if (filter.filter(word) || word.length() == 1) {
-								continue;
-							}
-							c.incrementCount(word.toLowerCase(), 1);
-						}
-					}
+					item = normalize(item);
+					item = sn.normalize(item);
+					c1.incrementCount(item.toLowerCase(), 1);
 				}
-
-				StringBuffer sb = new StringBuffer();
-				sb.append(String.format("%s\t%s", name, treeNumber));
-
-				for (String word : c.getSortedKeys()) {
-					int cnt = (int) c.getCount(word);
-					sb.append(String.format("\t%s:%d", word, cnt));
-				}
-
-				writer.write(sb.toString() + "\n");
-
-				cm.setCounter(String.format("%s=%s=%s", name, ui, treeNumber), c);
+				c.incrementAll(c1);
 
 			}
 			reader.close();
@@ -419,6 +414,51 @@ public class MeSHHandler {
 		}
 
 		{
+			/**
+			 * 
+			 * Data Element Name
+			 * 
+			 * DA DATE OF ENTRY
+			 * 
+			 * FR FREQUENCY
+			 * 
+			 * HM HEADING MAPPED-TO
+			 * 
+			 * II INDEXING INFORMATION
+			 * 
+			 * MR MAJOR REVISION DATE
+			 * 
+			 * N1 CAS TYPE 1 NAME
+			 * 
+			 * NM NAME OF SUBSTANCE
+			 * 
+			 * NM_TH NM TERM THESAURUS ID
+			 * 
+			 * NO NOTE
+			 * 
+			 * PA PHARMACOLOGICAL ACTION
+			 * 
+			 * PI PREVIOUS INDEXING
+			 * 
+			 * RECTYPE RECORD TYPE [= RY in ELHILL MESH]
+			 * 
+			 * RN CAS REGISTRY/EC NUMBER/UNII CODE
+			 * 
+			 * RR RELATED REGISTRY NUMBER
+			 * 
+			 * SO SOURCE
+			 * 
+			 * ST SEMANTIC TYPE
+			 * 
+			 * SY SYNONYM **
+			 * 
+			 * TH THESAURUS ID
+			 * 
+			 * UI UNIQUE IDENTIFIER
+			 * 
+			 * 
+			 * 
+			 */
 			TextFileReader reader = new TextFileReader(MIRPath.MESH_COL_RAW_SUPPLEMENTARY_FILE);
 
 			while (reader.hasNext()) {
@@ -446,11 +486,10 @@ public class MeSHHandler {
 					i = end;
 				}
 
-				if (!lm.containsKey("UI") || !lm.containsKey("NM")) {
+				if (!lm.containsKey("NM")) {
 					continue;
 				}
 
-				String ui = lm.get("UI").get(0);
 				String name = lm.get("NM", true).get(0);
 
 				List<String> items = Generics.newArrayList();
@@ -461,42 +500,118 @@ public class MeSHHandler {
 					String[] parts = l.split("\\|");
 					items.add(parts[0]);
 				}
-
-				if (lm.get("NO").size() > 0) {
-					items.add(lm.get("NO").get(0));
+				
+				for (String l : lm.get("HM", true)) {
+					String[] parts = l.split("\\|");
+					items.add(parts[0]);
 				}
 
-				Counter<String> c = Generics.newCounter();
-
+				Counter<String> c1 = Generics.newCounter();
 				for (String item : items) {
-					for (String sent : NLPUtils.tokenize(item)) {
-						sent = sn.normalize(sent);
-						for (String word : sent.split(" ")) {
-							if (filter.filter(word) || word.length() == 1) {
-								continue;
-							}
-							c.incrementCount(word.toLowerCase(), 1);
-						}
-					}
+					item = normalize(item);
+					item = sn.normalize(item);
+					c1.incrementCount(item.toLowerCase(), 1);
 				}
-
-				// writer.write(sb.toString() + "\n");
-
-				cm.setCounter(String.format("%s=%s", name, ui), c);
+				c.incrementAll(c1);
 
 			}
 			reader.close();
 		}
 
-		Counter<String> c = Generics.newCounter();
+		{
+			/**
+			 * 
+			 * AN ANNOTATION DA DATE OF ENTRY
+			 * 
+			 * DQ DATE QUALIFIER ESTABLISHED
+			 * 
+			 * HN HISTORY NOTE
+			 * 
+			 * MR MAJOR REVISION DATE
+			 * 
+			 * MS MESH SCOPE NOTE
+			 * 
+			 * OL ONLINE NOTE
+			 * 
+			 * QA TOPICAL QUALIFIER ABBREVIATION
+			 * 
+			 * QE QUALIFIER ENTRY VERSION
+			 * 
+			 * QS QUALIFIER SORT VERSION
+			 * 
+			 * QT QUALIFIER TYPE
+			 * 
+			 * QX QUALIFIER CROSS REFERENCE
+			 * 
+			 * RECTYPE RECORD TYPE [= RY in ELHILL MESH]
+			 * 
+			 * SH SUBHEADING
+			 * 
+			 * TN TREE NODE ALLOWED
+			 * 
+			 * UI UNIQUE IDENTIFIER
+			 */
+			TextFileReader reader = new TextFileReader(MIRPath.MESH_COL_RAW_QUALIFIER_FILE);
 
-		for (Entry<String, Counter<String>> e : cm.getEntrySet()) {
-			c.incrementAll(e.getValue());
+			while (reader.hasNext()) {
+				List<String> lines = reader.nextLines();
+				ListMap<String, String> lm = Generics.newListMap();
+
+				for (int i = 1; i < lines.size();) {
+					String l1 = lines.get(i);
+					int end = i + 1;
+
+					for (int j = i + 1; j < lines.size(); j++) {
+						String l2 = lines.get(j);
+						if (l2.contains(sep)) {
+							end = j;
+							break;
+						}
+					}
+
+					String s = StrUtils.join(" ", lines, i, end);
+					String[] two = s.split(sep);
+					String attr = two[0];
+					String value = two[1];
+					lm.put(attr, value);
+
+					i = end;
+				}
+
+				if (!lm.containsKey("NM")) {
+					continue;
+				}
+
+				String name = lm.get("NM", true).get(0);
+
+				List<String> items = Generics.newArrayList();
+				items.add(name);
+
+				for (String l : lm.get("QX", true)) {
+					String[] parts = l.split("\\|");
+					items.add(parts[0]);
+				}
+
+				Counter<String> c1 = Generics.newCounter();
+				for (String item : items) {
+					item = normalize(item);
+					item = sn.normalize(item);
+					c1.incrementCount(item.toLowerCase(), 1);
+				}
+				c.incrementAll(c1);
+
+			}
+			reader.close();
 		}
 
-		FileUtils.writeStringCounterMapAsText(MIRPath.MESH_DIR + "word_desc_2.txt", cm);
+		// for(String item : c.keySet()){
+		// if(item.contains("(") && item.contains(")")){
+		// System.out.println(item);
+		// }
+		// }
 
-		FileUtils.writeStringCounterAsText(MIRPath.MESH_DIR + "word.txt", c);
+		FileUtils.writeStringCounterAsText(MIRPath.MESH_DIR + "phrss.txt", c);
+
 	}
 
 }
