@@ -106,7 +106,7 @@ public class TokenizeHandler {
 				}
 				writer.close();
 
-				FileUtils.writeStringCollection(outFileName, lines);
+				FileUtils.writeStringCollectionAsText(outFileName, lines);
 			}
 
 			return (int) 0;

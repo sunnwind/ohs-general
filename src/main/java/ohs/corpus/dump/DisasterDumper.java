@@ -45,7 +45,7 @@ public class DisasterDumper extends TextDumper {
 			if (res.size() % batch_size == 0) {
 				DecimalFormat df = new DecimalFormat("000000");
 				String outFileName = outPathName + String.format("%s.txt.gz", df.format(batch_cnt++));
-				FileUtils.writeStringCollection(outFileName, res);
+				FileUtils.writeStringCollectionAsText(outFileName, res);
 				res.clear();
 			}
 		}
@@ -53,7 +53,7 @@ public class DisasterDumper extends TextDumper {
 		if (res.size() > 0) {
 			DecimalFormat df = new DecimalFormat("000000");
 			String outFileName = outPathName + String.format("%s.txt.gz", df.format(batch_cnt++));
-			FileUtils.writeStringCollection(outFileName, res);
+			FileUtils.writeStringCollectionAsText(outFileName, res);
 			res.clear();
 		}
 	}

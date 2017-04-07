@@ -46,9 +46,12 @@ public class PhraseClassification {
 
 		// qc.getQualityLabeledData();
 		// qc.getQualityUnlabeledData();
-		// qc.getMedicalLabeledData();
-		qc.trainQualityClassifier();
-		// qc.test();
+		// qc.trainQualityClassifier();
+		// qc.applyQualityClassifier();
+
+		qc.getMedicalLabeledData();
+		qc.trainMedicalClassifier();
+		qc.applyMedicalClassifier();
 
 		System.out.println("process ends.");
 	}
@@ -118,25 +121,27 @@ public class PhraseClassification {
 
 		{
 			Counter<String> c = FileUtils.readStringCounterFromText(dir + "phrs/phrs_q_good.txt");
+			List<String> l = lm.get("good", true);
+
 			for (String phrs : c.getSortedKeys()) {
 				DenseVector e = extractFeatures(E, vocab, phrs);
 				if (e == null) {
 					continue;
 				}
-				lm.put("good", phrs);
+				l.add(phrs);
 			}
 		}
 
 		{
 			Counter<String> c = FileUtils.readStringCounterFromText(dir + "phrs/phrs_q_bad.txt");
-			c.keepTopNKeys(1000000);
+			List<String> l = lm.get("bad", true);
 
 			for (String phrs : c.getSortedKeys()) {
 				DenseVector e = extractFeatures(E, vocab, phrs);
-				if (e == null) {
+				if (e == null || l.size() == 1000000) {
 					continue;
 				}
-				lm.put("bad", phrs);
+				l.add(phrs);
 			}
 		}
 
@@ -170,7 +175,7 @@ public class PhraseClassification {
 
 		new DenseMatrix(data).writeObject(dir + "phrs/data_q_train.ser.gz");
 		new IntegerArray(labels).writeObject(dir + "phrs/label_q_train.ser.gz");
-		FileUtils.writeStringCollection(dir + "phrs/phrs_q_train.txt", phrsData);
+		FileUtils.writeStringCollectionAsText(dir + "phrs/phrs_q_train.txt", phrsData);
 	}
 
 	public void getMedicalLabeledData() throws Exception {
@@ -183,25 +188,27 @@ public class PhraseClassification {
 
 		{
 			Counter<String> c = FileUtils.readStringCounterFromText(dir + "phrs/phrs_m_medical.txt");
+			List<String> l = lm.get("medical", true);
+
 			for (String phrs : c.getSortedKeys()) {
 				DenseVector e = extractFeatures(E, vocab, phrs);
 				if (e == null) {
 					continue;
 				}
-				lm.put("good", phrs);
+				l.add(phrs);
 			}
 		}
 
 		{
 			Counter<String> c = FileUtils.readStringCounterFromText(dir + "phrs/phrs_m_not_medical.txt");
-			c.keepTopNKeys(1000000);
+			List<String> l = lm.get("not_medical", true);
 
 			for (String phrs : c.getSortedKeys()) {
 				DenseVector e = extractFeatures(E, vocab, phrs);
-				if (e == null) {
+				if (e == null || l.size() == 1000000) {
 					continue;
 				}
-				lm.put("bad", phrs);
+				l.add(phrs);
 			}
 		}
 
@@ -215,7 +222,7 @@ public class PhraseClassification {
 			List<String> phrss = lm.get(label);
 
 			int l = 0;
-			if (label.equals("good")) {
+			if (label.equals("medical")) {
 				l = 1;
 			}
 
@@ -235,7 +242,7 @@ public class PhraseClassification {
 
 		new DenseMatrix(data).writeObject(dir + "phrs/data_m_train.ser.gz");
 		new IntegerArray(labels).writeObject(dir + "phrs/label_m_train.ser.gz");
-		FileUtils.writeStringCollection(dir + "phrs/phrs_m_train.txt", phrsData);
+		FileUtils.writeStringCollectionAsText(dir + "phrs/phrs_m_train.txt", phrsData);
 	}
 
 	public void getQualityUnlabeledData() throws Exception {
@@ -270,7 +277,7 @@ public class PhraseClassification {
 		}
 
 		new DenseMatrix(data).writeObject(dir + "phrs/data_q_unlabel.ser.gz");
-		FileUtils.writeStringCollection(dir + "phrs/data_q_unlabel.txt", phrsData);
+		FileUtils.writeStringCollectionAsText(dir + "phrs/data_q_unlabel.txt", phrsData);
 	}
 
 	public void generateData() throws Exception {
@@ -360,11 +367,11 @@ public class PhraseClassification {
 
 		X.writeObject(KPPath.KYP_DIR + "phrs_quality_train_X.ser.gz");
 		Y.writeObject(KPPath.KYP_DIR + "phrs_quality_train_Y.ser.gz");
-		FileUtils.writeStringCollection(KPPath.KYP_DIR + "phrs_train_S.txt.gz", S);
+		FileUtils.writeStringCollectionAsText(KPPath.KYP_DIR + "phrs_train_S.txt.gz", S);
 
 		Xt.writeObject(KPPath.KYP_DIR + "phrs_quality_test_X.ser.gz");
 		Yt.writeObject(KPPath.KYP_DIR + "phrs_quality_test_Y.ser.gz");
-		FileUtils.writeStringCollection(KPPath.KYP_DIR + "phrs_test_S.txt.gz", St);
+		FileUtils.writeStringCollectionAsText(KPPath.KYP_DIR + "phrs_test_S.txt.gz", St);
 	}
 
 	public void generateDocumentEmbedding() throws Exception {
@@ -558,11 +565,10 @@ public class PhraseClassification {
 			lines.set(i, line);
 		}
 
-		FileUtils.writeStringCollection(KPPath.KYP_DIR + "phrs_test_S_res.txt.gz", lines);
+		FileUtils.writeStringCollectionAsText(KPPath.KYP_DIR + "phrs_test_S_res.txt.gz", lines);
 	}
 
 	public void trainQualityClassifier() throws Exception {
-
 		DenseMatrix XD = new DenseMatrix(dir + "phrs/data_q_train.ser.gz");
 		IntegerArray YD = new IntegerArray(dir + "phrs/label_q_train.ser.gz");
 
@@ -624,7 +630,119 @@ public class PhraseClassification {
 
 		NeuralNet nn = new NeuralNet();
 		nn.add(new FullyConnectedLayer(feat_size, l1_size));
-		nn.add(new BatchNormalizationLayer(l1_size));
+		// nn.add(new BatchNormalizationLayer(l1_size));
+		nn.add(new NonlinearityLayer(l1_size, new Tanh()));
+		// nn.add(new DropoutLayer(l1_size));
+		nn.add(new FullyConnectedLayer(l1_size, l2_size));
+		// nn.add(new BatchNormalizationLayer(l2_size));
+		nn.add(new NonlinearityLayer(l2_size, new Tanh()));
+		// nn.add(new DropoutLayer(l2_size));
+		nn.add(new FullyConnectedLayer(l2_size, output_size));
+		nn.add(new SoftmaxLayer(output_size));
+		nn.prepare();
+		nn.init();
+
+		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, XD.rowSize(), null);
+
+		IntegerArrayMatrix G = DataSplitter.group(Y);
+		IntegerArray negLocs = G.get(0);
+		IntegerArray posLocs = G.get(1);
+
+		boolean stop = false;
+
+		for (int i = 0; i < 3; i++) {
+			ArrayUtils.shuffle(negLocs.values());
+			int pos_size = posLocs.size();
+
+			for (int j = 0; j < negLocs.size();) {
+				int k = Math.min(negLocs.size(), j + pos_size);
+				IntegerArray locs = new IntegerArray(pos_size * 2);
+
+				for (int l = j; l < k; l++) {
+					locs.add(negLocs.get(l));
+				}
+				j = k;
+
+				for (int loc : posLocs) {
+					locs.add(loc);
+				}
+
+				locs.trimToSize();
+
+				DenseMatrix Xs = X.rowsAsMatrix(locs.values());
+				IntegerArray Ys = Y.subArray(locs.values());
+				trainer.train(Xs, Ys, Xt, Yt, 1);
+			}
+		}
+
+		trainer.finish();
+
+		nn.writeObject(dir + "phrs/quality_model.ser.gz");
+	}
+
+	public void trainMedicalClassifier() throws Exception {
+		DenseMatrix XD = new DenseMatrix(dir + "phrs/data_m_train.ser.gz");
+		IntegerArray YD = new IntegerArray(dir + "phrs/label_m_train.ser.gz");
+
+		DenseMatrix X = new DenseMatrix();
+		IntegerArray Y = new IntegerArray();
+
+		DenseMatrix Xt = new DenseMatrix();
+		IntegerArray Yt = new IntegerArray();
+
+		int test_size = 2000;
+
+		{
+			IntegerArrayMatrix G = DataSplitter.group(YD);
+
+			for (int i = 0; i < G.size(); i++) {
+				IntegerArray locs = G.get(i);
+				ArrayUtils.shuffle(locs.values());
+
+				IntegerArray sub1 = locs.subArray(0, test_size);
+				IntegerArray sub2 = locs.subArray(test_size, locs.size());
+
+				for (int loc : sub1) {
+					Xt.add(XD.get(loc));
+					Yt.add(YD.get(loc));
+				}
+
+				for (int loc : sub2) {
+					X.add(XD.get(loc));
+					Y.add(YD.get(loc));
+				}
+			}
+			X.trimToSize();
+			Y.trimToSize();
+			Xt.trimToSize();
+			Yt.trimToSize();
+
+			X.unwrapValues();
+			Xt.unwrapValues();
+		}
+
+		Set<Integer> labels = Generics.newHashSet();
+		for (int y : Y) {
+			labels.add(y);
+		}
+
+		NeuralNetParams param = new NeuralNetParams();
+		param.setInputSize(100);
+		param.setHiddenSize(50);
+		param.setOutputSize(10);
+		param.setBatchSize(10);
+		param.setLearnRate(0.001);
+		param.setRegLambda(0.001);
+		param.setThreadSize(5);
+
+		int feat_size = X.colSize();
+		int l1_size = 200;
+		int l2_size = 50;
+		int output_size = labels.size();
+
+		NeuralNet nn = new NeuralNet();
+		nn.add(new FullyConnectedLayer(feat_size, l1_size));
+		// nn.add(new BatchNormalizationLayer(l1_size));
 		nn.add(new NonlinearityLayer(l1_size, new Tanh()));
 		// nn.add(new DropoutLayer(l1_size));
 		nn.add(new FullyConnectedLayer(l1_size, l2_size));
@@ -669,15 +787,15 @@ public class PhraseClassification {
 
 		trainer.finish();
 
-		nn.writeObject(dir + "phrs/quality_model.ser.gz");
+		nn.writeObject(dir + "phrs/medical_model.ser.gz");
 	}
 
-	public void test() throws Exception {
+	public void applyQualityClassifier() throws Exception {
 		NeuralNet nn = new NeuralNet();
 		nn.readObject(dir + "/phrs/quality_model.ser.gz");
 
-		DenseMatrix X = new DenseMatrix(dir + "phrs/data_unlabeled.ser.gz");
-		List<String> phrss = FileUtils.readLinesFromText(dir + "phrs/phrs_unlabeled.txt");
+		DenseMatrix X = new DenseMatrix(dir + "phrs/data_q_unlabel.ser.gz");
+		List<String> phrss = FileUtils.readLinesFromText(dir + "phrs/data_q_unlabel.txt");
 		Counter<String> c = Generics.newCounter();
 
 		for (int i = 0; i < X.rowSize(); i++) {
@@ -693,8 +811,31 @@ public class PhraseClassification {
 
 		System.out.println(c.toString());
 
-		FileUtils.writeStringCollection(dir + "phrs/phrs_unlabeled_labeled.txt", phrss);
+		FileUtils.writeStringCollectionAsText(dir + "phrs/data_q_unlabel_labeled.txt", phrss);
+	}
 
+	public void applyMedicalClassifier() throws Exception {
+		NeuralNet nn = new NeuralNet();
+		nn.readObject(dir + "/phrs/medical_model.ser.gz");
+
+		DenseMatrix X = new DenseMatrix(dir + "phrs/data_q_unlabel.ser.gz");
+		List<String> phrss = FileUtils.readLinesFromText(dir + "phrs/data_q_unlabel.txt");
+		Counter<String> c = Generics.newCounter();
+
+		for (int i = 0; i < X.rowSize(); i++) {
+			DenseVector x = X.row(i);
+			DenseVector scores = nn.score(x);
+			int pred = scores.argMax();
+
+			String label = pred == 0 ? "not_medical" : "medical";
+			String phrs = phrss.get(i);
+			phrss.set(i, label + "\t" + phrs);
+			c.incrementCount(label, 1);
+		}
+
+		System.out.println(c.toString());
+
+		FileUtils.writeStringCollectionAsText(dir + "phrs/data_m_unlabel_labeled.txt", phrss);
 	}
 
 }

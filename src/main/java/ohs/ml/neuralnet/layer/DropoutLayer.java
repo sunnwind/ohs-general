@@ -28,6 +28,8 @@ public class DropoutLayer extends Layer {
 
 	private double p = 0.5;
 
+	private int input_size;
+
 	private int output_size;
 
 	public DropoutLayer(int output_size) {
@@ -35,17 +37,18 @@ public class DropoutLayer extends Layer {
 	}
 
 	public DropoutLayer(int output_size, double p) {
+		this.input_size = output_size;
 		this.output_size = output_size;
 		this.p = p;
 	}
-	
+
 	public DropoutLayer(ObjectInputStream ois) throws Exception {
 		readObject(ois);
 	}
 
 	@Override
-	public DenseMatrix backward(Object O) {
-		DenseMatrix dY = (DenseMatrix) O;
+	public DenseMatrix backward(Object I) {
+		DenseMatrix dY = (DenseMatrix) I;
 		if (tmp_dX == null || tmp_dX.rowSize() < dY.rowSize()) {
 			tmp_dX = dY.copy(true);
 		}

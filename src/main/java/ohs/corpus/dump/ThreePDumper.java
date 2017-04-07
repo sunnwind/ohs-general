@@ -133,7 +133,7 @@ public class ThreePDumper extends TextDumper {
 					if (res.size() % batch_size == 0) {
 						DecimalFormat df = new DecimalFormat("000000");
 						String outFileName = outPathName + String.format("%s/%s.txt.gz", type, df.format(batch_cnt++));
-						FileUtils.writeStringCollection(outFileName, res);
+						FileUtils.writeStringCollectionAsText(outFileName, res);
 
 						res.clear();
 						// res.add(labelStr);
@@ -145,7 +145,7 @@ public class ThreePDumper extends TextDumper {
 			if (res.size() > 0) {
 				DecimalFormat df = new DecimalFormat("000000");
 				String outFileName = outPathName + String.format("%s/%s.txt.gz", type, df.format(batch_cnt++));
-				FileUtils.writeStringCollection(outFileName, res);
+				FileUtils.writeStringCollectionAsText(outFileName, res);
 
 				res.clear();
 				// res.add(labelStr);

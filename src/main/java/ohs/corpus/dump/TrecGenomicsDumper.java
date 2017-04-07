@@ -87,7 +87,7 @@ public class TrecGenomicsDumper extends TextDumper {
 							// String outPath = new File(inFileName.replace(inPathName, outPathName)).getParent().replace("\\", "/");
 							DecimalFormat df = new DecimalFormat("00000");
 							String outFileName = String.format("%s/%s.txt.gz", outPath, df.format(batch_cnt.getAndIncrement()));
-							FileUtils.writeStringCollection(outFileName, res);
+							FileUtils.writeStringCollectionAsText(outFileName, res);
 
 							res.clear();
 						}
@@ -99,7 +99,7 @@ public class TrecGenomicsDumper extends TextDumper {
 			if (res.size() > 0) {
 				DecimalFormat df = new DecimalFormat("00000");
 				String outFileName = String.format("%s/%s.txt.gz", outPath, df.format(batch_cnt.getAndIncrement()));
-				FileUtils.writeStringCollection(outFileName, res);
+				FileUtils.writeStringCollectionAsText(outFileName, res);
 				res.clear();
 			}
 

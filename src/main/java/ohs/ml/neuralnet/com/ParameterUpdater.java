@@ -107,6 +107,21 @@ public class ParameterUpdater {
 		weight_decay = (1 - reg_lambda * learn_rate / data_size);
 	}
 
+	private void doWeightNormalization(DenseVector dLw, DenseVector v, DenseVector dLg) {
+		double norm_v = VectorMath.normL2(v);
+
+		VectorMath.multiply(dLw, v, dLg);
+		dLg.multiply(1f / norm_v);
+	}
+ 
+	private void doWeightNormalization2(DenseVector w, DenseVector v) {
+		double g = VectorMath.normL2(w);
+		double norm_v = VectorMath.normL2(v);
+
+		w = v;
+		w.multiply(g / norm_v);
+	}
+
 	public void update() {
 		double norm = VectorMath.normL2(dW);
 

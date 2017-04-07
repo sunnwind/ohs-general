@@ -66,7 +66,7 @@ public class MeSHHandler {
 			lines.set(i, g + "\t" + label);
 		}
 
-		FileUtils.writeStringCollection(inFileName.replace("_raw", ""), lines);
+		FileUtils.writeStringCollectionAsText(inFileName.replace("_raw", ""), lines);
 	}
 
 	public void dump() throws Exception {

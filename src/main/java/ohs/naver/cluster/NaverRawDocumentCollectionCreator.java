@@ -1,15 +1,16 @@
-package ohs.corpus.type;
+package ohs.naver.cluster;
 
 import java.io.File;
 import java.nio.channels.FileChannel;
 import java.util.Arrays;
 import java.util.List;
 
+import ohs.corpus.type.DataCompression;
+import ohs.corpus.type.RawDocumentCollection;
 import ohs.io.ByteArray;
 import ohs.io.ByteArrayMatrix;
 import ohs.io.ByteBufferWrapper;
 import ohs.io.FileUtils;
-import ohs.ir.medical.general.MIRPath;
 import ohs.types.number.IntegerArray;
 import ohs.types.number.LongArray;
 import ohs.types.number.ShortArray;
@@ -27,9 +28,9 @@ import ohs.utils.Timer;
  * @author ohs
  *
  */
-public class RawDocumentCollectionCreator {
+public class NaverRawDocumentCollectionCreator {
 
-	public static void createFromTokenizedData(RawDocumentCollectionCreator rdc, String inDir) throws Exception {
+	public static void createFromTokenizedData(NaverRawDocumentCollectionCreator rdc, String inDir) throws Exception {
 		Timer timer = Timer.newTimer();
 		int doc_cnt = 0;
 
@@ -57,152 +58,25 @@ public class RawDocumentCollectionCreator {
 		System.out.println("process begins.");
 
 		// {
-		// String[] attrs = { "sequential identifier", "MEDLINE identifier", "Human-assigned MeSH terms (MH)", "Title (TI)",
-		// "Publication type (PT)", "Abstract (AB)", "Author (AU)", "Source (SO)" };
-		// String inDir = MIRPath.OHSUMED_COL_TOK_DIR;
-		// String outDir = MIRPath.OHSUMED_COL_DC_DIR;
+		// String[] attrs = { "title", "section", "body" };
+		// String inDir = "../../data/naver_news/col/line/";
+		// String outDir = "../../data/naver_news/col/dc/";
 		// boolean append = false;
 		// NaverRawDocumentCollectionCreator dcc = new NaverRawDocumentCollectionCreator(outDir, append);
 		// dcc.addAttrs(Generics.newArrayList(attrs));
 		// createFromTokenizedData(dcc, inDir);
 		// dcc.close();
-		// }
-
-		// {
-		// String[] attrs = { "pmcid", "title", "abs", "body" };
-		// String inDir = MIRPath.TREC_CDS_2016_COL_TOK_DIR;
-		// String outDir = MIRPath.TREC_CDS_2016_COL_DC_DIR;
-		// boolean append = false;
-		// NaverRawDocumentCollectionCreator dcc = new
-		// NaverRawDocumentCollectionCreator(outDir, append);
-		// dcc.addAttrs(Generics.newArrayList(attrs));
-		// createFromTokenizedData(dcc, inDir);
-		// dcc.close();
-		// }
-
-		// {
-		// String[] attrs = { "id", "url", "title", "content", "phrs" };
-		// String inDir = MIRPath.WIKI_COL_TOK_DIR;
-		// String outDir = MIRPath.WIKI_COL_DC_DIR;
-		// boolean append = false;
-		// NaverRawDocumentCollectionCreator dcc = new
-		// NaverRawDocumentCollectionCreator(outDir, append);
-		// dcc.addAttrs(Generics.newArrayList(attrs));
-		// createFromTokenizedData(dcc, inDir);
-		// dcc.close();
-		// }
-		//
-		// {
-		// String[] attrs = { "pmid", "journal", "year", "mesh", "title", "abs"
-		// };
-		// String inDir = MIRPath.BIOASQ_COL_TOK_DIR;
-		// String outDir = MIRPath.BIOASQ_COL_DC_DIR;
-		// boolean append = false;
-		// NaverRawDocumentCollectionCreator dcc = new
-		// NaverRawDocumentCollectionCreator(outDir, append);
-		// dcc.addAttrs(Generics.newArrayList(attrs));
-		// createFromTokenizedData(dcc, inDir);
-		// dcc.close();
-		// }
-		//
-		// {
-		// String[] attrs = { "id", "content", "uri" };
-		// String inDir = MIRPath.CLUEWEB_COL_TOK_DIR;
-		// String outDir = MIRPath.CLUEWEB_COL_DC_DIR;
-		// boolean append = false;
-		// NaverRawDocumentCollectionCreator dcc = new
-		// NaverRawDocumentCollectionCreator(outDir, append);
-		// dcc.addAttrs(Generics.newArrayList(attrs));
-		// createFromTokenizedData(dcc, inDir);
-		// dcc.close();
-		// }
-
-		//
-		// {
-		// String[] attrs = { "uid", "date", "url", "content" };
-		// String inDir = MIRPath.CLEF_EH_2014_COL_TOK_DIR;
-		// String outDir = MIRPath.CLEF_EH_2014_COL_DC_DIR;
-		// boolean append = false;
-		// NaverRawDocumentCollectionCreator dcc = new
-		// NaverRawDocumentCollectionCreator(outDir, append);
-		// dcc.addAttrs(Generics.newArrayList(attrs));
-		// createFromTokenizedData(dcc, inDir);
-		// dcc.close();
-		// }
-		//
-		// {
-		// String[] attrs = { "docid", "content" };
-		// String inDir = MIRPath.TREC_GENO_2007_COL_TOK_DIR;
-		// String outDir = MIRPath.TREC_GENO_2007_COL_DC_DIR;
-		// boolean append = false;
-		// NaverRawDocumentCollectionCreator dcc = new
-		// NaverRawDocumentCollectionCreator(outDir, append);
-		// dcc.addAttrs(Generics.newArrayList(attrs));
-		// createFromTokenizedData(dcc, inDir);
-		// dcc.close();
-		// }
-		//
-		// {
-		// String[] attrs = { "pmcid", "title", "abs", "body" };
-		// String inDir = MIRPath.TREC_CDS_2014_COL_TOK_DIR;
-		// String outDir = MIRPath.TREC_CDS_2014_COL_DC_DIR;
-		// boolean append = false;
-		// NaverRawDocumentCollectionCreator dcc = new NaverRawDocumentCollectionCreator(outDir, append);
-		// dcc.addAttrs(Generics.newArrayList(attrs));
-		// createFromTokenizedData(dcc, inDir);
-		// dcc.close();
-		// }
-
-		// {
-		// String[] attrs = { "type", "cn", "kor_kwds", "eng_kwds", "kor_title",
-		// "eng_title", "kor_abs", "eng_abs" };
-		// String inDir = KPPath.COL_LINE_DIR;
-		// String outDir = KPPath.COL_DC_DIR;
-		// boolean append = false;
-		// NaverRawDocumentCollectionCreator rdc = new
-		// NaverRawDocumentCollectionCreator(outDir, append);
-		// rdc.addAttrs(Generics.newArrayList(attrs));
-		//
-		// Timer timer = Timer.newTimer();
-		// int doc_cnt = 0;
-		//
-		// for (File dir : new File(inDir).listFiles()) {
-		// for (File file : FileUtils.getFilesUnder(dir)) {
-		// for (String line : FileUtils.readLinesFromText(file)) {
-		// String[] vals = StrUtils.unwrap(line.split("\t"));
-		// for (int i = 0; i < vals.length; i++) {
-		// vals[i] = vals[i].replace(StrUtils.LINE_REP, "\n");
-		// vals[i] = vals[i].replace(StrUtils.TAB_REP, "\t");
-		// }
-		// rdc.addValues(vals);
-		// }
-		// }
-		// }
-		// rdc.close();
 		// }
 
 		{
-			String[] attrs = { "title", "section", "body" };
+			String[] attrs = { "title" };
 			String inDir = "../../data/naver_news/col/line/";
 			String outDir = "../../data/naver_news/col/dc/";
 			boolean append = false;
-			RawDocumentCollectionCreator dcc = new RawDocumentCollectionCreator(outDir, append);
+			NaverRawDocumentCollectionCreator dcc = new NaverRawDocumentCollectionCreator(outDir, append);
 			dcc.addAttrs(Generics.newArrayList(attrs));
 			createFromTokenizedData(dcc, inDir);
 			dcc.close();
-		}
-
-		{
-			{
-				String[] attrs = { "title" };
-				String inDir = "../../data/naver_news/col/line/";
-				String outDir = "../../data/naver_news/col/dc/";
-				boolean append = false;
-				RawDocumentCollectionCreator dcc = new RawDocumentCollectionCreator(outDir, append);
-				dcc.addAttrs(Generics.newArrayList(attrs));
-				createFromTokenizedData(dcc, inDir);
-				dcc.close();
-			}
 		}
 
 		System.out.println("process ends.");
@@ -236,7 +110,7 @@ public class RawDocumentCollectionCreator {
 
 	private ByteBufferWrapper buf = new ByteBufferWrapper(new ByteSize(64, Type.MEGA).getBytes());
 
-	public RawDocumentCollectionCreator(String dataDirName, boolean append) throws Exception {
+	public NaverRawDocumentCollectionCreator(String dataDirName, boolean append) throws Exception {
 		starts = Generics.newLinkedList();
 		types = Generics.newLinkedList();
 		lens = Generics.newLinkedList();

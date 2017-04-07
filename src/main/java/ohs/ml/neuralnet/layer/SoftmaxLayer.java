@@ -26,26 +26,19 @@ public class SoftmaxLayer extends Layer {
 	}
 
 	@Override
-	public Object backward(Object O) {
-		return O;
+	public Object backward(Object I) {
+		return I;
 	}
 
 	@Override
 	public Object forward(Object I) {
 		DenseMatrix X = (DenseMatrix) I;
 		int data_size = X.rowSize();
-
 		if (tmp_Y == null || tmp_Y.rowSize() < data_size) {
 			tmp_Y = X.copy(true);
 		}
-
 		DenseMatrix Y = tmp_Y.rowsAsMatrix(data_size);
-		try {
-			VectorMath.softmax(X, Y);
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		VectorMath.softmax(X, Y);
 		return Y;
 	}
 

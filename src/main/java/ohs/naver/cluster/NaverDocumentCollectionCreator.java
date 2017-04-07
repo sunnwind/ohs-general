@@ -1,4 +1,4 @@
-package ohs.corpus.type;
+package ohs.naver.cluster;
 
 import java.io.File;
 import java.nio.ByteBuffer;
@@ -12,12 +12,17 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import ohs.corpus.type.DataCompression;
+import ohs.corpus.type.DocumentCollection;
+import ohs.corpus.type.DocumentCollectionCreator;
+import ohs.corpus.type.RawDocumentCollection;
+import ohs.corpus.type.SimpleStringNormalizer;
+import ohs.corpus.type.StringNormalizer;
 import ohs.io.ByteArray;
 import ohs.io.ByteArrayMatrix;
 import ohs.io.ByteArrayUtils;
 import ohs.io.ByteBufferWrapper;
 import ohs.io.FileUtils;
-import ohs.ir.medical.general.MIRPath;
 import ohs.ml.neuralnet.com.BatchUtils;
 import ohs.types.generic.Counter;
 import ohs.types.generic.ListList;
@@ -31,7 +36,7 @@ import ohs.utils.ByteSize.Type;
 import ohs.utils.Generics;
 import ohs.utils.Timer;
 
-public class DocumentCollectionCreator {
+public class NaverDocumentCollectionCreator {
 
 	class CountWorker implements Callable<Pair<Counter<String>, Counter<String>>> {
 
@@ -270,30 +275,6 @@ public class DocumentCollectionCreator {
 		dcc.setCreateVocabBatchSize(200);
 		dcc.setCountingThreadSize(10);
 		dcc.setIndexingThreadSize(5);
-		// dcc.setReuseVocab(true);
-		// dcc.setEncode(true);
-
-		// dcc.create(MIRPath.OHSUMED_COL_DC_DIR, 1, new int[] { 3, 5 });
-		// dcc.create(MIRPath.TREC_CDS_2014_COL_DC_DIR, 0, new int[] { 1, 2, 3 });
-		// dcc.create(MIRPath.TREC_CDS_2016_COL_DC_DIR, 0, new int[] { 1, 2, 3 });
-		// dcc.create(MIRPath.BIOASQ_COL_DC_DIR, 0, new int[] { 4, 5 });
-		// dcc.create(MIRPath.WIKI_COL_DC_DIR, 0, new int[] { 3 });
-		// dcc.create(MIRPath.CLUEWEB_COL_DC_DIR, 0, new int[] { 1 });
-
-		// dcc.create(MIRPath.CLEF_EH_2014_COL_DC_DIR, 0, new int[] { 3 });
-		// dcc.create(MIRPath.TREC_GENO_2007_COL_DC_DIR, 0, new int[] { 1 });
-		// dcc.create(MIRPath.CLUEWEB_COL_DC_DIR, 0, new int[] { 1 });
-
-		// scc.setMinDocFreq(0);
-		// scc.create(MIRPath.MESH_COL_LINE_DIR, 0, new int[] { 1 },
-		// MIRPath.MESH_COL_DC_DIR);
-
-		// dcc.setStringNormalizer(new ThreePStringNormalizer());
-		// dcc.create(KPPath.COL_DC_DIR, 0, new int[] { 4, 5, 6, 7 });
-
-		// InvertedIndexCreator.main(args);
-
-		// dcc.create("../../data/naver_news/col/dc/", 0, new int[] { 0, 2 });
 
 		dcc.setMinWordCnt(0);
 		dcc.create("../../data/naver_news/col/dc/", -1, new int[] { 0 });
@@ -373,7 +354,7 @@ public class DocumentCollectionCreator {
 
 	private IntegerArray lens_d;
 
-	public DocumentCollectionCreator() {
+	public NaverDocumentCollectionCreator() {
 
 	}
 
@@ -447,10 +428,6 @@ public class DocumentCollectionCreator {
 		tpe.shutdown();
 
 		return createVocab(docFreqs, wordCnts);
-	}
-
-	public void setMinWordCnt(int min_word_cnt) {
-		this.min_word_cnt = min_word_cnt;
 	}
 
 	private Vocab createVocab(Counter<String> docFreqs, Counter<String> wordCnts) {
@@ -687,6 +664,10 @@ public class DocumentCollectionCreator {
 
 	public void setMinDocFreq(int min_doc_freq) {
 		this.min_doc_freq = min_doc_freq;
+	}
+
+	public void setMinWordCnt(int min_word_cnt) {
+		this.min_word_cnt = min_word_cnt;
 	}
 
 	public void setReuseVocab(boolean reuse_vocab) {

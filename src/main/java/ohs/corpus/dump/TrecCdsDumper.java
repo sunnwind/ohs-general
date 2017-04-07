@@ -115,7 +115,7 @@ public class TrecCdsDumper extends TextDumper {
 					if (res.size() % batch_size == 0) {
 						DecimalFormat df = new DecimalFormat("00000");
 						String outFileName = String.format("%s/%s.txt.gz", outPath, df.format(batch_cnt.getAndIncrement()));
-						FileUtils.writeStringCollection(outFileName, res);
+						FileUtils.writeStringCollectionAsText(outFileName, res);
 						res.clear();
 					}
 				}
@@ -125,7 +125,7 @@ public class TrecCdsDumper extends TextDumper {
 			if (res.size() > 0) {
 				DecimalFormat df = new DecimalFormat("00000");
 				String outFileName = String.format("%s/%s.txt.gz", outPath, df.format(batch_cnt.getAndIncrement()));
-				FileUtils.writeStringCollection(outFileName, res);
+				FileUtils.writeStringCollectionAsText(outFileName, res);
 				res.clear();
 			}
 

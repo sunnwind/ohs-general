@@ -1446,7 +1446,7 @@ public class FileUtils {
 		oos.flush();
 	}
 
-	public static void writeStringCollection(String fileName, Collection<String> c) throws Exception {
+	public static void writeStringCollectionAsText(String fileName, Collection<String> c) throws Exception {
 		System.out.printf("write [%d] at [%s].\n", c.size(), fileName);
 
 		BufferedWriter bw = openBufferedWriter(fileName);

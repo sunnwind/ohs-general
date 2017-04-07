@@ -2,10 +2,12 @@ package ohs.ml.neuralnet.com;
 
 import java.util.Set;
 
+import ohs.math.ArrayUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.SparseMatrix;
 import ohs.ml.neuralnet.layer.BatchNormalizationLayer;
-import ohs.ml.neuralnet.layer.BiRnnLayer;
+import ohs.ml.neuralnet.layer.BidirectionalRecurrentLayer;
+import ohs.ml.neuralnet.layer.BidirectionalRecurrentLayer.Type;
 import ohs.ml.neuralnet.layer.ConvolutionalLayer;
 import ohs.ml.neuralnet.layer.EmbeddingLayer;
 import ohs.ml.neuralnet.layer.FullyConnectedLayer;
@@ -29,8 +31,8 @@ public class Apps {
 		System.out.println("process begins.");
 
 		// testMIST();
-		testCharRNN();
-		// testNER();
+		// testCharRNN();
+		testNER();
 
 		System.out.println("process ends.");
 	}
@@ -93,7 +95,7 @@ public class Apps {
 		int l1_size = 100;
 		int l2_size = 20;
 		int output_size = vocab.size();
-		int type = 3;
+		int type = 4;
 
 		System.out.println(vocab.info());
 
@@ -171,7 +173,9 @@ public class Apps {
 			nn.add(new EmbeddingLayer(vocab_size, embedding_size, true));
 			// nn.add(new BatchNormalizationLayer(embedding_size));
 			// nn.add(new GruLayer(embedding_size, l1_size, new Tanh()));
-			nn.add(new BiRnnLayer(embedding_size, l1_size, param.getBpttSize(), new Tanh()));
+			// nn.add(new RnnLayer(embedding_size, l1_size, param.getBpttSize(), new ReLU()));
+			// nn.add(new BiRnnLayer(embedding_size, l1_size, param.getBpttSize(), new Tanh()));
+			nn.add(new BidirectionalRecurrentLayer(Type.LSTM, embedding_size, l1_size, param.getBpttSize(), new Tanh()));
 			// nn.add(new BatchNormalizationLayer(l1_size));
 			// nn.add(new DropoutLayer(l1_size));
 			nn.add(new FullyConnectedLayer(l1_size, output_size));
@@ -240,7 +244,7 @@ public class Apps {
 		param.setBatchSize(1);
 		param.setLearnRate(0.001);
 		param.setRegLambda(0.01);
-		param.setThreadSize(1);
+		param.setThreadSize(5);
 		param.setBpttSize(0);
 
 		IntegerArrayMatrix X = null;
@@ -314,16 +318,39 @@ public class Apps {
 		} else if (type == 2) {
 			nn.add(new EmbeddingLayer(vocab_size, embedding_size, true));
 			// nn.add(new BatchNormalizationLayer(embedding_size));
-			nn.add(new LstmLayer(embedding_size, l1_size, new Tanh()));
+			nn.add(new BidirectionalRecurrentLayer(Type.RNN, embedding_size, l1_size, param.getBpttSize(), new Tanh()));
 			// nn.add(new DropoutLayer(l1_size));
-			nn.add(new BatchNormalizationLayer(l1_size));
+			// nn.add(new BatchNormalizationLayer(l1_size));
 			nn.add(new FullyConnectedLayer(l1_size, output_size));
 			nn.add(new SoftmaxLayer(output_size));
 			nn.prepare();
 			nn.init();
 
+			IntegerArray locs = new IntegerArray(ArrayUtils.range(X.size()));
+
+			int[][] ranges = BatchUtils.getBatchRanges(X.size(), 1000);
+
 			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size(), labelIndexer);
-			trainer.train(X, Y, Xt, Yt, 10000);
+
+			for (int i = 0; i < 1000; i++) {
+				ArrayUtils.shuffle(locs.values());
+
+				for (int j = 0; j < ranges.length; j++) {
+					int[] range = ranges[j];
+					IntegerArrayMatrix Xsub = new IntegerArrayMatrix(range[1] - range[0]);
+					IntegerArrayMatrix Ysub = new IntegerArrayMatrix(range[1] - range[0]);
+
+					for (int k = range[0]; k < range[1]; k++) {
+						int loc = locs.get(k);
+						Xsub.add(X.get(loc));
+						Ysub.add(Y.get(loc));
+					}
+
+					trainer.train(Xsub, Ysub, Xt, Yt, 1);
+				}
+
+			}
+
 			trainer.finish();
 		}
 	}

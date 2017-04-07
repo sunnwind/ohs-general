@@ -171,7 +171,7 @@ public class CategoryTreeBuilder {
 
 		System.out.printf("\r[%d/%d, %s]\n", num_nodes, leaves.size(), timer.stop());
 
-		FileUtils.writeStringCollection(MIRPath.WIKI_DIR + "wiki_cat_tree_bottom-up.txt", catPaths);
+		FileUtils.writeStringCollectionAsText(MIRPath.WIKI_DIR + "wiki_cat_tree_bottom-up.txt", catPaths);
 	}
 
 	public void buildTopDown() throws Exception {
@@ -211,7 +211,7 @@ public class CategoryTreeBuilder {
 		Set<String> res = Generics.newTreeSet();
 		res.addAll(catPaths);
 
-		FileUtils.writeStringCollection(MIRPath.WIKI_DIR + "wiki_cat_tree_top-down.txt.gz", res);
+		FileUtils.writeStringCollectionAsText(MIRPath.WIKI_DIR + "wiki_cat_tree_top-down.txt.gz", res);
 	}
 
 	private boolean isValid(int catid) {

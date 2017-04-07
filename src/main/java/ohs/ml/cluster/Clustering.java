@@ -14,7 +14,7 @@ public abstract class Clustering {
 		}
 	}
 
-	protected SimilarityMetric sm = new SimilarityMetric(Type.EUCLIDEAN);
+	protected SimilarityMetric sm = new SimilarityMetric(Type.COSINE);
 
 	protected int thread_size = 10;
 

@@ -236,6 +236,17 @@ public class DataHandler {
 			cm1.setCounter("mesh", c);
 		}
 
+		{
+			Counter<String> c = Generics.newCounter();
+			for (String line : FileUtils.readLinesFromText(MIRPath.SNOMED_DIR + "phrss.txt")) {
+				String[] parts = line.split("\t");
+				String phrs = parts[0].toLowerCase();
+				double cnt = Double.parseDouble(parts[1]);
+				c.incrementCount(phrs, cnt);
+			}
+			cm1.setCounter("snomed", c);
+		}
+
 		String dir = MIRPath.TREC_CDS_2016_DIR;
 
 		Counter<String> c3 = Generics.newCounter();
@@ -251,8 +262,13 @@ public class DataHandler {
 			double cnt = c3.getCount(phrs);
 			phrs = phrs.replace("_", " ");
 			boolean found_in_mesh = cm1.containKey("mesh", phrs);
+			boolean found_in_snomed = cm1.containKey("snomed", phrs);
 
-			if (found_in_mesh) {
+			// if(!found_in_mesh && found_in_snomed){
+			// System.out.println(phrs);
+			// }
+
+			if (found_in_mesh || found_in_snomed) {
 				cm2.setCount("medical", phrs, cnt);
 			} else {
 				cm2.setCount("not_medical", phrs, cnt);
@@ -468,7 +484,7 @@ public class DataHandler {
 
 		System.out.println(cc);
 
-		FileUtils.writeStringCollection(KPPath.KYP_DIR + "phrs_3p_label.txt.gz", lines);
+		FileUtils.writeStringCollectionAsText(KPPath.KYP_DIR + "phrs_3p_label.txt.gz", lines);
 	}
 
 	public void queryGloveModel() throws Exception {
@@ -559,7 +575,7 @@ public class DataHandler {
 				lines.set(i, StrUtils.join("\t", parts));
 			}
 
-			FileUtils.writeStringCollection(file.getPath().replace("line", "line_pos"), lines);
+			FileUtils.writeStringCollectionAsText(file.getPath().replace("line", "line_pos"), lines);
 		}
 	}
 

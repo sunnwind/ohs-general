@@ -9,6 +9,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import ohs.corpus.type.DocumentCollection;
 import ohs.ir.medical.general.MIRPath;
+import ohs.ir.weight.TermWeighting;
+import ohs.math.ArrayMath;
 import ohs.math.ArrayUtils;
 import ohs.math.VectorMath;
 import ohs.matrix.DenseMatrix;
@@ -16,7 +18,6 @@ import ohs.matrix.DenseVector;
 import ohs.matrix.SparseMatrix;
 import ohs.matrix.SparseVector;
 import ohs.ml.neuralnet.com.BatchUtils;
-import ohs.ml.neuralnet.com.ParameterInitializer;
 import ohs.types.generic.Counter;
 import ohs.types.generic.Pair;
 import ohs.types.number.IntegerArray;
@@ -31,13 +32,13 @@ public class KMeansClustering extends Clustering {
 
 		private SparseMatrix X;
 
-		private DenseMatrix C;
+		private SparseMatrix C;
 
 		private AtomicInteger data_cnt;
 
 		private Timer timer;
 
-		public Worker(SparseMatrix X, DenseMatrix C, AtomicInteger data_cnt, Timer timer) {
+		public Worker(SparseMatrix X, SparseMatrix C, AtomicInteger data_cnt, Timer timer) {
 			this.X = X;
 			this.C = C;
 			this.data_cnt = data_cnt;
@@ -56,7 +57,7 @@ public class KMeansClustering extends Clustering {
 				SparseVector x = X.rowAt(i);
 
 				for (int j = 0; j < C.rowSize(); j++) {
-					DenseVector c = C.rowAt(j);
+					SparseVector c = C.rowAt(j);
 					double sim = sm.getSimilarity(x, c);
 					yh.set(j, sim);
 				}
@@ -96,6 +97,21 @@ public class KMeansClustering extends Clustering {
 			dvs.add(dv);
 		}
 
+		for (SparseVector dv : dvs) {
+			double norm = 0;
+			double doc_cnt = dc.getVocab().getDocCnt();
+			for (int j = 0; j < dv.size(); j++) {
+				int w = dv.indexAt(j);
+				double cnt = dv.valueAt(j);
+				double doc_freq = dc.getVocab().getDocFreq(w);
+				double weight = TermWeighting.tfidf(cnt, doc_cnt, doc_freq);
+				norm += (weight * weight);
+				dv.setAt(j, weight);
+			}
+			norm = Math.sqrt(norm);
+			dv.multiply(1f / norm);
+		}
+
 		int feat_size = 0;
 
 		for (SparseVector dv : dvs) {
@@ -116,14 +132,33 @@ public class KMeansClustering extends Clustering {
 
 	private IntegerArray Y;
 
-	private DenseMatrix C;
+	// private DenseMatrix C;
+
+	private SparseMatrix C;
+
+	private int feat_size;
 
 	public KMeansClustering(SparseMatrix X, int cluster_size, int feat_size) {
 		this.X = X;
-		C = new DenseMatrix(cluster_size, feat_size);
+		this.feat_size = feat_size;
+		// C = new DenseMatrix(cluster_size, feat_size);
+
+		int[] idxs = ArrayUtils.range(cluster_size);
+		SparseVector[] rows = new SparseVector[cluster_size];
+
+		for (int i = 0; i < rows.length; i++) {
+			SparseVector row = new SparseVector(ArrayUtils.range(feat_size), new double[feat_size]);
+			rows[i] = row;
+
+			int input_size = rows.length;
+			double bound = 1f / Math.sqrt(input_size);
+			ArrayMath.random(-bound, bound, row.values());
+		}
+
+		C = new SparseMatrix(idxs, rows);
+
 		Y = new IntegerArray(new int[X.size()]);
 
-		ParameterInitializer.init1(C);
 	}
 
 	public IntegerArray cluster(int max_iter) throws Exception {
@@ -172,21 +207,36 @@ public class KMeansClustering extends Clustering {
 			ArrayUtils.copy(Y.values(), Yo.values());
 
 			IntegerArrayMatrix G = DataSplitter.group(Y);
+			Counter<Integer> dataCnts = Generics.newCounter();
+
+			DenseVector nc = new DenseVector(feat_size);
 
 			for (int i = 0; i < C.rowSize(); i++) {
-				DenseVector c = C.get(i);
+				SparseVector c = C.rowAt(i);
 				c.setAll(0);
 
 				IntegerArray locs = G.get(i);
 
+				nc.clear();
+
 				for (int loc : locs) {
 					SparseVector x = X.get(loc);
-					add(x, c);
+
+					for (int j = 0; j < x.size(); j++) {
+						int idx = x.indexAt(j);
+						double val = x.valueAt(j);
+						nc.add(idx, val);
+					}
+
 				}
-				c.multiply(1f / locs.size());
+				nc.multiply(1f / locs.size());
+
+				C.setRowAt(i, nc.toSparseVector());
+
+				dataCnts.setCount(i, locs.size());
 			}
 
-			System.out.printf("[%d, %f, %f, %s]\n", iter, diff, diff_min, timer.stop());
+			System.out.printf("[%d, %f, %f, %s] - %s\n", iter, diff, diff_min, timer.stop(), dataCnts.toString(dataCnts.size()));
 		}
 
 		tpe.shutdown();
@@ -194,7 +244,7 @@ public class KMeansClustering extends Clustering {
 		return Ym;
 	}
 
-	public DenseMatrix getCentroids() {
+	public SparseMatrix getCentroids() {
 		return C;
 	}
 

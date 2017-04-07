@@ -96,6 +96,10 @@ public class ListMapMap<K, V, F> implements Serializable {
 		ensure(key1, key2).add(value);
 	}
 
+	public void put(K key1, V key2, List<F> values) {
+		ensure(key1, key2).addAll(values);
+	}
+
 	public int size() {
 		return ents.size();
 	}

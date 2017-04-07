@@ -63,7 +63,7 @@ public class TestArticleReader {
 			lines.add(line + "\t" + mesh);
 		}
 
-		FileUtils.writeStringCollection(MIRPath.BIOASQ_DIR + "test/task4a_all_mesh.txt", lines);
+		FileUtils.writeStringCollectionAsText(MIRPath.BIOASQ_DIR + "test/task4a_all_mesh.txt", lines);
 
 		System.out.println("process ends.");
 	}
@@ -80,7 +80,7 @@ public class TestArticleReader {
 			outs.add(pmid + "\t" + StrUtils.join("\t", l.get(pmid)));
 		}
 
-		FileUtils.writeStringCollection(outFileName, outs);
+		FileUtils.writeStringCollectionAsText(outFileName, outs);
 	}
 
 	public static ListMap<String, String> read(List<File> files) throws Exception {

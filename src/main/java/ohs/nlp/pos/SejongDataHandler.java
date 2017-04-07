@@ -369,7 +369,7 @@ public class SejongDataHandler {
 			keys.set(i, key + "\t" + StrUtils.join("\t", values));
 		}
 
-		FileUtils.writeStringCollection(fileName, keys);
+		FileUtils.writeStringCollectionAsText(fileName, keys);
 	}
 
 }

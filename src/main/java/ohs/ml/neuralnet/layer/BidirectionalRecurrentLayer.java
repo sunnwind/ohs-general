@@ -1,5 +1,7 @@
 package ohs.ml.neuralnet.layer;
 
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.List;
 
 import ohs.math.ArrayUtils;
@@ -16,16 +18,20 @@ import ohs.utils.Generics;
  * 
  * @author ohs
  */
-public class BiRnnLayer extends Layer {
+public class BidirectionalRecurrentLayer extends Layer {
+
+	public static enum Type {
+		RNN, LSTM
+	}
 
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = -8764635726766071893L;
 
-	private RnnLayer fwd;
+	private Layer fwd;
 
-	private RnnLayer bwd;
+	private Layer bwd;
 
 	private DenseMatrix tmp_H;
 
@@ -37,14 +43,43 @@ public class BiRnnLayer extends Layer {
 
 	private int output_size;
 
-	public BiRnnLayer(int input_size, int hidden_size, int bptt_size, Nonlinearity non) {
-		this(new RnnLayer(input_size, hidden_size, bptt_size, non), new RnnLayer(input_size, hidden_size, bptt_size, non));
+	@Override
+	public void writeObject(ObjectOutputStream oos) throws Exception {
+		oos.writeUTF(fwd.getClass().getName());
+		fwd.writeObject(oos);
+		bwd.writeObject(oos);
 	}
 
-	public BiRnnLayer(RnnLayer fwd, RnnLayer bwd) {
+	@Override
+	public void readObject(ObjectInputStream ois) throws Exception {
+		String name = ois.readUTF();
+		Class c = Class.forName(name);
+		fwd = (Layer) c.newInstance();
+		bwd = (Layer) c.newInstance();
+
+		fwd.readObject(ois);
+		bwd.readObject(ois);
+		input_size = fwd.getInputSize();
+		output_size = fwd.getOutputSize();
+	}
+
+	public BidirectionalRecurrentLayer(Layer fwd, Layer bwd) {
 		super();
 		this.fwd = fwd;
 		this.bwd = bwd;
+		this.input_size = fwd.getInputSize();
+		this.output_size = fwd.getOutputSize();
+	}
+
+	public BidirectionalRecurrentLayer(Type type, int input_size, int hidden_size, int bptt_size, Nonlinearity non) {
+		if (type == Type.RNN) {
+			fwd = new RnnLayer(input_size, hidden_size, bptt_size, non);
+			bwd = new RnnLayer(input_size, hidden_size, bptt_size, non);
+		} else if (type == Type.LSTM) {
+			fwd = new LstmLayer(input_size, hidden_size, non);
+			bwd = new LstmLayer(input_size, hidden_size, non);
+		}
+
 		this.input_size = fwd.getInputSize();
 		this.output_size = fwd.getOutputSize();
 	}
@@ -80,8 +115,8 @@ public class BiRnnLayer extends Layer {
 		int data_size = I instanceof IntegerArray ? ((IntegerArray) I).size() : ((DenseMatrix) I).rowSize();
 		Object I2 = reverse(I);
 
-		DenseMatrix O1 = fwd.forward(I);
-		DenseMatrix O2 = bwd.forward(I2);
+		DenseMatrix O1 = (DenseMatrix) fwd.forward(I);
+		DenseMatrix O2 = (DenseMatrix) bwd.forward(I2);
 
 		if (tmp_H == null || tmp_H.rowSize() < data_size) {
 			tmp_H = new DenseMatrix(data_size, output_size);
@@ -94,7 +129,11 @@ public class BiRnnLayer extends Layer {
 			DenseVector o1 = O1.row(i);
 			DenseVector o2 = O2.row(data_size - i - 1);
 			DenseVector o3 = H.row(i);
-			VectorMath.add(o1, o2, o3);
+			try {
+				VectorMath.add(o1, o2, o3);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 
 		if (data_size != H.size()) {
@@ -104,11 +143,11 @@ public class BiRnnLayer extends Layer {
 		return H;
 	}
 
-	public RnnLayer getBackwardLayer() {
+	public Layer getBackwardLayer() {
 		return bwd;
 	}
 
-	public RnnLayer getForwardLayer() {
+	public Layer getForwardLayer() {
 		return fwd;
 	}
 

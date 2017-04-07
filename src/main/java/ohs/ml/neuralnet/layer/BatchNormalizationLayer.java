@@ -15,6 +15,8 @@ import ohs.matrix.DenseVector;
  * 
  * https://github.com/cthorey/CS231/blob/master/assignment3/cs231n/layers.py
  * 
+ * https://eleg5491.github.io/initialization-and-normalization#weightnorm
+ * 
  * @author ohs
  */
 public class BatchNormalizationLayer extends Layer {
@@ -50,7 +52,7 @@ public class BatchNormalizationLayer extends Layer {
 
 	private DenseVector std;
 
-	private DenseMatrix tmpT;
+	private DenseMatrix tmp_T;
 
 	private DenseMatrix tmp_Y;
 
@@ -97,7 +99,7 @@ public class BatchNormalizationLayer extends Layer {
 
 		VectorMath.sumColumns(dY, dbeta);
 
-		DenseMatrix T = tmpT.rowsAsMatrix(data_size);
+		DenseMatrix T = tmp_T.rowsAsMatrix(data_size);
 		VectorMath.multiply(xn, dY, T);
 		VectorMath.sumColumns(T, dgamma);
 
@@ -153,8 +155,8 @@ public class BatchNormalizationLayer extends Layer {
 			VectorMath.multiply(Y, gamma, Y);
 			VectorMath.add(Y, beta, Y);
 		} else {
-			if (tmpT == null || tmpT.rowSize() < X.rowSize()) {
-				tmpT = X.copy(true);
+			if (tmp_T == null || tmp_T.rowSize() < X.rowSize()) {
+				tmp_T = X.copy(true);
 				tmp_xc = X.copy(true);
 				tmp_xn = X.copy(true);
 			}
@@ -165,10 +167,10 @@ public class BatchNormalizationLayer extends Layer {
 				std = gamma.copy(true);
 			}
 
-			int size = X.rowSize();
-			DenseMatrix T = tmpT.rowsAsMatrix(size);
-			xc = tmp_xc.rowsAsMatrix(size);
-			xn = tmp_xn.rowsAsMatrix(size);
+			int data_size = X.rowSize();
+			DenseMatrix T = tmp_T.rowsAsMatrix(data_size);
+			xc = tmp_xc.rowsAsMatrix(data_size);
+			xn = tmp_xn.rowsAsMatrix(data_size);
 
 			/*
 			 * step 1: calculate mean

@@ -218,7 +218,7 @@ public class DataHandler {
 
 			if (res.size() % batch_size == 0) {
 				String outFileName = outDir + String.format("%s.txt.gz", df.format(batch_cnt++));
-				FileUtils.writeStringCollection(outFileName, res);
+				FileUtils.writeStringCollectionAsText(outFileName, res);
 				res.clear();
 			}
 		}
@@ -226,7 +226,7 @@ public class DataHandler {
 
 		if (res.size() > 0) {
 			String outFileName = outDir + String.format("%s.txt.gz", df.format(batch_cnt++));
-			FileUtils.writeStringCollection(outFileName, res);
+			FileUtils.writeStringCollectionAsText(outFileName, res);
 		}
 	}
 
@@ -560,7 +560,7 @@ public class DataHandler {
 				lines.set(i, StrUtils.join("\t", parts));
 			}
 
-			FileUtils.writeStringCollection(file.getPath().replace("line", "line_pos"), lines);
+			FileUtils.writeStringCollectionAsText(file.getPath().replace("line", "line_pos"), lines);
 		}
 	}
 

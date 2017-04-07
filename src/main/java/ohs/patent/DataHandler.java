@@ -135,7 +135,7 @@ public class DataHandler {
 
 			if (res.size() % batch_size == 0) {
 				String outFileName = outDir + String.format("%s.txt.gz", df.format(batch_cnt++));
-				FileUtils.writeStringCollection(outFileName, res);
+				FileUtils.writeStringCollectionAsText(outFileName, res);
 				res.clear();
 			}
 		}
@@ -143,7 +143,7 @@ public class DataHandler {
 
 		if (res.size() > 0) {
 			String outFileName = outDir + String.format("%s.txt.gz", df.format(batch_cnt++));
-			FileUtils.writeStringCollection(outFileName, res);
+			FileUtils.writeStringCollectionAsText(outFileName, res);
 		}
 	}
 
@@ -199,7 +199,7 @@ public class DataHandler {
 
 			if (lines.size() == 10000) {
 				String outFileName = PATPath.COL_RAW_DIR + String.format("%s.txt.gz", df.format(batch_cnt++));
-				FileUtils.writeStringCollection(outFileName, lines);
+				FileUtils.writeStringCollectionAsText(outFileName, lines);
 				lines.clear();
 			}
 			lines.add(line);
@@ -208,7 +208,7 @@ public class DataHandler {
 
 		if (lines.size() > 0) {
 			String outFileName = PATPath.COL_RAW_DIR + String.format("%s.txt.gz", df.format(batch_cnt++));
-			FileUtils.writeStringCollection(outFileName, lines);
+			FileUtils.writeStringCollectionAsText(outFileName, lines);
 		}
 	}
 
@@ -256,7 +256,7 @@ public class DataHandler {
 				lines.add(StrUtils.join("\t", parts));
 			}
 
-			FileUtils.writeStringCollection(file.getPath().replace("line", "pos"), lines);
+			FileUtils.writeStringCollectionAsText(file.getPath().replace("line", "pos"), lines);
 		}
 	}
 
@@ -281,7 +281,7 @@ public class DataHandler {
 				}
 			}
 
-			FileUtils.writeStringCollection(file.getPath().replace("raw", "line"), lines);
+			FileUtils.writeStringCollectionAsText(file.getPath().replace("raw", "line"), lines);
 		}
 	}
 

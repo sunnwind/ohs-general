@@ -69,6 +69,7 @@ public class FullyConnectedLayer extends Layer {
 		if (fwd_I instanceof DenseMatrix) {
 			DenseMatrix X = (DenseMatrix) fwd_I;
 			for (int i = 0; i < X.rowSize(); i++) {
+
 				VectorMath.outerProduct(X.row(i), dY.row(i), dW, true);
 				VectorMath.add(dY.row(i), db);
 			}

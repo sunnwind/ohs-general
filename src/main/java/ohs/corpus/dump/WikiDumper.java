@@ -143,7 +143,7 @@ public class WikiDumper extends TextDumper {
 
 				if (lines.size() % batch_size == 0) {
 					File outFile = new File(outPathName, df.format(++file_cnt) + ".txt.gz");
-					FileUtils.writeStringCollection(outFile.getPath(), lines);
+					FileUtils.writeStringCollectionAsText(outFile.getPath(), lines);
 					lines = Generics.newLinkedList();
 				}
 
@@ -158,7 +158,7 @@ public class WikiDumper extends TextDumper {
 
 		if (lines.size() > 0) {
 			File outFile = new File(outPathName, df.format(++file_cnt) + ".txt.gz");
-			FileUtils.writeStringCollection(outFile.getPath(), lines);
+			FileUtils.writeStringCollectionAsText(outFile.getPath(), lines);
 			lines = Generics.newArrayList();
 		}
 	}

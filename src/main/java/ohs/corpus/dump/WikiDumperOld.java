@@ -97,7 +97,7 @@ public class WikiDumperOld extends TextDumper {
 
 				String outFileName = file.getPath().replace("tmp_line", "line");
 
-				FileUtils.writeStringCollection(outFileName, lines);
+				FileUtils.writeStringCollectionAsText(outFileName, lines);
 			}
 
 			return 0;
@@ -199,7 +199,7 @@ public class WikiDumperOld extends TextDumper {
 
 				if (docs.size() % batch_size == 0) {
 					String outFileName = outDirName + String.format("%s.txt.gz", df.format(file_cnt++));
-					FileUtils.writeStringCollection(outFileName, docs);
+					FileUtils.writeStringCollectionAsText(outFileName, docs);
 					docs.clear();
 				}
 			} else {
@@ -213,7 +213,7 @@ public class WikiDumperOld extends TextDumper {
 
 		if (docs.size() > 0) {
 			String outFileName = outDirName + String.format("%s.txt.gz", df.format(file_cnt++));
-			FileUtils.writeStringCollection(outFileName, docs);
+			FileUtils.writeStringCollectionAsText(outFileName, docs);
 			docs.clear();
 		}
 	}

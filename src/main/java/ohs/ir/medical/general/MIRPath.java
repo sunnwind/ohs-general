@@ -321,6 +321,12 @@ public class MIRPath {
 	public static final String OHSUMED_RELEVANCE_JUDGE_FILE = OHSUMED_QUERY_DIR + "judged.txt";
 
 	/*
+	 * SNOMED CT
+	 */
+
+	public static final String SNOMED_DIR = DATA_DIR + "snomed_ct/";
+
+	/*
 	 * Common File Name Sets
 	 */
 

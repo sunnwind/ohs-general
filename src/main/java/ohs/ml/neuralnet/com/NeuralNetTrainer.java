@@ -13,10 +13,9 @@ import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.ml.eval.Performance;
 import ohs.ml.eval.PerformanceEvaluator;
-import ohs.ml.neuralnet.com.NeuralNetTrainerOld.Worker;
 import ohs.ml.neuralnet.cost.CrossEntropyCostFunction;
 import ohs.ml.neuralnet.layer.BatchNormalizationLayer;
-import ohs.ml.neuralnet.layer.BiRnnLayer;
+import ohs.ml.neuralnet.layer.BidirectionalRecurrentLayer;
 import ohs.ml.neuralnet.layer.DropoutLayer;
 import ohs.ml.neuralnet.layer.EmbeddingLayer;
 import ohs.ml.neuralnet.layer.FullyConnectedLayer;
@@ -177,19 +176,30 @@ public class NeuralNetTrainer {
 			} else if (l instanceof LstmLayer) {
 				LstmLayer n = (LstmLayer) l;
 				ret.add(new LstmLayer(n.getWxh(), n.getWhh(), n.getB().row(0), n.getNonlinearity()));
-			} else if (l instanceof BiRnnLayer) {
-				BiRnnLayer n = (BiRnnLayer) l;
-				RnnLayer fwd1 = n.getForwardLayer();
-				RnnLayer fwd2 = new RnnLayer(fwd1.getWxh(), fwd1.getWhh(), fwd1.getBh(), fwd1.getBpttSize(), fwd1.getNonlinearity());
-				RnnLayer bwd1 = n.getBackwardLayer();
-				RnnLayer bwd2 = new RnnLayer(bwd1.getWxh(), bwd1.getWhh(), bwd1.getBh(), bwd1.getBpttSize(), bwd1.getNonlinearity());
-				ret.add(new BiRnnLayer(fwd2, bwd2));
+			} else if (l instanceof BidirectionalRecurrentLayer) {
+				BidirectionalRecurrentLayer n = (BidirectionalRecurrentLayer) l;
+				Layer fwd2 = null;
+				Layer bwd2 = null;
+
+				if (n.getForwardLayer() instanceof RnnLayer) {
+					RnnLayer fwd1 = (RnnLayer) n.getForwardLayer();
+					RnnLayer bwd1 = (RnnLayer) n.getBackwardLayer();
+					fwd2 = new RnnLayer(fwd1.getWxh(), fwd1.getWhh(), fwd1.getBh(), fwd1.getBpttSize(), fwd1.getNonlinearity());
+					bwd2 = new RnnLayer(bwd1.getWxh(), bwd1.getWhh(), bwd1.getBh(), bwd1.getBpttSize(), bwd1.getNonlinearity());
+				} else if (n.getForwardLayer() instanceof LstmLayer) {
+					LstmLayer fwd1 = (LstmLayer) n.getForwardLayer();
+					LstmLayer bwd1 = (LstmLayer) n.getBackwardLayer();
+					fwd2 = new LstmLayer(fwd1.getWxh(), fwd1.getWhh(), fwd1.getB().row(0), fwd1.getNonlinearity());
+					bwd2 = new LstmLayer(bwd1.getWxh(), bwd1.getWhh(), bwd1.getB().row(0), bwd1.getNonlinearity());
+				}
+				ret.add(new BidirectionalRecurrentLayer(fwd2, bwd2));
 			} else {
 				System.err.println("unknown layer");
 				System.exit(0);
 			}
 		}
 		return ret;
+
 	}
 
 	public static List<NeuralNet> copy(NeuralNet nn, int size) {

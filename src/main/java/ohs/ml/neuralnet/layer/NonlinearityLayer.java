@@ -38,8 +38,8 @@ public class NonlinearityLayer extends Layer {
 	}
 
 	@Override
-	public DenseMatrix backward(Object O) {
-		DenseMatrix dY = (DenseMatrix) O;
+	public DenseMatrix backward(Object I) {
+		DenseMatrix dY = (DenseMatrix) I;
 		int data_size = dY.rowSize();
 
 		if (tmp_dX == null || tmp_dX.rowSize() < data_size) {

@@ -166,7 +166,7 @@ public class ClueWebDumper extends TextDumper {
 				writer.close();
 
 				try {
-					FileUtils.writeStringCollection(outFileName1, results);
+					FileUtils.writeStringCollectionAsText(outFileName1, results);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
