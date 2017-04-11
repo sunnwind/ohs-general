@@ -177,7 +177,7 @@ public class BatchNormalizationLayer extends Layer {
 			 */
 			VectorMath.meanColumns(X, mu);
 
-			// step 2: subtract mean vector of every trainings example
+			// step 2: subtract mean vector of every training example
 
 			VectorMath.subtract(X, mu, xc);
 

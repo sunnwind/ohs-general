@@ -78,7 +78,7 @@ public class DataHandler {
 		// dh.getWikiPhrases();
 		// dh.getFrequentPhrases();
 		// dh.getQualityTrainingPhrases();
-		// dh.getMedicalTrainingPhrases();
+		dh.getMedicalTrainingPhrases();
 
 		// dh.test();
 		// dh.test2();
@@ -313,26 +313,37 @@ public class DataHandler {
 			cm1.setCounter("mesh", c);
 		}
 
+		{
+			Counter<String> c = Generics.newCounter();
+			for (String line : FileUtils.readLinesFromText(MIRPath.SNOMED_DIR + "phrss.txt")) {
+				String[] parts = line.split("\t");
+				String phrs = parts[0].toLowerCase();
+				double cnt = Double.parseDouble(parts[1]);
+				c.incrementCount(phrs, cnt);
+			}
+			cm1.setCounter("snomed", c);
+		}
+
 		String dir = MIRPath.TREC_CDS_2016_DIR;
 
 		Counter<String> c3 = Generics.newCounter();
 
 		for (String line : FileUtils.readLinesFromText(dir + "phrs/phrs_freq.txt")) {
 			String[] parts = line.split("\t");
-			c3.incrementCount(parts[0].toLowerCase(), Double.parseDouble(parts[1]));
+			c3.incrementCount(parts[0].toLowerCase().replace("_", " "), Double.parseDouble(parts[1]));
 		}
 
 		CounterMap<String, String> cm2 = Generics.newCounterMap();
 
 		for (String phrs : c3.getSortedKeys()) {
 			double cnt = c3.getCount(phrs);
-			phrs = phrs.replace("_", " ");
 
 			boolean found_in_wiki_title = cm1.containKey("wiki_title", phrs);
 			boolean found_in_wiki_link = cm1.containKey("wiki_link", phrs);
 			boolean found_in_mesh = cm1.containKey("mesh", phrs);
+			boolean found_in_snomed = cm1.containKey("snomed", phrs);
 
-			if (found_in_wiki_title || found_in_mesh) {
+			if (found_in_wiki_title || found_in_mesh || found_in_snomed) {
 				cm2.setCount("good", phrs, cnt);
 			} else {
 				if (found_in_wiki_link) {

@@ -16,6 +16,7 @@ import ohs.ml.neuralnet.layer.NonlinearityLayer;
 import ohs.ml.neuralnet.layer.RnnLayer;
 import ohs.ml.neuralnet.layer.SoftmaxLayer;
 import ohs.ml.neuralnet.layer.WindowLayer;
+import ohs.ml.neuralnet.nonlinearity.ReLU;
 import ohs.ml.neuralnet.nonlinearity.Tanh;
 import ohs.types.generic.Indexer;
 import ohs.types.generic.Pair;
@@ -31,8 +32,8 @@ public class Apps {
 		System.out.println("process begins.");
 
 		// testMIST();
-		// testCharRNN();
-		testNER();
+		testCharRNN();
+		// testNER();
 
 		System.out.println("process ends.");
 	}
@@ -45,8 +46,8 @@ public class Apps {
 		param.setBatchSize(10);
 		param.setLearnRate(0.001);
 		param.setRegLambda(0.01);
-		param.setThreadSize(3);
-		param.setBpttSize(0);
+		param.setThreadSize(1);
+		param.setBpttSize(10);
 
 		// Triple<IntegerArrayMatrix, IntegerArrayMatrix, Vocab> train =
 		// DataReader.readCapitalData(300);
@@ -173,9 +174,9 @@ public class Apps {
 			nn.add(new EmbeddingLayer(vocab_size, embedding_size, true));
 			// nn.add(new BatchNormalizationLayer(embedding_size));
 			// nn.add(new GruLayer(embedding_size, l1_size, new Tanh()));
-			// nn.add(new RnnLayer(embedding_size, l1_size, param.getBpttSize(), new ReLU()));
+			nn.add(new RnnLayer(embedding_size, l1_size, param.getBpttSize(), new ReLU()));
 			// nn.add(new BiRnnLayer(embedding_size, l1_size, param.getBpttSize(), new Tanh()));
-			nn.add(new BidirectionalRecurrentLayer(Type.LSTM, embedding_size, l1_size, param.getBpttSize(), new Tanh()));
+			// nn.add(new BidirectionalRecurrentLayer(Type.LSTM, embedding_size, l1_size, param.getBpttSize(), new Tanh()));
 			// nn.add(new BatchNormalizationLayer(l1_size));
 			// nn.add(new DropoutLayer(l1_size));
 			nn.add(new FullyConnectedLayer(l1_size, output_size));

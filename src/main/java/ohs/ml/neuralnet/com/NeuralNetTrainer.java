@@ -172,7 +172,7 @@ public class NeuralNetTrainer {
 				ret.add(new WindowLayer(n.getWindowSize(), n.getEmbeddingSize()));
 			} else if (l instanceof RnnLayer) {
 				RnnLayer n = (RnnLayer) l;
-				ret.add(new RnnLayer(n.getWxh(), n.getWhh(), n.getBh(), n.getBpttSize(), n.getNonlinearity()));
+				ret.add(new RnnLayer(n.getWxh(), n.getWhh(), n.getB().row(0), n.getBpttSize(), n.getNonlinearity()));
 			} else if (l instanceof LstmLayer) {
 				LstmLayer n = (LstmLayer) l;
 				ret.add(new LstmLayer(n.getWxh(), n.getWhh(), n.getB().row(0), n.getNonlinearity()));
@@ -184,8 +184,8 @@ public class NeuralNetTrainer {
 				if (n.getForwardLayer() instanceof RnnLayer) {
 					RnnLayer fwd1 = (RnnLayer) n.getForwardLayer();
 					RnnLayer bwd1 = (RnnLayer) n.getBackwardLayer();
-					fwd2 = new RnnLayer(fwd1.getWxh(), fwd1.getWhh(), fwd1.getBh(), fwd1.getBpttSize(), fwd1.getNonlinearity());
-					bwd2 = new RnnLayer(bwd1.getWxh(), bwd1.getWhh(), bwd1.getBh(), bwd1.getBpttSize(), bwd1.getNonlinearity());
+					fwd2 = new RnnLayer(fwd1.getWxh(), fwd1.getWhh(), fwd1.getB().row(0), fwd1.getBpttSize(), fwd1.getNonlinearity());
+					bwd2 = new RnnLayer(bwd1.getWxh(), bwd1.getWhh(), bwd1.getB().row(0), bwd1.getBpttSize(), bwd1.getNonlinearity());
 				} else if (n.getForwardLayer() instanceof LstmLayer) {
 					LstmLayer fwd1 = (LstmLayer) n.getForwardLayer();
 					LstmLayer bwd1 = (LstmLayer) n.getBackwardLayer();

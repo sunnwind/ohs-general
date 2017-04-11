@@ -3921,11 +3921,12 @@ public class ArrayMath {
 		return sum;
 	}
 
-	public static double zTransform(double[] a, double mean, double var, double[] b) {
+	public static double zTransform(double[] a, double mean, double var, double eps, double[] b) {
 		double sum = 0;
-		double sigma = Math.sqrt(var);
+		double std_dev = Math.sqrt(var);
+
 		for (int i = 0; i < a.length; i++) {
-			b[i] = CommonMath.zTransform(a[i], mean, sigma);
+			b[i] = CommonMath.zTransform(a[i], mean, std_dev + eps);
 			sum += b[i];
 		}
 		return sum;

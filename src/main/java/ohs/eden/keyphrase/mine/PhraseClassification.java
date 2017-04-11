@@ -44,10 +44,10 @@ public class PhraseClassification {
 		// qc.generateData();
 		// qc.train();
 
-		// qc.getQualityLabeledData();
-		// qc.getQualityUnlabeledData();
-		// qc.trainQualityClassifier();
-		// qc.applyQualityClassifier();
+		qc.getQualityLabeledData();
+		qc.getQualityUnlabeledData();
+		qc.trainQualityClassifier();
+		qc.applyQualityClassifier();
 
 		qc.getMedicalLabeledData();
 		qc.trainMedicalClassifier();

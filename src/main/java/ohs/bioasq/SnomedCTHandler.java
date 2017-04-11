@@ -205,9 +205,11 @@ public class SnomedCTHandler {
 				continue;
 			}
 
-			String cpt = ps[2];
-			String phrs = sn.normalize(cpt);
-			c.incrementCount(phrs, 1);
+			for (int i = 2; i < ps.length; i++) {
+				String cpt = ps[i];
+				String phrs = sn.normalize(cpt);
+				c.incrementCount(phrs, 1);
+			}
 
 		}
 		reader.close();

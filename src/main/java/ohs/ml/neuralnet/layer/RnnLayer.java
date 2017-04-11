@@ -59,11 +59,11 @@ public class RnnLayer extends Layer {
 
 	private Nonlinearity non;
 
-	private DenseVector bh;
+	private DenseVector b;
 
-	private DenseVector dbh;
+	private DenseVector db;
 
-	private DenseVector dhraw;
+	private DenseVector dh_raw;
 
 	private DenseVector dh_prev;
 
@@ -89,7 +89,7 @@ public class RnnLayer extends Layer {
 		super();
 		this.Wxh = Wxh;
 		this.Whh = Whh;
-		this.bh = bh;
+		this.b = bh;
 		this.bptt_size = bptt_size;
 		this.non = non;
 
@@ -122,10 +122,10 @@ public class RnnLayer extends Layer {
 		DenseMatrix dH = (DenseMatrix) I;
 		int data_size = dH.rowSize();
 
-		if (dhraw == null) {
-			dhraw = new DenseVector(hidden_size);
-			dh_prev = dhraw.copy(true);
-			tmp = dhraw.copy(true);
+		if (dh_raw == null) {
+			dh_raw = new DenseVector(hidden_size);
+			dh_prev = dh_raw.copy(true);
+			tmp = dh_raw.copy(true);
 		}
 
 		dh_prev.setAll(0);
@@ -145,13 +145,13 @@ public class RnnLayer extends Layer {
 
 			VectorMath.add(dh_prev, dh);
 
-			VectorUtils.copy(dA.row(t), dhraw);
+			VectorUtils.copy(dA.row(t), dh_raw);
 
-			VectorMath.multiply(dh, dhraw, dhraw);
+			VectorMath.multiply(dh, dh_raw, dh_raw);
 
-			VectorMath.productColumns(dhraw.toDenseMatrix(), Whh, dh_prev.toDenseMatrix(), false);
+			VectorMath.productColumns(dh_raw.toDenseMatrix(), Whh, dh_prev.toDenseMatrix(), false);
 
-			VectorUtils.copy(dhraw, tmp);
+			VectorUtils.copy(dh_raw, tmp);
 
 			int size = Math.max(0, t - bptt_size);
 
@@ -174,7 +174,7 @@ public class RnnLayer extends Layer {
 
 				VectorMath.outerProduct(h_prev, tmp, dWhh, true);
 
-				VectorMath.add(tmp, dbh);
+				VectorMath.add(tmp, db);
 
 				VectorMath.productColumns(tmp.toDenseMatrix(), Whh, tmp.toDenseMatrix(), false);
 
@@ -183,7 +183,6 @@ public class RnnLayer extends Layer {
 				VectorMath.multiply(da, tmp, tmp);
 			}
 		}
-
 		return dX;
 	}
 
@@ -218,7 +217,7 @@ public class RnnLayer extends Layer {
 				VectorMath.product(x, Wxh, h, true);
 			}
 
-			VectorMath.add(bh, h);
+			VectorMath.add(b, h);
 
 			non.forward(h.toDenseMatrix(), h.toDenseMatrix());
 		}
@@ -233,11 +232,11 @@ public class RnnLayer extends Layer {
 
 	@Override
 	public DenseMatrix getB() {
-		return new DenseMatrix(new DenseVector[] { bh });
+		return new DenseMatrix(new DenseVector[] { b });
 	}
 
 	public DenseVector getBh() {
-		return bh;
+		return b;
 	}
 
 	public int getBpttSize() {
@@ -246,7 +245,7 @@ public class RnnLayer extends Layer {
 
 	@Override
 	public DenseMatrix getDB() {
-		return new DenseMatrix(new DenseVector[] { dbh });
+		return new DenseMatrix(new DenseVector[] { db });
 	}
 
 	@Override
@@ -316,14 +315,14 @@ public class RnnLayer extends Layer {
 	public void prepare() {
 		dWxh = Wxh.copy(true);
 		dWhh = Whh.copy(true);
-		dbh = bh.copy(true);
+		db = b.copy(true);
 	}
 
 	@Override
 	public void readObject(ObjectInputStream ois) throws Exception {
 		Wxh = new DenseMatrix(ois);
 		Whh = new DenseMatrix(ois);
-		bh = new DenseVector(ois);
+		b = new DenseVector(ois);
 	}
 
 	public void resetH0() {
@@ -338,7 +337,7 @@ public class RnnLayer extends Layer {
 	public void writeObject(ObjectOutputStream oos) throws Exception {
 		Wxh.writeObject(oos);
 		Whh.writeObject(oos);
-		bh.writeObject(oos);
+		b.writeObject(oos);
 	}
 
 }

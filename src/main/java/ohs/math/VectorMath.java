@@ -1467,8 +1467,8 @@ public class VectorMath {
 		return sum;
 	}
 
-	public static double zTransform(DenseVector a, double mean, double var, DenseVector b) {
-		double sum = ArrayMath.zTransform(a.values(), mean, var, b.values());
+	public static double zTransform(DenseVector a, double mean, double var, double eps, DenseVector b) {
+		double sum = ArrayMath.zTransform(a.values(), mean, var, eps, b.values());
 		b.setSum(sum);
 		return sum;
 	}
