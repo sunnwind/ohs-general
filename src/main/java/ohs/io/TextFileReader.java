@@ -35,6 +35,8 @@ public class TextFileReader {
 
 	private int print_size = 10000;
 
+	private List<String> lines = Generics.newArrayList();
+
 	public TextFileReader(File file) {
 		this(file.getPath(), FileUtils.UTF_8);
 	}
@@ -87,33 +89,36 @@ public class TextFileReader {
 	}
 
 	public List<String> nextLines() {
-		List<String> ret = Generics.newLinkedList();
+
 		do {
 			if (next() == null || next().equals("")) {
 				break;
 			} else {
-				ret.add(next());
+				lines.add(next());
 			}
 		} while (hasNext());
 
 		next_cnt++;
 
-		return Generics.newArrayList(ret);
+		List<String> ret = Generics.newArrayList(lines);
+		lines.clear();
+		return ret;
 	}
 
 	public List<String> nextLines(int size) {
-		List<String> ret = Generics.newLinkedList();
 		do {
-			if (next() == null || next().equals("") || ret.size() == size) {
+			if (next() == null || next().equals("") || lines.size() == size) {
 				break;
 			} else {
-				ret.add(next());
+				lines.add(next());
 			}
 		} while (hasNext());
 
 		next_cnt++;
 
-		return Generics.newArrayList(ret);
+		List<String> ret = Generics.newArrayList(lines);
+		lines.clear();
+		return ret;
 	}
 
 	public Timer getTimer() {
