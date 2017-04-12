@@ -32,11 +32,15 @@ public class PhraseCollection {
 		// MIRPath.TREC_CDS_2016_COL_DC_DIR, MIRPath.BIOASQ_COL_DC_DIR,
 		// MIRPath.WIKI_COL_DIR
 		// };
+		
+		String dir = MIRPath.TREC_CDS_2016_COL_DC_DIR;
 
-		PhraseCollection pc = new PhraseCollection(MIRPath.OHSUMED_COL_DC_DIR);
-		DocumentCollection ldc = new DocumentCollection(MIRPath.OHSUMED_COL_DC_DIR);
+		PhraseCollection pc = new PhraseCollection(dir);
+		DocumentCollection dc = new DocumentCollection(dir);
+		
+		System.out.println(dc.getLength());
 
-		System.out.println(ldc.size());
+		System.out.println(dc.size());
 		System.out.println(pc.size());
 
 		for (int i = 0; i < pc.size(); i++) {
@@ -49,37 +53,37 @@ public class PhraseCollection {
 			IntegerArray dseqs = pl.getDocseqs();
 			IntegerArrayMatrix posData = pl.getPosData();
 
-//			for (int j = 0; j < pl.size(); j++) {
-//				Posting p = pl.getPosting(j);
-//
-//				int dseq = p.getDocseq();
-//				IntegerArray poss = p.getPoss();
-//
-//				List<String> words = ldc.getWords(dseq);
-//				int window_size = 3;
-//
-//				for (int start : poss) {
-//					int end = start + len_phrs;
-//					int left = Math.max(0, start - window_size);
-//					int right = Math.min(end + window_size, words.size());
-//
-//					List<String> context = Generics.newArrayList();
-//
-//					for (int k = left; k < right; k++) {
-//						String word = words.get(k);
-//						if (k == start) {
-//							context.add("[");
-//						} else if (k == end) {
-//							context.add("]");
-//						}
-//						context.add(word);
-//					}
-//
-//					System.out.println("=> " + StrUtils.join(" ", context));
-//				}
-//			}
+			// for (int j = 0; j < pl.size(); j++) {
+			// Posting p = pl.getPosting(j);
+			//
+			// int dseq = p.getDocseq();
+			// IntegerArray poss = p.getPoss();
+			//
+			// List<String> words = ldc.getWords(dseq);
+			// int window_size = 3;
+			//
+			// for (int start : poss) {
+			// int end = start + len_phrs;
+			// int left = Math.max(0, start - window_size);
+			// int right = Math.min(end + window_size, words.size());
+			//
+			// List<String> context = Generics.newArrayList();
+			//
+			// for (int k = left; k < right; k++) {
+			// String word = words.get(k);
+			// if (k == start) {
+			// context.add("[");
+			// } else if (k == end) {
+			// context.add("]");
+			// }
+			// context.add(word);
+			// }
+			//
+			// System.out.println("=> " + StrUtils.join(" ", context));
+			// }
+			// }
 
-//			System.out.println();
+			// System.out.println();
 
 		}
 

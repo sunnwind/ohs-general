@@ -132,9 +132,7 @@ public class ByteBufferWrapper {
 	public ByteArray readByteArray() {
 		int size = buf.getInt();
 		byte[] ret = new byte[size];
-		for (int i = 0; i < size; i++) {
-			ret[i] = buf.get();
-		}
+		buf.get(ret);
 		return new ByteArray(ret);
 	}
 

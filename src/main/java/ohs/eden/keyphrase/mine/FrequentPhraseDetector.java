@@ -4,8 +4,10 @@ import java.io.File;
 import java.lang.Character.UnicodeBlock;
 import java.nio.channels.FileChannel;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
@@ -52,97 +54,46 @@ public class FrequentPhraseDetector {
 			this.timer = timer;
 		}
 
-		@Override
 		public Integer call() throws Exception {
+			callNew();
+			return null;
+		}
+
+		public Integer callNew() throws Exception {
 			int file_loc = 0;
-			ListMap<Integer, Integer> docToLocs = Generics.newListMap();
-			ListMap<String, Long> tmpIndex = Generics.newListMap();
 
 			while ((file_loc = file_cnt.getAndIncrement()) < files.size()) {
 				File inFile = files.get(file_loc);
 
-				// if (file_loc >= 1) {
-				// break;
-				// }
-
-				ListMap<String, Long> index = createIndex(inFile);
+				ListMap<String, Long> index = createLocalIndex(inFile);
 
 				File outFile = new File(tmpDir2, inFile.getName());
 				FileChannel out = FileUtils.openFileChannel(outFile, "rw");
 				int phrs_len = 1;
 
 				while (index.size() != 0 && phrs_len++ != max_phrs_len) {
-					docToLocs.clear();
+					ListMap<Integer, Integer> docToLocs = getDocToLocs(index);
 
-					for (String phrs : index.keySet()) {
-						List<Long> poss = index.get(phrs);
+					int index_size = index.size();
 
-						for (int k = 0; k < poss.size(); k++) {
-							long pos = poss.get(k);
-							long[] two = getTwoIndexes(pos);
-							int dseq = (int) two[0];
-							int wloc = (int) two[1];
-							docToLocs.put(dseq, wloc);
-						}
-					}
 					index.clear();
 
-					// for (int dseq : docToLocs.keySet()) {
-					// List<Integer> wlocs = docToLocs.get(dseq);
-					// docToLocs.put(dseq, Generics.newArrayList(wlocs));
-					// }
+					ListMap<String, Long> newIndex = getNewIndex(docToLocs, phrs_len, index_size);
 
-					IntegerArray dseqs = new IntegerArray(docToLocs.keySet());
-					dseqs.sort(false);
-
-					tmpIndex.clear();
-
-					for (int j = 0; j < dseqs.size(); j++) {
-						int dseq = dseqs.get(j);
-						IntegerArray d = dc.get(dseq).getSecond();
-
-						if (d.size() > max_doc_len) {
-							d = d.subArray(0, max_doc_len);
-						}
-
-						List<Integer> starts = docToLocs.get(dseq);
-						Collections.sort(starts);
-
-						for (int start : starts) {
-							int end = start + phrs_len;
-
-							if (end >= d.size()) {
-								continue;
-							}
-
-							IntegerArray sub = d.subArray(start, end);
-							int sent_end_cnt = 0;
-
-							for (int w : sub) {
-								if (w == DocumentCollection.SENT_END) {
-									sent_end_cnt++;
-								}
-							}
-
-							if (sent_end_cnt > 0) {
-								continue;
-							}
-
-							String phrs = StrUtils.join("_", vocab.getObjects(sub));
-							long pos = getSingleIndex(dseq, start);
-							tmpIndex.put(phrs, pos);
-						}
-					}
 					docToLocs.clear();
 
-					for (String phrs : tmpIndex.keySet()) {
-						List<Long> poss = tmpIndex.get(phrs);
+					Timer timer = Timer.newTimer();
+
+					System.out.printf("[len %d, %s]\n", phrs_len, timer.stop());
+
+					for (String phrs : newIndex.keySet()) {
+						List<Long> poss = newIndex.get(phrs);
 						if (poss.size() < min_support) {
 							continue;
 						}
-						index.put(phrs, poss);
+						index.get(phrs, true).addAll(poss);
 					}
-					tmpIndex.clear(false);
+					newIndex.clear();
 
 					write(index, out);
 				}
@@ -157,7 +108,7 @@ public class FrequentPhraseDetector {
 			return null;
 		}
 
-		private ListMap<String, Long> createIndex(File file) throws Exception {
+		private ListMap<String, Long> createLocalIndex(File file) throws Exception {
 			FileChannel fc = FileUtils.openFileChannel(file, "rw");
 			ByteArrayMatrix data = FileUtils.readByteArrayMatrix(fc);
 			fc.close();
@@ -177,12 +128,6 @@ public class FrequentPhraseDetector {
 				ret.put(word, l);
 			}
 			return ret;
-		}
-
-		@Override
-		protected void finalize() throws Throwable {
-			super.finalize();
-			dc.close();
 		}
 
 		private boolean filter(String phrs) {
@@ -213,8 +158,7 @@ public class FrequentPhraseDetector {
 					return true;
 				}
 
-				if (pat1.matcher(phrs).find()) {
-					// System.out.println(phrs);
+				if (pat2.matcher(phrs).find()) {
 					return true;
 				}
 			}
@@ -282,11 +226,130 @@ public class FrequentPhraseDetector {
 			return false;
 		}
 
+		@Override
+		protected void finalize() throws Throwable {
+			super.finalize();
+			dc.close();
+		}
+
+		private ListMap<Integer, Integer> getDocToLocs(ListMap<String, Long> index) {
+			Counter<Integer> c = Generics.newCounter();
+			for (String phrs : index.keySet()) {
+				List<Long> poss = index.get(phrs);
+
+				for (int k = 0; k < poss.size(); k++) {
+					long pos = poss.get(k);
+					long[] two = getTwoIndexes(pos);
+					int dseq = (int) two[0];
+					c.incrementCount(dseq, 1);
+				}
+			}
+
+			ListMap<Integer, Integer> ret = Generics.newListMap(c.size());
+
+			for (Entry<Integer, Double> e : c.entrySet()) {
+				ret.put(e.getKey(), Generics.newArrayList(e.getValue().intValue()));
+			}
+
+			for (String phrs : index.keySet()) {
+				List<Long> poss = index.get(phrs);
+
+				for (int k = 0; k < poss.size(); k++) {
+					long pos = poss.get(k);
+					long[] two = getTwoIndexes(pos);
+					int dseq = (int) two[0];
+					int wloc = (int) two[1];
+					ret.put(dseq, wloc);
+				}
+			}
+			return ret;
+		}
+
+		private ListMap<String, Long> getNewIndex(ListMap<Integer, Integer> docToLocs, int phrs_len, int index_size) throws Exception {
+			ListMap<String, Long> ret = Generics.newListMap(index_size);
+			List<List<Integer>> ranges = getSequenceRanges(docToLocs);
+
+			for (int i = 0; i < ranges.size(); i++) {
+				List<Integer> range = ranges.get(i);
+				List<Pair<String, IntegerArray>> ds = dc.getRange(range.get(0), range.get(1));
+
+				for (int j = 0; j < ds.size(); j++) {
+					int dseq = j + range.get(0);
+					IntegerArray d = ds.get(j).getSecond();
+
+					if (d.size() > max_doc_len) {
+						d = d.subArray(0, max_doc_len);
+					}
+
+					List<Integer> starts = docToLocs.get(dseq);
+					Collections.sort(starts);
+
+					for (int start : starts) {
+						int end = start + phrs_len;
+
+						if (end >= d.size()) {
+							continue;
+						}
+
+						IntegerArray sub = d.subArray(start, end);
+						int sent_end_cnt = 0;
+
+						for (int w : sub) {
+							if (w == DocumentCollection.SENT_END) {
+								sent_end_cnt++;
+							}
+						}
+
+						if (sent_end_cnt > 0) {
+							continue;
+						}
+
+						String phrs = StrUtils.join("_", vocab.getObjects(sub));
+						long pos = getSingleIndex(dseq, start);
+						ret.put(phrs, pos);
+					}
+				}
+			}
+
+			return ret;
+		}
+
+		private List<List<Integer>> getSequenceRanges(ListMap<Integer, Integer> docToLocs) {
+			IntegerArray dseqs = new IntegerArray(docToLocs.keySet());
+			dseqs.sort(false);
+
+			List<List<Integer>> ret = Generics.newArrayList(dseqs.size());
+
+			int start = dseqs.get(0);
+			int i = 1;
+
+			while (i < dseqs.size()) {
+				int prev = dseqs.get(i - 1);
+				int cur = dseqs.get(i);
+
+				if (cur - prev != 1) {
+					int end = prev + 1;
+					List<Integer> range = Generics.newArrayList(2);
+					range.add(start);
+					range.add(end);
+					ret.add(range);
+					start = cur;
+				}
+				i++;
+			}
+
+			int end = dseqs.get(dseqs.size() - 1) + 1;
+			List<Integer> range = Generics.newArrayList(2);
+			range.add(start);
+			range.add(end);
+			ret.add(range);
+			// System.out.printf("[%d -> %d]\n", dseqs.size(), ret.size());
+			return ret;
+		}
+
 		private void write(ListMap<String, Long> index, FileChannel out) throws Exception {
 			List<String> phrss = Generics.newArrayList(index.keySet());
 			Collections.sort(phrss);
-
-			ListMap<Integer, Integer> docToLocs = Generics.newListMap();
 
 			for (String phrs : phrss) {
 
@@ -295,6 +358,21 @@ public class FrequentPhraseDetector {
 				}
 
 				List<Long> poss = index.get(phrs);
+				Counter<Integer> c = Generics.newCounter();
+
+				for (long pos : poss) {
+					long[] two = getTwoIndexes(pos);
+					int dseq = (int) two[0];
+					c.incrementCount(dseq, 1);
+				}
+
+				ListMap<Integer, Integer> docToLocs = Generics.newListMap(c.size());
+
+				for (Entry<Integer, Double> e : c.entrySet()) {
+					ArrayList<Integer> l = (ArrayList<Integer>) docToLocs.ensure(e.getKey());
+					l.ensureCapacity(e.getValue().intValue());
+				}
+
 				for (long pos : poss) {
 					long[] two = getTwoIndexes(pos);
 					int dseq = (int) two[0];
@@ -312,12 +390,12 @@ public class FrequentPhraseDetector {
 
 					locData.add(wlocs);
 				}
-				docToLocs.clear();
 
 				SPostingList pl = new SPostingList(phrs, dseqs, locData);
 				SPostingList.writePostingList(pl, out, false);
 			}
 		}
+
 	}
 
 	public static void main(String[] args) throws Exception {
@@ -399,6 +477,7 @@ public class FrequentPhraseDetector {
 		tmpDir2 = new File(phrsDir, "tmp-phrs/");
 
 		vocab = dc.getVocab();
+
 	}
 
 	private void createIndex() throws Exception {
@@ -423,7 +502,7 @@ public class FrequentPhraseDetector {
 		for (int i = 0; i < ranges.length; i++) {
 			int[] range = ranges[i];
 
-			List<Pair<String, IntegerArray>> ps = dc.get(range);
+			List<Pair<String, IntegerArray>> ps = dc.getRange(range);
 
 			for (int dseq = range[0], k = 0; dseq < range[1]; dseq++, k++) {
 				IntegerArray d = ps.get(k).getSecond();

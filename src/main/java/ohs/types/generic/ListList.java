@@ -106,7 +106,7 @@ public class ListList<V> implements Serializable {
 		entries.set(i, values);
 	}
 
-	public long size() {
+	public int size() {
 		return entries.size();
 	}
 

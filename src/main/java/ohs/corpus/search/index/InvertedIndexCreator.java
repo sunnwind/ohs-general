@@ -216,7 +216,7 @@ public class InvertedIndexCreator {
 			while ((range_loc = range_cnt.getAndIncrement()) < ranges.length) {
 				int[] range = ranges[range_loc];
 
-				List<Pair<String, IntegerArray>> ps = ldc.get(range);
+				List<Pair<String, IntegerArray>> ps = ldc.getRange(range);
 
 				for (int dseq = range[0], i = 0; dseq < range[1]; dseq++, i++) {
 					Pair<String, IntegerArray> p = ps.get(i);

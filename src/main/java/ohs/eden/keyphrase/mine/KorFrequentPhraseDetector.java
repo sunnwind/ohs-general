@@ -389,7 +389,7 @@ public class KorFrequentPhraseDetector {
 		for (int i = 0; i < ranges.length; i++) {
 			int[] range = ranges[i];
 
-			List<Pair<String, IntegerArray>> ps = dc.get(range);
+			List<Pair<String, IntegerArray>> ps = dc.getRange(range);
 
 			for (int dseq = range[0], k = 0; dseq < range[1]; dseq++, k++) {
 				IntegerArray d = ps.get(k).getSecond();

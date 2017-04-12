@@ -74,7 +74,7 @@ public class CooccurrenceCounter {
 
 			while ((range_loc = range_cnt.getAndIncrement()) < ranges.length) {
 				int[] range = ranges[range_loc];
-				List<Pair<String, IntegerArray>> ps = dc.get(range);
+				List<Pair<String, IntegerArray>> ps = dc.getRange(range);
 
 				for (int i = 0; i < ps.size(); i++) {
 					IntegerArrayMatrix doc = DocumentCollection.toMultiSentences(ps.get(i).getSecond());

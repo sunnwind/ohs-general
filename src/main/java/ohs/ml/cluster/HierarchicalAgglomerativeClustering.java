@@ -189,7 +189,7 @@ public class HierarchicalAgglomerativeClustering extends HierarchicalClustering 
 		rdc = new RawDocumentCollection(MIRPath.OHSUMED_COL_DC_DIR);
 
 		List<SparseVector> dvs = Generics.newLinkedList();
-		for (Pair<String, IntegerArray> p : dc.get(0, 5000)) {
+		for (Pair<String, IntegerArray> p : dc.getRange(0, 5000)) {
 			Counter<Integer> c = Generics.newCounter();
 			for (int w : p.getSecond()) {
 				if (w == DocumentCollection.SENT_END) {

@@ -52,6 +52,18 @@ public class DataSplitter {
 		return ret;
 	}
 
+	public static IntegerArrayMatrix split(IntegerArray x, int group_size) {
+		int group_cnt = (x.size() / group_size) + 1;
+		IntegerArrayMatrix ret = new IntegerArrayMatrix(group_cnt);
+		int i = 0;
+		while (i < x.size()) {
+			int j = Math.min(x.size(), i + group_size);
+			ret.add(x.subArray(i, j));
+			i += group_size;
+		}
+		return ret;
+	}
+
 	public static IntegerArrayMatrix split(IntegerArray x, int[] cnts) {
 		int fold_size = cnts.length;
 

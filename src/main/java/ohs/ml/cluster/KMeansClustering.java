@@ -84,7 +84,7 @@ public class KMeansClustering extends Clustering {
 
 		DocumentCollection dc = new DocumentCollection(MIRPath.OHSUMED_COL_DC_DIR);
 		List<SparseVector> dvs = Generics.newLinkedList();
-		for (Pair<String, IntegerArray> p : dc.get(0, 20000)) {
+		for (Pair<String, IntegerArray> p : dc.getRange(0, 20000)) {
 			Counter<Integer> c = Generics.newCounter();
 			for (int w : p.getSecond()) {
 				if (w == DocumentCollection.SENT_END) {

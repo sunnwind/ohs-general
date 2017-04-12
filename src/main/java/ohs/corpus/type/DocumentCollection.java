@@ -4,7 +4,8 @@ import java.io.File;
 import java.nio.channels.FileChannel;
 import java.util.List;
 import java.util.Map;
-import java.util.WeakHashMap;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import ohs.io.ByteArray;
 import ohs.io.ByteArrayMatrix;
@@ -15,6 +16,7 @@ import ohs.ir.medical.general.MIRPath;
 import ohs.math.ArrayMath;
 import ohs.matrix.SparseMatrix;
 import ohs.matrix.SparseVector;
+import ohs.ml.neuralnet.com.BatchUtils;
 import ohs.types.generic.Counter;
 import ohs.types.generic.Pair;
 import ohs.types.generic.Vocab;
@@ -24,6 +26,7 @@ import ohs.types.number.LongArray;
 import ohs.utils.ByteSize;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
+import ohs.utils.Timer;
 
 public class DocumentCollection {
 
@@ -55,37 +58,70 @@ public class DocumentCollection {
 		System.out.println("process begins.");
 
 		{
+			String[] dirs = { MIRPath.OHSUMED_COL_DC_DIR, MIRPath.TREC_CDS_2014_COL_DC_DIR, MIRPath.TREC_CDS_2016_COL_DC_DIR,
+					MIRPath.WIKI_COL_DC_DIR, MIRPath.BIOASQ_COL_DC_DIR };
 
-			String[] dirs = { MIRPath.OHSUMED_COL_DC_DIR, MIRPath.TREC_CDS_2016_COL_DC_DIR, MIRPath.TREC_CDS_2014_COL_DC_DIR };
-
-			for (int j = 0; j < dirs.length; j++) {
+			for (int j = 1; j < dirs.length; j++) {
 				String dir = dirs[j];
-				if (j != 2) {
-					continue;
+
+				System.out.println(dir);
+
+				DocumentCollection dc = new DocumentCollection(dir);
+				int[][] ranges = BatchUtils.getBatchRanges(dc.size(), 500);
+
+				Timer timer = Timer.newTimer();
+
+				for (int i = 0; i < ranges.length; i++) {
+					Timer timer2 = Timer.newTimer();
+					dc.getRange(ranges[i][0], ranges[i][1]);
+					// System.out.println(timer2.stop());
 				}
 
-				DocumentCollection ldc = new DocumentCollection(dir);
-				System.out.printf("[%s]\n", dir);
-				System.out.println(ldc.size());
+				System.out.println(timer.stop());
 
-				List<Pair<String, String>> ps = ldc.getText(0, 5);
+				dc = new DocumentCollection(dir);
+				timer = Timer.newTimer();
 
-				for (int i = 0; i < ps.size(); i++) {
-					Pair<String, String> p = ps.get(i);
-					String text = p.getSecond();
-					String[] sents = text.split("\n");
-					System.out.println(p.getFirst());
-					System.out.println(StrUtils.join("\n", sents, 0, 10));
-					System.out.println("----------------------------------");
+				Timer timer2 = Timer.newTimer();
+
+				for (int i = 0; i < dc.size(); i++) {
+					if ((i + 1) % 10000 == 0 || i == dc.size() - 1) {
+						// System.out.println(timer2.stop());
+						timer2 = Timer.newTimer();
+					}
+					dc.get(i);
 				}
 
-				// Pair<String, String> p = ldc.getText(0);
-				// String text = p.getSecond();
-				// String[] sents = text.split("\n");
-				// System.out.println(p.getFirst());
-				// System.out.println(StrUtils.join("\n", sents, 0, 10));
+				System.out.println(timer.stop());
+				System.out.println();
 			}
 		}
+
+		// {
+		// String[] dirs = { MIRPath.OHSUMED_COL_DC_DIR, MIRPath.TREC_CDS_2016_COL_DC_DIR, MIRPath.TREC_CDS_2014_COL_DC_DIR };
+		//
+		// for (int j = 0; j < dirs.length; j++) {
+		// String dir = dirs[j];
+		// if (j != 2) {
+		// continue;
+		// }
+		//
+		// DocumentCollection ldc = new DocumentCollection(dir);
+		// System.out.printf("[%s]\n", dir);
+		// System.out.println(ldc.size());
+		//
+		// List<Pair<String, String>> ps = ldc.getText(0, 5);
+		//
+		// for (int i = 0; i < ps.size(); i++) {
+		// Pair<String, String> p = ps.get(i);
+		// String text = p.getSecond();
+		// String[] sents = text.split("\n");
+		// System.out.println(p.getFirst());
+		// System.out.println(StrUtils.join("\n", sents, 0, 10));
+		// System.out.println("----------------------------------");
+		// }
+		// }
+		// }
 
 		// {
 		// DocumentCollection ldc = new
@@ -193,7 +229,7 @@ public class DocumentCollection {
 		return ret;
 	}
 
-	private WeakHashMap<Integer, Pair<String, IntegerArray>> cache = Generics.newWeakHashMap();
+	private Map<Integer, Pair<String, IntegerArray>> cache = Generics.newWeakHashMap();;
 
 	private Vocab vocab = new Vocab();
 
@@ -219,11 +255,13 @@ public class DocumentCollection {
 
 	}
 
-	public DocumentCollection(FileChannel fc, LongArray starts, IntegerArray lens, Vocab vocab) throws Exception {
+	public DocumentCollection(FileChannel fc, LongArray starts, IntegerArray lens, Vocab vocab,
+			Map<Integer, Pair<String, IntegerArray>> softCache) throws Exception {
 		this.fc = fc;
 		this.starts = starts;
 		this.lens = lens;
 		this.vocab = vocab;
+		this.cache = softCache;
 	}
 
 	public DocumentCollection(String dataDir) throws Exception {
@@ -256,7 +294,8 @@ public class DocumentCollection {
 	}
 
 	public DocumentCollection copyShallow() throws Exception {
-		return new DocumentCollection(FileUtils.openFileChannel(new File(dataDir, DocumentCollection.DATA_NAME), "r"), starts, lens, vocab);
+		return new DocumentCollection(FileUtils.openFileChannel(new File(dataDir, DocumentCollection.DATA_NAME), "r"), starts, lens, vocab,
+				cache);
 	}
 
 	public Pair<String, IntegerArray> get(int i) throws Exception {
@@ -287,36 +326,82 @@ public class DocumentCollection {
 				cache.put(i, ret);
 			}
 		}
+
 		return ret;
 	}
 
-	public List<Pair<String, IntegerArray>> get(int i, int j) throws Exception {
-		fc.position(starts.get(i));
-		ByteArray data = FileUtils.readByteArray(fc, ArrayMath.sum(lens.values(), i, j));
-		ByteBufferWrapper buf = new ByteBufferWrapper(data);
-
-		List<Pair<String, IntegerArray>> ret = Generics.newArrayList(j - i);
-
-		for (int k = i; k < j; k++) {
-			ByteArrayMatrix sub = buf.readByteArrayMatrix();
-
-			String docid = null;
-			IntegerArray d = null;
-			int l = 0;
-			if (encode) {
-				docid = DataCompression.decodeToString(sub.get(l++));
-				d = DataCompression.decodeToIntegerArray(sub.get(l++));
-			} else {
-				docid = new String(sub.get(l++).values());
-				d = ByteArrayUtils.toIntegerArray(sub.get(l++));
-			}
-			ret.add(Generics.newPair(docid, d));
+	public List<Pair<String, IntegerArray>> get(int[] is) throws Exception {
+		List<Pair<String, IntegerArray>> ret = Generics.newArrayList(is.length);
+		for (int i : is) {
+			ret.add(get(i));
 		}
 		return ret;
 	}
 
-	public List<Pair<String, IntegerArray>> get(int[] range) throws Exception {
-		return get(range[0], range[1]);
+	public List<Pair<String, IntegerArray>> getRange(int i, int j) throws Exception {
+		int size = j - i;
+
+		List<Pair<String, IntegerArray>> ret = Generics.newArrayList(size);
+
+		Map<Integer, Pair<String, IntegerArray>> found = Generics.newHashMap(size);
+		Set<Integer> notFound = Generics.newHashSet(size);
+
+		for (int k = i; k < j; k++) {
+			Pair<String, IntegerArray> p = cache.get(k);
+			if (p == null) {
+				notFound.add(k);
+			} else {
+				found.put(k, p);
+			}
+		}
+
+		if (found.size() == 0) {
+			fc.position(starts.get(i));
+			ByteArray data = FileUtils.readByteArray(fc, ArrayMath.sum(lens.values(), i, j));
+			ByteBufferWrapper buf = new ByteBufferWrapper(data);
+
+			for (int k = i; k < j; k++) {
+				ByteArrayMatrix sub = buf.readByteArrayMatrix();
+
+				String docid = null;
+				IntegerArray d = null;
+				int u = 0;
+				if (encode) {
+					docid = DataCompression.decodeToString(sub.get(u++));
+					d = DataCompression.decodeToIntegerArray(sub.get(u++));
+				} else {
+					docid = new String(sub.get(u++).values());
+					d = ByteArrayUtils.toIntegerArray(sub.get(u++));
+				}
+				Pair<String, IntegerArray> p = Generics.newPair(docid, d);
+				ret.add(p);
+
+				cache.put(k, p);
+			}
+		} else {
+			if (found.size() != size) {
+				for (int k : notFound) {
+					found.put(k, get(k));
+				}
+			}
+			for (int k = i; k < j; k++) {
+				ret.add(found.get(k));
+			}
+		}
+		return ret;
+	}
+
+	public List<Pair<String, IntegerArray>> getRange2(int i, int j) throws Exception {
+		int size = j - i;
+		List<Pair<String, IntegerArray>> ret = Generics.newArrayList(size);
+		for (int k = i; k < j; k++) {
+			ret.add(get(k));
+		}
+		return ret;
+	}
+
+	public List<Pair<String, IntegerArray>> getRange(int[] range) throws Exception {
+		return getRange(range[0], range[1]);
 	}
 
 	public double getAvgDocLength() {
@@ -377,6 +462,10 @@ public class DocumentCollection {
 		return Generics.newPair(p.getFirst(), toMultiSentences(p.getSecond()));
 	}
 
+	public LongArray getStarts() {
+		return starts;
+	}
+
 	// public LongArray getPositions(int i) throws Exception {
 	// long start = starts.get(i);
 	// fc.position(start);
@@ -404,10 +493,6 @@ public class DocumentCollection {
 	// return ret;
 	// }
 
-	public LongArray getStarts() {
-		return starts;
-	}
-
 	public Pair<String, String> getText(int i) throws Exception {
 		Pair<String, IntegerArray> p = get(i);
 		IntegerArrayMatrix doc = toMultiSentences(get(i).getSecond());
@@ -425,7 +510,7 @@ public class DocumentCollection {
 
 	public List<Pair<String, String>> getText(int i, int j) throws Exception {
 		List<Pair<String, String>> ret = Generics.newArrayList(j - i);
-		for (Pair<String, IntegerArray> p : get(i, j)) {
+		for (Pair<String, IntegerArray> p : getRange(i, j)) {
 			IntegerArrayMatrix doc = toMultiSentences(p.getSecond());
 			StringBuffer sb = new StringBuffer();
 			for (int k = 0; k < doc.size(); k++) {

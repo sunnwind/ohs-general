@@ -68,7 +68,7 @@ public class NaverCluster {
 
 		for (int i = 0; i < ranges.length; i++) {
 			int[] range = ranges[i];
-			for (Pair<String, IntegerArray> p : dc.get(range)) {
+			for (Pair<String, IntegerArray> p : dc.getRange(range)) {
 				Counter<Integer> c = Generics.newCounter();
 				for (int w : p.getSecond()) {
 					if (w == DocumentCollection.SENT_END) {
