@@ -140,7 +140,7 @@ public class NaverCluster {
 			Map<Integer, String> m = Generics.newHashMap(locs.size());
 
 			for (int loc : locs) {
-				m.put(loc, rdc.getValues(loc).get(0));
+				m.put(loc, rdc.get(loc).get(0));
 			}
 
 			List<Integer> dids = Generics.newArrayList(m.keySet());

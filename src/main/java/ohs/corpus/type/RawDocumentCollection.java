@@ -13,6 +13,7 @@ import ohs.io.ByteBufferWrapper;
 import ohs.io.FileUtils;
 import ohs.ir.medical.general.MIRPath;
 import ohs.math.ArrayMath;
+import ohs.ml.neuralnet.com.BatchUtils;
 import ohs.types.generic.ListList;
 import ohs.types.number.IntegerArray;
 import ohs.types.number.LongArray;
@@ -28,31 +29,6 @@ public class RawDocumentCollection {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 
-		{
-
-			String[] dirs = { MIRPath.OHSUMED_COL_DC_DIR, MIRPath.TREC_CDS_2016_COL_DC_DIR };
-
-			for (int j = 0; j < dirs.length; j++) {
-				String dir = dirs[j];
-				if (j != 1) {
-					continue;
-				}
-
-				RawDocumentCollection ldc = new RawDocumentCollection(dir);
-				System.out.printf("[%s]\n", dir);
-				System.out.println(ldc.size());
-				
-				System.out.println(ldc.getAttrData());
-
-				ListList<String> ps = ldc.getValues(0, 10);
-
-				for (int i = 0; i < ps.size(); i++) {
-					List<String> p = ps.get(i);
-					System.out.println(p.subList(0, 3));
-					System.out.println("----------------------------------");
-				}
-			}
-		}
 
 		// {
 		// RawDocumentCollection rdc = new
@@ -181,47 +157,11 @@ public class RawDocumentCollection {
 	}
 
 	public RawDocumentCollection copyShallow() throws Exception {
-		return new RawDocumentCollection(FileUtils.openFileChannel(new File(dataDir, DATA_NAME), "r"), attrData, flagData, starts, lens, types,
-				cache);
+		return new RawDocumentCollection(FileUtils.openFileChannel(new File(dataDir, DATA_NAME), "r"), attrData, flagData, starts, lens,
+				types, cache);
 	}
 
-	public ListList<String> getAttrData() {
-		return attrData;
-	}
-
-	public HashMap<String, String> getAttrValueMap(int i) throws Exception {
-		HashMap<String, String> ret = Generics.newHashMap();
-		List<String> attrs = attrData.get(types.get(i), false);
-		List<String> vals = getValues(i);
-		for (int j = 0; j < attrs.size(); j++) {
-			ret.put(attrs.get(j), vals.get(j));
-		}
-		return ret;
-	}
-
-	public String getAttrValueText(int i) throws Exception {
-		List<String> attrs = attrData.get(types.get(i), false);
-		List<String> vals = getValues(i);
-		StringBuffer sb = new StringBuffer();
-
-		for (int j = 0; j < attrs.size(); j++) {
-			sb.append(String.format("%d,\t%s,\t%s", j + 1, attrs.get(j), vals.get(j)));
-			if (j != attrs.size() - 1) {
-				sb.append("\n");
-			}
-		}
-		return sb.toString();
-	}
-
-	public FileChannel getFileChannel() {
-		return fc;
-	}
-
-	public ShortArray getTypes() {
-		return types;
-	}
-
-	public ArrayList<String> getValues(int i) throws Exception {
+	public ArrayList<String> get(int i) throws Exception {
 		ArrayList<String> ret = cache.get(i);
 		if (ret == null) {
 			long start = starts.get(i);
@@ -244,7 +184,29 @@ public class RawDocumentCollection {
 		return ret;
 	}
 
-	public ListList<String> getValues(int i, int j) throws Exception {
+	public ListList<String> getAttrData() {
+		return attrData;
+	}
+
+	public FileChannel getFileChannel() {
+		return fc;
+	}
+
+	public HashMap<String, String> getMap(int i) throws Exception {
+		HashMap<String, String> ret = Generics.newHashMap();
+		List<String> attrs = attrData.get(types.get(i), false);
+		List<String> vals = get(i);
+		for (int j = 0; j < attrs.size(); j++) {
+			ret.put(attrs.get(j), vals.get(j));
+		}
+		return ret;
+	}
+
+	public ListList<String> getRange(int[] range) throws Exception {
+		return getRange(range[0], range[1]);
+	}
+
+	public ListList<String> getRange(int i, int j) throws Exception {
 		long start = starts.get(i);
 		int size1 = ArrayMath.sum(lens.values(), i, j);
 
@@ -269,8 +231,26 @@ public class RawDocumentCollection {
 		return ret;
 	}
 
+	public String getText(int i) throws Exception {
+		List<String> attrs = attrData.get(types.get(i), false);
+		List<String> vals = get(i);
+		StringBuffer sb = new StringBuffer();
+
+		for (int j = 0; j < attrs.size(); j++) {
+			sb.append(String.format("%d,\t%s,\t%s", j + 1, attrs.get(j), vals.get(j)));
+			if (j != attrs.size() - 1) {
+				sb.append("\n");
+			}
+		}
+		return sb.toString();
+	}
+
+	public ShortArray getTypes() {
+		return types;
+	}
+
 	public ListList<String> getValues(int[] range) throws Exception {
-		return getValues(range[0], range[1]);
+		return getRange(range[0], range[1]);
 	}
 
 	public int size() {

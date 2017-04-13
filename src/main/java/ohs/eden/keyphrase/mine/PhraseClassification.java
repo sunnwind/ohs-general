@@ -93,7 +93,7 @@ public class PhraseClassification {
 
 		// VectorMath.unitVector(e_avg);
 
-		List<Double> vals = Generics.newLinkedList();
+		List<Double> vals = Generics.newArrayList(E.colSize() * 3);
 
 		for (double val : E2.get(0).values()) {
 			vals.add(val);
@@ -145,9 +145,9 @@ public class PhraseClassification {
 			}
 		}
 
-		List<DenseVector> data = Generics.newLinkedList();
-		List<Integer> labels = Generics.newLinkedList();
-		List<String> phrsData = Generics.newLinkedList();
+		List<DenseVector> data = Generics.newArrayList(lm.sizeOfEntries());
+		List<Integer> labels = Generics.newArrayList(lm.sizeOfEntries());
+		List<String> phrsData = Generics.newArrayList(lm.sizeOfEntries());
 
 		Counter<String> c = Generics.newCounter();
 

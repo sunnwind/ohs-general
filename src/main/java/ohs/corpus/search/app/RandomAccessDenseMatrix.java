@@ -153,9 +153,9 @@ public class RandomAccessDenseMatrix {
 
 	private IntegerArray lens;
 
-	private Map<Integer, DenseVector> cache1;
+	private Map<Integer, DenseVector> softCache;
 
-	private List<DenseVector> cache2;
+	private List<DenseVector> hardCache;
 
 	private ReentrantLock lock = new ReentrantLock();
 
@@ -165,12 +165,12 @@ public class RandomAccessDenseMatrix {
 		lens = ByteArrayUtils.toIntegerArray(FileUtils.readByteArrayMatrix(fc));
 		dims = ByteArrayUtils.toIntegerArray(FileUtils.readByteArray(fc));
 
-		cache1 = Generics.newWeakHashMap(rowSize());
+		softCache = Generics.newWeakHashMap(rowSize());
 
 		if (cache_all) {
-			cache2 = Generics.newArrayList(rowSize());
+			hardCache = Generics.newArrayList(rowSize());
 			for (int i = 0; i < rowSize(); i++) {
-				cache2.add(null);
+				hardCache.add(null);
 			}
 		}
 	}
@@ -191,12 +191,8 @@ public class RandomAccessDenseMatrix {
 		return dims.get(1);
 	}
 
-	public Map<Integer, DenseVector> getColumnCache() {
-		return cache1;
-	}
-
 	public Map<Integer, DenseVector> getRowCache() {
-		return cache1;
+		return softCache;
 	}
 
 	public String info() {
@@ -211,15 +207,15 @@ public class RandomAccessDenseMatrix {
 		DenseVector ret = null;
 		if (i >= 0 && i < dims.get(0)) {
 
-			if (cache2 != null) {
+			if (hardCache != null) {
 				try {
 					lock.lock();
-					ret = cache2.get(i);
+					ret = hardCache.get(i);
 					if (ret == null) {
 						fc.position(starts.get(i));
 						ByteArray data = FileUtils.readByteArray(fc);
 						ret = new DenseVector(ByteArrayUtils.toDoubleArray(data));
-						cache2.set(i, ret);
+						hardCache.set(i, ret);
 					}
 				} finally {
 					lock.unlock();
@@ -227,12 +223,12 @@ public class RandomAccessDenseMatrix {
 			} else {
 				try {
 					lock.lock();
-					ret = cache1.get(i);
+					ret = softCache.get(i);
 					if (ret == null) {
 						fc.position(starts.get(i));
 						ByteArray data = FileUtils.readByteArray(fc);
 						ret = new DenseVector(ByteArrayUtils.toDoubleArray(data));
-						cache1.put(i, ret);
+						softCache.put(i, ret);
 					}
 				} finally {
 					lock.unlock();

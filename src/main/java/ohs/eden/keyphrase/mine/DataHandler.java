@@ -21,6 +21,7 @@ import ohs.corpus.type.StringNormalizer;
 import ohs.eden.keyphrase.cluster.KPPath;
 import ohs.io.FileUtils;
 import ohs.ir.medical.general.MIRPath;
+import ohs.ir.medical.general.NLPUtils;
 import ohs.ir.weight.TermWeighting;
 import ohs.math.ArrayUtils;
 import ohs.math.CommonMath;
@@ -78,12 +79,54 @@ public class DataHandler {
 		// dh.getWikiPhrases();
 		// dh.getFrequentPhrases();
 		// dh.getQualityTrainingPhrases();
-		dh.getMedicalTrainingPhrases();
+		// dh.getMedicalTrainingPhrases();
+
+		dh.getTrecCdsKeywords();
 
 		// dh.test();
 		// dh.test2();
 
 		System.out.println("process ends.");
+	}
+
+	public void getTrecCdsKeywords() throws Exception {
+
+		String[] dirs = { MIRPath.TREC_CDS_2014_COL_DC_DIR, MIRPath.TREC_CDS_2016_COL_DC_DIR };
+
+		for (int i = 0; i < dirs.length; i++) {
+			String dir = dirs[i];
+			if (i != 0) {
+				continue;
+			}
+
+			RawDocumentCollection rdc = new RawDocumentCollection(dir);
+			System.out.printf("[%s]\n", dir);
+			System.out.println(rdc.size());
+			System.out.println(rdc.getAttrData());
+			Counter<String> c = Generics.newCounter();
+
+			int[][] ranges = BatchUtils.getBatchRanges(rdc.size(), 1000);
+
+			for (int j = 0; j < ranges.length; j++) {
+				int[] range = ranges[j];
+				ListList<String> res = rdc.getRange(range);
+
+				for (int k = 0; k < res.size(); k++) {
+					List<String> l = res.get(k);
+					String kwdStr = l.get(4);
+
+					if (kwdStr.length() > 0) {
+						for (String kwd : kwdStr.split("\n")) {
+							if (!kwd.endsWith(".")) {
+								c.incrementCount(kwd.toLowerCase(), 1);
+							}
+						}
+					}
+				}
+			}
+
+			FileUtils.writeStringCounterAsText(dir.replace("col/dc/", "phrs/kwds.txt.gz"), c);
+		}
 	}
 
 	public void get3PKeywords() throws Exception {
@@ -144,8 +187,8 @@ public class DataHandler {
 			if (progress > 0) {
 				System.out.printf("[%d]\n", progress);
 			}
-			HashMap<String, String> m = rdc.getAttrValueMap(i);
-			List<String> vals = rdc.getValues(i);
+			HashMap<String, String> m = rdc.getMap(i);
+			List<String> vals = rdc.get(i);
 			int j = 0;
 			String type = vals.get(j++);
 			String cn = vals.get(j++);
@@ -264,15 +307,13 @@ public class DataHandler {
 			boolean found_in_mesh = cm1.containKey("mesh", phrs);
 			boolean found_in_snomed = cm1.containKey("snomed", phrs);
 
-			// if(!found_in_mesh && found_in_snomed){
-			// System.out.println(phrs);
-			// }
+			String label = "not_medical";
 
 			if (found_in_mesh || found_in_snomed) {
-				cm2.setCount("medical", phrs, cnt);
-			} else {
-				cm2.setCount("not_medical", phrs, cnt);
+				label = "medical";
 			}
+
+			cm2.setCount(label, phrs, cnt);
 		}
 
 		FileUtils.writeStringCounterAsText(dir + "phrs/phrs_m_medical.txt", cm2.getCounter("medical"));
@@ -335,6 +376,8 @@ public class DataHandler {
 
 		CounterMap<String, String> cm2 = Generics.newCounterMap();
 
+		Set<String> stopwords = FileUtils.readStringSetFromText(MIRPath.STOPWORD_INQUERY_FILE);
+
 		for (String phrs : c3.getSortedKeys()) {
 			double cnt = c3.getCount(phrs);
 
@@ -343,15 +386,23 @@ public class DataHandler {
 			boolean found_in_mesh = cm1.containKey("mesh", phrs);
 			boolean found_in_snomed = cm1.containKey("snomed", phrs);
 
-			if (found_in_wiki_title || found_in_mesh || found_in_snomed) {
-				cm2.setCount("good", phrs, cnt);
-			} else {
-				if (found_in_wiki_link) {
-					cm2.setCount("not_bad", phrs, cnt);
+			String[] words = phrs.split(" ");
+
+			boolean start_with_stopword = stopwords.contains(words[0]) ? true : false;
+
+			String label = "bad";
+
+			if (!start_with_stopword) {
+				if (found_in_wiki_title || found_in_mesh || found_in_snomed) {
+					label = "good";
 				} else {
-					cm2.setCount("bad", phrs, cnt);
+					if (found_in_wiki_link) {
+						label = "not_bad";
+					}
 				}
 			}
+
+			cm2.setCount(label, phrs, cnt);
 		}
 
 		FileUtils.writeStringCounterAsText(dir + "phrs/phrs_q_good.txt", cm2.getCounter("good"));
@@ -397,6 +448,13 @@ public class DataHandler {
 		return sb.toString().trim();
 	}
 
+	public String normalize(String s) {
+		s = StrUtils.join(" ", NLPUtils.tokenize(s));
+		s = StrUtils.normalizeNumbers(s);
+		s = StrUtils.normalizeSpaces(s);
+		return s;
+	}
+
 	public void getWikiPhrases() throws Exception {
 		Timer timer = Timer.newTimer();
 		RawDocumentCollection rdc = new RawDocumentCollection(MIRPath.WIKI_COL_DC_DIR);
@@ -440,10 +498,12 @@ public class DataHandler {
 					title = title.substring("List of".length() + 1);
 				}
 
-				title = sn.normalize(title);
+				String t = title;
 
-				if (title.split(" ").length > 1 && !title.contains("?")) {
-					c1.incrementCount(title, 1);
+				t = sn.normalize(t);
+
+				if (t.split(" ").length > 1 && !t.contains("?")) {
+					c1.incrementCount(t, 1);
 				}
 
 				for (String phrs : phrss.split("\\|")) {

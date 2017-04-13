@@ -20,8 +20,6 @@ public class ListMap<K, V> implements Serializable {
 
 	private Map<K, List<V>> entries;
 
-	private List<List<V>> ls;
-
 	private ListType lt;
 
 	private MapType mt;
@@ -34,7 +32,6 @@ public class ListMap<K, V> implements Serializable {
 
 	public ListMap(int size, MapType mt, ListType lt) {
 		entries = Generics.newMap(mt, size);
-		ls = Generics.newArrayList(size);
 
 		this.mt = mt;
 		this.lt = lt;
@@ -53,20 +50,8 @@ public class ListMap<K, V> implements Serializable {
 			for (List<V> l : entries.values()) {
 				l.clear();
 			}
-			ls.clear();
 			entries.clear();
 		} else {
-			// Collections.sort(ls, new Comparator<List<V>>() {
-			//
-			// @Override
-			// public int compare(List<V> o1, List<V> o2) {
-			// return o1.size() < o2.size() ? 1 : -1;
-			// }
-			// });
-
-			for (List<V> l : ls) {
-				l.clear();
-			}
 			entries.clear();
 		}
 
@@ -77,20 +62,10 @@ public class ListMap<K, V> implements Serializable {
 		return entries.containsKey(key);
 	}
 
-	public List<V> ensure(int i) {
-		if (ls.size() <= i) {
-			int size = i - ls.size() + 1;
-			for (int j = 0; j < size; j++) {
-				ls.add(Generics.newList(lt));
-			}
-		}
-		return ls.get(i);
-	}
-
 	public List<V> ensure(K key) {
 		List<V> ret = entries.get(key);
 		if (ret == null) {
-			ret = ensure(pointer++);
+			ret = Generics.newList(lt);
 			entries.put(key, ret);
 		}
 		return ret;

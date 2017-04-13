@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -901,6 +902,9 @@ public class FileUtils {
 				break;
 			}
 			ret.add(line);
+		}
+		if (ret instanceof LinkedList) {
+			ret = Generics.newArrayList(ret);
 		}
 		return ret;
 	}

@@ -284,8 +284,8 @@ public class Trie<K> implements Serializable {
 
 	public TSResult<K> search(List<K> keys, int start, int end) {
 		Node<K> node = root;
-		int num_matches = 0;
-		int max_matches = end - start;
+		int match_cnt = 0;
+		int max_match_cnt = end - start;
 		int loc = -1;
 
 		for (int i = start; i < end; i++) {
@@ -293,25 +293,25 @@ public class Trie<K> implements Serializable {
 			if (node.hasChild(key)) {
 				node = node.getChild(key);
 				loc = i;
-				num_matches++;
+				match_cnt++;
 			} else {
 				break;
 			}
 		}
 
- 		MatchType type = MatchType.FAIL;
+		MatchType type = MatchType.FAIL;
 
-		if (num_matches == max_matches) {
-			if (node.getData() == null) {
-				type = MatchType.EXACT_KEYS_WITHOUT_DATA;
-			} else {
+		if (match_cnt == max_match_cnt) {
+			if (node.getFlag()) {
 				type = MatchType.EXACT_KEYS_WITH_DATA;
-			}
-		} else if (num_matches > 0 && num_matches < max_matches) {
-			if (node.getData() == null) {
-				type = MatchType.PARTIAL_KEYS_WITHOUT_DATA;
 			} else {
+				type = MatchType.EXACT_KEYS_WITHOUT_DATA;
+			}
+		} else if (match_cnt > 0 && match_cnt < max_match_cnt) {
+			if (node.getFlag()) {
 				type = MatchType.PARTIAL_KEYS_WITH_DATA;
+			} else {
+				type = MatchType.PARTIAL_KEYS_WITHOUT_DATA;
 			}
 		}
 

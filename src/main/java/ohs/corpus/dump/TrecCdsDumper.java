@@ -74,6 +74,7 @@ public class TrecCdsDumper extends TextDumper {
 					String title = "";
 					String abs = "";
 					String body = "";
+					String kwds = "";
 
 					Elements elem1 = doc.getElementsByAttributeValue("pub-id-type", "pmc");
 
@@ -82,7 +83,7 @@ public class TrecCdsDumper extends TextDumper {
 
 					}
 
-					String[] tags = { "article-title", "abstract", "body" };
+					String[] tags = { "article-title", "abstract", "body", "kwd" };
 
 					for (int i = 0; i < tags.length; i++) {
 						Elements elem3 = doc.getElementsByTag(tags[i]);
@@ -94,6 +95,14 @@ public class TrecCdsDumper extends TextDumper {
 								abs = elem3.get(0).text();
 							} else if (i == 2) {
 								body = elem3.get(0).text();
+							} else if (i == 3) {
+								List<String> l = Generics.newArrayList();
+								for (int j = 0; j < elem3.size(); j++) {
+									l.add(elem3.get(j).text());
+								}
+								if (l.size() > 0) {
+									kwds = StrUtils.join(StrUtils.LINE_REP, l);
+								}
 							}
 						}
 					}
@@ -103,6 +112,7 @@ public class TrecCdsDumper extends TextDumper {
 					values.add(title);
 					values.add(abs);
 					values.add(body);
+					values.add(kwds);
 
 					for (int i = 0; i < values.size(); i++) {
 						values.set(i, StrUtils.normalizeSpaces(values.get(i)));
@@ -136,15 +146,15 @@ public class TrecCdsDumper extends TextDumper {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 
-		{
-			TrecCdsDumper dh = new TrecCdsDumper(MIRPath.TREC_CDS_2014_COL_RAW_DIR, MIRPath.TREC_CDS_2014_COL_LINE_DIR);
-			dh.dump();
-		}
+		// {
+		// TrecCdsDumper dh = new TrecCdsDumper(MIRPath.TREC_CDS_2014_COL_RAW_DIR, MIRPath.TREC_CDS_2014_COL_LINE_DIR);
+		// dh.dump();
+		// }
 
-		{
-			TrecCdsDumper dh = new TrecCdsDumper(MIRPath.TREC_CDS_2016_COL_RAW_DIR, MIRPath.TREC_CDS_2016_COL_LINE_DIR);
-			dh.dump();
-		}
+		// {
+		// TrecCdsDumper dh = new TrecCdsDumper(MIRPath.TREC_CDS_2016_COL_RAW_DIR, MIRPath.TREC_CDS_2016_COL_LINE_DIR);
+		// dh.dump();
+		// }
 
 		System.out.println("process ends.");
 	}

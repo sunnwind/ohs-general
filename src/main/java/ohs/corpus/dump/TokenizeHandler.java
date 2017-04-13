@@ -15,6 +15,7 @@ import edu.stanford.nlp.process.PTBTokenizer;
 import edu.stanford.nlp.process.TokenizerFactory;
 import ohs.io.FileUtils;
 import ohs.io.TextFileWriter;
+import ohs.ir.medical.general.MIRPath;
 import ohs.ir.medical.general.NLPUtils;
 import ohs.types.generic.SetMap;
 import ohs.utils.Generics;
@@ -77,13 +78,15 @@ public class TokenizeHandler {
 						parts = StrUtils.unwrap(parts);
 
 						for (int dataLoc : dataLocs) {
-							String s = parts[dataLoc].replace(StrUtils.LINE_REP, "\n");
+							String s = parts[dataLoc];
 							StringBuffer sb = new StringBuffer();
-							for (String t : s.split("\n")) {
+
+							for (String t : s.split(StrUtils.LINE_REP)) {
 								if (t.length() == 0) {
 									sb.append("\n\n");
 								} else {
 									sb.append(StrUtils.join("\n", NLPUtils.tokenize(t)));
+									sb.append("\n");
 								}
 							}
 							s = sb.toString().trim();
@@ -125,16 +128,15 @@ public class TokenizeHandler {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 		TokenizeHandler th = new TokenizeHandler();
-		th.setThreadSize(5);
+		th.setThreadSize(10);
 
 		// th.tokenize(MIRPath.OHSUMED_COL_LINE_DIR, new int[] { 3, 5 }, MIRPath.OHSUMED_COL_TOK_DIR, false);
 		// th.tokenize(MIRPath.CLEF_EH_2014_COL_LINE_DIR, new int[] { 3 },
 		// MIRPath.CLEF_EH_2014_COL_TOK_DIR, true);
 		// th.tokenize(MIRPath.TREC_GENO_2007_COL_LINE_DIR, new int[] { 1 },
 		// MIRPath.TREC_GENO_2007_COL_TOK_DIR, false);
-		// th.tokenize(MIRPath.TREC_CDS_2014_COL_LINE_DIR, new int[] { 1, 2, 3
-		// }, MIRPath.TREC_CDS_2014_COL_TOK_DIR, false);
-		// th.tokenize(MIRPath.TREC_CDS_2016_COL_LINE_DIR, new int[] { 1, 2, 3 }, MIRPath.TREC_CDS_2016_COL_TOK_DIR, true);
+		th.tokenize(MIRPath.TREC_CDS_2014_COL_LINE_DIR, new int[] { 1, 2, 3, 4 }, MIRPath.TREC_CDS_2014_COL_TOK_DIR, true);
+		// th.tokenize(MIRPath.TREC_CDS_2016_COL_LINE_DIR, new int[] { 1, 2, 3, 4 }, MIRPath.TREC_CDS_2016_COL_TOK_DIR, true);
 		// th.tokenize(MIRPath.WIKI_COL_LINE_DIR, new int[] { 3 }, MIRPath.WIKI_COL_TOK_DIR, true);
 		// th.tokenize(MIRPath.CLUEWEB_COL_LINE_DIR, new int[] { 1 }, MIRPath.CLUEWEB_COL_TOK_DIR, false);
 		// th.tokenize(MIRPath.BIOASQ_COL_LINE_DIR, new int[] { 4, 5 }, MIRPath.BIOASQ_COL_TOK_DIR, false);

@@ -82,10 +82,6 @@ public class FrequentPhraseDetector {
 
 					docToLocs.clear();
 
-					Timer timer = Timer.newTimer();
-
-					System.out.printf("[len %d, %s]\n", phrs_len, timer.stop());
-
 					for (String phrs : newIndex.keySet()) {
 						List<Long> poss = newIndex.get(phrs);
 						if (poss.size() < min_support) {
@@ -95,7 +91,7 @@ public class FrequentPhraseDetector {
 					}
 					newIndex.clear();
 
-					write(index, out);
+					writePhrases(index, out);
 				}
 				out.close();
 
@@ -130,7 +126,7 @@ public class FrequentPhraseDetector {
 			return ret;
 		}
 
-		private boolean filter(String phrs) {
+		private boolean filterPhrase(String phrs) {
 			List<String> words = StrUtils.split("_", phrs);
 			IntegerArray ws = new IntegerArray(words.size());
 
@@ -347,13 +343,13 @@ public class FrequentPhraseDetector {
 			return ret;
 		}
 
-		private void write(ListMap<String, Long> index, FileChannel out) throws Exception {
+		private void writePhrases(ListMap<String, Long> index, FileChannel out) throws Exception {
 			List<String> phrss = Generics.newArrayList(index.keySet());
 			Collections.sort(phrss);
 
 			for (String phrs : phrss) {
-
-				if (filter(phrs)) {
+				
+				if (filterPhrase(phrs)) {
 					continue;
 				}
 

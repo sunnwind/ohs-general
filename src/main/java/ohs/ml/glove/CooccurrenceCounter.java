@@ -48,9 +48,9 @@ public class CooccurrenceCounter {
 
 		private ByteBufferWrapper buf = new ByteBufferWrapper(max_buf_size);
 
-		public CountWorker(DocumentCollection lsc, List<FileChannel> fcs, int[][] ranges, AtomicInteger range_cnt, Timer timer) {
+		public CountWorker(DocumentCollection dc, List<FileChannel> fcs, int[][] ranges, AtomicInteger range_cnt, Timer timer) {
 			super();
-			this.dc = lsc;
+			this.dc = dc;
 			this.fcs = fcs;
 			this.ranges = ranges;
 			this.range_cnt = range_cnt;
@@ -85,7 +85,7 @@ public class CooccurrenceCounter {
 							int start = Math.max(j - window_size, 0);
 							int w_center = sent.get(j);
 							String word1 = dc.getVocab().getObject(w_center);
-							
+
 							if (!accept(w_center)) {
 								continue;
 							}
@@ -93,7 +93,7 @@ public class CooccurrenceCounter {
 							for (int k = start; k < j; k++) {
 								int w_left = sent.get(k);
 								String word2 = dc.getVocab().getObject(w_left);
-								
+
 								if (!accept(w_left)) {
 									continue;
 								}

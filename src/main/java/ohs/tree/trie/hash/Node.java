@@ -32,21 +32,18 @@ public class Node<K> implements Serializable {
 	protected Map<K, Node<K>> children;
 	protected Node<K> parent;
 	protected Object data;
+	protected boolean flag = false;
+
+	public void setFlag(boolean flag) {
+		this.flag = flag;
+	}
+
+	public boolean getFlag() {
+		return flag;
+	}
 
 	public Node() {
 
-	}
-
-	public void setKey(K key) {
-		this.key = key;
-	}
-
-	public void setCount(int cnt) {
-		this.cnt = cnt;
-	}
-
-	public void setId(int id) {
-		this.id = id;
 	}
 
 	public Node(Node<K> parent, K key, Object data, int id) {
@@ -64,14 +61,6 @@ public class Node<K> implements Serializable {
 		}
 		children.put(node.getKey(), node);
 	}
-
-	// public Node(Node<K> parent, K key, int depth, int id) {
-	// this(parent, key, depth, null, id);
-	// }
-
-	// public void write(ObjectOutputStream ois) {
-	//
-	// }
 
 	@Override
 	public boolean equals(Object obj) {
@@ -103,6 +92,14 @@ public class Node<K> implements Serializable {
 		}
 		return ret;
 	}
+
+	// public Node(Node<K> parent, K key, int depth, int id) {
+	// this(parent, key, depth, null, id);
+	// }
+
+	// public void write(ObjectOutputStream ois) {
+	//
+	// }
 
 	public int getCount() {
 		return cnt;
@@ -236,12 +233,12 @@ public class Node<K> implements Serializable {
 		return children == null || !children.containsKey(key) ? false : true;
 	}
 
-	public boolean hasData() {
-		return data == null ? false : true;
-	}
-
 	public boolean hasChildren() {
 		return children == null || children.size() == 0 ? false : true;
+	}
+
+	public boolean hasData() {
+		return data == null ? false : true;
 	}
 
 	@Override
@@ -280,8 +277,20 @@ public class Node<K> implements Serializable {
 		this.children = children;
 	}
 
+	public void setCount(int cnt) {
+		this.cnt = cnt;
+	}
+
 	public void setData(Object data) {
 		this.data = data;
+	}
+
+	public void setId(int id) {
+		this.id = id;
+	}
+
+	public void setKey(K key) {
+		this.key = key;
 	}
 
 	public void setParent(Node<K> parent) {
