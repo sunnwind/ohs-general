@@ -5,6 +5,9 @@ import java.nio.channels.FileChannel;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+
+import org.apache.xalan.xsltc.compiler.sym;
+
 import java.util.Set;
 
 import ohs.io.ByteArray;
@@ -256,12 +259,12 @@ public class DocumentCollection {
 	}
 
 	public DocumentCollection(FileChannel fc, LongArray starts, IntegerArray lens, Vocab vocab,
-			Map<Integer, Pair<String, IntegerArray>> softCache) throws Exception {
+			Map<Integer, Pair<String, IntegerArray>> cache) throws Exception {
 		this.fc = fc;
 		this.starts = starts;
 		this.lens = lens;
 		this.vocab = vocab;
-		this.cache = softCache;
+		this.cache = cache;
 	}
 
 	public DocumentCollection(String dataDir) throws Exception {
@@ -294,8 +297,7 @@ public class DocumentCollection {
 	}
 
 	public DocumentCollection copyShallow() throws Exception {
-		return new DocumentCollection(FileUtils.openFileChannel(new File(dataDir, DocumentCollection.DATA_NAME), "r"), starts, lens, vocab,
-				cache);
+		return new DocumentCollection(FileUtils.openFileChannel(new File(dataDir, DATA_NAME), "r"), starts, lens, vocab, cache);
 	}
 
 	public Pair<String, IntegerArray> get(int i) throws Exception {
@@ -338,22 +340,85 @@ public class DocumentCollection {
 		return ret;
 	}
 
+	public double getAvgDocLength() {
+		return len_d_avg;
+	}
+
+	public ByteSize getByteSize() {
+		long bytes = vocab.byteSize().getBytes();
+		bytes += Integer.BYTES * len_c;
+		return new ByteSize(bytes);
+	}
+
+	public File getDataDir() {
+		return dataDir;
+	}
+
+	public int getDocLength(int i) {
+		return lens.get(i);
+	}
+
+	public SparseVector getDocVector(int i) throws Exception {
+		IntegerArray d = get(i).getSecond();
+		Counter<Integer> c = Generics.newCounter(d.size());
+		for (int w : d) {
+			if (w == SENT_END) {
+				continue;
+			}
+			c.incrementCount(w, 1);
+		}
+		return new SparseVector(c);
+	}
+
+	public SparseMatrix getDocVectors(int[] is) throws Exception {
+		Map<Integer, SparseVector> m = Generics.newHashMap(is.length);
+		for (int i : is) {
+			m.put(i, getDocVector(i));
+		}
+		return new SparseMatrix(m);
+	}
+
+	public FileChannel getFileChannel() {
+		return fc;
+	}
+
+	public String getDocId(int dseq) throws Exception {
+		return get(dseq).getFirst();
+	}
+
+	public long getLength() {
+		return len_c;
+	}
+
+	public long getMaxDocLength() {
+		return len_d_max;
+	}
+
+	public long getMinDocLength() {
+		return len_d_min;
+	}
+
 	public List<Pair<String, IntegerArray>> getRange(int i, int j) throws Exception {
 		int size = j - i;
-
-		List<Pair<String, IntegerArray>> ret = Generics.newArrayList(size);
 
 		Map<Integer, Pair<String, IntegerArray>> found = Generics.newHashMap(size);
 		Set<Integer> notFound = Generics.newHashSet(size);
 
 		for (int k = i; k < j; k++) {
-			Pair<String, IntegerArray> p = cache.get(k);
+			Pair<String, IntegerArray> p = null;
+
+			synchronized (cache) {
+				p = cache.get(k);
+			}
+
 			if (p == null) {
 				notFound.add(k);
 			} else {
 				found.put(k, p);
 			}
 		}
+
+		List<Pair<String, IntegerArray>> ret = Generics.newArrayList(size);
 
 		if (found.size() == 0) {
 			fc.position(starts.get(i));
@@ -376,7 +441,9 @@ public class DocumentCollection {
 				Pair<String, IntegerArray> p = Generics.newPair(docid, d);
 				ret.add(p);
 
-				cache.put(k, p);
+				synchronized (cache) {
+					cache.put(k, p);
+				}
 			}
 		} else {
 			if (found.size() != size) {
@@ -391,6 +458,10 @@ public class DocumentCollection {
 		return ret;
 	}
 
+	public List<Pair<String, IntegerArray>> getRange(int[] range) throws Exception {
+		return getRange(range[0], range[1]);
+	}
+
 	public List<Pair<String, IntegerArray>> getRange2(int i, int j) throws Exception {
 		int size = j - i;
 		List<Pair<String, IntegerArray>> ret = Generics.newArrayList(size);
@@ -398,63 +469,6 @@ public class DocumentCollection {
 			ret.add(get(k));
 		}
 		return ret;
-	}
-
-	public List<Pair<String, IntegerArray>> getRange(int[] range) throws Exception {
-		return getRange(range[0], range[1]);
-	}
-
-	public double getAvgDocLength() {
-		return len_d_avg;
-	}
-
-	public ByteSize getByteSize() {
-		long bytes = vocab.byteSize().getBytes();
-		bytes += Integer.BYTES * len_c;
-		return new ByteSize(bytes);
-	}
-
-	public int getDocLength(int i) {
-		return lens.get(i);
-	}
-
-	public SparseVector getDocVector(int i) throws Exception {
-		Counter<Integer> c = Generics.newCounter();
-		for (int w : get(i).getSecond()) {
-			if (w < 1) {
-				continue;
-			}
-			c.incrementCount(w, 1);
-		}
-		return new SparseVector(c);
-	}
-
-	public SparseMatrix getDocVectors(int[] is) throws Exception {
-		Map<Integer, SparseVector> m = Generics.newHashMap(is.length);
-		for (int i : is) {
-			m.put(i, getDocVector(i));
-		}
-		return new SparseMatrix(m);
-	}
-
-	public FileChannel getFileChannel() {
-		return fc;
-	}
-
-	public String getId(int i) throws Exception {
-		return get(i).getFirst();
-	}
-
-	public long getLength() {
-		return len_c;
-	}
-
-	public long getMaxDocLength() {
-		return len_d_max;
-	}
-
-	public long getMinDocLength() {
-		return len_d_min;
 	}
 
 	public Pair<String, IntegerArrayMatrix> getSents(int i) throws Exception {

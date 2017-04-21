@@ -1,8 +1,11 @@
 package ohs.ml.neuralnet.layer;
 
+import java.util.List;
+
 import ohs.math.VectorMath;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseVector;
+import ohs.utils.Generics;
 
 /**
  * http://cthorey.github.io./backprop_conv/
@@ -25,8 +28,6 @@ public class ConvLayer extends Layer {
 
 	private int embedding_size;
 
-	private int num_filters;
-
 	/**
 	 * filters x feature maps
 	 */
@@ -41,31 +42,35 @@ public class ConvLayer extends Layer {
 
 	private DenseVector db;
 
-	private DenseMatrix tmp_Xn;
+	private DenseMatrix tmp_Xc;
 
-	private DenseMatrix tmp_Y;
+	private DenseMatrix Xc;
 
-	private DenseMatrix Xn;
-
-	private DenseMatrix X;
+	private DenseMatrix fwd_X;
 
 	private DenseMatrix C;
+
+	private int padding_size = 0;
+
+	private int concat_embedding_size = 0;
+
+	private boolean use_padding = false;
+
+	private DenseMatrix P;
 
 	public ConvLayer(DenseMatrix W, DenseVector b, int window_size, int embedding_size) {
 		this.W = W;
 		this.b = b;
 		this.window_size = window_size;
 		this.embedding_size = embedding_size;
-		this.num_filters = b.size();
+		padding_size = window_size - 1;
+		concat_embedding_size = embedding_size * window_size;
+
+		P = new DenseMatrix(padding_size, embedding_size);
 	}
 
-	public ConvLayer(int embedding_size, int window_size, int num_filters) {
-		this.embedding_size = embedding_size;
-		this.window_size = window_size;
-		this.num_filters = num_filters;
-
-		W = new DenseMatrix(num_filters, window_size * embedding_size);
-		b = new DenseVector(num_filters);
+	public ConvLayer(int embedding_size, int window_size, int filter_size) {
+		this(new DenseMatrix(filter_size, window_size * embedding_size), new DenseVector(filter_size), window_size, embedding_size);
 	}
 
 	@Override
@@ -77,69 +82,68 @@ public class ConvLayer extends Layer {
 	public DenseMatrix forward(Object I) {
 		DenseMatrix X = (DenseMatrix) I;
 
-		this.X = X;
+		this.fwd_X = X;
 
 		int data_size = X.rowSize();
-		int feat_size = embedding_size * window_size;
-		// int padding_size = window_size - 1;
-		// int new_data_size = data_size + 2 * padding_size;
+		int padded_data_size = data_size + padding_size;
 
-		if (tmp_Xn == null || tmp_Xn.rowSize() < data_size) {
-			tmp_Xn = new DenseMatrix(data_size, feat_size);
+		DenseMatrix Xp = null;
+
+		{
+			List<DenseVector> l = Generics.newArrayList(padded_data_size);
+
+			for (DenseVector p : P) {
+				l.add(p);
+			}
+
+			for (DenseVector x : X) {
+				l.add(x);
+			}
+
+			Xp = new DenseMatrix(l);
 		}
 
-		Xn = tmp_Xn.rowsAsMatrix(data_size);
-		Xn.setAll(0);
+		if (tmp_Xc == null || tmp_Xc.rowSize() < data_size) {
+			tmp_Xc = new DenseMatrix(data_size, concat_embedding_size);
+		}
+		
+		/*
+		 * Xc = data x concatenated embeddings
+		 */
+
+		Xc = tmp_Xc.rowsAsMatrix(data_size);
+		Xc.setAll(0);
 
 		for (int i = 0; i < data_size; i++) {
-			DenseVector xn = Xn.row(i);
-			int start = i - window_size + 1;
-			int end = i;
+			int start = i;
+			int end = i + window_size;
 
-			for (int j = start, u = 0; j <= end; j++) {
-				if (j < 0) {
-					u += embedding_size;
-				} else {
-					DenseVector x = X.row(j);
+			DenseVector xc = Xc.row(i);
 
-					for (int k = 0; k < x.size(); k++) {
-						xn.set(u++, x.value(k));
-					}
+			for (int j = start, k = 0; j < end; j++) {
+				DenseVector x = Xp.row(j);
+				for (int l = 0; l < x.size(); l++) {
+					xc.add(k++, x.value(l));
 				}
 			}
-			xn.summation();
 		}
 
-		System.out.println(Xn);
+		/*
+		 * C = filter x concatenated embeddings
+		 */
 
-		// for (int i = 0; i < X.rowSize(); i++) {
-		// int j = i + padding_size;
-		// VectorUtils.copy(X.row(i), Xn.row(j));
-		// }
+		DenseMatrix C = new DenseMatrix(W.rowSize(), Xc.rowSize());
+		VectorMath.productColumns(W, Xc, C, false);
 
-		// int feat_map_size = Xn.rowSize() - window_size + 1;
-		//
-		// if (tmp_Y == null || tmp_Y.colSize() < feat_map_size) {
-		// tmp_Y = new DenseMatrix(num_filters, feat_map_size);
-		// }
-		//
-		// DenseMatrix Y = tmp_Y.rowsAsMatrix(num_filters);
-		// DenseVector e = new DenseVector(W.colSize());
-		//
-		// for (int i = 0; i < Xn.rowSize() - window_size; i++) {
-		// VectorUtils.copyRows(Xn, i, i + window_size, e);
-		//
-		// for (int j = 0; j < W.rowSize(); j++) {
-		// /*
-		// * w: filter
-		// */
-		// DenseVector w = W.row(j);
-		// double c = VectorMath.dotProduct(w, e) + b.value(j);
-		// Y.set(j, i, c);
-		//
-		// }
-		// }
-		return null;
+		for (int i = 0; i < C.rowSize(); i++) {
+			DenseVector c = C.row(i);
+			double bias = b.value(i);
+			for (int j = 0; j < c.size(); j++) {
+				c.add(j, bias);
+			}
+		}
+
+		return C;
 	}
 
 	@Override
@@ -189,6 +193,10 @@ public class ConvLayer extends Layer {
 			db = b.copy(true);
 		}
 
+	}
+
+	public void usePadding(boolean use_padding) {
+		this.use_padding = use_padding;
 	}
 
 }

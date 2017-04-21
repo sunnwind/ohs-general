@@ -276,6 +276,7 @@ public class DocumentCollectionCreator {
 		// dcc.create(MIRPath.OHSUMED_COL_DC_DIR, 1, new int[] { 3, 5 });
 		// dcc.create(MIRPath.TREC_CDS_2014_COL_DC_DIR, 0, new int[] { 1, 2, 3 });
 		// dcc.create(MIRPath.TREC_CDS_2016_COL_DC_DIR, 0, new int[] { 1, 2, 3 });
+		dcc.create("../../data/medical_ir/scopus/col/dc/", 0, new int[] { 1, 2 });
 		// dcc.create(MIRPath.BIOASQ_COL_DC_DIR, 0, new int[] { 4, 5 });
 		// dcc.create(MIRPath.WIKI_COL_DC_DIR, 0, new int[] { 3 });
 		// dcc.create(MIRPath.CLUEWEB_COL_DC_DIR, 0, new int[] { 1 });
@@ -290,13 +291,6 @@ public class DocumentCollectionCreator {
 
 		// dcc.setStringNormalizer(new ThreePStringNormalizer());
 		// dcc.create(KPPath.COL_DC_DIR, 0, new int[] { 4, 5, 6, 7 });
-
-		// InvertedIndexCreator.main(args);
-
-		// dcc.create("../../data/naver_news/col/dc/", 0, new int[] { 0, 2 });
-
-		dcc.setMinWordCnt(0);
-		dcc.create("../../data/naver_news/col/dc/", -1, new int[] { 0 });
 
 		System.out.println("process ends.");
 	}
@@ -582,7 +576,7 @@ public class DocumentCollectionCreator {
 		LongArray starts = new LongArray(rdc.size());
 		IntegerArray lens = new IntegerArray(rdc.size());
 
-		List<ByteArrayMatrix> docs = Generics.newLinkedList();
+		List<ByteArrayMatrix> docs = Generics.newArrayList();
 
 		ByteBufferWrapper buf = new ByteBufferWrapper(max_buf_size);
 

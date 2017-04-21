@@ -107,7 +107,7 @@ public class InvertedIndexCreator {
 				fc.close();
 				// inFile.delete();
 
-				System.out.printf("[read, %s, %d, %s]\n", inFile.getName(), cnt, timer.stop());
+				// System.out.printf("[read, %s, %d, %s]\n", inFile.getName(), cnt, timer.stop());
 
 				File outFile = new File(inFile.getParentFile(), "m_" + inFile.getName());
 
@@ -155,7 +155,7 @@ public class InvertedIndexCreator {
 					buf_size = 0;
 				}
 
-				System.out.printf("[write, %s, %d, %s]\n", inFile.getName(), cnt, timer.stop());
+				// System.out.printf("[write, %s, %d, %s]\n", inFile.getName(), cnt, timer.stop());
 
 				fc.close();
 
@@ -211,6 +211,8 @@ public class InvertedIndexCreator {
 			int range_loc = 0;
 
 			ListMapMap<Integer, Integer, Integer> lmm = Generics.newListMapMap(ListType.LINKED_LIST);
+			List<List<Integer>> ls = Generics.newArrayList();
+
 			int buf_size = 0;
 
 			while ((range_loc = range_cnt.getAndIncrement()) < ranges.length) {

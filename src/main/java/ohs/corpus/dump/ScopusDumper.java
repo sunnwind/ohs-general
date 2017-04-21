@@ -2,7 +2,6 @@ package ohs.corpus.dump;
 
 import java.text.DecimalFormat;
 import java.util.List;
-import java.util.Set;
 
 import ohs.io.FileUtils;
 import ohs.io.TextFileReader;
@@ -48,8 +47,8 @@ public class ScopusDumper extends TextDumper {
 					if (ps.length == 2) {
 						lm.put(ps[0], ps[1]);
 					} else {
-//						System.out.println(line);
-					} 
+
+					}
 				} catch (Exception e) {
 					System.out.println(line);
 				}
@@ -73,15 +72,19 @@ public class ScopusDumper extends TextDumper {
 					FileUtils.writeStringCollectionAsText(outFileName, lines);
 					lines.clear();
 				} else {
-					List<String> ps = StrUtils.split("\t", line);
-					ps = StrUtils.unwrap(ps);
+					try {
+						List<String> ps = StrUtils.split("\t", line);
+						ps = StrUtils.unwrap(ps);
 
-					List<String> l = lm.get(ps.get(0), false);
+						List<String> l = lm.get(ps.get(0), false);
 
-					if (l != null) {
-						ps.add(StrUtils.join(StrUtils.LINE_REP, l));
-						ps = StrUtils.wrap(ps);
-						lines.add(StrUtils.join("\t", ps));
+						if (l != null) {
+							ps.add(StrUtils.join(StrUtils.LINE_REP, l));
+							ps = StrUtils.wrap(ps);
+							lines.add(StrUtils.join("\t", ps));
+						}
+					} catch (Exception e) {
+						System.out.println(line);
 					}
 				}
 			}

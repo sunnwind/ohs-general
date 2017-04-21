@@ -9,8 +9,8 @@ import java.util.Set;
 
 import ohs.corpus.search.DocumentStore;
 import ohs.corpus.search.app.DocumentSearcher;
-import ohs.corpus.search.app.RandomAccessDenseMatrix;
 import ohs.io.FileUtils;
+import ohs.io.RandomAccessDenseMatrix;
 import ohs.ir.medical.general.MIRPath;
 import ohs.math.ArrayMath;
 import ohs.math.VectorMath;

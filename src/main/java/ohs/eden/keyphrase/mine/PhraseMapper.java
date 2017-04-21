@@ -32,6 +32,10 @@ public class PhraseMapper {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 
+		System.out.printf("ends.");
+	}
+
+	public void test1() throws Exception {
 		Counter<String> c = FileUtils.readStringCounterFromText("../../data/medical_ir/trec_cds/2014/phrs/kwds.txt.gz");
 
 		Trie<String> dict = PhraseMapper.createDict(c.keySet());
@@ -57,8 +61,6 @@ public class PhraseMapper {
 				System.out.println();
 			}
 		}
-
-		System.out.printf("ends.");
 	}
 
 	private Trie<String> dict;

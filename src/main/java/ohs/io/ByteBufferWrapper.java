@@ -249,8 +249,12 @@ public class ByteBufferWrapper {
 	public void write(ByteArray a) {
 		ensureCapacityInternal(buf.position() + a.size() + Integer.BYTES);
 		buf.putInt(a.size());
-		for (byte b : a) {
-			buf.put(b);
+		if (a.size() == a.length()) {
+			buf.put(a.values());
+		} else {
+			for (byte b : a) {
+				buf.put(b);
+			}
 		}
 	}
 

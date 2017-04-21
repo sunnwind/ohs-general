@@ -1,5 +1,7 @@
 package ohs.ir.medical.general;
 
+import ohs.corpus.dump.ClueWebDumper;
+
 public class MIRPath {
 
 	public static final String DATA_DIR = "../../data/medical_ir/";
@@ -122,25 +124,25 @@ public class MIRPath {
 
 	public static final String WIKI_DOC_PRIOR_FILE = WIKI_DIR + "document_prior.ser";
 
-	public static final String ICD10_DIR = WIKI_DIR + "icd-10/";
+	/*
+	 * clueweb 2012
+	 */
 
-	public static final String ICD10_HTML_FILE = ICD10_DIR + "ICD-10 - Wikipedia, the free encyclopedia.html";
+	public static final String CLUEWEB_DIR = DATA_DIR + "clueweb/";
 
-	public static final String ICD10_TOP_LEVEL_CHAPTER_FILE = ICD10_DIR + "icd-10-top-level.txt";
+	public static final String CLUEWEB_COL_DIR = CLUEWEB_DIR + "col/";
 
-	public static final String ICD10_HIERARCHY_FILE = ICD10_DIR + "icd-10-hierarchy.txt";
+	public static final String CLUEWEB_COL_RAW_DIR = CLUEWEB_COL_DIR + "raw/";
 
-	public static final String ICD10_HIERARCHY_REFINED_FILE = ICD10_DIR + "icd-10-hierarchy_refined.txt";
+	public static final String CLUEWEB_COL_LINE_DIR = CLUEWEB_COL_DIR + "line/";
 
-	public static final String ICD10_HIERARCHY_PAGE_FILE = ICD10_DIR + "icd-10-hierarchy_page.txt";
+	public static final String CLUEWEB_COL_TOK_DIR = CLUEWEB_COL_DIR + "tok/";
 
-	public static final String ICD10_ESA_FILE = ICD10_DIR + "icd-10_esa.txt";
+	public static final String CLUEWEB_COL_DC_DIR = CLUEWEB_COL_DIR + "dc/";
 
-	public static final String ICD10_LOG_FILE = ICD10_DIR + "icd-10_log.txt";
+	public static final String CLUEWEB_COL_INDEX_DIR = CLUEWEB_COL_DIR + "idx/";
 
-	public static final String ICD10_ESA_DIR = ICD10_DIR + "esa/";
-
-	public static final String WIKI_PROXIMITY_DIR = WIKI_DIR + "proximity/";
+	public static final String CLUEWEB_FILE_NAME_FILE = CLUEWEB_DIR + "clueweb12_disk_b_file_names.txt";
 
 	/*
 	 * CLEF eHealth
@@ -153,6 +155,8 @@ public class MIRPath {
 	public static final String CLEF_EH_2015_DIR = CLEF_EH_DIR + "2015/";
 
 	public static final String CLEF_EH_2016_DIR = CLEF_EH_DIR + "2016/";
+
+	public static final String CLEF_EH_2017_DIR = CLEF_EH_DIR + "2017/";
 
 	public static final String CLEF_EH_2014_COL_DIR = CLEF_EH_2014_DIR + "col/";
 
@@ -186,27 +190,7 @@ public class MIRPath {
 
 	public static final String CLEF_EH_2016_QUERY_FILE = CLEF_EH_2016_QUERY_DIR + "queries2016.xml";
 
-	public static final String CLEF_EH_2016_REL_JUDGE_FILE = CLEF_EH_2016_QUERY_DIR + "task1.qrels.30Aug";
-
-	/*
-	 * clueweb 2012
-	 */
-
-	public static final String CLUEWEB_DIR = DATA_DIR + "clueweb/";
-
-	public static final String CLUEWEB_COL_DIR = CLUEWEB_DIR + "col/";
-
-	public static final String CLUEWEB_COL_RAW_DIR = CLUEWEB_COL_DIR + "raw/";
-
-	public static final String CLUEWEB_COL_LINE_DIR = CLUEWEB_COL_DIR + "line/";
-
-	public static final String CLUEWEB_COL_TOK_DIR = CLUEWEB_COL_DIR + "tok/";
-
-	public static final String CLUEWEB_COL_DC_DIR = CLUEWEB_COL_DIR + "dc/";
-
-	public static final String CLUEWEB_COL_INDEX_DIR = CLUEWEB_COL_DIR + "idx/";
-
-	public static final String CLUEWEB_FILE_NAME_FILE = CLUEWEB_DIR + "clueweb12_disk_b_file_names.txt";
+	public static final String CLEF_EH_2016_REL_JUDGE_FILE = CLEF_EH_2016_QUERY_DIR + "task1.qrels";
 
 	/*
 	 * TREC CDS

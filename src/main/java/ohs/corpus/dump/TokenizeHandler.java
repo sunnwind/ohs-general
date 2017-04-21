@@ -94,12 +94,11 @@ public class TokenizeHandler {
 							s = StrUtils.normalizeSpaces(s);
 							parts[dataLoc] = s;
 						}
+						parts = StrUtils.wrap(parts);
+						lines.set(i, StrUtils.join("\t", parts));
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
-
-					parts = StrUtils.wrap(parts);
-					lines.set(i, StrUtils.join("\t", parts));
 
 					writer.write(String.format("%d\t%s", i, "END"));
 
@@ -135,11 +134,12 @@ public class TokenizeHandler {
 		// MIRPath.CLEF_EH_2014_COL_TOK_DIR, true);
 		// th.tokenize(MIRPath.TREC_GENO_2007_COL_LINE_DIR, new int[] { 1 },
 		// MIRPath.TREC_GENO_2007_COL_TOK_DIR, false);
-		th.tokenize(MIRPath.TREC_CDS_2014_COL_LINE_DIR, new int[] { 1, 2, 3, 4 }, MIRPath.TREC_CDS_2014_COL_TOK_DIR, true);
+		// th.tokenize(MIRPath.TREC_CDS_2014_COL_LINE_DIR, new int[] { 1, 2, 3, 4 }, MIRPath.TREC_CDS_2014_COL_TOK_DIR, true);
 		// th.tokenize(MIRPath.TREC_CDS_2016_COL_LINE_DIR, new int[] { 1, 2, 3, 4 }, MIRPath.TREC_CDS_2016_COL_TOK_DIR, true);
 		// th.tokenize(MIRPath.WIKI_COL_LINE_DIR, new int[] { 3 }, MIRPath.WIKI_COL_TOK_DIR, true);
 		// th.tokenize(MIRPath.CLUEWEB_COL_LINE_DIR, new int[] { 1 }, MIRPath.CLUEWEB_COL_TOK_DIR, false);
 		// th.tokenize(MIRPath.BIOASQ_COL_LINE_DIR, new int[] { 4, 5 }, MIRPath.BIOASQ_COL_TOK_DIR, false);
+		th.tokenize("../../data/medical_ir/scopus/col/line/", new int[] { 1, 2, 3 }, "../../data/medical_ir/scopus/col/tok/", true);
 		System.out.println("process ends.");
 	}
 

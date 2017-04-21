@@ -5,16 +5,19 @@ import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.WeakHashMap;
+
+import org.apache.xalan.xsltc.compiler.sym;
 
 import ohs.io.ByteArray;
 import ohs.io.ByteArrayMatrix;
 import ohs.io.ByteBufferWrapper;
 import ohs.io.FileUtils;
-import ohs.ir.medical.general.MIRPath;
 import ohs.math.ArrayMath;
-import ohs.ml.neuralnet.com.BatchUtils;
 import ohs.types.generic.ListList;
+import ohs.types.generic.Pair;
 import ohs.types.number.IntegerArray;
 import ohs.types.number.LongArray;
 import ohs.types.number.ShortArray;
@@ -28,7 +31,6 @@ public class RawDocumentCollection {
 
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
-
 
 		// {
 		// RawDocumentCollection rdc = new
@@ -161,15 +163,20 @@ public class RawDocumentCollection {
 				types, cache);
 	}
 
-	public ArrayList<String> get(int i) throws Exception {
-		ArrayList<String> ret = cache.get(i);
+	public ArrayList<String> get(int dseq) throws Exception {
+		ArrayList<String> ret = null;
+
+		synchronized (cache) {
+			ret = cache.get(dseq);
+		}
+
 		if (ret == null) {
-			long start = starts.get(i);
+			long start = starts.get(dseq);
 			fc.position(start);
 
 			ByteArrayMatrix data = FileUtils.readByteArrayMatrix(fc);
 
-			List<Boolean> flags = flagData.get(types.get(i), false);
+			List<Boolean> flags = flagData.get(types.get(dseq), false);
 
 			ret = Generics.newArrayList(data.size());
 
@@ -177,8 +184,9 @@ public class RawDocumentCollection {
 				String val = flags.get(j) ? DataCompression.decodeToString(data.get(j)) : new String(data.get(j).values());
 				ret.add(val);
 			}
+
 			synchronized (cache) {
-				cache.put(i, ret);
+				cache.put(dseq, ret);
 			}
 		}
 		return ret;
@@ -202,33 +210,74 @@ public class RawDocumentCollection {
 		return ret;
 	}
 
-	public ListList<String> getRange(int[] range) throws Exception {
-		return getRange(range[0], range[1]);
+	public Map<String, String> getMap(List<String> vals) {
+		HashMap<String, String> ret = Generics.newHashMap();
+		List<String> attrs = attrData.get(types.get(0), false);
+		for (int j = 0; j < attrs.size(); j++) {
+			ret.put(attrs.get(j), vals.get(j));
+		}
+		return ret;
 	}
 
 	public ListList<String> getRange(int i, int j) throws Exception {
-		long start = starts.get(i);
-		int size1 = ArrayMath.sum(lens.values(), i, j);
+		int size = ArrayMath.sum(lens.values(), i, j);
 
-		fc.position(start);
-		ByteArray data = FileUtils.readByteArray(fc, size1);
-		ByteBufferWrapper buf = new ByteBufferWrapper(data);
-
-		ListList<String> ret = Generics.newListList(j - i);
+		Map<Integer, List<String>> found = Generics.newHashMap(size);
+		Set<Integer> notFound = Generics.newHashSet(size);
 
 		for (int k = i; k < j; k++) {
-			ByteArrayMatrix doc = buf.readByteArrayMatrix();
-			List<Boolean> flags = flagData.get(types.get(k), false);
-			ArrayList<String> vals = Generics.newArrayList(doc.size());
+			ArrayList<String> p = null;
 
-			for (int l = 0; l < doc.size(); l++) {
-				ByteArray sub = doc.get(l);
-				String val = flags.get(l) ? DataCompression.decodeToString(sub) : new String(sub.values());
-				vals.add(val);
+			synchronized (cache) {
+				p = cache.get(k);
 			}
-			ret.add(vals);
+
+			if (p == null) {
+				notFound.add(k);
+			} else {
+				found.put(k, p);
+			}
+		}
+
+		ListList<String> ret = Generics.newListList(size);
+
+		if (found.size() == 0) {
+			long start = starts.get(i);
+			fc.position(start);
+			ByteArray data = FileUtils.readByteArray(fc, size);
+			ByteBufferWrapper buf = new ByteBufferWrapper(data);
+
+			for (int k = i; k < j; k++) {
+				ByteArrayMatrix doc = buf.readByteArrayMatrix();
+				List<Boolean> flags = flagData.get(types.get(k), false);
+				ArrayList<String> vals = Generics.newArrayList(doc.size());
+
+				for (int l = 0; l < doc.size(); l++) {
+					ByteArray sub = doc.get(l);
+					String val = flags.get(l) ? DataCompression.decodeToString(sub) : new String(sub.values());
+					vals.add(val);
+				}
+				ret.add(vals);
+
+				synchronized (cache) {
+					cache.put(k, vals);
+				}
+			}
+		} else {
+			if (found.size() != size) {
+				for (int k : notFound) {
+					found.put(k, get(k));
+				}
+			}
+			for (int k = i; k < j; k++) {
+				ret.add(found.get(k));
+			}
 		}
 		return ret;
+	}
+
+	public ListList<String> getRange(int[] range) throws Exception {
+		return getRange(range[0], range[1]);
 	}
 
 	public String getText(int i) throws Exception {

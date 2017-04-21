@@ -44,6 +44,7 @@ import org.apache.commons.compress.compressors.CompressorInputStream;
 import org.apache.commons.compress.compressors.CompressorOutputStream;
 import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
+import org.apache.commons.math.stat.descriptive.SynchronizedMultivariateSummaryStatistics;
 
 import ohs.types.generic.BidMap;
 import ohs.types.generic.Counter;
@@ -680,7 +681,15 @@ public class FileUtils {
 	public static ByteBuffer readByteBuffer(FileChannel fc, int size) throws Exception {
 		long pos_old = fc.position();
 
-		ByteBuffer buf = ByteBuffer.allocate(size);
+		ByteBuffer buf = null;
+
+		try {
+			buf = ByteBuffer.allocate(size);
+		} catch (Exception e) {
+			System.out.println(size);
+			e.printStackTrace();
+		}
+
 		fc.read(buf);
 		buf.flip();
 
@@ -1201,6 +1210,10 @@ public class FileUtils {
 	public static long[] write(ByteBuffer a, FileChannel b) throws Exception {
 		long pos_old = b.position();
 		int size = a.position();
+
+		if (size < 0) {
+			System.out.println();
+		}
 
 		a.flip();
 		b.write(a);

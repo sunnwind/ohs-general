@@ -72,7 +72,12 @@ public class RelevanceReader {
 		TextFileReader reader = new TextFileReader(fileName);
 		while (reader.hasNext()) {
 			String line = reader.next();
-			String[] parts = line.split("\\text");
+//			String[] parts = line.split("\\text");
+			String[] parts = line.split(" ");
+			
+//			if(parts.length == 1){
+//				parts = line.split(" ");
+//			}
 
 			String qid = parts[0];
 			String docid = parts[2];

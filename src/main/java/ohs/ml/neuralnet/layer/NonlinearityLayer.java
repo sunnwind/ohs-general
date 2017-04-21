@@ -20,9 +20,9 @@ public class NonlinearityLayer extends Layer {
 
 	private Nonlinearity non;
 
-	private DenseMatrix Z;
+	private DenseMatrix Y;
 
-	private DenseMatrix tmp_Z;
+	private DenseMatrix tmp_Y;
 
 	private DenseMatrix tmp_dX;
 
@@ -46,10 +46,10 @@ public class NonlinearityLayer extends Layer {
 			tmp_dX = dY.copy(true);
 		}
 
-		non.backward(Z, Z);
+		non.backward(Y, Y);
 
 		DenseMatrix dX = tmp_dX.rowsAsMatrix(data_size);
-		VectorMath.multiply(dY, Z, dX);
+		VectorMath.multiply(dY, Y, dX);
 		return dX;
 	}
 
@@ -57,13 +57,13 @@ public class NonlinearityLayer extends Layer {
 	public DenseMatrix forward(Object I) {
 		DenseMatrix X = (DenseMatrix) I;
 		int data_size = X.rowSize();
-		if (tmp_Z == null || tmp_Z.rowSize() < data_size) {
-			tmp_Z = X.copy(true);
+		if (tmp_Y == null || tmp_Y.rowSize() < data_size) {
+			tmp_Y = X.copy(true);
 		}
 
-		Z = tmp_Z.rowsAsMatrix(data_size);
-		non.forward(X, Z);
-		return Z;
+		Y = tmp_Y.rowsAsMatrix(data_size);
+		non.forward(X, Y);
+		return Y;
 	}
 
 	public Nonlinearity getNonlinearity() {

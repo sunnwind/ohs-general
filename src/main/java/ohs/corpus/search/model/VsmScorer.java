@@ -16,10 +16,10 @@ import ohs.utils.Generics;
 
 public class VsmScorer extends Scorer {
 
-	public static DenseVector getDocNorms(Vocab vocab, DocumentCollection ldc) throws Exception {
-		DenseVector ret = new DenseVector(ldc.size());
-		for (int i = 0; i < ldc.size(); i++) {
-			SparseVector dv = ldc.getDocVector(i);
+	public static DenseVector getDocNorms(Vocab vocab, DocumentCollection dc) throws Exception {
+		DenseVector ret = new DenseVector(dc.size());
+		for (int i = 0; i < dc.size(); i++) {
+			SparseVector dv = dc.getDocVector(i);
 			double norm = 0;
 			for (int j = 0; j < dv.size(); j++) {
 				int w = dv.indexAt(j);

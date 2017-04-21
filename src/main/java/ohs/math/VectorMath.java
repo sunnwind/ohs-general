@@ -217,7 +217,7 @@ public class VectorMath {
 	}
 
 	public static SparseVector addAfterMultiply(SparseVector a, double ac, SparseVector b, double bc) {
-		Counter<Integer> c = Generics.newCounter();
+		Counter<Integer> c = Generics.newCounter(a.size() + b.size());
 		addAfterMultiply(new SparseVector[] { a, b }, new double[] { ac, bc }, c);
 		return VectorUtils.toSparseVector(c);
 	}

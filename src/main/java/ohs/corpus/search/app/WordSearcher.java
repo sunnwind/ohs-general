@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import ohs.io.RandomAccessDenseMatrix;
 import ohs.ir.medical.general.MIRPath;
 import ohs.math.ArrayUtils;
 import ohs.math.VectorMath;

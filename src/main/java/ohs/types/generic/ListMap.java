@@ -1,8 +1,6 @@
 package ohs.types.generic;
 
 import java.io.Serializable;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -32,7 +30,6 @@ public class ListMap<K, V> implements Serializable {
 
 	public ListMap(int size, MapType mt, ListType lt) {
 		entries = Generics.newMap(mt, size);
-
 		this.mt = mt;
 		this.lt = lt;
 	}

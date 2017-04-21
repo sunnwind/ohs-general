@@ -2,7 +2,15 @@ package ohs.corpus.search.app;
 
 import java.io.File;
 import java.util.BitSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import ohs.corpus.search.index.InvertedIndex;
 import ohs.corpus.search.index.Posting;
@@ -18,6 +26,7 @@ import ohs.corpus.type.SimpleStringNormalizer;
 import ohs.corpus.type.StringNormalizer;
 import ohs.io.FileUtils;
 import ohs.ir.medical.general.MIRPath;
+import ohs.ir.medical.query.BaseQuery;
 import ohs.ir.weight.TermWeighting;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
@@ -33,6 +42,47 @@ import ohs.utils.Timer;
 
 public class DocumentSearcher {
 
+	class SearchWorker implements Callable<Map<Integer, SparseVector>> {
+
+		private List<BaseQuery> bqs;
+
+		private DocumentSearcher ds;
+
+		private AtomicInteger q_cnt;
+
+		public SearchWorker(DocumentSearcher ds, List<BaseQuery> bqs, AtomicInteger q_cnt) {
+			this.ds = ds;
+			this.bqs = bqs;
+			this.q_cnt = q_cnt;
+		}
+
+		@Override
+		public Map<Integer, SparseVector> call() throws Exception {
+			int q_loc = 0;
+			Map<Integer, SparseVector> ret = Generics.newHashMap();
+
+			while ((q_loc = q_cnt.getAndIncrement()) < bqs.size()) {
+				BaseQuery bq = bqs.get(q_loc);
+
+				Thread t = Thread.currentThread();
+				StringBuffer sb = new StringBuffer();
+				sb.append("-------------------------");
+				sb.append(String.format("\nthread name:\t%s", t.getName()));
+				sb.append("\n" + bq.toString());
+				System.out.println(sb.toString() + "\n\n");
+				SparseVector scores = ds.search(bq.getSearchText());
+				ret.put(q_loc, scores);
+			}
+			return ret;
+		}
+
+		@Override
+		protected void finalize() throws Throwable {
+			super.finalize();
+			rdc.close();
+		}
+	}
+
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 		test1();
@@ -41,8 +91,50 @@ public class DocumentSearcher {
 		System.out.println("process ends.");
 	}
 
+	public static void test1() throws Exception {
+		DocumentSearcher ds = new DocumentSearcher(MIRPath.CLUEWEB_COL_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
+		// DocumentSearcher ds = new DocumentSearcher(MIRPath.OHSUMED_COL_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
+
+		ds.setScorer(new MRFScorer(ds));
+
+		String Qstr = "lung cancer treatment";
+		// String Qstr = "( )";
+		SparseVector Q = ds.index(Qstr);
+
+		SparseVector scores = ds.search(Q);
+
+		System.out.println("Q:");
+		System.out.println(StrUtils.join(" ", ds.getVocab().getObjects(Q.indexes())));
+		System.out.println(scores.size());
+
+		for (int i = 0; i < scores.size() && i < 10; i++) {
+			int dseq = scores.indexAt(i);
+			double score = scores.valueAt(i);
+
+			Pair<String, IntegerArrayMatrix> p = ds.getDocumentCollection().getSents(dseq);
+			String did = p.getFirst();
+			IntegerArrayMatrix doc = p.getSecond();
+			SparseVector dv = ds.getDocumentCollection().getDocVector(i);
+			Counter<Integer> c = Generics.newCounter();
+
+			for (int w : Q.indexes()) {
+				c.setCount(w, dv.value(w));
+			}
+
+			IntegerArrayMatrix subdoc = doc.subMatrix(0, Math.min(doc.size(), 5));
+
+			String text = DocumentCollection.getText(ds.getVocab(), subdoc);
+
+			System.out.println("======== Document ======");
+			System.out.printf("docid: %s, dseq: %d, score: %f\n", did, dseq, score);
+			System.out.printf("cnts: %s\n", VectorUtils.toCounter(c, ds.getDocumentCollection().getVocab()));
+			System.out.println(text);
+			System.out.println();
+		}
+	}
+
 	public static void test2() throws Exception {
-		DocumentSearcher ds = new DocumentSearcher(MIRPath.TREC_CDS_2016_COL_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
+		DocumentSearcher ds = new DocumentSearcher(MIRPath.CLUEWEB_COL_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
 
 		InvertedIndex ii = ds.getInvertedIndex();
 
@@ -103,78 +195,6 @@ public class DocumentSearcher {
 
 	}
 
-	public static void test1() throws Exception {
-		DocumentSearcher ds = new DocumentSearcher(MIRPath.TREC_CDS_2016_COL_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
-		// DocumentSearcher ds = new DocumentSearcher(MIRPath.OHSUMED_COL_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
-
-		// String Qstr = "lung cancer treatment";
-		String Qstr = "( )";
-		SparseVector Q = ds.index(Qstr);
-
-		{
-			IntegerArray W = new IntegerArray();
-
-			for (String w : Qstr.split(" ")) {
-				W.add(ds.getVocab().indexOf(w));
-			}
-
-			Q = new SparseVector(W.size());
-
-			for (int i = 0; i < W.size(); i++) {
-				Q.addAt(i, W.get(i), 1);
-			}
-		}
-
-		Set<Integer> toKeep = Generics.newHashSet();
-
-		for (int w : Q.indexes()) {
-			toKeep.add(w);
-		}
-
-		ds.setScorer(new MRFScorer(ds));
-
-		// SPostingList pl = ds.matchSeqPostingList(new
-		// IntegerArray(Q.indexes()), true, 5);
-
-		// SparseVector scores = ds.matchSeq(new IntegerArray(Q.indexes()),
-		// true, 5);
-		// scores.sortValues();
-
-		SparseVector scores = ds.search(Q);
-
-		System.out.println("Q:");
-		System.out.println(StrUtils.join(" ", ds.getVocab().getObjects(Q.indexes())));
-		System.out.println(scores.size());
-
-		for (int i = 0; i < scores.size() && i < 10; i++) {
-			int dseq = scores.indexAt(i);
-			double score = scores.valueAt(i);
-
-			Pair<String, IntegerArrayMatrix> p = ds.getDocumentCollection().getSents(dseq);
-			IntegerArrayMatrix doc = p.getSecond();
-
-			Counter<Integer> c = Generics.newCounter();
-
-			for (IntegerArray sent : doc) {
-				for (int w : sent) {
-					c.incrementCount(w, 1);
-				}
-			}
-
-			c.pruneExcept(toKeep);
-
-			IntegerArrayMatrix subdoc = doc.subMatrix(0, Math.min(doc.size(), 5));
-
-			String text = DocumentCollection.getText(ds.getVocab(), subdoc);
-
-			System.out.println("======== Document ======");
-			System.out.printf("dseq: %d, score: %f\n", dseq, score);
-			System.out.printf("cnts: %s\n", VectorUtils.toCounter(c, ds.getDocumentCollection().getVocab()));
-			System.out.println(text);
-			System.out.println();
-		}
-	}
-
 	private StringNormalizer sn = new SimpleStringNormalizer(true);
 
 	private Vocab vocab;
@@ -189,27 +209,30 @@ public class DocumentSearcher {
 
 	private File dataDir;
 
-	public SparseVector Q;
-
 	private FeedbackBuilder fbb;
 
-	private WordFilter filter;
+	private WordFilter wf;
 
 	private double mixture_fb = 0.5;
 
-	private boolean print_log = false;
-
 	private int max_match_size = Integer.MAX_VALUE;
+
+	private int top_k = Integer.MAX_VALUE;
 
 	private boolean use_idf_match = false;
 
-	public DocumentSearcher(Scorer scorer, RawDocumentCollection rdc, DocumentCollection ldc, InvertedIndex ii, WordFilter filter)
+	private boolean use_feedback = false;
+
+	private boolean print_log = false;
+
+	public DocumentSearcher(Scorer scorer, RawDocumentCollection rdc, DocumentCollection dc, InvertedIndex ii, WordFilter wf)
 			throws Exception {
 		this.scorer = scorer;
 		this.rdc = rdc;
-		this.dc = ldc;
+		this.dc = dc;
 		this.ii = ii;
-		this.filter = filter;
+		this.wf = wf;
+		this.vocab = dc.getVocab();
 	}
 
 	public DocumentSearcher(String dataDir, String stopwordFileName) throws Exception {
@@ -227,18 +250,33 @@ public class DocumentSearcher {
 
 		if (stopwordFileName != null) {
 			Set<String> stopwords = FileUtils.readStringSetFromText(stopwordFileName);
-			filter = new WordFilter(vocab, stopwords);
+			wf = new WordFilter(vocab, stopwords);
 		} else {
-			filter = new WordFilter(vocab, null);
+			wf = new WordFilter(vocab, null);
 		}
 
-		fbb = new FeedbackBuilder(vocab, dc, ii, filter);
+		fbb = new FeedbackBuilder(vocab, dc, ii, wf);
 	}
 
 	public void close() throws Exception {
 		ii.close();
 		rdc.close();
 		dc.close();
+	}
+
+	public DocumentSearcher copyShallow() throws Exception {
+		DocumentSearcher ds = new DocumentSearcher(scorer, rdc.copyShallow(), dc.copyShallow(), ii.copyShallow(), wf);
+
+		ds.setFeedbackMixture(mixture_fb);
+		ds.setMaxMatchSize(max_match_size);
+		ds.setTopK(top_k);
+		ds.setUseIdfMatch(use_idf_match);
+		ds.setUseFeedback(use_feedback);
+		return ds;
+	}
+
+	public File getDataDir() {
+		return dataDir;
 	}
 
 	public DocumentCollection getDocumentCollection() {
@@ -286,28 +324,23 @@ public class DocumentSearcher {
 		return fbb;
 	}
 
+	public double getFeedbackMixture() {
+		return mixture_fb;
+	}
+
 	public InvertedIndex getInvertedIndex() {
 		return ii;
 	}
 
-	public SparseVector getQueryModel(SparseVector Q, boolean use_feedback) throws Exception {
-		SparseVector lm_q = VectorUtils.toSparseVector(Q);
+	public SparseVector getQueryModel(SparseVector Q) throws Exception {
+		SparseVector lm_q = Q.copy();
 		lm_q.normalize();
-
 		if (use_feedback) {
 			SparseVector scores = scorer.score(lm_q, match(new IntegerArray(lm_q.indexes())));
 			SparseVector lm_fb = fbb.buildRM1(scores);
 			SparseVector lm_q2 = updateQueryModel(lm_q, lm_fb);
 			lm_q = lm_q2;
-		} else {
-			if (print_log) {
-				StringBuffer sb = new StringBuffer();
-				sb.append("<QLM>");
-				sb.append(String.format("\nlm_q\t%s", VectorUtils.toCounter(lm_q, vocab)));
-				System.out.println(sb.toString() + "\n");
-			}
 		}
-
 		return lm_q;
 	}
 
@@ -324,7 +357,7 @@ public class DocumentSearcher {
 	}
 
 	public WordFilter getWordFilter() {
-		return filter;
+		return wf;
 	}
 
 	public SparseVector index(String Q) {
@@ -336,15 +369,15 @@ public class DocumentSearcher {
 
 		IntegerArray ws = new IntegerArray();
 
-		for (String word : Q.split("[\\s]+")) {
+		for (String word : StrUtils.split(Q)) {
 			int w = vocab.indexOf(word);
-			if (filter.filter(w)) {
+			if (wf.filter(w)) {
 				continue;
 			}
 			ws.add(w);
 		}
 
-		SparseVector ret = null;
+		SparseVector ret = new SparseVector(0);
 
 		if (keep_order) {
 			ret = new SparseVector(ws.size());
@@ -408,7 +441,7 @@ public class DocumentSearcher {
 		}
 		ret.sortIndexes();
 
-		System.out.printf("[matching time, %s]\n", timer.stop());
+		System.out.printf("[Matching Time, %s]\n", timer.stop());
 		return ret;
 	}
 
@@ -433,7 +466,7 @@ public class DocumentSearcher {
 			ret.sortIndexes();
 		}
 
-		System.out.printf("[matching time, %s]\n", timer.stop());
+		System.out.printf("[Matching Time, %s]\n", timer.stop());
 		return ret;
 	}
 
@@ -441,24 +474,67 @@ public class DocumentSearcher {
 		return ii.getPostingList(Q, keep_order, window_size);
 	}
 
-	public SparseVector search(SparseVector Q) throws Exception {
-		return search(Q, match(new IntegerArray(Q.indexes())));
+	public List<SparseVector> search(List<BaseQuery> bqs, int thread_size) throws Exception {
+
+		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
+
+		List<Future<Map<Integer, SparseVector>>> fs = Generics.newArrayList(thread_size);
+
+		List<DocumentSearcher> dss = Generics.newArrayList(thread_size);
+
+		for (int i = 0; i < thread_size; i++) {
+			dss.add(copyShallow());
+		}
+		// dss.add(this);
+
+		AtomicInteger q_cnt = new AtomicInteger(0);
+
+		for (int i = 0; i < thread_size; i++) {
+			fs.add(tpe.submit(new SearchWorker(dss.get(i), bqs, q_cnt)));
+		}
+
+		List<SparseVector> ret = Generics.newArrayList(bqs.size());
+
+		for (int i = 0; i < ret.size(); i++) {
+			ret.add(new SparseVector(0));
+		}
+
+		for (int i = 0; i < thread_size; i++) {
+			Map<Integer, SparseVector> res = fs.get(i).get();
+			for (Entry<Integer, SparseVector> e : res.entrySet()) {
+				ret.set(e.getKey(), e.getValue());
+			}
+		}
+		fs.clear();
+
+		tpe.shutdown();
+
+		for (int i = 0; i < thread_size; i++) {
+			dss.get(i).close();
+		}
+
+		return ret;
 	}
 
-	public SparseVector search(SparseVector Q, boolean use_feedback) throws Exception {
-		return search(getQueryModel(Q, use_feedback), match(new IntegerArray(Q.indexes())));
+	public SparseVector search(SparseVector Q) throws Exception {
+		return search(getQueryModel(Q), match(new IntegerArray(Q.indexes())));
 	}
 
 	public SparseVector search(SparseVector Q, SparseVector docs) throws Exception {
 		Timer timer = Timer.newTimer();
 		SparseVector ret = scorer.score(Q, docs);
 		scorer.postprocess(ret);
-		System.out.printf("[scoring time, %s]\n", timer.stop());
+
+		if (top_k != Integer.MAX_VALUE) {
+			ret = ret.subVector(top_k);
+		}
+
+		System.out.printf("[Scoring Time, %s]\n", timer.stop());
 		return ret;
 	}
 
-	public SparseVector search(String Q, boolean use_feedback) throws Exception {
-		return search(index(Q), use_feedback);
+	public SparseVector search(String Q) throws Exception {
+		return search(index(Q));
 	}
 
 	public void setFeedbackMixture(double mixture_fb) {
@@ -479,6 +555,14 @@ public class DocumentSearcher {
 
 	public void setStringNormalizer(StringNormalizer sn) {
 		this.sn = sn;
+	}
+
+	public void setTopK(int top_k) {
+		this.top_k = top_k;
+	}
+
+	public void setUseFeedback(boolean use_feedback) {
+		this.use_feedback = use_feedback;
 	}
 
 	public void setUseIdfMatch(boolean use_idf_match) {

@@ -32,11 +32,10 @@ public class TranslationModelScorer extends Scorer {
 
 	private SparseMatrix E;
 
-	public TranslationModelScorer(Vocab vocab, DocumentCollection dc, InvertedIndex ii, WordSearcher raws, WordFilter filter)
-			throws Exception {
+	public TranslationModelScorer(Vocab vocab, DocumentCollection dc, InvertedIndex ii, WordSearcher ws, WordFilter wf) throws Exception {
 		super(vocab, dc, ii);
 
-		dmb = new TranslationModelBuilder(vocab, dc, raws, filter);
+		dmb = new TranslationModelBuilder(vocab, dc, ws, wf);
 	}
 
 	public double score(SparseVector lm_q, int dseq) throws Exception {

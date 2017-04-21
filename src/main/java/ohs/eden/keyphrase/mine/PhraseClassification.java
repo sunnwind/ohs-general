@@ -4,10 +4,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import ohs.corpus.search.app.RandomAccessDenseMatrix;
 import ohs.corpus.type.DocumentCollection;
 import ohs.eden.keyphrase.cluster.KPPath;
 import ohs.io.FileUtils;
+import ohs.io.RandomAccessDenseMatrix;
 import ohs.ir.medical.general.MIRPath;
 import ohs.ir.weight.TermWeighting;
 import ohs.math.ArrayUtils;
@@ -59,10 +59,17 @@ public class PhraseClassification {
 	public String delim = "  ";
 
 	private DenseVector extractFeatures(RandomAccessDenseMatrix E, Vocab vocab, String phrs) throws Exception {
-		DenseVector ret = null;
-
 		IntegerArray Q = vocab.indexesOf(phrs.split(" "));
+		
+		StringBuffer sb = new StringBuffer();
+		
+		for(int w : Q){
+			String word = vocab.getObject(w);
+			sb.append(word + " ");
+		}
 
+		String s = sb.toString().trim();
+		
 		int unseen_cnt = 0;
 
 		for (int w : Q) {
@@ -72,7 +79,7 @@ public class PhraseClassification {
 		}
 
 		if (unseen_cnt > 0) {
-			return ret;
+			return null;
 		}
 
 		DenseMatrix E2 = E.rowsAsMatrix(Q.values()).copy();
@@ -83,32 +90,23 @@ public class PhraseClassification {
 			set.put(Q.get(i), E2.get(i));
 		}
 
-		DenseVector e_avg = new DenseVector(E.colSize());
+		DenseVector ne1 = new DenseVector(E.colSize());
+		DenseVector ne2 = new DenseVector(E.colSize());
 
-		for (DenseVector e : E2) {
-			VectorMath.add(e, e_avg);
+		for (int i = 0; i < E2.rowSize(); i++) {
+			DenseVector e = E2.row(i);
+			VectorMath.add(e, ne1);
+
+			if (i == 0 || i < E2.rowSize() - 1) {
+				VectorMath.add(e, ne2);
+			}
 		}
 
-		e_avg.multiply(1f / Q.size());
+		ne1.multiply(1f / Q.size());
+		ne2.multiply(1f / 2);
 
-		// VectorMath.unitVector(e_avg);
-
-		List<Double> vals = Generics.newArrayList(E.colSize() * 3);
-
-		for (double val : E2.get(0).values()) {
-			vals.add(val);
-		}
-
-		for (double val : E2.get(E2.rowSize() - 1).values()) {
-			vals.add(val);
-		}
-
-		for (double val : e_avg.values()) {
-			vals.add(val);
-		}
-
-		ret = new DenseVector(vals);
-		return ret;
+		DenseMatrix ret = new DenseMatrix(new DenseVector[] { ne1, ne1 });
+		return ret.toDenseVector();
 	}
 
 	public void getQualityLabeledData() throws Exception {
@@ -117,7 +115,7 @@ public class PhraseClassification {
 
 		RandomAccessDenseMatrix E = new RandomAccessDenseMatrix(dir + "emb/glove_ra.ser", true);
 
-		ListMap<String, String> lm = Generics.newListMap(ListType.LINKED_LIST);
+		ListMap<String, String> lm = Generics.newListMap();
 
 		{
 			Counter<String> c = FileUtils.readStringCounterFromText(dir + "phrs/phrs_q_good.txt");

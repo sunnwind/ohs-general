@@ -5,6 +5,7 @@ import java.nio.channels.FileChannel;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.WeakHashMap;
 
 import ohs.corpus.type.DataCompression;
@@ -215,7 +216,7 @@ public class InvertedIndex {
 	// System.out.println("process ends.");
 	// }
 
-	private WeakHashMap<Integer, PostingList> cache = Generics.newWeakHashMap();
+	private Map<Integer, PostingList> cache = Generics.newWeakHashMap();
 
 	private File dataDir;
 
@@ -230,10 +231,15 @@ public class InvertedIndex {
 	private boolean encode = false;
 
 	public InvertedIndex(FileChannel fc, LongArray starts, IntegerArray lens, int doc_cnt) {
+		this(fc, starts, lens, doc_cnt, Generics.newWeakHashMap());
+	}
+
+	public InvertedIndex(FileChannel fc, LongArray starts, IntegerArray lens, int doc_cnt, Map<Integer, PostingList> cache) {
 		this.fc = fc;
 		this.starts = starts;
 		this.lens = lens;
 		this.doc_cnt = doc_cnt;
+		this.cache = cache;
 	}
 
 	public InvertedIndex(String dataDir) throws Exception {
@@ -259,7 +265,7 @@ public class InvertedIndex {
 	}
 
 	public InvertedIndex copyShallow() throws Exception {
-		return new InvertedIndex(FileUtils.openFileChannel(new File(dataDir, DocumentCollection.DATA_NAME), "r"), starts, lens, doc_cnt);
+		return new InvertedIndex(FileUtils.openFileChannel(new File(dataDir, DATA_NAME), "r"), starts, lens, doc_cnt, cache);
 	}
 
 	public int getDocCnt() {
@@ -288,20 +294,15 @@ public class InvertedIndex {
 				return null;
 			}
 
-			fc.position(start);
+			synchronized (fc) {
+				fc.position(start);
+				ret = PostingList.readPostingList(fc, encode);
+			}
 
-			// Timer timer = Timer.newTimer();
-			ret = PostingList.readPostingList(fc, encode);
-			// timer.stop();
-
-			// if (timer.getSeconds() > 0) {
 			synchronized (cache) {
 				cache.put(w, ret);
 			}
-			// }
-
 		}
-
 		return ret;
 	}
 
@@ -352,14 +353,52 @@ public class InvertedIndex {
 	}
 
 	public List<PostingList> getPostingLists(int i, int j) throws Exception {
-		fc.position(starts.get(i));
-		ByteArray data = FileUtils.readByteArray(fc, ArrayMath.sum(lens.values(), i, j));
-		ByteBufferWrapper buf = new ByteBufferWrapper(data);
-		List<PostingList> ret = Generics.newArrayList(j - i);
+		int size = j - i;
+
+		Map<Integer, PostingList> found = Generics.newHashMap(size);
+		Set<Integer> notFound = Generics.newHashSet(size);
+
 		for (int k = i; k < j; k++) {
-			ByteArrayMatrix sub = buf.readByteArrayMatrix();
-			ret.add(PostingList.toPostingList(sub, encode));
+			PostingList p = null;
+
+			synchronized (cache) {
+				p = cache.get(k);
+			}
+
+			if (p == null) {
+				notFound.add(k);
+			} else {
+				found.put(k, p);
+			}
 		}
+
+		List<PostingList> ret = Generics.newArrayList(size);
+
+		if (found.size() == 0) {
+			fc.position(starts.get(i));
+			ByteArray data = FileUtils.readByteArray(fc, ArrayMath.sum(lens.values(), i, j));
+			ByteBufferWrapper buf = new ByteBufferWrapper(data);
+
+			for (int k = i; k < j; k++) {
+				ByteArrayMatrix sub = buf.readByteArrayMatrix();
+				PostingList pl = PostingList.toPostingList(sub, encode);
+				ret.add(pl);
+
+				synchronized (cache) {
+					cache.put(k, pl);
+				}
+			}
+		} else {
+			if (found.size() != size) {
+				for (int k : notFound) {
+					found.put(k, getPostingList(k));
+				}
+			}
+			for (int k = i; k < j; k++) {
+				ret.add(found.get(k));
+			}
+		}
+
 		return ret;
 	}
 

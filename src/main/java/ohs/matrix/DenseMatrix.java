@@ -35,6 +35,21 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 
 	}
 
+	public DenseVector toDenseVector() {
+		int size = 0;
+		for (DenseVector dv : this) {
+			size += dv.size();
+		}
+		DenseVector ret = new DenseVector(size);
+		int j = 0;
+		for (DenseVector dv : this) {
+			for (int i = 0; i < dv.size(); i++) {
+				ret.add(j++, dv.value(i));
+			}
+		}
+		return ret;
+	}
+
 	public DenseMatrix(DenseVector[] rows) {
 		ensureCapacity(rows.length);
 		for (DenseVector row : rows) {
@@ -107,6 +122,14 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 			bytes += row.byteSize().getBytes();
 		}
 		return new ByteSize(bytes);
+	}
+
+	private boolean checkRange(int i) {
+		boolean ret = true;
+		if (i < 0 || i >= rowSize()) {
+			ret = false;
+		}
+		return ret;
 	}
 
 	@Override
@@ -216,14 +239,6 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 		checkRange(i);
 
 		return get(i);
-	}
-
-	private boolean checkRange(int i) {
-		boolean ret = true;
-		if (i < 0 || i >= rowSize()) {
-			ret = false;
-		}
-		return ret;
 	}
 
 	@Override
@@ -364,6 +379,15 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 		return ret;
 	}
 
+	@Override
+	public void swapRows(int i, int j) {
+		DenseVector a = get(i);
+		DenseVector b = get(j);
+
+		set(i, b);
+		set(j, a);
+	}
+
 	public String toString() {
 		return toString(20, 20);
 	}
@@ -418,15 +442,6 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 		ObjectOutputStream oos = FileUtils.openObjectOutputStream(fileName);
 		writeObject(oos);
 		oos.close();
-	}
-
-	@Override
-	public void swapRows(int i, int j) {
-		DenseVector a = get(i);
-		DenseVector b = get(j);
-
-		set(i, b);
-		set(j, a);
 	}
 
 }

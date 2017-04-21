@@ -9,6 +9,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import ohs.corpus.search.index.WordFilter;
+import ohs.io.RandomAccessDenseMatrix;
 import ohs.ir.medical.general.MIRPath;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;

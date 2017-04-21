@@ -1,55 +1,40 @@
 package ohs.eden.keyphrase.mine;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import kr.co.shineware.nlp.komoran.core.analyzer.Komoran;
 import kr.co.shineware.util.common.model.Pair;
-import ohs.corpus.search.app.RandomAccessDenseMatrix;
-import ohs.corpus.search.index.InvertedIndex;
-import ohs.corpus.search.index.Posting;
-import ohs.corpus.search.index.PostingList;
 import ohs.corpus.type.DocumentCollection;
 import ohs.corpus.type.RawDocumentCollection;
 import ohs.corpus.type.SimpleStringNormalizer;
 import ohs.corpus.type.StringNormalizer;
 import ohs.eden.keyphrase.cluster.KPPath;
 import ohs.io.FileUtils;
+import ohs.io.TextFileReader;
 import ohs.ir.medical.general.MIRPath;
 import ohs.ir.medical.general.NLPUtils;
-import ohs.ir.weight.TermWeighting;
-import ohs.math.ArrayUtils;
-import ohs.math.CommonMath;
-import ohs.math.VectorMath;
 import ohs.matrix.DenseMatrix;
-import ohs.matrix.DenseVector;
 import ohs.ml.glove.CooccurrenceCounter;
 import ohs.ml.glove.GloveModel;
 import ohs.ml.glove.GloveParam;
 import ohs.ml.glove.GloveTrainer;
 import ohs.ml.neuralnet.com.BatchUtils;
-import ohs.ml.neuralnet.com.NeuralNet;
-import ohs.ml.neuralnet.com.NeuralNetParams;
-import ohs.ml.neuralnet.com.NeuralNetTrainer;
-import ohs.ml.neuralnet.layer.FullyConnectedLayer;
-import ohs.ml.neuralnet.layer.NonlinearityLayer;
-import ohs.ml.neuralnet.layer.SoftmaxLayer;
-import ohs.ml.neuralnet.nonlinearity.Tanh;
 import ohs.nlp.ling.types.MultiToken;
 import ohs.nlp.ling.types.Token;
+import ohs.tree.trie.hash.Trie;
 import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
 import ohs.types.generic.ListList;
 import ohs.types.generic.Vocab;
-import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
 import ohs.utils.ByteSize;
-import ohs.utils.DataSplitter;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
 import ohs.utils.Timer;
@@ -70,63 +55,22 @@ public class DataHandler {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 		DataHandler dh = new DataHandler();
-		// dh.extracKeywords();
+		 dh.getSentences();
 		// dh.tagPOS();
-		// dh.extractKeywords();
 		// dh.trainGlove();
-		// dh.generateDocumentEmbedding();
 		// dh.matchPhrasesToKeywords();
+
 		// dh.getWikiPhrases();
 		// dh.getFrequentPhrases();
+
+		// dh.getPaperKeywords();
+		// dh.mergeKeywords();
+		// dh.getPositiveData();
+
 		// dh.getQualityTrainingPhrases();
 		// dh.getMedicalTrainingPhrases();
 
-		dh.getTrecCdsKeywords();
-
-		// dh.test();
-		// dh.test2();
-
 		System.out.println("process ends.");
-	}
-
-	public void getTrecCdsKeywords() throws Exception {
-
-		String[] dirs = { MIRPath.TREC_CDS_2014_COL_DC_DIR, MIRPath.TREC_CDS_2016_COL_DC_DIR };
-
-		for (int i = 0; i < dirs.length; i++) {
-			String dir = dirs[i];
-			if (i != 0) {
-				continue;
-			}
-
-			RawDocumentCollection rdc = new RawDocumentCollection(dir);
-			System.out.printf("[%s]\n", dir);
-			System.out.println(rdc.size());
-			System.out.println(rdc.getAttrData());
-			Counter<String> c = Generics.newCounter();
-
-			int[][] ranges = BatchUtils.getBatchRanges(rdc.size(), 1000);
-
-			for (int j = 0; j < ranges.length; j++) {
-				int[] range = ranges[j];
-				ListList<String> res = rdc.getRange(range);
-
-				for (int k = 0; k < res.size(); k++) {
-					List<String> l = res.get(k);
-					String kwdStr = l.get(4);
-
-					if (kwdStr.length() > 0) {
-						for (String kwd : kwdStr.split("\n")) {
-							if (!kwd.endsWith(".")) {
-								c.incrementCount(kwd.toLowerCase(), 1);
-							}
-						}
-					}
-				}
-			}
-
-			FileUtils.writeStringCounterAsText(dir.replace("col/dc/", "phrs/kwds.txt.gz"), c);
-		}
 	}
 
 	public void get3PKeywords() throws Exception {
@@ -246,168 +190,239 @@ public class DataHandler {
 	}
 
 	public void getMedicalTrainingPhrases() throws Exception {
-		CounterMap<String, String> cm1 = Generics.newCounterMap();
-
-		{
-			Counter<String> c = Generics.newCounter();
-			for (String line : FileUtils.readLinesFromText(MIRPath.WIKI_DIR + "phrs_title.txt")) {
-				String[] parts = line.split("\t");
-				c.incrementCount(parts[0].toLowerCase(), Double.parseDouble(parts[1]));
-			}
-			cm1.setCounter("wiki_title", c);
-		}
-
-		{
-			Counter<String> c = Generics.newCounter();
-			for (String line : FileUtils.readLinesFromText(MIRPath.WIKI_DIR + "phrs_link.txt")) {
-				String[] parts = line.split("\t");
-				String phrs = parts[0].toLowerCase();
-				double cnt = Double.parseDouble(parts[1]);
-				c.incrementCount(phrs, cnt);
-			}
-			cm1.setCounter("wiki_link", c);
-		}
-
-		{
-			Counter<String> c = Generics.newCounter();
-			for (String line : FileUtils.readLinesFromText(MIRPath.MESH_DIR + "phrss.txt")) {
-				String[] parts = line.split("\t");
-				String phrs = parts[0].toLowerCase();
-				double cnt = Double.parseDouble(parts[1]);
-				c.incrementCount(phrs, cnt);
-			}
-			cm1.setCounter("mesh", c);
-		}
-
-		{
-			Counter<String> c = Generics.newCounter();
-			for (String line : FileUtils.readLinesFromText(MIRPath.SNOMED_DIR + "phrss.txt")) {
-				String[] parts = line.split("\t");
-				String phrs = parts[0].toLowerCase();
-				double cnt = Double.parseDouble(parts[1]);
-				c.incrementCount(phrs, cnt);
-			}
-			cm1.setCounter("snomed", c);
-		}
 
 		String dir = MIRPath.TREC_CDS_2016_DIR;
 
-		Counter<String> c3 = Generics.newCounter();
+		Counter<String> cdsPhrss = Generics.newCounter();
 
 		for (String line : FileUtils.readLinesFromText(dir + "phrs/phrs_freq.txt")) {
 			String[] parts = line.split("\t");
-			c3.incrementCount(parts[0].toLowerCase(), Double.parseDouble(parts[1]));
+			cdsPhrss.incrementCount(parts[0].toLowerCase(), Double.parseDouble(parts[1]));
 		}
 
-		CounterMap<String, String> cm2 = Generics.newCounterMap();
+		Counter<String> medPhrss = Generics.newCounter();
 
-		for (String phrs : c3.getSortedKeys()) {
-			double cnt = c3.getCount(phrs);
+		for (String line : FileUtils.readLinesFromText(dir + "phrs/phrs_m_medical.txt")) {
+			String[] parts = line.split("\t");
+			medPhrss.setCount(parts[0].toLowerCase().replace("_", " "), 1);
+		}
+
+		Counter<String> goodPhrss = Generics.newCounter();
+
+		for (String line : FileUtils.readLinesFromText(dir + "phrs/phrs_q_good.txt")) {
+			String[] parts = line.split("\t");
+			goodPhrss.setCount(parts[0].toLowerCase().replace("_", " "), 1);
+		}
+
+		Counter<String> notMedPhrss = Generics.newCounter();
+
+		for (String phrs : cdsPhrss.getSortedKeys()) {
+			double cnt = cdsPhrss.getCount(phrs);
 			phrs = phrs.replace("_", " ");
-			boolean found_in_mesh = cm1.containKey("mesh", phrs);
-			boolean found_in_snomed = cm1.containKey("snomed", phrs);
 
 			String label = "not_medical";
 
-			if (found_in_mesh || found_in_snomed) {
-				label = "medical";
+			if (goodPhrss.containsKey(phrs)) {
+				if (!medPhrss.containsKey(phrs)) {
+					notMedPhrss.setCount(phrs, cnt);
+				}
 			}
-
-			cm2.setCount(label, phrs, cnt);
 		}
 
-		FileUtils.writeStringCounterAsText(dir + "phrs/phrs_m_medical.txt", cm2.getCounter("medical"));
-		FileUtils.writeStringCounterAsText(dir + "phrs/phrs_m_not_medical.txt", cm2.getCounter("not_medical"));
+		FileUtils.writeStringCounterAsText(dir + "phrs/phrs_m_not_medical.txt", notMedPhrss);
 	}
 
-	public void getQualityTrainingPhrases() throws Exception {
-		CounterMap<String, String> cm1 = Generics.newCounterMap();
+	public void getPaperKeywords() throws Exception {
+		String[] dirs = { MIRPath.TREC_CDS_2014_COL_DC_DIR, MIRPath.TREC_CDS_2016_COL_DC_DIR, MIRPath.DATA_DIR + "scopus/col/dc/" };
 
-		{
+		for (int i = 0; i < dirs.length; i++) {
+			String dir = dirs[i];
+			// if (i != 2) {
+			// continue;
+			// }
+
+			RawDocumentCollection rdc = new RawDocumentCollection(dir);
+			System.out.printf("[%s]\n", dir);
+			System.out.println(rdc.size());
+			System.out.println(rdc.getAttrData());
 			Counter<String> c = Generics.newCounter();
-			for (String line : FileUtils.readLinesFromText(MIRPath.WIKI_DIR + "phrs_title.txt")) {
-				String[] parts = line.split("\t");
-				c.incrementCount(parts[0].toLowerCase(), Double.parseDouble(parts[1]));
-			}
-			cm1.setCounter("wiki_title", c);
-		}
 
-		{
-			Counter<String> c = Generics.newCounter();
-			for (String line : FileUtils.readLinesFromText(MIRPath.WIKI_DIR + "phrs_link.txt")) {
-				String[] parts = line.split("\t");
-				String phrs = parts[0].toLowerCase();
-				double cnt = Double.parseDouble(parts[1]);
-				c.incrementCount(phrs, cnt);
-			}
-			cm1.setCounter("wiki_link", c);
-		}
+			int[][] ranges = BatchUtils.getBatchRanges(rdc.size(), 1000);
 
-		{
-			Counter<String> c = Generics.newCounter();
-			for (String line : FileUtils.readLinesFromText(MIRPath.MESH_DIR + "phrss.txt")) {
-				String[] parts = line.split("\t");
-				String phrs = parts[0].toLowerCase();
-				double cnt = Double.parseDouble(parts[1]);
-				c.incrementCount(phrs, cnt);
-			}
-			cm1.setCounter("mesh", c);
-		}
+			for (int j = 0; j < ranges.length; j++) {
+				int[] range = ranges[j];
+				ListList<String> res = rdc.getRange(range);
 
-		{
-			Counter<String> c = Generics.newCounter();
-			for (String line : FileUtils.readLinesFromText(MIRPath.SNOMED_DIR + "phrss.txt")) {
-				String[] parts = line.split("\t");
-				String phrs = parts[0].toLowerCase();
-				double cnt = Double.parseDouble(parts[1]);
-				c.incrementCount(phrs, cnt);
-			}
-			cm1.setCounter("snomed", c);
-		}
+				for (int k = 0; k < res.size(); k++) {
+					List<String> l = res.get(k);
+					Map<String, String> m = rdc.getMap(l);
+					String kwds = m.get("kwds");
 
-		String dir = MIRPath.TREC_CDS_2016_DIR;
-
-		Counter<String> c3 = Generics.newCounter();
-
-		for (String line : FileUtils.readLinesFromText(dir + "phrs/phrs_freq.txt")) {
-			String[] parts = line.split("\t");
-			c3.incrementCount(parts[0].toLowerCase().replace("_", " "), Double.parseDouble(parts[1]));
-		}
-
-		CounterMap<String, String> cm2 = Generics.newCounterMap();
-
-		Set<String> stopwords = FileUtils.readStringSetFromText(MIRPath.STOPWORD_INQUERY_FILE);
-
-		for (String phrs : c3.getSortedKeys()) {
-			double cnt = c3.getCount(phrs);
-
-			boolean found_in_wiki_title = cm1.containKey("wiki_title", phrs);
-			boolean found_in_wiki_link = cm1.containKey("wiki_link", phrs);
-			boolean found_in_mesh = cm1.containKey("mesh", phrs);
-			boolean found_in_snomed = cm1.containKey("snomed", phrs);
-
-			String[] words = phrs.split(" ");
-
-			boolean start_with_stopword = stopwords.contains(words[0]) ? true : false;
-
-			String label = "bad";
-
-			if (!start_with_stopword) {
-				if (found_in_wiki_title || found_in_mesh || found_in_snomed) {
-					label = "good";
-				} else {
-					if (found_in_wiki_link) {
-						label = "not_bad";
+					if (kwds != null && kwds.length() > 0) {
+						for (String kwd : kwds.split("\n")) {
+							if (!kwd.endsWith(".")) {
+								c.incrementCount(kwd.toLowerCase(), 1);
+							}
+						}
 					}
 				}
 			}
 
-			cm2.setCount(label, phrs, cnt);
+			SimpleStringNormalizer sn = new SimpleStringNormalizer(true);
+
+			Counter<String> c2 = Generics.newCounter(c.size());
+
+			for (Entry<String, Double> e : c.entrySet()) {
+				String kwd = e.getKey();
+				double cnt = e.getValue();
+				kwd = sn.normalize(kwd);
+				c2.setCount(kwd, cnt);
+			}
+
+			FileUtils.writeStringCounterAsText(dir.replace("col/dc/", "phrs/kwds.txt"), c2);
+		}
+	}
+
+	public void getPositiveData() throws Exception {
+
+		{
+			List<String> ms = Generics.newArrayList();
+			List<String> qs = Generics.newArrayList();
+
+			int size = 0;
+			TextFileReader reader = new TextFileReader(MIRPath.TREC_CDS_2016_DIR + "phrs/cpts.txt");
+			while (reader.hasNext()) {
+				String[] ps = reader.next().split("\t");
+				if (reader.getLineCnt() == 1) {
+					size = Integer.parseInt(ps[1]);
+					ms = Generics.newArrayList(size);
+					qs = Generics.newArrayList(size);
+					continue;
+				}
+
+				String cpt = ps[0];
+
+				Set<String> names = Generics.newHashSet();
+
+				for (int i = 2; i < ps.length; i++) {
+					names.add(ps[i]);
+				}
+
+				boolean is_in_mesh = names.contains("mes");
+				boolean is_in_snomed_ct = names.contains("sno");
+				boolean is_in_trec_cds = names.contains("cds");
+				boolean is_in_wiki = names.contains("wkt");
+				boolean is_in_scopus = names.contains("sco");
+
+				if (is_in_wiki && (is_in_scopus || is_in_trec_cds)) {
+					qs.add(cpt);
+
+					if (is_in_mesh || is_in_snomed_ct) {
+						ms.add(cpt);
+					}
+				} else {
+				}
+			}
+			reader.close();
+
+			FileUtils.writeStringCollectionAsText(MIRPath.TREC_CDS_2016_DIR + "phrs/phrs_q_good.txt", qs);
+			FileUtils.writeStringCollectionAsText(MIRPath.TREC_CDS_2016_DIR + "phrs/phrs_m_medical.txt", ms);
+		}
+	}
+
+	public void getQualityTrainingPhrases() throws Exception {
+		String dir = MIRPath.TREC_CDS_2016_DIR;
+
+		Counter<String> cdsPhrss = Generics.newCounter();
+
+		for (String line : FileUtils.readLinesFromText(dir + "phrs/phrs_freq.txt")) {
+			String[] parts = line.split("\t");
+			cdsPhrss.incrementCount(parts[0].toLowerCase().replace("_", " "), Double.parseDouble(parts[1]));
 		}
 
-		FileUtils.writeStringCounterAsText(dir + "phrs/phrs_q_good.txt", cm2.getCounter("good"));
-		FileUtils.writeStringCounterAsText(dir + "phrs/phrs_q_not_bad.txt", cm2.getCounter("not_bad"));
-		FileUtils.writeStringCounterAsText(dir + "phrs/phrs_q_bad.txt", cm2.getCounter("bad"));
+		Counter<String> goodPhrss = Generics.newCounter();
+
+		for (String line : FileUtils.readLinesFromText(dir + "phrs/phrs_q_good.txt")) {
+			String[] parts = line.split("\t");
+			goodPhrss.setCount(parts[0].toLowerCase().replace("_", " "), 1);
+		}
+
+		String[] dirs = { MIRPath.DATA_DIR + "wiki/phrs_title.txt", MIRPath.DATA_DIR + "wiki/phrs_link.txt" };
+
+		Counter<String> wikiPhrss = Generics.newCounter();
+
+		for (int i = 0; i < dirs.length; i++) {
+			String d = dirs[i];
+			Counter<String> c = FileUtils.readStringCounterFromText(d);
+
+			for (String phrs : c.keySet()) {
+				if (phrs.length() > 1) {
+					wikiPhrss.incrementCount(phrs, 1);
+				}
+			}
+		}
+
+		Counter<String> badPhrss = Generics.newCounter();
+		Counter<String> notBadPhrss = Generics.newCounter();
+
+		for (String phrs : cdsPhrss.getSortedKeys()) {
+			double cnt = cdsPhrss.getCount(phrs);
+			if (!goodPhrss.containsKey(phrs)) {
+				if (wikiPhrss.containsKey(phrs)) {
+					notBadPhrss.setCount(phrs, cnt);
+				} else {
+					badPhrss.setCount(phrs, cnt);
+				}
+			}
+
+		}
+		FileUtils.writeStringCounterAsText(dir + "phrs/phrs_q_bad.txt", badPhrss);
+		FileUtils.writeStringCounterAsText(dir + "phrs/phrs_q_not_bad.txt", notBadPhrss);
+	}
+
+	public void getSentences() throws Exception {
+		String[] dirs = { MIRPath.TREC_CDS_2016_COL_DC_DIR, MIRPath.DATA_DIR + "scopus/col/dc/" };
+
+		for (int i = 0; i < dirs.length; i++) {
+			String dir = dirs[i];
+			RawDocumentCollection rdc = new RawDocumentCollection(dir);
+
+			for (int j = 0; j < rdc.size(); j++) {
+				Map<String, String> avm = rdc.getMap(j);
+
+				String title = avm.get("title");
+				String abs = avm.get("abs");
+
+				String kwdStr = avm.get("kwds");
+
+				Set<String> kwdSet = Generics.newHashSet();
+
+				for (String kwd : kwdStr.split("\n")) {
+					kwdSet.add(kwd.toLowerCase());
+				}
+
+				List<String> sents = Generics.newArrayList();
+				sents.add(title.toLowerCase());
+
+				for (String sent : abs.split("\n")) {
+					sents.add(sent.toLowerCase());
+				}
+
+				for (String sent : sents) {
+					List<String> words = StrUtils.split(sent);
+
+					Trie<String> dict = PhraseMapper.createDict(kwdSet);
+					PhraseMapper m = new PhraseMapper(dict);
+
+					List<ohs.types.generic.Pair<Integer, Integer>> res = m.map(words);
+
+					if (res.size() > 0) {
+						System.out.println();
+					}
+				}
+
+			}
+		}
 	}
 
 	private String getText(List<List<List<Pair<String, String>>>> result) {
@@ -446,13 +461,6 @@ public class DataHandler {
 		}
 
 		return sb.toString().trim();
-	}
-
-	public String normalize(String s) {
-		s = StrUtils.join(" ", NLPUtils.tokenize(s));
-		s = StrUtils.normalizeNumbers(s);
-		s = StrUtils.normalizeSpaces(s);
-		return s;
 	}
 
 	public void getWikiPhrases() throws Exception {
@@ -556,6 +564,58 @@ public class DataHandler {
 		System.out.println(cc);
 
 		FileUtils.writeStringCollectionAsText(KPPath.KYP_DIR + "phrs_3p_label.txt.gz", lines);
+	}
+
+	public void mergeKeywords() throws Exception {
+		String[] dirs = { MIRPath.DATA_DIR + "trec_cds/2016/phrs/kwds.txt", MIRPath.DATA_DIR + "scopus/phrs/kwds.txt",
+				MIRPath.DATA_DIR + "mesh/phrss.txt", MIRPath.DATA_DIR + "snomed_ct/phrss.txt", MIRPath.DATA_DIR + "wiki/phrs_title.txt",
+				MIRPath.DATA_DIR + "wiki/phrs_link.txt" };
+		String[] names = { "cds", "sco", "mes", "sno", "wkt", "wkt" };
+
+		CounterMap<String, String> cm = Generics.newCounterMap(2000000);
+
+		for (int i = 0; i < dirs.length; i++) {
+			String dir = dirs[i];
+			String name = names[i];
+			Counter<String> c = FileUtils.readStringCounterFromText(dir);
+
+			for (String phrs : c.keySet()) {
+				double cnt = c.getCount(phrs);
+				if (phrs.length() > 1) {
+					cm.incrementCount(phrs, name, cnt);
+				}
+			}
+		}
+
+		Counter<String> c = Generics.newCounter(cm.size());
+
+		for (Entry<String, Counter<String>> e : cm.getEntrySet()) {
+			Counter<String> c2 = e.getValue();
+			if (c2.size() > 1) {
+				c.setCount(e.getKey(), c2.size());
+			}
+		}
+
+		List<String> res = Generics.newArrayList(cm.size());
+
+		for (String phrs : c.getSortedKeys()) {
+			int len = (int) c.getCount(phrs);
+			Counter<String> c2 = cm.removeKey(phrs);
+			List<String> rs = Generics.newArrayList(c2.keySet());
+			Collections.sort(rs);
+			res.add(phrs + "\t" + len + "\t" + StrUtils.join("\t", rs));
+		}
+
+		// FileUtils.writeStringCounterMapAsText("../../data/medical_ir/trec_cds/2016/phrs/cpts.txt", cm);
+		FileUtils.writeStringCollectionAsText("../../data/medical_ir/trec_cds/2016/phrs/cpts.txt", res);
+
+	}
+
+	public String normalize(String s) {
+		s = StrUtils.join(" ", NLPUtils.tokenize(s));
+		s = StrUtils.normalizeNumbers(s);
+		s = StrUtils.normalizeSpaces(s);
+		return s;
 	}
 
 	public void queryGloveModel() throws Exception {

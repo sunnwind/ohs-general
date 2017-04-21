@@ -5,6 +5,7 @@ import java.util.List;
 import ohs.corpus.search.model.LMScorer;
 import ohs.corpus.type.SimpleStringNormalizer;
 import ohs.io.FileUtils;
+import ohs.io.RandomAccessDenseMatrix;
 import ohs.ir.medical.general.MIRPath;
 import ohs.ir.medical.general.NLPUtils;
 import ohs.ir.medical.query.BaseQuery;

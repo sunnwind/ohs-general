@@ -1,14 +1,10 @@
-package ohs.corpus.search.app;
+package ohs.io;
 
 import java.nio.channels.FileChannel;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
-import ohs.io.ByteArrayMatrix;
-import ohs.io.ByteArrayUtils;
-import ohs.io.ByteBufferWrapper;
-import ohs.io.FileUtils;
 import ohs.math.VectorUtils;
 import ohs.matrix.SparseMatrix;
 import ohs.matrix.SparseVector;

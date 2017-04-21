@@ -151,10 +151,10 @@ public class TrecCdsDumper extends TextDumper {
 		// dh.dump();
 		// }
 
-		// {
-		// TrecCdsDumper dh = new TrecCdsDumper(MIRPath.TREC_CDS_2016_COL_RAW_DIR, MIRPath.TREC_CDS_2016_COL_LINE_DIR);
-		// dh.dump();
-		// }
+		{
+			TrecCdsDumper dh = new TrecCdsDumper(MIRPath.TREC_CDS_2016_COL_RAW_DIR, MIRPath.TREC_CDS_2016_COL_LINE_DIR);
+			dh.dump();
+		}
 
 		System.out.println("process ends.");
 	}

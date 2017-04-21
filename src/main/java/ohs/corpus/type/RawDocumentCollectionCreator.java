@@ -35,12 +35,14 @@ public class RawDocumentCollectionCreator {
 
 		for (File file : FileUtils.getFilesUnder(inDir)) {
 			for (String line : FileUtils.readLinesFromText(file)) {
-				String[] vals = StrUtils.unwrap(line.split("\t"));
-				for (int i = 0; i < vals.length; i++) {
-					vals[i] = vals[i].replace(StrUtils.LINE_REP, "\n");
-					vals[i] = vals[i].replace(StrUtils.TAB_REP, "\t");
+				String[] ps = line.split("\t");
+
+				ps = StrUtils.unwrap(ps);
+				for (int i = 0; i < ps.length; i++) {
+					ps[i] = ps[i].replace(StrUtils.LINE_REP, "\n");
+					ps[i] = ps[i].replace(StrUtils.TAB_REP, "\t");
 				}
-				rdc.addValues(vals);
+				rdc.addValues(ps);
 			}
 		}
 		System.out.printf("[%d, %s]\n", doc_cnt, timer.stop());
@@ -61,16 +63,16 @@ public class RawDocumentCollectionCreator {
 		// dcc.close();
 		// }
 
-		// {
-		// String[] attrs = { "pmcid", "title", "abs", "body", "kwds" };
-		// String inDir = MIRPath.TREC_CDS_2016_COL_TOK_DIR;
-		// String outDir = MIRPath.TREC_CDS_2016_COL_DC_DIR;
-		// boolean append = false;
-		// RawDocumentCollectionCreator dcc = new RawDocumentCollectionCreator(outDir, append);
-		// dcc.addAttrs(Generics.newArrayList(attrs));
-		// createFromTokenizedData(dcc, inDir);
-		// dcc.close();
-		// }
+		{
+			String[] attrs = { "pmcid", "title", "abs", "body", "kwds" };
+			String inDir = MIRPath.TREC_CDS_2016_COL_TOK_DIR;
+			String outDir = MIRPath.TREC_CDS_2016_COL_DC_DIR;
+			boolean append = false;
+			RawDocumentCollectionCreator dcc = new RawDocumentCollectionCreator(outDir, append);
+			dcc.addAttrs(Generics.newArrayList(attrs));
+			createFromTokenizedData(dcc, inDir);
+			dcc.close();
+		}
 
 		{
 			String[] attrs = { "pmcid", "title", "abs", "body", "kwds" };
@@ -144,7 +146,17 @@ public class RawDocumentCollectionCreator {
 		// createFromTokenizedData(dcc, inDir);
 		// dcc.close();
 		// }
-		//
+
+		{
+			String[] attrs = { "docid", "title", "abs", "kwds" };
+			String inDir = "../../data/medical_ir/scopus/col/tok/";
+			String outDir = "../../data/medical_ir/scopus/col/dc/";
+			boolean append = false;
+			RawDocumentCollectionCreator dcc = new RawDocumentCollectionCreator(outDir, append);
+			dcc.addAttrs(Generics.newArrayList(attrs));
+			createFromTokenizedData(dcc, inDir);
+			dcc.close();
+		}
 
 		// {
 		// String[] attrs = { "type", "cn", "kor_kwds", "eng_kwds", "kor_title",
@@ -201,7 +213,7 @@ public class RawDocumentCollectionCreator {
 
 	private int batch_size = 200;
 
-	private List<ByteArrayMatrix> docs = Generics.newLinkedList();
+	private List<ByteArrayMatrix> docs = Generics.newArrayList();
 
 	private ByteBufferWrapper buf = new ByteBufferWrapper(new ByteSize(64, Type.MEGA).getBytes());
 

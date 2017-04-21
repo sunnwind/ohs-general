@@ -1,4 +1,4 @@
-package ohs.corpus.search.app;
+package ohs.io;
 
 import java.io.File;
 import java.io.ObjectInputStream;
@@ -7,9 +7,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
-import ohs.io.ByteArray;
-import ohs.io.ByteArrayUtils;
-import ohs.io.FileUtils;
 import ohs.ir.medical.general.MIRPath;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseVector;

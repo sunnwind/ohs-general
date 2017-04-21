@@ -1,5 +1,6 @@
 package ohs.corpus.search.app;
 
+import ohs.io.RandomAccessDenseMatrix;
 import ohs.ir.weight.TermWeighting;
 import ohs.math.ArrayMath;
 import ohs.math.VectorMath;
