@@ -71,6 +71,11 @@ public class MRFScorer extends LMScorer {
 		return ret;
 	}
 
+	@Override
+	public void postprocess(SparseVector scores) {
+		VectorMath.softmax(scores);
+	}
+
 	private SparseVector scoreUnorderedPhrases(SparseVector Q, SparseVector docs) throws Exception {
 		return scorePhrases(new IntegerArray(Q.indexes()), docs, false, window_size);
 	}

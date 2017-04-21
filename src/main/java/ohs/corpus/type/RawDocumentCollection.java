@@ -171,10 +171,13 @@ public class RawDocumentCollection {
 		}
 
 		if (ret == null) {
-			long start = starts.get(dseq);
-			fc.position(start);
+			ByteArrayMatrix data = null;
 
-			ByteArrayMatrix data = FileUtils.readByteArrayMatrix(fc);
+			synchronized (fc) {
+				long start = starts.get(dseq);
+				fc.position(start);
+				data = FileUtils.readByteArrayMatrix(fc);
+			}
 
 			List<Boolean> flags = flagData.get(types.get(dseq), false);
 
@@ -242,9 +245,14 @@ public class RawDocumentCollection {
 		ListList<String> ret = Generics.newListList(size);
 
 		if (found.size() == 0) {
-			long start = starts.get(i);
-			fc.position(start);
-			ByteArray data = FileUtils.readByteArray(fc, size);
+			ByteArray data = null;
+
+			synchronized (fc) {
+				long start = starts.get(i);
+				fc.position(start);
+				data = FileUtils.readByteArray(fc, size);
+			}
+
 			ByteBufferWrapper buf = new ByteBufferWrapper(data);
 
 			for (int k = i; k < j; k++) {

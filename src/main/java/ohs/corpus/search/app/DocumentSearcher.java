@@ -266,12 +266,12 @@ public class DocumentSearcher {
 
 	public DocumentSearcher copyShallow() throws Exception {
 		DocumentSearcher ds = new DocumentSearcher(scorer, rdc.copyShallow(), dc.copyShallow(), ii.copyShallow(), wf);
-
 		ds.setFeedbackMixture(mixture_fb);
 		ds.setMaxMatchSize(max_match_size);
 		ds.setTopK(top_k);
 		ds.setUseIdfMatch(use_idf_match);
 		ds.setUseFeedback(use_feedback);
+		ds.setFeedbackBuilder(fbb);
 		return ds;
 	}
 
@@ -335,8 +335,10 @@ public class DocumentSearcher {
 	public SparseVector getQueryModel(SparseVector Q) throws Exception {
 		SparseVector lm_q = Q.copy();
 		lm_q.normalize();
+
 		if (use_feedback) {
-			SparseVector scores = scorer.score(lm_q, match(new IntegerArray(lm_q.indexes())));
+			System.out.println("feedback");
+			SparseVector scores = search(lm_q, match(new IntegerArray(lm_q.indexes())));
 			SparseVector lm_fb = fbb.buildRM1(scores);
 			SparseVector lm_q2 = updateQueryModel(lm_q, lm_fb);
 			lm_q = lm_q2;
@@ -350,6 +352,10 @@ public class DocumentSearcher {
 
 	public Scorer getScorer() {
 		return scorer;
+	}
+
+	public StringNormalizer getStringNormalizer() {
+		return sn;
 	}
 
 	public Vocab getVocab() {
@@ -435,11 +441,12 @@ public class DocumentSearcher {
 		}
 
 		SparseVector ret = new SparseVector(c);
+
 		if (max_match_size < Integer.MAX_VALUE) {
 			ret.sortValues();
 			ret = ret.subVector(max_match_size);
+			ret.sortIndexes();
 		}
-		ret.sortIndexes();
 
 		System.out.printf("[Matching Time, %s]\n", timer.stop());
 		return ret;
@@ -535,6 +542,10 @@ public class DocumentSearcher {
 
 	public SparseVector search(String Q) throws Exception {
 		return search(index(Q));
+	}
+
+	public void setFeedbackBuilder(FeedbackBuilder fbb) {
+		this.fbb = fbb;
 	}
 
 	public void setFeedbackMixture(double mixture_fb) {

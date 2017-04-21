@@ -308,10 +308,15 @@ public class DocumentCollection {
 		}
 
 		if (ret == null) {
-			long start = starts.get(i);
-			fc.position(start);
 
-			ByteArrayMatrix data = FileUtils.readByteArrayMatrix(fc);
+			ByteArrayMatrix data = null;
+
+			synchronized (fc) {
+				long start = starts.get(i);
+				fc.position(start);
+				data = FileUtils.readByteArrayMatrix(fc);
+			}
+
 			String docid = null;
 			IntegerArray d = null;
 
@@ -421,8 +426,13 @@ public class DocumentCollection {
 		List<Pair<String, IntegerArray>> ret = Generics.newArrayList(size);
 
 		if (found.size() == 0) {
-			fc.position(starts.get(i));
-			ByteArray data = FileUtils.readByteArray(fc, ArrayMath.sum(lens.values(), i, j));
+			ByteArray data = null;
+
+			synchronized (fc) {
+				fc.position(starts.get(i));
+				data = FileUtils.readByteArray(fc, ArrayMath.sum(lens.values(), i, j));
+			}
+
 			ByteBufferWrapper buf = new ByteBufferWrapper(data);
 
 			for (int k = i; k < j; k++) {

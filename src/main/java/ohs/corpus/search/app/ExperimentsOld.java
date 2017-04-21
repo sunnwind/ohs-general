@@ -61,7 +61,7 @@ import ohs.types.number.IntegerArrayMatrix;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
 
-public class Experiments {
+public class ExperimentsOld {
 
 	public static int COR_TYPE = 4;
 
@@ -129,7 +129,7 @@ public class Experiments {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 
-		Experiments e = new Experiments();
+		ExperimentsOld e = new ExperimentsOld();
 		// e.getStems();
 		// e.getLemmas();
 		e.runInitSearch();
@@ -1137,7 +1137,6 @@ public class Experiments {
 		DocumentSearcher ds = new DocumentSearcher(idxDir, stopwordFileName);
 		ds.setScorer(new MRFScorer(ds));
 		ds.setTopK(top_k);
-		ds.setUseFeedback(true);
 
 		List<String> Qs = Generics.newArrayList(bqs.size());
 
