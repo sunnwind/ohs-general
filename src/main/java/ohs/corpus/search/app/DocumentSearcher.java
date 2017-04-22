@@ -524,7 +524,8 @@ public class DocumentSearcher {
 	}
 
 	public SparseVector search(SparseVector Q) throws Exception {
-		return search(getQueryModel(Q), match(new IntegerArray(Q.indexes())));
+		Q = getQueryModel(Q);
+		return search(Q, match(new IntegerArray(Q.indexes())));
 	}
 
 	public SparseVector search(SparseVector Q, SparseVector docs) throws Exception {

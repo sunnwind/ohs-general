@@ -142,6 +142,8 @@ public class LMScorer extends Scorer {
 				n++;
 			}
 		}
+		
+		int diff = m - n;
 
 		while (m < ret.size()) {
 			int dseq = ret.indexAt(m);
@@ -173,7 +175,11 @@ public class LMScorer extends Scorer {
 				} else {
 					val = Math.log(pr_w_in_d);
 				}
-				ret.addAt(n, val);
+				try {
+					ret.addAt(n, val);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
 			n++;
 		}

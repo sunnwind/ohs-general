@@ -288,13 +288,11 @@ public class InvertedIndex {
 		}
 
 		if (ret == null) {
-			long start = starts.get(w);
-
-			if (start < 0) {
-				return null;
-			}
-
 			synchronized (fc) {
+				long start = starts.get(w);
+				if (start < 0) {
+					return null;
+				}
 				fc.position(start);
 				ret = PostingList.readPostingList(fc, encode);
 			}

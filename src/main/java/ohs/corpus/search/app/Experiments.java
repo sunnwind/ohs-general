@@ -173,7 +173,7 @@ public class Experiments {
 		System.out.println("process ends.");
 	}
 
-	private int top_k = 2000;
+	private int top_k = 10000;
 
 	public void analyze1() throws Exception {
 		List<File> files = FileUtils.getFilesUnder(dataDir + "res/");
@@ -1147,7 +1147,7 @@ public class Experiments {
 		}
 
 		{
-			List<SparseVector> res = ds.search(bqs, 2);
+			List<SparseVector> res = ds.search(bqs, 1);
 			dData.addAll(res);
 		}
 
