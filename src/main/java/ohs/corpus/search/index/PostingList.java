@@ -10,6 +10,7 @@ import ohs.io.ByteArrayUtils;
 import ohs.io.FileUtils;
 import ohs.types.number.IntegerArray;
 import ohs.types.number.IntegerArrayMatrix;
+import ohs.utils.ByteSize;
 import ohs.utils.Generics;
 
 public class PostingList {
@@ -277,28 +278,11 @@ public class PostingList {
 	}
 
 	public String toString() {
-		StringBuffer sb = new StringBuffer();
-		sb.append(String.format("w=[%d], docs=[%d], cnt=[%d]", w, size(), getCount()));
 
-		// sb.append(" postings=[");
-		//
-		// int min_size = Math.min(20, size());
-		//
-		// for (int i = 0; i < min_size; i++) {
-		//
-		// Posting p = get(i);
-		// sb.append(p.toString());
-		//
-		// if (i != min_size - 1) {
-		// sb.append(", ");
-		// }
-		// }
-		//
-		// if (min_size < size()) {
-		// sb.append(", ...");
-		// }
-		//
-		// sb.append("]");
+		long bytes = ByteArrayUtils.sizeOfByteBuffer(dseqs) * 2 + ByteArrayUtils.sizeOfByteBuffer(posData);
+		ByteSize bs = new ByteSize(bytes);
+		StringBuffer sb = new StringBuffer();
+		sb.append(String.format("w=[%d], docs=[%d], cnt=[%d], mem=%s", w, size(), getCount(), bs));
 		return sb.toString();
 	}
 

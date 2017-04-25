@@ -142,7 +142,7 @@ public class LMScorer extends Scorer {
 				n++;
 			}
 		}
-		
+
 		int diff = m - n;
 
 		while (m < ret.size()) {
@@ -162,26 +162,28 @@ public class LMScorer extends Scorer {
 			m++;
 		}
 
-		while (n < pl.size()) {
-			Posting p = pl.getPosting(n);
-			int dseq = p.getDocseq();
-			double cnt_w_in_d = p.size();
-			double len_d = dc.getDocLength(dseq);
-			double pr_w_in_d = TermWeighting.twoStageSmoothing(cnt_w_in_d, len_d, pr_w_in_c, prior_dir, pr_w_in_qbg, mixture_jm);
-			if (pr_w_in_d > 0) {
-				double val = 0;
-				if (type == Type.KLD) {
-					val = pr_w_in_q * Math.log(pr_w_in_q / pr_w_in_d);
-				} else {
-					val = Math.log(pr_w_in_d);
-				}
-				try {
-					ret.addAt(n, val);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-			n++;
+		if (n > pl.size()) {
+			// while (n < pl.size()) {
+			// Posting p = pl.getPosting(n);
+			// int dseq = p.getDocseq();
+			// double cnt_w_in_d = p.size();
+			// double len_d = dc.getDocLength(dseq);
+			// double pr_w_in_d = TermWeighting.twoStageSmoothing(cnt_w_in_d, len_d, pr_w_in_c, prior_dir, pr_w_in_qbg, mixture_jm);
+			// if (pr_w_in_d > 0) {
+			// double val = 0;
+			// if (type == Type.KLD) {
+			// val = pr_w_in_q * Math.log(pr_w_in_q / pr_w_in_d);
+			// } else {
+			// val = Math.log(pr_w_in_d);
+			// }
+			// try {
+			// ret.addAt(n, val);
+			// } catch (Exception e) {
+			// e.printStackTrace();
+			// }
+			// }
+			// n++;
+			// }
 		}
 	}
 
@@ -193,50 +195,6 @@ public class LMScorer extends Scorer {
 			double pr_w_in_q = lm_q.probAt(i);
 			String word = vocab.getObject(w);
 			PostingList pl = ii.getPostingList(w);
-
-			if (pl == null) {
-				continue;
-			}
-
-			score(w, pr_w_in_q, pl, ret);
-		}
-
-		if (type == Type.KLD) {
-			for (int i = 0; i < ret.size(); i++) {
-				double div = ret.valueAt(i);
-				double score = Math.exp(-div);
-				ret.setAt(i, score);
-			}
-			ret.summation();
-		}
-		return ret;
-	}
-
-	public SparseVector score2(SparseVector lm_q, SparseVector docs) throws Exception {
-		SparseVector ret = new SparseVector(ArrayUtils.copy(docs.indexes()));
-
-		IntegerArray Q = new IntegerArray(lm_q.size());
-		{
-			Set<Integer> W = Generics.newHashSet();
-			for (int w : lm_q.indexes()) {
-				W.add(w);
-			}
-			Q = new IntegerArray(W);
-			Q.sort(false);
-		}
-
-		List<PostingList> pls = ii.getPostingLists(Q);
-		Map<Integer, PostingList> m = Generics.newHashMap(Q.size());
-
-		for (int i = 0; i < Q.size(); i++) {
-			m.put(Q.get(i), pls.get(i));
-		}
-
-		for (int i = 0; i < lm_q.size(); i++) {
-			int w = lm_q.indexAt(i);
-			double pr_w_in_q = lm_q.probAt(i);
-			String word = vocab.getObject(w);
-			PostingList pl = m.get(w);
 
 			if (pl == null) {
 				continue;

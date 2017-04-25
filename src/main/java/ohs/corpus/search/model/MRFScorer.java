@@ -74,6 +74,7 @@ public class MRFScorer extends LMScorer {
 	@Override
 	public void postprocess(SparseVector scores) {
 		VectorMath.softmax(scores);
+		scores.sortValues();
 	}
 
 	private SparseVector scoreUnorderedPhrases(SparseVector Q, SparseVector docs) throws Exception {

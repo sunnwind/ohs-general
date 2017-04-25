@@ -25,7 +25,7 @@ public abstract class Scorer {
 	}
 
 	public void postprocess(SparseVector scores) {
-
+		scores.sortValues();
 	}
 
 	public abstract SparseVector score(SparseVector Q, SparseVector docs) throws Exception;

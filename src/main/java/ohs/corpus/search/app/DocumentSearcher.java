@@ -427,6 +427,8 @@ public class DocumentSearcher {
 				continue;
 			}
 
+			System.out.printf("word=%s, %s\n", word, pl);
+
 			IntegerArray dseqs = pl.getDocSeqs();
 			double doc_freq = dseqs.size();
 			double idf = TermWeighting.idf(vocab.getDocCnt(), doc_freq);
@@ -492,7 +494,6 @@ public class DocumentSearcher {
 		for (int i = 0; i < thread_size; i++) {
 			dss.add(copyShallow());
 		}
-		// dss.add(this);
 
 		AtomicInteger q_cnt = new AtomicInteger(0);
 
@@ -502,7 +503,7 @@ public class DocumentSearcher {
 
 		List<SparseVector> ret = Generics.newArrayList(bqs.size());
 
-		for (int i = 0; i < ret.size(); i++) {
+		for (int i = 0; i < bqs.size(); i++) {
 			ret.add(new SparseVector(0));
 		}
 
@@ -524,8 +525,19 @@ public class DocumentSearcher {
 	}
 
 	public SparseVector search(SparseVector Q) throws Exception {
-		Q = getQueryModel(Q);
-		return search(Q, match(new IntegerArray(Q.indexes())));
+		SparseVector ret = null;
+		SparseVector lm_q = Q.copy();
+		lm_q.normalize();
+		if (use_feedback) {
+			System.out.println("feedback");
+			SparseVector scores = search(lm_q, match(new IntegerArray(lm_q.indexes())));
+			SparseVector lm_fb = fbb.buildRM1(scores);
+			SparseVector lm_q2 = updateQueryModel(lm_q, lm_fb);
+			ret = new LMScorer(this).score(lm_q2, scores);
+		} else {
+			ret = search(lm_q, match(new IntegerArray(lm_q.indexes())));
+		}
+		return ret;
 	}
 
 	public SparseVector search(SparseVector Q, SparseVector docs) throws Exception {

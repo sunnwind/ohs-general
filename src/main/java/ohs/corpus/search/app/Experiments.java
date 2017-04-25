@@ -1135,13 +1135,17 @@ public class Experiments {
 		String modelName = "mrf";
 
 		DocumentSearcher ds = new DocumentSearcher(idxDir, stopwordFileName);
-		ds.setScorer(new MRFScorer(ds));
+
+		if (modelName.equals("mrf")) {
+			ds.setScorer(new MRFScorer(ds));
+		}
 		ds.setTopK(top_k);
-		ds.setUseFeedback(true);
+		ds.setUseFeedback(false);
 
 		List<String> Qs = Generics.newArrayList(bqs.size());
 
 		for (BaseQuery bq : bqs) {
+			;
 			Qs.add(bq.getSearchText());
 			qData.add(ds.index(bq.getSearchText()));
 		}
