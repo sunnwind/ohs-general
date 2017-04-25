@@ -472,6 +472,20 @@ public class DocumentCollection {
 		return getRange(range[0], range[1]);
 	}
 
+	public List<String> getDocIds() throws Exception {
+		List<String> ret = Generics.newArrayList(size());
+		int[][] ranges = BatchUtils.getBatchRanges(size(), 1000);
+		for (int i = 0; i < ranges.length; i++) {
+			int[] range = ranges[i];
+			List<Pair<String, IntegerArray>> ls = getRange(range);
+			for (int j = 0; j < ls.size(); j++) {
+				int dseq = range[0] + j;
+				ret.add(ls.get(j).getFirst());
+			}
+		}
+		return ret;
+	}
+
 	public List<Pair<String, IntegerArray>> getRange2(int i, int j) throws Exception {
 		int size = j - i;
 		List<Pair<String, IntegerArray>> ret = Generics.newArrayList(size);

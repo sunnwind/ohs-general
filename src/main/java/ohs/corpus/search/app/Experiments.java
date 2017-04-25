@@ -25,6 +25,7 @@ import ohs.corpus.search.model.MRFScorer;
 import ohs.corpus.search.model.TranslationModelScorer;
 import ohs.corpus.search.model.VsmScorer;
 import ohs.corpus.type.SimpleStringNormalizer;
+import ohs.eden.keyphrase.mine.PhraseMapper;
 import ohs.io.FileUtils;
 import ohs.io.RandomAccessDenseMatrix;
 import ohs.io.TextFileReader;
@@ -106,6 +107,7 @@ public class Experiments {
 			queryFileName = MIRPath.CLEF_EH_2016_QUERY_FILE;
 			relFileName = MIRPath.CLEF_EH_2016_REL_JUDGE_FILE;
 		}
+		resDir = dataDir + "res/";
 	}
 
 	public static ListMap<String, Integer> getRelevantRanks(CounterMap<String, String> resData, CounterMap<String, String> relvData) {
@@ -587,109 +589,6 @@ public class Experiments {
 		FileUtils.writeStringMapAsText(MIRPath.TREC_CDS_2014_DIR + "stems.txt", m);
 	}
 
-	public void runBasicWithMeSH() throws Exception {
-		DocumentSearcher ds1 = new DocumentSearcher(MIRPath.TREC_CDS_2014_COL_INDEX_DIR, MIRPath.STOPWORD_INQUERY_FILE);
-		DocumentSearcher ds2 = new DocumentSearcher(MIRPath.MESH_COL_INDEX_DIR, MIRPath.STOPWORD_INQUERY_FILE);
-		DocumentSearcher ds3 = new DocumentSearcher(MIRPath.WIKI_COL_INDEX_DIR, MIRPath.STOPWORD_INQUERY_FILE);
-
-		// ds2.getFeedbackBuilder().setFbDocSize(10);
-		// ds2.getFeedbackBuilder().setFbWordSize(30);
-		ds1.setFeedbackMixture(0.5);
-
-		Vocab vocab1 = ds1.getVocab();
-		Vocab vocab2 = ds2.getVocab();
-		Vocab vocab3 = ds3.getVocab();
-
-		List<BaseQuery> bqs = QueryReader.readTrecCdsQueries(MIRPath.TREC_CDS_2014_QUERY_FILE);
-
-		CounterMap<String, String> relvData = RelevanceReader.readTrecCdsRelevances(MIRPath.TREC_CDS_2014_REL_JUDGE_FILE);
-
-		CounterMap<String, String> resData = Generics.newCounterMap();
-
-		int top_k = 1000;
-
-		boolean[] flags1 = { true };
-		boolean[] flags2 = { false };
-
-		for (Boolean f1 : flags1) {
-			for (Boolean f2 : flags2) {
-				List<SparseVector> qs = Generics.newArrayList();
-
-				for (int i = 0; i < bqs.size(); i++) {
-					BaseQuery bq = bqs.get(i);
-					TrecCdsQuery tcq = (TrecCdsQuery) bq;
-
-					System.out.println(bq);
-
-					SparseVector Q1 = ds1.index(bq.getSearchText());
-					SparseVector Q2 = ds2.index(bq.getSearchText());
-
-					SparseVector lm_q1 = ds1.getQueryModel(Q1, false);
-					SparseVector docScores1 = ds1.search(lm_q1);
-					SparseVector lm_fb1 = ds1.getFeedbackBuilder().buildRM1(docScores1);
-
-					SparseVector lm_q2 = ds2.getQueryModel(Q2, false);
-
-					SparseVector docScores2 = ds2.search(lm_q2);
-
-					for (int j = 0; j < docScores2.size() && j < 5; j++) {
-						int docseq = docScores2.indexAt(j);
-						double score = docScores2.valueAt(j);
-						String docid = ds2.getDocumentCollection().getSents(docseq).getFirst();
-						System.out.printf("%d, %s, %f\n", j, docid, score);
-					}
-					System.out.println();
-
-					SparseVector lm_fb2 = ds2.getFeedbackBuilder().buildRM1(docScores2);
-					lm_fb2 = VectorUtils.toSparseVector(lm_fb2, vocab2, vocab1);
-					lm_fb2.normalize();
-
-					lm_q1 = ds1.updateQueryModel(lm_q1, lm_fb2);
-					lm_q1 = ds1.getQueryModel(lm_q1, f2);
-
-					docScores1 = ds1.search(lm_q1);
-
-					// SparseVector lm_q3 = VectorUtils.toSparseVector(lm_q1,
-					// vocab1, vocab3);
-					// lm_q3.normalize();
-					//
-					// lm_fb =
-					// ds3.getFeedbackBuilder().buildRM1(ds3.search(lm_q3));
-					// lm_fb = VectorUtils.toSparseVector(lm_fb, vocab3,
-					// vocab1);
-					// lm_fb.normalize();
-					//
-					// lm_q1 = ds1.updateQueryModel(lm_q1, lm_fb);
-					//
-					// docScores1 = ds1.search(lm_q1);
-
-					qs.add(lm_q1);
-
-					collectSearchResults(ds1, bq, docScores1, resData, top_k);
-				}
-
-				StringBuffer sb = new StringBuffer();
-				for (Boolean f : new Boolean[] { f1, f2 }) {
-					sb.append(f.toString().charAt(0) + "");
-				}
-
-				String outFileName1 = String.format(MIRPath.TREC_CDS_2014_DIR + "/res/perf_kld-fb-mesh-%s.ser.gz", sb.toString());
-				String outFileName2 = String.format(MIRPath.TREC_CDS_2014_DIR + "/res/sr_kld-fb-mesh-%s.ser.gz", sb.toString());
-				String outFileName3 = String.format(MIRPath.TREC_CDS_2014_DIR + "/res/q_kld-fb-mesh-%s.ser.gz", sb.toString());
-
-				Performance p = PerformanceEvaluator.evalute(resData, relvData);
-				p.writeObject(outFileName1);
-
-				FileUtils.writeStringCounterMap(outFileName2, resData);
-
-				new SparseMatrix(qs).writeObject(outFileName3);
-
-				System.out.println(p);
-				System.out.println();
-			}
-		}
-	}
-
 	public void runBasicWithReraker() throws Exception {
 		DocumentSearcher ds = new DocumentSearcher(MIRPath.TREC_CDS_2014_COL_INDEX_DIR, MIRPath.STOPWORD_INQUERY_FILE);
 		Vocab vocab = ds.getVocab();
@@ -721,7 +620,7 @@ public class Experiments {
 			System.out.println(bq);
 
 			SparseVector Q1 = ds.index(bq.getSearchText());
-			SparseVector lm_q1 = ds.getQueryModel(Q1, false);
+			SparseVector lm_q1 = ds.getQueryModel(Q1);
 
 			SparseVector docScores1 = ds.search(lm_q1);
 
@@ -998,7 +897,7 @@ public class Experiments {
 						lm_q1 = ds1.updateQueryModel(lm_q1, lm_fb);
 
 						if (f3) {
-							lm_q1 = ds1.getQueryModel(lm_q1, true);
+							lm_q1 = ds1.getQueryModel(lm_q1);
 						}
 
 						scores1 = ds1.search(lm_q1);
@@ -1034,6 +933,92 @@ public class Experiments {
 				}
 			}
 		}
+	}
+
+	public void runFeedback() throws Exception {
+		System.out.println(resDir);
+
+		String modelName = "mrf";
+		String fbName = "rm3";
+
+		Performance p1 = new Performance(resDir + String.format("%s_%s.ser.gz", "p", modelName));
+		SparseMatrix qData1 = new SparseMatrix(resDir + String.format("%s_%s.ser.gz", "q", modelName));
+		SparseMatrix dData1 = new SparseMatrix(resDir + String.format("%s_%s.ser.gz", "d", modelName));
+
+		List<BaseQuery> bqs = QueryReader.readQueries(queryFileName);
+		CounterMap<String, String> relvData = RelevanceReader.readRelevances(relFileName);
+
+		CounterMap<String, String> srData = Generics.newCounterMap(bqs.size());
+		List<SparseVector> qData2 = Generics.newArrayList(bqs.size());
+		List<SparseVector> dData2 = Generics.newArrayList(bqs.size());
+
+		DocumentSearcher ds = new DocumentSearcher(idxDir, stopwordFileName);
+
+		// ds.getFeedbackBuilder().setUseDocumentPrior(true);
+		// ds.getFeedbackBuilder().setFbWordSize(15);
+
+		for (int j = 0; j < bqs.size(); j++) {
+			BaseQuery bq = bqs.get(j);
+
+			System.out.println(bq);
+
+			SparseVector Q = qData1.rowAt(j);
+			SparseVector lm_q1 = VectorUtils.toSparseVector(Q);
+			lm_q1.normalize();
+
+			SparseVector scores1 = dData1.rowAt(j);
+			scores1 = scores1.subVector(top_k);
+
+			// double[] a = scores1.values();
+			// double max = ArrayMath.max(a);
+			// double sum = 0;
+			// for (int i = 0; i < a.length; i++) {
+			// a[i] = Math.exp(a[i] - max);
+			// sum += a[i];
+			// }
+
+			SparseVector lm_fb = ds.getFeedbackBuilder().buildRM1(scores1, 0);
+			// SparseVector lm_fb2 = ds.getFeedbackBuilder().buildRM1(scores1,
+			// 1500);
+			// SparseVector lm_fb3 =
+			// ds.getFeedbackBuilder().buildNegRM1(scores1, 0);
+			//
+			// System.out.printf("lm_q1: %s\n", VectorUtils.toCounter(lm_q1,
+			// vocab));
+			// System.out.printf("lm_fb1: %s\n", VectorUtils.toCounter(lm_fb,
+			// vocab));
+			// System.out.printf("lm_fb2: %s\n", VectorUtils.toCounter(lm_fb2,
+			// vocab));
+			// System.out.printf("lm_fb3: %s\n", VectorUtils.toCounter(lm_fb3,
+			// vocab));
+
+			SparseVector lm_q2 = ds.updateQueryModel(lm_q1, lm_fb);
+
+			SparseVector scores2 = ds.search(lm_q2);
+			scores2 = scores2.subVector(top_k);
+
+			qData2.add(lm_q2);
+			dData2.add(scores2);
+
+			collectSearchResults(ds, bq, scores2, srData, top_k);
+		}
+
+		String pFileName = resDir + String.format("%s_%s_%s.ser.gz", "p", modelName, fbName);
+		String srFileName = resDir + String.format("%s_%s_%s.ser.gz", "sr", modelName, fbName);
+		String qFileName = resDir + String.format("%s_%s_%s.ser.gz", "q", modelName, fbName);
+		String dFileName = resDir + String.format("%s_%s_%s.ser.gz", "d", modelName, fbName);
+
+		Performance p2 = PerformanceEvaluator.evalute(srData, relvData);
+		p2.writeObject(pFileName);
+
+		FileUtils.writeStringCounterMap(srFileName, srData);
+
+		new SparseMatrix(qData2).writeObject(qFileName);
+		new SparseMatrix(dData2).writeObject(dFileName);
+
+		PerformanceComparator.compare(p1, p2);
+
+		System.out.println(p2);
 	}
 
 	public void runFusion() throws Exception {
@@ -1140,9 +1125,6 @@ public class Experiments {
 
 	public void runInitSearch() throws Exception {
 		List<BaseQuery> bqs = QueryReader.readQueries(queryFileName);
-
-		bqs = bqs.subList(0, 2);
-
 		CounterMap<String, String> relvData = RelevanceReader.readRelevances(relFileName);
 		CounterMap<String, String> srData = Generics.newCounterMap(bqs.size());
 		List<SparseVector> qData = Generics.newArrayList(bqs.size());
@@ -1158,21 +1140,66 @@ public class Experiments {
 			}
 		}
 
-		String modelName = "mrf";
-
 		DocumentSearcher ds = new DocumentSearcher(idxDir, stopwordFileName);
+		ds.setTopK(top_k);
+		ds.setUseFeedback(false);
+
+		String modelName = "mrf";
 
 		if (modelName.equals("mrf")) {
 			ds.setScorer(new MRFScorer(ds));
 		}
-		ds.setTopK(top_k);
-		ds.setUseFeedback(false);
+
+		PhraseMapper<Integer> pm = null;
+
+		{
+			List<String> lines = FileUtils.readLinesFromText("../../data/medical_ir/phrs.txt");
+			List<String> phrss = Generics.newArrayList(lines.size());
+			for (String line : lines) {
+				String[] ps = line.split("\t");
+				phrss.add(ps[0]);
+			}
+
+			pm = new PhraseMapper<Integer>(PhraseMapper.createDict(phrss, ds.getVocab()));
+		}
 
 		List<String> Qs = Generics.newArrayList(bqs.size());
 
 		for (BaseQuery bq : bqs) {
 			Qs.add(bq.getSearchText());
 			qData.add(ds.index(bq.getSearchText()));
+
+			SparseVector Q = ds.index(bq.getSearchText());
+
+			List<Integer> input = Generics.newArrayList(Q.size());
+
+			for (int w : Q.indexes()) {
+				input.add(w);
+			}
+
+			List<Pair<Integer, Integer>> ps = pm.map(input);
+
+			if (ps.size() > 0) {
+				System.out.println(bq.toString());
+				
+				for (Pair<Integer, Integer> p : ps) {
+					int s = p.getFirst();
+					int e = p.getSecond();
+					StringBuffer sb = new StringBuffer();
+					sb.append(String.format("[%d-%d,", s, e));
+
+					for (int j = s; j < e; j++) {
+						int w = input.get(j);
+						String word = ds.getVocab().getObject(w);
+						sb.append(" ");
+						sb.append(word);
+					}
+					sb.append("]");
+					System.out.println(sb.toString());
+				}
+				System.out.println();
+			}
+
 		}
 
 		{
@@ -1192,93 +1219,6 @@ public class Experiments {
 		new SparseMatrix(dData).writeObject(resDir + String.format("%s_%s.ser.gz", "d", modelName));
 
 		System.out.println(p);
-	}
-
-	public void runFeedback() throws Exception {
-
-		System.out.println(resDir);
-
-		String modelName = "mrf";
-		String fbName = "rm3";
-
-		Performance p1 = new Performance(resDir + String.format("%s_%s.ser.gz", "p", modelName));
-		SparseMatrix qData1 = new SparseMatrix(resDir + String.format("%s_%s.ser.gz", "q", modelName));
-		SparseMatrix dData1 = new SparseMatrix(resDir + String.format("%s_%s.ser.gz", "d", modelName));
-
-		List<BaseQuery> bqs = QueryReader.readQueries(queryFileName);
-		CounterMap<String, String> relvData = RelevanceReader.readRelevances(relFileName);
-
-		CounterMap<String, String> srData = Generics.newCounterMap(bqs.size());
-		List<SparseVector> qData2 = Generics.newArrayList(bqs.size());
-		List<SparseVector> dData2 = Generics.newArrayList(bqs.size());
-
-		DocumentSearcher ds = new DocumentSearcher(idxDir, stopwordFileName);
-
-		// ds.getFeedbackBuilder().setUseDocumentPrior(true);
-		// ds.getFeedbackBuilder().setFbWordSize(15);
-
-		for (int j = 0; j < bqs.size(); j++) {
-			BaseQuery bq = bqs.get(j);
-
-			System.out.println(bq);
-
-			SparseVector Q = qData1.rowAt(j);
-			SparseVector lm_q1 = VectorUtils.toSparseVector(Q);
-			lm_q1.normalize();
-
-			SparseVector scores1 = dData1.rowAt(j);
-			scores1 = scores1.subVector(top_k);
-
-			// double[] a = scores1.values();
-			// double max = ArrayMath.max(a);
-			// double sum = 0;
-			// for (int i = 0; i < a.length; i++) {
-			// a[i] = Math.exp(a[i] - max);
-			// sum += a[i];
-			// }
-
-			SparseVector lm_fb = ds.getFeedbackBuilder().buildRM1(scores1, 0);
-			// SparseVector lm_fb2 = ds.getFeedbackBuilder().buildRM1(scores1,
-			// 1500);
-			// SparseVector lm_fb3 =
-			// ds.getFeedbackBuilder().buildNegRM1(scores1, 0);
-			//
-			// System.out.printf("lm_q1: %s\n", VectorUtils.toCounter(lm_q1,
-			// vocab));
-			// System.out.printf("lm_fb1: %s\n", VectorUtils.toCounter(lm_fb,
-			// vocab));
-			// System.out.printf("lm_fb2: %s\n", VectorUtils.toCounter(lm_fb2,
-			// vocab));
-			// System.out.printf("lm_fb3: %s\n", VectorUtils.toCounter(lm_fb3,
-			// vocab));
-
-			SparseVector lm_q2 = ds.updateQueryModel(lm_q1, lm_fb);
-
-			SparseVector scores2 = ds.search(lm_q2);
-			scores2 = scores2.subVector(top_k);
-
-			qData2.add(lm_q2);
-			dData2.add(scores2);
-
-			collectSearchResults(ds, bq, scores2, srData, top_k);
-		}
-
-		String pFileName = resDir + String.format("%s_%s_%s.ser.gz", "p", modelName, fbName);
-		String srFileName = resDir + String.format("%s_%s_%s.ser.gz", "sr", modelName, fbName);
-		String qFileName = resDir + String.format("%s_%s_%s.ser.gz", "q", modelName, fbName);
-		String dFileName = resDir + String.format("%s_%s_%s.ser.gz", "d", modelName, fbName);
-
-		Performance p2 = PerformanceEvaluator.evalute(srData, relvData);
-		p2.writeObject(pFileName);
-
-		FileUtils.writeStringCounterMap(srFileName, srData);
-
-		new SparseMatrix(qData2).writeObject(qFileName);
-		new SparseMatrix(dData2).writeObject(dFileName);
-
-		PerformanceComparator.compare(p1, p2);
-
-		System.out.println(p2);
 	}
 
 	public void runKLDFBLemma() throws Exception {
@@ -1323,62 +1263,6 @@ public class Experiments {
 		String srFileName = dataDir + "res/sr_kld-fb-lemma.ser.gz";
 		String qFileName = dataDir + "res/q_kld-fb-lemma.ser.gz";
 		String dFileName = dataDir + "res/d_kld-fb-lemma.ser.gz";
-
-		Performance p2 = PerformanceEvaluator.evalute(srData, relvData);
-		p2.writeObject(pFileName);
-
-		PerformanceComparator.compare(p1, p2);
-
-		FileUtils.writeStringCounterMap(srFileName, srData);
-
-		new SparseMatrix(qData2).writeObject(qFileName);
-		new SparseMatrix(dData2).writeObject(dFileName);
-
-		System.out.println(p2);
-	}
-
-	public void runKLDFBMetaMap() throws Exception {
-		DocumentSearcher ds = new DocumentSearcher(idxDir, stopwordFileName);
-
-		List<BaseQuery> bqs = QueryReader.readTrecCdsQueries(queryFileName);
-
-		Performance p1 = new Performance(dataDir + "res/p_kld.ser.gz");
-
-		CounterMap<String, String> relvData = RelevanceReader.readTrecCdsRelevances(relFileName);
-
-		SparseMatrix qData1 = new SparseMatrix(dataDir + "res/q_kld-mm.ser.gz");
-		SparseMatrix dData1 = new SparseMatrix(dataDir + "res/d_kld-mm.ser.gz");
-
-		CounterMap<String, String> srData = Generics.newCounterMap();
-
-		List<SparseVector> qData2 = Generics.newArrayList();
-		List<SparseVector> dData2 = Generics.newArrayList();
-
-		for (int j = 0; j < bqs.size(); j++) {
-			BaseQuery bq = bqs.get(j);
-
-			System.out.println(bq);
-
-			SparseVector lm_q1 = qData1.rowAt(j);
-			SparseVector scores1 = dData1.rowAt(j);
-			scores1 = scores1.subVector(top_k);
-
-			SparseVector lm_fb = ds.getFeedbackBuilder().buildRM1(scores1, 0);
-			SparseVector lm_q2 = ds.updateQueryModel(lm_q1, lm_fb);
-
-			SparseVector scores2 = ds.search(lm_q2);
-			scores2 = scores2.subVector(top_k);
-
-			qData2.add(lm_q2);
-			dData2.add(scores2);
-
-			collectSearchResults(ds, bq, scores2, srData, top_k);
-		}
-
-		String pFileName = dataDir + "res/p_kld-fb-mm.ser.gz";
-		String srFileName = dataDir + "res/sr_kld-fb-mm.ser.gz";
-		String qFileName = dataDir + "res/q_kld-fb-mm.ser.gz";
-		String dFileName = dataDir + "res/d_kld-fb-mm.ser.gz";
 
 		Performance p2 = PerformanceEvaluator.evalute(srData, relvData);
 		p2.writeObject(pFileName);
@@ -2004,7 +1888,7 @@ public class Experiments {
 				for (int k = 0; k < bqs.size(); k++) {
 					BaseQuery bq = bqs.get(k);
 					SparseVector Q1 = qData1.rowAt(k);
-					SparseVector lm_q1 = ds1.getQueryModel(Q1, false);
+					SparseVector lm_q1 = ds1.getQueryModel(Q1);
 					SparseVector scores = ds1.search(lm_q1);
 					scores = scores.subVector(top_k);
 
@@ -2054,9 +1938,9 @@ public class Experiments {
 							SparseVector Q2 = ds2.index(bq.getSearchText());
 							SparseVector Q3 = ds3.index(bq.getSearchText());
 
-							SparseVector lm_q1 = ds1.getQueryModel(Q1, f1);
-							SparseVector lm_q2 = ds2.getQueryModel(Q2, f2);
-							SparseVector lm_q3 = ds3.getQueryModel(Q3, f3);
+							SparseVector lm_q1 = ds1.getQueryModel(Q1);
+							SparseVector lm_q2 = ds2.getQueryModel(Q2);
+							SparseVector lm_q3 = ds3.getQueryModel(Q3);
 
 							SparseVector docScores1 = ds1.search(lm_q1);
 							SparseVector docScores2 = ds2.search(lm_q2);
@@ -2075,7 +1959,7 @@ public class Experiments {
 							SparseVector lm_fb = ds1.getFeedbackBuilder().buildEEM(searchers, docScoreData);
 							SparseVector lm_q4 = ds1.updateQueryModel(lm_q1, lm_fb);
 
-							docScores1 = ds1.search(lm_q4, f4);
+							docScores1 = ds1.search(lm_q4);
 
 							collectSearchResults(ds1, bq, docScores1, resData, top_k);
 
@@ -2140,8 +2024,8 @@ public class Experiments {
 							SparseVector Q1 = ds1.index(bq.getSearchText());
 							SparseVector Q2 = ds2.index(bq.getSearchText());
 
-							SparseVector lm_q1 = ds1.getQueryModel(Q1, f1);
-							SparseVector lm_q2 = ds2.getQueryModel(Q2, f2);
+							SparseVector lm_q1 = ds1.getQueryModel(Q1);
+							SparseVector lm_q2 = ds2.getQueryModel(Q2);
 
 							SparseVector docScores1 = ds1.search(lm_q1);
 							SparseVector docScores2 = ds2.search(lm_q2);
@@ -2160,8 +2044,8 @@ public class Experiments {
 							SparseVector lm_q3 = VectorUtils.toSparseVector(VectorUtils.toCounter(lm_q1, ds1.getVocab()), ds3.getVocab());
 							lm_q3.normalize();
 
-							docScores1 = ds1.search(lm_q1, f4);
-							docScores2 = ds3.search(lm_q3, f4);
+							docScores1 = ds1.search(lm_q1);
+							docScores2 = ds3.search(lm_q3);
 
 							searchers = Generics.newArrayList();
 							searchers.add(ds1);
@@ -2239,8 +2123,8 @@ public class Experiments {
 						SparseVector Q1 = ds1.index(bq.getSearchText());
 						SparseVector Q2 = ds2.index(bq.getSearchText());
 
-						SparseVector lm_q1 = ds1.getQueryModel(Q1, f1);
-						SparseVector lm_q2 = ds2.getQueryModel(Q2, f2);
+						SparseVector lm_q1 = ds1.getQueryModel(Q1);
+						SparseVector lm_q2 = ds2.getQueryModel(Q2);
 
 						SparseVector docScores1 = ds1.search(lm_q1);
 						SparseVector docScores2 = ds2.search(lm_q2);
@@ -2257,7 +2141,7 @@ public class Experiments {
 
 						SparseVector lm_q3 = ds1.updateQueryModel(lm_q1, lm_fb);
 
-						docScores1 = ds1.search(lm_q3, f3);
+						docScores1 = ds1.search(lm_q3);
 
 						collectSearchResults(ds1, bq, docScores1, resData, top_k);
 
@@ -2326,7 +2210,7 @@ public class Experiments {
 						SparseVector lm_q1 = qData1.rowAt(i);
 						SparseVector lm_q2 = VectorUtils.toSparseVector(qData0.rowAt(i), vocab1, vocab2);
 
-						lm_q2 = ds2.getQueryModel(lm_q2, f2);
+						lm_q2 = ds2.getQueryModel(lm_q2);
 
 						SparseVector scores1 = dData1.rowAt(i);
 						SparseVector scores2 = ds2.search(lm_q2);
@@ -2346,7 +2230,7 @@ public class Experiments {
 
 						SparseVector lm_q3 = ds1.updateQueryModel(lm_q1, lm_fb);
 
-						SparseVector scores3 = ds1.search(lm_q3, f3);
+						SparseVector scores3 = ds1.search(lm_q3);
 						scores3 = scores3.subVector(top_k);
 
 						collectSearchResults(ds1, bq, scores3, srData, top_k);
@@ -2460,8 +2344,8 @@ public class Experiments {
 			SparseVector Q1 = ds1.index(bq.getSearchText());
 			SparseVector Q2 = ds2.index(" disease diseases test tests treatment treatments");
 
-			SparseVector lm_q1 = ds1.getQueryModel(Q1, false);
-			SparseVector lm_q2 = ds2.getQueryModel(Q2, false);
+			SparseVector lm_q1 = ds1.getQueryModel(Q1);
+			SparseVector lm_q2 = ds2.getQueryModel(Q2);
 
 			SparseVector scores1 = ds1.search(lm_q1);
 			SparseVector scores2 = ds2.search(lm_q2);

@@ -83,7 +83,7 @@ public class ByteSize {
 			Type type = Type.values()[j];
 			if (sizes[j] >= 1) {
 				DecimalFormat df = new DecimalFormat(".00");
-				sb.append(String.format("[%f] %cBs", sizes[j], type.toString().charAt(0)));
+				sb.append(String.format("[%f %cBs]", sizes[j], type.toString().charAt(0)));
 				break;
 			}
 		}

@@ -172,8 +172,8 @@ public class Indexer<E> extends AbstractList<E> implements Serializable {
 		return ret;
 	}
 
-	public List<Integer> indexesOfKnown(Collection<Object> objs) {
-		List<Integer> ret = new ArrayList<>(objs.size());
+	public List<Integer> indexesOfKnown(Collection<E> objs) {
+		List<Integer> ret = new ArrayList<Integer>(objs.size());
 		for (Object obj : objs) {
 			int id = indexOf(obj);
 			if (id > -1) {

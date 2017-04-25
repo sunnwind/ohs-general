@@ -55,7 +55,7 @@ public class DataHandler {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 		DataHandler dh = new DataHandler();
-		 dh.getSentences();
+		// dh.getSentences();
 		// dh.tagPOS();
 		// dh.trainGlove();
 		// dh.matchPhrasesToKeywords();
@@ -63,8 +63,8 @@ public class DataHandler {
 		// dh.getWikiPhrases();
 		// dh.getFrequentPhrases();
 
-		// dh.getPaperKeywords();
-		// dh.mergeKeywords();
+		 dh.getPaperKeywords();
+//		dh.mergeKeywords();
 		// dh.getPositiveData();
 
 		// dh.getQualityTrainingPhrases();
@@ -581,9 +581,9 @@ public class DataHandler {
 
 			for (String phrs : c.keySet()) {
 				double cnt = c.getCount(phrs);
-				if (phrs.length() > 1) {
-					cm.incrementCount(phrs, name, cnt);
-				}
+				// if (phrs.length() > 1) {
+				cm.incrementCount(phrs, name, cnt);
+				// }
 			}
 		}
 

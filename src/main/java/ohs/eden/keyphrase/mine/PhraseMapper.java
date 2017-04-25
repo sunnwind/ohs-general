@@ -10,18 +10,33 @@ import ohs.tree.trie.hash.Node;
 import ohs.tree.trie.hash.Trie;
 import ohs.types.generic.Counter;
 import ohs.types.generic.Pair;
+import ohs.types.generic.Vocab;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
 
-public class PhraseMapper {
+public class PhraseMapper<K> {
 
 	public static Trie<String> createDict(Collection<String> phrss) {
 		Trie<String> ret = new Trie<String>();
 		for (String phrs : phrss) {
 			List<String> words = StrUtils.split(phrs);
-
 			if (words.size() > 1) {
 				Node<String> node = ret.insert(words);
+				node.setFlag(true);
+			}
+		}
+		ret.trimToSize();
+		return ret;
+	}
+
+	public static Trie<Integer> createDict(Collection<String> phrss, Vocab vocab) {
+		Trie<Integer> ret = new Trie<Integer>();
+		for (String phrs : phrss) {
+			List<String> words = StrUtils.split(phrs);
+			List<Integer> ws = vocab.indexesOfKnown(words);
+
+			if (ws.size() > 0 && words.size() == ws.size()) {
+				Node<Integer> node = ret.insert(ws);
 				node.setFlag(true);
 			}
 		}
@@ -35,11 +50,57 @@ public class PhraseMapper {
 		System.out.printf("ends.");
 	}
 
+	private Trie<K> dict;
+
+	public PhraseMapper(Trie<K> dict) {
+		this.dict = dict;
+	}
+
+	public List<Pair<Integer, Integer>> map(K[] words) {
+		List<K> input = Generics.newArrayList(words.length);
+		for (K word : words) {
+			input.add(word);
+		}
+		return map(words);
+	}
+
+	public List<Pair<Integer, Integer>> map(List<K> words) {
+		List<Pair<Integer, Integer>> ret = Generics.newArrayList();
+		int i = 0;
+		while (i < words.size()) {
+			int j = i;
+
+			Node<K> node = dict.getRoot();
+
+			while (j < words.size()) {
+				K key = words.get(j);
+				if (node.hasChild(key)) {
+					node = node.getChild(key);
+					if (node.getFlag()) {
+						ret.add(Generics.newPair(i, j + 1));
+					}
+				} else {
+					break;
+				}
+				j++;
+			}
+
+			if (i == j) {
+				i++;
+			} else {
+				i = j;
+			}
+
+		}
+
+		return ret;
+	}
+
 	public void test1() throws Exception {
 		Counter<String> c = FileUtils.readStringCounterFromText("../../data/medical_ir/trec_cds/2014/phrs/kwds.txt.gz");
 
 		Trie<String> dict = PhraseMapper.createDict(c.keySet());
-		PhraseMapper m = new PhraseMapper(dict);
+		PhraseMapper<String> m = new PhraseMapper<String>(dict);
 
 		{
 			RawDocumentCollection rdc = new RawDocumentCollection(MIRPath.TREC_CDS_2014_COL_DC_DIR);
@@ -61,45 +122,6 @@ public class PhraseMapper {
 				System.out.println();
 			}
 		}
-	}
-
-	private Trie<String> dict;
-
-	public PhraseMapper(Trie<String> dict) {
-		this.dict = dict;
-
-	}
-
-	public List<Pair<Integer, Integer>> map(List<String> words) {
-		List<Pair<Integer, Integer>> ret = Generics.newArrayList();
-		int i = 0;
-		while (i < words.size()) {
-			int j = i;
-
-			Node<String> node = dict.getRoot();
-
-			while (j < words.size()) {
-				String key = words.get(j);
-				if (node.hasChild(key)) {
-					node = node.getChild(key);
-					if (node.getFlag()) {
-						ret.add(Generics.newPair(i, j + 1));
-					}
-				} else {
-					break;
-				}
-				j++;
-			}
-
-			if (i == j) {
-				i++;
-			} else {
-				i = j;
-			}
-
-		}
-
-		return ret;
 	}
 
 }
