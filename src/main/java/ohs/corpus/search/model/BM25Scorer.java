@@ -20,8 +20,6 @@ public class BM25Scorer extends Scorer {
 	public SparseVector score(SparseVector Q, SparseVector docs) throws Exception {
 		Counter<Integer> c = Generics.newCounter();
 
-		List<PostingList> pls = ii.getPostingLists(new IntegerArray(Q.indexes()));
-
 		double k1 = TermWeighting.k1;
 		double k3 = TermWeighting.k3;
 		double b = TermWeighting.b;
@@ -34,7 +32,7 @@ public class BM25Scorer extends Scorer {
 			int w = Q.indexAt(i);
 			double cnt_w_in_q = Q.valueAt(i);
 
-			PostingList pl = pls.get(i);
+			PostingList pl = ii.getPostingList(w);
 
 			if (pl == null) {
 				continue;
@@ -52,9 +50,7 @@ public class BM25Scorer extends Scorer {
 				c.incrementCount(dseq, score);
 			}
 		}
-
 		SparseVector ret = new SparseVector(c);
-		ret.sortValues();
 		return ret;
 	}
 

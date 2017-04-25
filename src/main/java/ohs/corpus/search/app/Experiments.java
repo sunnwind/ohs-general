@@ -167,7 +167,7 @@ public class Experiments {
 		// e.runTwoStageEEMWithCommonness();
 		// e.runTwoStageCBEEM();
 
-		e.analyze1();
+		// e.analyze1();
 		// e.analyze2();
 
 		System.out.println("process ends.");
@@ -423,6 +423,9 @@ public class Experiments {
 	private void collectSearchResults(DocumentSearcher ds, BaseQuery bq, SparseVector scores, CounterMap<String, String> resData, int top_k)
 			throws Exception {
 
+		scores = scores.subVector(top_k);
+		scores.sortIndexes();
+
 		for (int i = 0; i < scores.size() && i < top_k; i++) {
 			int dseq = scores.indexAt(i);
 			double score = scores.valueAt(i);
@@ -433,10 +436,32 @@ public class Experiments {
 
 	private void collectSearchResults(DocumentSearcher ds, List<BaseQuery> bqs, List<SparseVector> scoreData,
 			CounterMap<String, String> resData, int top_k) throws Exception {
+
+		Map<Integer, String> m = Generics.newHashMap();
+
+		for (int i = 0; i < scoreData.size(); i++) {
+			SparseVector scores = scoreData.get(i);
+			scores = scores.subVector(top_k);
+			for (int dseq : scores.indexes()) {
+				m.put(dseq, "");
+			}
+			scoreData.set(i, scores);
+		}
+
+		for (int dseq : m.keySet()) {
+			String did = ds.getDocumentCollection().get(dseq).getFirst();
+			m.put(dseq, did);
+		}
+
 		for (int i = 0; i < bqs.size(); i++) {
 			BaseQuery bq = bqs.get(i);
 			SparseVector scores = scoreData.get(i);
-			collectSearchResults(ds, bq, scores, resData, top_k);
+			for (int j = 0; j < scores.size(); j++) {
+				int dseq = scores.indexAt(j);
+				double score = scores.valueAt(j);
+				String docid = m.get(dseq);
+				resData.incrementCount(bq.getId(), docid, score);
+			}
 		}
 	}
 
@@ -1115,6 +1140,9 @@ public class Experiments {
 
 	public void runInitSearch() throws Exception {
 		List<BaseQuery> bqs = QueryReader.readQueries(queryFileName);
+
+		bqs = bqs.subList(0, 2);
+
 		CounterMap<String, String> relvData = RelevanceReader.readRelevances(relFileName);
 		CounterMap<String, String> srData = Generics.newCounterMap(bqs.size());
 		List<SparseVector> qData = Generics.newArrayList(bqs.size());
@@ -1130,8 +1158,6 @@ public class Experiments {
 			}
 		}
 
-		// System.out.println(cm.toString());
-
 		String modelName = "mrf";
 
 		DocumentSearcher ds = new DocumentSearcher(idxDir, stopwordFileName);
@@ -1145,32 +1171,16 @@ public class Experiments {
 		List<String> Qs = Generics.newArrayList(bqs.size());
 
 		for (BaseQuery bq : bqs) {
-			;
 			Qs.add(bq.getSearchText());
 			qData.add(ds.index(bq.getSearchText()));
 		}
 
 		{
-			List<SparseVector> res = ds.search(bqs, 1);
+			List<SparseVector> res = ds.search(bqs, 2);
 			dData.addAll(res);
 		}
 
 		collectSearchResults(ds, bqs, dData, srData, top_k);
-
-		// for (int i = 0; i < bqs.size(); i++) {
-		// BaseQuery bq = bqs.get(i);
-		// System.out.println(bq);
-		//
-		// SparseVector Q = ds.index(bq.getSearchText());
-		//
-		// SparseVector scores = ds.search(Q);
-		// scores = scores.subVector(top_k);
-		//
-		// qData.add(Q);
-		// dData.add(scores);
-		//
-		// collectSearchResults(ds, bq, scores, srData, top_k);
-		// }
 
 		FileUtils.deleteFilesUnder(resDir);
 

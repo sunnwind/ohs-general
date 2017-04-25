@@ -2,11 +2,14 @@ package ohs.ml.neuralnet.com;
 
 import java.util.List;
 
+import ohs.math.ArrayUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseVector;
 import ohs.matrix.SparseMatrix;
 import ohs.matrix.SparseVector;
+import ohs.types.generic.ListMap;
 import ohs.types.generic.Pair;
+import ohs.types.number.IntegerArray;
 import ohs.utils.Generics;
 
 public class BatchUtils {
@@ -26,6 +29,48 @@ public class BatchUtils {
 			yy.add((double) answer);
 		}
 		return Generics.newPair(new DenseMatrix(xx), new DenseVector(yy));
+	}
+
+	public static int[][] getBatchRanges(int[] idxs) {
+		IntegerArray dseqs = new IntegerArray(ArrayUtils.copy(idxs));
+		dseqs.sort(false);
+
+		List<List<Integer>> rs = Generics.newArrayList(dseqs.size());
+
+		int start = dseqs.get(0);
+		int i = 1;
+
+		while (i < dseqs.size()) {
+			int prev = dseqs.get(i - 1);
+			int cur = dseqs.get(i);
+
+			if (cur - prev != 1) {
+				int end = prev + 1;
+				List<Integer> r = Generics.newArrayList(2);
+				r.add(start);
+				r.add(end);
+				rs.add(r);
+				start = cur;
+			}
+			i++;
+		}
+
+		{
+			int end = dseqs.get(dseqs.size() - 1) + 1;
+			List<Integer> r = Generics.newArrayList(2);
+			r.add(start);
+			r.add(end);
+			rs.add(r);
+		}
+		
+		int[][] ret = new int[rs.size()][2];
+
+		for (int j = 0; j < rs.size(); j++) {
+			List<Integer> r = rs.get(j);
+			ret[j][0] = r.get(0);
+			ret[j][1] = r.get(1);
+		}
+		return ret;
 	}
 
 	public static int[][] getBatch(int[][] X, int[] range, int[] data_locs) {

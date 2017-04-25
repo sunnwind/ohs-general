@@ -44,8 +44,6 @@ public class VsmScorer extends Scorer {
 		Q = Q.copy();
 		Counter<Integer> scores = Generics.newCounter();
 
-		List<PostingList> ps = ii.getPostingLists(new IntegerArray(Q.indexes()));
-
 		double norm_q = 0;
 
 		for (int i = 0; i < Q.size(); i++) {
@@ -58,7 +56,7 @@ public class VsmScorer extends Scorer {
 
 			norm_q += tfidf_w_in_q * tfidf_w_in_q;
 
-			PostingList p = ps.get(i);
+			PostingList p = ii.getPostingList(w);
 
 			if (p == null) {
 				continue;
@@ -88,7 +86,6 @@ public class VsmScorer extends Scorer {
 			ret.addAt(loc, dseq, score);
 			loc++;
 		}
-		ret.sortValues();
 		return ret;
 	}
 

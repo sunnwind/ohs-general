@@ -427,7 +427,7 @@ public class DocumentSearcher {
 				continue;
 			}
 
-			System.out.printf("word=%s, %s\n", word, pl);
+			System.out.printf("word=[%s], %s\n", word, pl);
 
 			IntegerArray dseqs = pl.getDocSeqs();
 			double doc_freq = dseqs.size();
