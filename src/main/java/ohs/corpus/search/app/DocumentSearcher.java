@@ -225,7 +225,7 @@ public class DocumentSearcher {
 
 	private boolean print_log = false;
 
-	private SparseVector tmp = null;
+	private SparseVector D = null;
 
 	public DocumentSearcher(Scorer scorer, RawDocumentCollection rdc, DocumentCollection dc, InvertedIndex ii, WordFilter wf)
 			throws Exception {
@@ -238,13 +238,11 @@ public class DocumentSearcher {
 
 		fbb = new FeedbackBuilder(vocab, dc, ii, wf);
 
-		tmp = new SparseVector(ArrayUtils.range(dc.size()));
+		D = new SparseVector(ArrayUtils.range(dc.size()));
 	}
 
 	public DocumentSearcher(String dataDir, String stopwordFileName) throws Exception {
 		this.dataDir = new File(dataDir);
-
-		scorer = new LMScorer(vocab, dc, ii);
 
 		rdc = new RawDocumentCollection(dataDir);
 
@@ -253,6 +251,10 @@ public class DocumentSearcher {
 		ii = new InvertedIndex(dataDir);
 
 		vocab = dc.getVocab();
+
+		scorer = new LMScorer(vocab, dc, ii);
+
+		ii.setVocab(vocab);
 
 		if (stopwordFileName != null) {
 			Set<String> stopwords = FileUtils.readStringSetFromText(stopwordFileName);
@@ -263,7 +265,7 @@ public class DocumentSearcher {
 
 		fbb = new FeedbackBuilder(vocab, dc, ii, wf);
 
-		tmp = new SparseVector(ArrayUtils.range(dc.size()));
+		D = new SparseVector(ArrayUtils.range(dc.size()));
 	}
 
 	public void close() throws Exception {
@@ -413,14 +415,11 @@ public class DocumentSearcher {
 		Timer timer = Timer.newTimer();
 
 		for (int w : Q) {
-			String word = vocab.getObject(w);
 			PostingList pl = ii.getPostingList(w);
 
 			if (pl == null) {
 				continue;
 			}
-
-			System.out.printf("word=[%s], %s\n", word, pl);
 
 			IntegerArray dseqs = pl.getDocSeqs();
 			double doc_freq = dseqs.size();
@@ -428,19 +427,19 @@ public class DocumentSearcher {
 
 			for (int dseq : dseqs) {
 				if (use_idf_match) {
-					tmp.addAt(dseq, idf);
+					D.addAt(dseq, idf);
 				} else {
-					tmp.addAt(dseq, 1);
+					D.addAt(dseq, 1);
 				}
 			}
 		}
 
-		tmp.sortValues();
+		D.sortValues();
 
 		int end = 0;
 
-		while (end < tmp.size()) {
-			if (tmp.valueAt(end) == 0) {
+		while (end < D.size()) {
+			if (D.valueAt(end) == 0) {
 				break;
 			}
 			end++;
@@ -450,11 +449,11 @@ public class DocumentSearcher {
 			end = Math.min(end, max_match_size);
 		}
 
-		SparseVector ret = tmp.subVector(end);
+		SparseVector ret = D.subVector(end);
 		ret.sortIndexes();
 
-		tmp.sortIndexes();
-		tmp.setAll(0);
+		D.sortIndexes();
+		D.setAll(0);
 
 		System.out.printf("[Matching Time, %s]\n", timer.stop());
 		return ret;

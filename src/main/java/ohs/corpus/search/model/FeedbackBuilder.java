@@ -734,10 +734,10 @@ public class FeedbackBuilder {
 
 			double pr_w_in_c = vocab.getProb(w);
 
-			for (int j = 0; j < dvs.size(); j++) {
+			for (int j = 0; j < scores.size(); j++) {
 				int dseq = scores.indexAt(j);
 				double weight_d = scores.valueAt(j);
-				SparseVector dv = dvs.get(j);
+				SparseVector dv = dvs.row(dseq);
 				double cnt_w_in_d = dv.value(w);
 				double len_d = dv.sum();
 				double pr_w_in_d = TermWeighting.twoStageSmoothing(cnt_w_in_d, len_d, pr_w_in_c, prior_dir, pr_w_in_c, mixture_jm);

@@ -70,12 +70,12 @@ public class InvertedIndexCreator {
 				FileChannel fc = FileUtils.openFileChannel(inFile, "rw");
 				int cnt = 0;
 
-				ListMapMap<Integer, Integer, Integer> lmm = Generics.newListMapMap(ListType.ARRAY_LIST);
+				ListMapMap<Integer, Integer, Integer> lmm = Generics.newListMapMap();
 
 				while (fc.position() < fc.size()) {
 					ByteArrayMatrix data = FileUtils.readByteArrayMatrix(fc);
 
-					ListMapMap<Integer, Integer, Integer> lmm2 = Generics.newListMapMap(ListType.ARRAY_LIST);
+					ListMapMap<Integer, Integer, Integer> lmm2 = Generics.newListMapMap();
 
 					for (ByteArray sub : data) {
 						ByteBufferWrapper buf = new ByteBufferWrapper(sub);

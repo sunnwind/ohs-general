@@ -1,9 +1,5 @@
 package ohs.corpus.search.model;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import ohs.corpus.search.app.DocumentSearcher;
 import ohs.corpus.search.index.InvertedIndex;
 import ohs.corpus.search.index.Posting;
@@ -15,8 +11,7 @@ import ohs.matrix.DenseVector;
 import ohs.matrix.SparseMatrix;
 import ohs.matrix.SparseVector;
 import ohs.types.generic.Vocab;
-import ohs.types.number.IntegerArray;
-import ohs.utils.Generics;
+import ohs.utils.Timer;
 
 public class LMScorer extends Scorer {
 
@@ -194,9 +189,8 @@ public class LMScorer extends Scorer {
 			int w = lm_q.indexAt(i);
 			double pr_w_in_q = lm_q.probAt(i);
 			String word = vocab.getObject(w);
+
 			PostingList pl = ii.getPostingList(w);
-			
-			System.out.printf("word=[%s], %s\n", word, pl);
 
 			if (pl == null) {
 				continue;

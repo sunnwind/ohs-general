@@ -6,20 +6,20 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.WeakHashMap;
 
 import ohs.corpus.type.DataCompression;
-import ohs.corpus.type.DocumentCollection;
 import ohs.io.ByteArray;
 import ohs.io.ByteArrayMatrix;
 import ohs.io.ByteArrayUtils;
 import ohs.io.ByteBufferWrapper;
 import ohs.io.FileUtils;
 import ohs.math.ArrayMath;
+import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
 import ohs.types.number.IntegerArrayMatrix;
 import ohs.types.number.LongArray;
 import ohs.utils.Generics;
+import ohs.utils.Timer;
 
 public class InvertedIndex {
 
@@ -230,6 +230,12 @@ public class InvertedIndex {
 
 	private boolean encode = false;
 
+	private Vocab vocab;
+
+	public void setVocab(Vocab vocab) {
+		this.vocab = vocab;
+	}
+
 	public InvertedIndex(FileChannel fc, LongArray starts, IntegerArray lens, int doc_cnt) {
 		this(fc, starts, lens, doc_cnt, Generics.newWeakHashMap());
 	}
@@ -277,6 +283,8 @@ public class InvertedIndex {
 	}
 
 	public PostingList getPostingList(int w) throws Exception {
+		Timer timer = Timer.newTimer();
+
 		if (w < 0 || w >= starts.size()) {
 			return null;
 		}
@@ -290,17 +298,27 @@ public class InvertedIndex {
 		if (ret == null) {
 			synchronized (fc) {
 				long start = starts.get(w);
+				int len = lens.get(w);
+
 				if (start < 0) {
 					return null;
 				}
 				fc.position(start);
-				ret = PostingList.readPostingList(fc, encode);
+
+				ByteBufferWrapper buf = new ByteBufferWrapper(FileUtils.readByteArray(fc, len));
+				ByteArrayMatrix data = buf.readByteArrayMatrix();
+
+				// ret = PostingList.readPostingList(fc, encode);
+				ret = PostingList.toPostingList(data, encode);
 			}
 
 			synchronized (cache) {
 				cache.put(w, ret);
 			}
 		}
+
+		String word = vocab == null ? "null" : vocab.getObject(w);
+		System.out.printf("PL of word=[%s], %s, time=[%s]\n", word, ret, timer);
 		return ret;
 	}
 

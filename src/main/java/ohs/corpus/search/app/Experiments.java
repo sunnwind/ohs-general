@@ -24,6 +24,7 @@ import ohs.corpus.search.model.LMScorer;
 import ohs.corpus.search.model.MRFScorer;
 import ohs.corpus.search.model.TranslationModelScorer;
 import ohs.corpus.search.model.VsmScorer;
+import ohs.corpus.type.DocumentCollection;
 import ohs.corpus.type.SimpleStringNormalizer;
 import ohs.eden.keyphrase.mine.PhraseMapper;
 import ohs.io.FileUtils;
@@ -132,10 +133,10 @@ public class Experiments {
 		System.out.println("process begins.");
 
 		Experiments e = new Experiments();
-		// e.getStems();
-		// e.getLemmas();
+
+		e.test();
 		// e.runInitSearch();
-		e.runFeedback();
+		// e.runFeedback();
 		// e.runKLDFB();
 		//
 		// e.runKLDLemma();
@@ -393,34 +394,6 @@ public class Experiments {
 				System.out.println();
 			}
 		}
-	}
-
-	public void buildBigrams() throws Exception {
-		String idxDir = MIRPath.TREC_CDS_2014_COL_INDEX_DIR;
-
-		DocumentSearcher searcher = new DocumentSearcher(idxDir, MIRPath.STOPWORD_INQUERY_FILE);
-
-		Vocab vocab = searcher.getVocab();
-
-		CounterMap<String, String> cm = FileUtils.readStringCounterMapFromText(MIRPath.WIKI_DIR + "medical_word_word.txt");
-		CounterMap<Integer, Integer> cm2 = Generics.newCounterMap();
-
-		for (String word1 : cm.keySet()) {
-			int w1 = vocab.indexOf(word1);
-			if (w1 >= 0) {
-				Counter<String> c = cm.getCounter(word1);
-				for (String word2 : c.keySet()) {
-					double cnt = c.getCount(word2);
-					int w2 = vocab.indexOf(word2);
-					if (w2 >= 0) {
-						cm2.incrementCount(w1, w2, cnt);
-					}
-				}
-			}
-		}
-
-		SparseMatrix sm = VectorUtils.toSparseMatrix(cm2);
-		sm.writeObject(MIRPath.WIKI_DIR + "medical_bigram.ser.gz");
 	}
 
 	private void collectSearchResults(DocumentSearcher ds, BaseQuery bq, SparseVector scores, CounterMap<String, String> resData, int top_k)
@@ -953,6 +926,8 @@ public class Experiments {
 		List<SparseVector> qData2 = Generics.newArrayList(bqs.size());
 		List<SparseVector> dData2 = Generics.newArrayList(bqs.size());
 
+		System.out.println(p1.toString());
+
 		DocumentSearcher ds = new DocumentSearcher(idxDir, stopwordFileName);
 
 		// ds.getFeedbackBuilder().setUseDocumentPrior(true);
@@ -971,9 +946,7 @@ public class Experiments {
 			scores1 = scores1.subVector(top_k);
 
 			SparseVector lm_fb = ds.getFeedbackBuilder().buildRM1(scores1, 0);
-
-			// Counter<String> c = VectorUtils.toCounter(lm_fb, ds.getVocab());
-			// System.out.println(c.toString());
+			Counter<String> c = VectorUtils.toCounter(lm_fb, ds.getVocab());
 
 			// for (int j = 0; j < scores1.size(); j++) {
 			// int dseq = scores1.indexAt(j);
@@ -994,6 +967,9 @@ public class Experiments {
 			// }
 
 			SparseVector lm_q2 = ds.updateQueryModel(lm_q1, lm_fb);
+
+			System.out.println(VectorUtils.toCounter(lm_q1, ds.getVocab()));
+			System.out.println(VectorUtils.toCounter(lm_q2, ds.getVocab()));
 
 			scores1.sortIndexes();
 			SparseVector scores2 = ds.search(lm_q2, scores1);
@@ -1125,6 +1101,15 @@ public class Experiments {
 		System.out.println(p);
 	}
 
+	public void test() throws Exception {
+		DocumentCollection dc = new DocumentCollection(MIRPath.TREC_CDS_2016_COL_DC_DIR);
+
+		RandomAccessDenseMatrix E = new RandomAccessDenseMatrix(MIRPath.TREC_CDS_2016_DIR + "emb/glove_ra.ser", true);
+
+		WordSearcher ws = new WordSearcher(dc.getVocab(), E, null);
+		WordSearcher.interact(ws);
+	}
+
 	public void runInitSearch() throws Exception {
 		List<BaseQuery> bqs = QueryReader.readQueries(queryFileName);
 		CounterMap<String, String> relvData = RelevanceReader.readRelevances(relFileName);
@@ -1146,24 +1131,24 @@ public class Experiments {
 		ds.setTopK(top_k);
 		ds.setUseFeedback(false);
 
-		String modelName = "mrf";
+		String modelName = "lmd";
 
 		if (modelName.equals("mrf")) {
 			ds.setScorer(new MRFScorer(ds));
 		}
 
-		PhraseMapper<Integer> pm = null;
-
-		{
-			List<String> lines = FileUtils.readLinesFromText("../../data/medical_ir/phrs.txt");
-			List<String> phrss = Generics.newArrayList(lines.size());
-			for (String line : lines) {
-				String[] ps = line.split("\t");
-				phrss.add(ps[0]);
-			}
-
-			pm = new PhraseMapper<Integer>(PhraseMapper.createDict(phrss, ds.getVocab()));
-		}
+		// PhraseMapper<Integer> pm = null;
+		//
+		// {
+		// List<String> lines = FileUtils.readLinesFromText("../../data/medical_ir/phrs.txt");
+		// List<String> phrss = Generics.newArrayList(lines.size());
+		// for (String line : lines) {
+		// String[] ps = line.split("\t");
+		// phrss.add(ps[0]);
+		// }
+		//
+		// pm = new PhraseMapper<Integer>(PhraseMapper.createDict(phrss, ds.getVocab()));
+		// }
 
 		List<String> Qs = Generics.newArrayList(bqs.size());
 
@@ -1179,28 +1164,28 @@ public class Experiments {
 				input.add(w);
 			}
 
-			List<Pair<Integer, Integer>> ps = pm.map(input);
-
-			if (ps.size() > 0) {
-				System.out.println(bq.toString());
-
-				for (Pair<Integer, Integer> p : ps) {
-					int s = p.getFirst();
-					int e = p.getSecond();
-					StringBuffer sb = new StringBuffer();
-					sb.append(String.format("[%d-%d,", s, e));
-
-					for (int j = s; j < e; j++) {
-						int w = input.get(j);
-						String word = ds.getVocab().getObject(w);
-						sb.append(" ");
-						sb.append(word);
-					}
-					sb.append("]");
-					System.out.println(sb.toString());
-				}
-				System.out.println();
-			}
+			// List<Pair<Integer, Integer>> ps = pm.map(input);
+			//
+			// if (ps.size() > 0) {
+			// System.out.println(bq.toString());
+			//
+			// for (Pair<Integer, Integer> p : ps) {
+			// int s = p.getFirst();
+			// int e = p.getSecond();
+			// StringBuffer sb = new StringBuffer();
+			// sb.append(String.format("[%d-%d,", s, e));
+			//
+			// for (int j = s; j < e; j++) {
+			// int w = input.get(j);
+			// String word = ds.getVocab().getObject(w);
+			// sb.append(" ");
+			// sb.append(word);
+			// }
+			// sb.append("]");
+			// System.out.println(sb.toString());
+			// }
+			// System.out.println();
+			// }
 
 		}
 
