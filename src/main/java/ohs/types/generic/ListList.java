@@ -1,7 +1,6 @@
 package ohs.types.generic;
 
 import java.io.Serializable;
-import java.util.Iterator;
 import java.util.List;
 
 import ohs.utils.Generics;
@@ -49,9 +48,7 @@ public class ListList<V> implements Serializable {
 
 	public void clear(boolean deep_clear) {
 		if (deep_clear) {
-			Iterator<List<V>> iter = entries.iterator();
-			while (iter.hasNext()) {
-				List<V> l = iter.next();
+			for (List<V> l : entries) {
 				l.clear();
 			}
 		}

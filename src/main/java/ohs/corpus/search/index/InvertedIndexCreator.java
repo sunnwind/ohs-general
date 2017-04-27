@@ -3,8 +3,10 @@ package ohs.corpus.search.index;
 import java.io.File;
 import java.nio.channels.FileChannel;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -18,9 +20,11 @@ import ohs.io.ByteArrayMatrix;
 import ohs.io.ByteArrayUtils;
 import ohs.io.ByteBufferWrapper;
 import ohs.io.FileUtils;
+import ohs.ir.medical.general.MIRPath;
 import ohs.math.ArrayUtils;
 import ohs.ml.neuralnet.com.BatchUtils;
 import ohs.types.generic.Counter;
+import ohs.types.generic.ListList;
 import ohs.types.generic.ListMap;
 import ohs.types.generic.ListMapMap;
 import ohs.types.generic.Pair;
@@ -28,8 +32,6 @@ import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
 import ohs.types.number.IntegerArrayMatrix;
 import ohs.types.number.LongArray;
-import ohs.utils.ByteSize;
-import ohs.utils.ByteSize.Type;
 import ohs.utils.Generics;
 import ohs.utils.Generics.ListType;
 import ohs.utils.Timer;
@@ -46,8 +48,6 @@ public class InvertedIndexCreator {
 
 	public class MergeWorker implements Callable<Integer> {
 
-		private ListMapMap<Integer, Integer, Integer> lmm = Generics.newListMapMap(ListType.ARRAY_LIST);
-
 		private List<File> files;
 
 		private AtomicInteger file_cnt;
@@ -63,16 +63,19 @@ public class InvertedIndexCreator {
 		@Override
 		public Integer call() throws Exception {
 			int file_loc = 0;
+
 			while ((file_loc = file_cnt.getAndIncrement()) < files.size()) {
 				File inFile = files.get(file_loc);
 
 				FileChannel fc = FileUtils.openFileChannel(inFile, "rw");
 				int cnt = 0;
 
+				ListMapMap<Integer, Integer, Integer> lmm = Generics.newListMapMap(ListType.ARRAY_LIST);
+
 				while (fc.position() < fc.size()) {
 					ByteArrayMatrix data = FileUtils.readByteArrayMatrix(fc);
 
-					ListMapMap<Integer, Integer, Integer> lmm2 = Generics.newListMapMap(ListType.LINKED_LIST);
+					ListMapMap<Integer, Integer, Integer> lmm2 = Generics.newListMapMap(ListType.ARRAY_LIST);
 
 					for (ByteArray sub : data) {
 						ByteBufferWrapper buf = new ByteBufferWrapper(sub);
@@ -100,7 +103,7 @@ public class InvertedIndexCreator {
 							lmm.get(w, dseq, true).addAll(poss);
 						}
 					}
-					lmm2.clear();
+					lmm2 = null;
 
 					cnt++;
 				}
@@ -145,15 +148,15 @@ public class InvertedIndexCreator {
 
 					buf_size += PostingList.sizeOfByteBuffer(pl);
 					cnt++;
-
-					lm.clear();
 				}
-				lmm.clear();
+				lmm = null;
 
 				if (pls.size() > 0) {
 					write(pls, fc);
 					buf_size = 0;
 				}
+
+				pls = null;
 
 				// System.out.printf("[write, %s, %d, %s]\n", inFile.getName(), cnt, timer.stop());
 
@@ -188,7 +191,7 @@ public class InvertedIndexCreator {
 
 		private Timer timer;
 
-		private DocumentCollection ldc;
+		private DocumentCollection dc;
 
 		private List<FileChannel> fcs;
 
@@ -197,28 +200,24 @@ public class InvertedIndexCreator {
 		public PostingWorker(DocumentCollection ldc, AtomicInteger range_cnt, AtomicInteger doc_cnt, int[][] ranges, List<FileChannel> fcs,
 				Timer timer) {
 			super();
-			this.ldc = ldc;
+			this.dc = ldc;
 			this.range_cnt = range_cnt;
 			this.doc_cnt = doc_cnt;
 			this.ranges = ranges;
 			this.fcs = fcs;
 			this.timer = timer;
-			buf = new ByteBufferWrapper(max_buf_size);
+			buf = new ByteBufferWrapper(FileUtils.DEFAULT_BUF_SIZE);
 		}
 
 		@Override
 		public Integer call() throws Exception {
 			int range_loc = 0;
 
-			ListMapMap<Integer, Integer, Integer> lmm = Generics.newListMapMap(ListType.LINKED_LIST);
-			List<List<Integer>> ls = Generics.newArrayList();
-
-			int buf_size = 0;
-
 			while ((range_loc = range_cnt.getAndIncrement()) < ranges.length) {
 				int[] range = ranges[range_loc];
 
-				List<Pair<String, IntegerArray>> ps = ldc.getRange(range);
+				List<Pair<String, IntegerArray>> ps = dc.getRange(range[0], range[1], false);
+				ListMapMap<Integer, Integer, Integer> lmm = Generics.newListMapMap();
 
 				for (int dseq = range[0], i = 0; dseq < range[1]; dseq++, i++) {
 					Pair<String, IntegerArray> p = ps.get(i);
@@ -231,39 +230,23 @@ public class InvertedIndexCreator {
 						lmm.put(w, dseq, pos);
 					}
 					int dloc = doc_cnt.incrementAndGet();
-					int prog = BatchUtils.progress(dloc, ldc.size());
+					int prog = BatchUtils.progress(dloc, dc.size());
 					if (prog > 0) {
-						System.out.printf("[%d percent, %d/%d, %s]\n", prog, dloc, ldc.size(), timer.stop());
+						System.out.printf("[%d percent, %d/%d, %s]\n", prog, dloc, dc.size(), timer.stop());
 					}
 				}
 
-				int cnt = 0;
-				for (int w : lmm.keySet()) {
-					cnt++;
-					ListMap<Integer, Integer> lm = lmm.get(w);
-					for (int dseq : lm.keySet()) {
-						cnt++;
-						cnt += lm.get(dseq).size();
-					}
-				}
-
-				buf_size += cnt * Integer.BYTES;
-
-				if (buf_size >= max_buf_size) {
+				if (lmm.size() > 0) {
 					write(lmm);
-					buf_size = 0;
 				}
-			}
-
-			if (lmm.size() > 0) {
-				write(lmm);
+				lmm = null;
 			}
 
 			return null;
 		}
 
 		private void write(ListMapMap<Integer, Integer, Integer> lmm) throws Exception {
-			ListMap<Integer, Integer> fileToWord = Generics.newListMap(ListType.LINKED_LIST);
+			ListMap<Integer, Integer> fileToWord = Generics.newListMap(output_file_size);
 
 			for (int w : lmm.keySet()) {
 				int file_loc = w % output_file_size;
@@ -307,8 +290,8 @@ public class InvertedIndexCreator {
 					FileUtils.write(m, fc);
 				}
 			}
-			lmm.clear();
-			fileToWord.clear();
+
+			fileToWord = null;
 		}
 	}
 
@@ -318,8 +301,10 @@ public class InvertedIndexCreator {
 		InvertedIndexCreator iic = new InvertedIndexCreator();
 		iic.setBatchSize(200);
 		iic.setOutputFileSize(5000);
-		iic.setPostThreadSize(10);
-		// iic.create(MIRPath.OHSUMED_COL_DC_DIR);
+		iic.setPostingThreadSize(10);
+		iic.setMergingThreadSize(2);
+		iic.setEncode(true);
+		iic.create(MIRPath.OHSUMED_COL_DC_DIR);
 		// iic.create(MIRPath.TREC_CDS_2014_COL_DC_DIR);
 		// iic.create(MIRPath.TREC_CDS_2016_COL_DC_DIR);
 		// iic.create(MIRPath.BIOASQ_COL_DC_DIR);
@@ -355,8 +340,6 @@ public class InvertedIndexCreator {
 	private int output_file_size = 5000;
 
 	private int batch_size = 500;
-
-	private int max_buf_size = FileUtils.DEFAULT_BUF_SIZE;
 
 	private DocumentCollection dc;
 
@@ -539,11 +522,11 @@ public class InvertedIndexCreator {
 		this.batch_size = batch_size;
 	}
 
-	public void setMaxBufferSize(int max_buf_size) {
-		this.max_buf_size = (int) new ByteSize(max_buf_size, Type.MEGA).getBytes();
+	public void setEncode(boolean encode) {
+		this.encode = encode;
 	}
 
-	public void setMergeThreadSize(int thread_size) {
+	public void setMergingThreadSize(int thread_size) {
 		this.merge_thread_size = thread_size;
 	}
 
@@ -551,7 +534,7 @@ public class InvertedIndexCreator {
 		this.output_file_size = output_file_size;
 	}
 
-	public void setPostThreadSize(int thread_size) {
+	public void setPostingThreadSize(int thread_size) {
 		this.post_thread_size = thread_size;
 	}
 

@@ -195,6 +195,8 @@ public class LMScorer extends Scorer {
 			double pr_w_in_q = lm_q.probAt(i);
 			String word = vocab.getObject(w);
 			PostingList pl = ii.getPostingList(w);
+			
+			System.out.printf("word=[%s], %s\n", word, pl);
 
 			if (pl == null) {
 				continue;

@@ -134,7 +134,8 @@ public class Experiments {
 		Experiments e = new Experiments();
 		// e.getStems();
 		// e.getLemmas();
-		e.runInitSearch();
+		// e.runInitSearch();
+		e.runFeedback();
 		// e.runKLDFB();
 		//
 		// e.runKLDLemma();
@@ -957,44 +958,45 @@ public class Experiments {
 		// ds.getFeedbackBuilder().setUseDocumentPrior(true);
 		// ds.getFeedbackBuilder().setFbWordSize(15);
 
-		for (int j = 0; j < bqs.size(); j++) {
-			BaseQuery bq = bqs.get(j);
+		for (int i = 0; i < bqs.size(); i++) {
+			BaseQuery bq = bqs.get(i);
 
 			System.out.println(bq);
 
-			SparseVector Q = qData1.rowAt(j);
+			SparseVector Q = qData1.rowAt(i);
 			SparseVector lm_q1 = VectorUtils.toSparseVector(Q);
 			lm_q1.normalize();
 
-			SparseVector scores1 = dData1.rowAt(j);
+			SparseVector scores1 = dData1.rowAt(i);
 			scores1 = scores1.subVector(top_k);
 
-			// double[] a = scores1.values();
-			// double max = ArrayMath.max(a);
-			// double sum = 0;
-			// for (int i = 0; i < a.length; i++) {
-			// a[i] = Math.exp(a[i] - max);
-			// sum += a[i];
-			// }
-
 			SparseVector lm_fb = ds.getFeedbackBuilder().buildRM1(scores1, 0);
-			// SparseVector lm_fb2 = ds.getFeedbackBuilder().buildRM1(scores1,
-			// 1500);
-			// SparseVector lm_fb3 =
-			// ds.getFeedbackBuilder().buildNegRM1(scores1, 0);
+
+			// Counter<String> c = VectorUtils.toCounter(lm_fb, ds.getVocab());
+			// System.out.println(c.toString());
+
+			// for (int j = 0; j < scores1.size(); j++) {
+			// int dseq = scores1.indexAt(j);
+			// Pair<String, String> p = ds.getDocumentCollection().getText(dseq);
 			//
-			// System.out.printf("lm_q1: %s\n", VectorUtils.toCounter(lm_q1,
-			// vocab));
-			// System.out.printf("lm_fb1: %s\n", VectorUtils.toCounter(lm_fb,
-			// vocab));
-			// System.out.printf("lm_fb2: %s\n", VectorUtils.toCounter(lm_fb2,
-			// vocab));
-			// System.out.printf("lm_fb3: %s\n", VectorUtils.toCounter(lm_fb3,
-			// vocab));
+			// SparseVector dv = ds.getDocumentCollection().getDocVector(dseq);
+			//
+			// Counter<String> c2 = Generics.newCounter();
+			//
+			// for (int w : Q.indexes()) {
+			// c2.setCount(ds.getVocab().getObject(w), dv.value(w));
+			// }
+			//
+			// System.out.println(p.getFirst());
+			// System.out.println(p.getSecond());
+			// System.out.println(c2.toString());
+			// System.out.println();
+			// }
 
 			SparseVector lm_q2 = ds.updateQueryModel(lm_q1, lm_fb);
 
-			SparseVector scores2 = ds.search(lm_q2);
+			scores1.sortIndexes();
+			SparseVector scores2 = ds.search(lm_q2, scores1);
 			scores2 = scores2.subVector(top_k);
 
 			qData2.add(lm_q2);
@@ -1181,7 +1183,7 @@ public class Experiments {
 
 			if (ps.size() > 0) {
 				System.out.println(bq.toString());
-				
+
 				for (Pair<Integer, Integer> p : ps) {
 					int s = p.getFirst();
 					int e = p.getSecond();

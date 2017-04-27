@@ -28,6 +28,7 @@ import ohs.io.FileUtils;
 import ohs.ir.medical.general.MIRPath;
 import ohs.ir.medical.query.BaseQuery;
 import ohs.ir.weight.TermWeighting;
+import ohs.math.ArrayUtils;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.SparseVector;
@@ -169,7 +170,6 @@ public class DocumentSearcher {
 					System.out.printf("[%s, %d, %d, %f], %s\n", word, l1, l2, ratio, pl);
 				}
 			}
-
 		}
 		double ratio = len2 / len1;
 
@@ -225,6 +225,8 @@ public class DocumentSearcher {
 
 	private boolean print_log = false;
 
+	private SparseVector tmp = null;
+
 	public DocumentSearcher(Scorer scorer, RawDocumentCollection rdc, DocumentCollection dc, InvertedIndex ii, WordFilter wf)
 			throws Exception {
 		this.scorer = scorer;
@@ -233,20 +235,24 @@ public class DocumentSearcher {
 		this.ii = ii;
 		this.wf = wf;
 		this.vocab = dc.getVocab();
+
+		fbb = new FeedbackBuilder(vocab, dc, ii, wf);
+
+		tmp = new SparseVector(ArrayUtils.range(dc.size()));
 	}
 
 	public DocumentSearcher(String dataDir, String stopwordFileName) throws Exception {
 		this.dataDir = new File(dataDir);
 
-		dc = new DocumentCollection(dataDir);
+		scorer = new LMScorer(vocab, dc, ii);
 
 		rdc = new RawDocumentCollection(dataDir);
+
+		dc = new DocumentCollection(dataDir);
 
 		ii = new InvertedIndex(dataDir);
 
 		vocab = dc.getVocab();
-
-		scorer = new LMScorer(vocab, dc, ii);
 
 		if (stopwordFileName != null) {
 			Set<String> stopwords = FileUtils.readStringSetFromText(stopwordFileName);
@@ -256,6 +262,8 @@ public class DocumentSearcher {
 		}
 
 		fbb = new FeedbackBuilder(vocab, dc, ii, wf);
+
+		tmp = new SparseVector(ArrayUtils.range(dc.size()));
 	}
 
 	public void close() throws Exception {
@@ -404,21 +412,6 @@ public class DocumentSearcher {
 	public SparseVector match(IntegerArray Q) throws Exception {
 		Timer timer = Timer.newTimer();
 
-		{
-			Set<Integer> set = Generics.newHashSet(Q.size());
-			for (int w : Q) {
-				set.add(w);
-			}
-			Q = new IntegerArray(set);
-			Q.sort(false);
-		}
-
-		int max_docs = 0;
-		for (int w : Q) {
-			max_docs = Math.max(vocab.getDocFreq(w), max_docs);
-		}
-		Counter<Integer> c = Generics.newCounter(max_docs);
-
 		for (int w : Q) {
 			String word = vocab.getObject(w);
 			PostingList pl = ii.getPostingList(w);
@@ -435,20 +428,33 @@ public class DocumentSearcher {
 
 			for (int dseq : dseqs) {
 				if (use_idf_match) {
-					c.incrementCount(dseq, idf);
+					tmp.addAt(dseq, idf);
 				} else {
-					c.incrementCount(dseq, 1);
+					tmp.addAt(dseq, 1);
 				}
 			}
 		}
 
-		SparseVector ret = new SparseVector(c);
+		tmp.sortValues();
+
+		int end = 0;
+
+		while (end < tmp.size()) {
+			if (tmp.valueAt(end) == 0) {
+				break;
+			}
+			end++;
+		}
 
 		if (max_match_size < Integer.MAX_VALUE) {
-			ret.sortValues();
-			ret = ret.subVector(max_match_size);
-			ret.sortIndexes();
+			end = Math.min(end, max_match_size);
 		}
+
+		SparseVector ret = tmp.subVector(end);
+		ret.sortIndexes();
+
+		tmp.sortIndexes();
+		tmp.setAll(0);
 
 		System.out.printf("[Matching Time, %s]\n", timer.stop());
 		return ret;

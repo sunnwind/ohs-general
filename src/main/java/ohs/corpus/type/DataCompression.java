@@ -18,6 +18,13 @@ import ohs.types.number.LongArray;
 import ohs.types.number.ShortArray;
 import ohs.utils.ByteSize;
 
+/**
+ * 
+ * https://github.com/YunshengWei/Information-Retrieval-and-Web-Search/blob/master/PA1/src/cs276/util/IndexCompression.java
+ * 
+ * @author ohs
+ * 
+ */
 public class DataCompression {
 
 	private static final int BUF_SIZE = 1024 * 5;

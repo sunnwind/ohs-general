@@ -16,20 +16,18 @@ public class ListMap<K, V> implements Serializable {
 	 */
 	private static final long serialVersionUID = 7366754514015096846L;
 
-	private Map<K, List<V>> entries;
+	private Map<K, List<V>> ents;
 
 	private ListType lt;
 
 	private MapType mt;
-
-	private int pointer = 0;
 
 	public ListMap() {
 		this(0, Generics.MapType.HASH_MAP, Generics.ListType.ARRAY_LIST);
 	}
 
 	public ListMap(int size, MapType mt, ListType lt) {
-		entries = Generics.newMap(mt, size);
+		ents = Generics.newMap(mt, size);
 		this.mt = mt;
 		this.lt = lt;
 	}
@@ -44,26 +42,22 @@ public class ListMap<K, V> implements Serializable {
 
 	public void clear(boolean deep_clear) {
 		if (deep_clear) {
-			for (List<V> l : entries.values()) {
-				l.clear();
+			for (List<V> p : ents.values()) {
+				p.clear();
 			}
-			entries.clear();
-		} else {
-			entries.clear();
 		}
-
-		pointer = 0;
+		ents.clear();
 	}
 
 	public boolean containsKey(K key) {
-		return entries.containsKey(key);
+		return ents.containsKey(key);
 	}
 
 	public List<V> ensure(K key) {
-		List<V> ret = entries.get(key);
+		List<V> ret = ents.get(key);
 		if (ret == null) {
 			ret = Generics.newList(lt);
-			entries.put(key, ret);
+			ents.put(key, ret);
 		}
 		return ret;
 	}
@@ -77,10 +71,10 @@ public class ListMap<K, V> implements Serializable {
 		if (getClass() != obj.getClass())
 			return false;
 		ListMap other = (ListMap) obj;
-		if (entries == null) {
-			if (other.entries != null)
+		if (ents == null) {
+			if (other.ents != null)
 				return false;
-		} else if (!entries.equals(other.entries))
+		} else if (!ents.equals(other.ents))
 			return false;
 		return true;
 	}
@@ -90,23 +84,23 @@ public class ListMap<K, V> implements Serializable {
 	}
 
 	public List<V> get(K key, boolean ensure) {
-		return ensure ? ensure(key) : entries.get(key);
+		return ensure ? ensure(key) : ents.get(key);
 	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((entries == null) ? 0 : entries.hashCode());
+		result = prime * result + ((ents == null) ? 0 : ents.hashCode());
 		return result;
 	}
 
 	public Set<K> keySet() {
-		return entries.keySet();
+		return ents.keySet();
 	}
 
 	public void put(K key, List<V> values) {
-		entries.put(key, values);
+		ents.put(key, values);
 	}
 
 	public void put(K key, V value) {
@@ -114,17 +108,17 @@ public class ListMap<K, V> implements Serializable {
 	}
 
 	public List<V> remove(K key) {
-		return entries.remove(key);
+		return ents.remove(key);
 	}
 
 	public int size() {
-		return entries.size();
+		return ents.size();
 	}
 
 	public int sizeOfEntries() {
 		int ret = 0;
-		for (K key : entries.keySet()) {
-			ret += entries.get(key).size();
+		for (K key : ents.keySet()) {
+			ret += ents.get(key).size();
 		}
 		return ret;
 	}
@@ -139,7 +133,7 @@ public class ListMap<K, V> implements Serializable {
 
 		int cnt1 = 0;
 
-		for (K key : entries.keySet()) {
+		for (K key : ents.keySet()) {
 			if (++cnt1 > row_size) {
 				sb.append("\n...");
 				break;
@@ -148,7 +142,7 @@ public class ListMap<K, V> implements Serializable {
 			sb.append(key.toString() + " => ");
 			sb.append("[ ");
 
-			List<V> list = entries.get(key);
+			List<V> list = ents.get(key);
 
 			for (int i = 0; i < list.size(); i++) {
 				if (i > 0) {
@@ -170,10 +164,10 @@ public class ListMap<K, V> implements Serializable {
 	}
 
 	public void trimToSize() {
-		Map<K, List<V>> temp = Generics.newMap(mt, entries.size());
+		Map<K, List<V>> temp = Generics.newMap(mt, ents.size());
 
-		for (K k : entries.keySet()) {
-			List<V> l = entries.get(k);
+		for (K k : ents.keySet()) {
+			List<V> l = ents.get(k);
 			List<V> nl = Generics.newArrayList(l.size());
 
 			for (V v : l) {
@@ -184,7 +178,7 @@ public class ListMap<K, V> implements Serializable {
 			l.clear();
 			l = null;
 		}
-		entries = temp;
+		ents = temp;
 	}
 
 }

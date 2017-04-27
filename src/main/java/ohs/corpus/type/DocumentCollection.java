@@ -76,7 +76,7 @@ public class DocumentCollection {
 
 				for (int i = 0; i < ranges.length; i++) {
 					Timer timer2 = Timer.newTimer();
-					dc.getRange(ranges[i][0], ranges[i][1]);
+					dc.getRange(ranges[i][0], ranges[i][1], true);
 					// System.out.println(timer2.stop());
 				}
 
@@ -403,29 +403,69 @@ public class DocumentCollection {
 		return len_d_min;
 	}
 
-	public List<Pair<String, IntegerArray>> getRange(int i, int j) throws Exception {
+	public List<Pair<String, IntegerArray>> getRange(int i, int j, boolean use_cache) throws Exception {
 		int size = j - i;
-
-		Map<Integer, Pair<String, IntegerArray>> found = Generics.newHashMap(size);
-		Set<Integer> notFound = Generics.newHashSet(size);
-
-		for (int k = i; k < j; k++) {
-			Pair<String, IntegerArray> p = null;
-
-			synchronized (cache) {
-				p = cache.get(k);
-			}
-
-			if (p == null) {
-				notFound.add(k);
-			} else {
-				found.put(k, p);
-			}
-		}
-
 		List<Pair<String, IntegerArray>> ret = Generics.newArrayList(size);
 
-		if (found.size() == 0) {
+		if (use_cache) {
+			Map<Integer, Pair<String, IntegerArray>> found = Generics.newHashMap(size);
+			Set<Integer> notFound = Generics.newHashSet(size);
+
+			for (int k = i; k < j; k++) {
+				Pair<String, IntegerArray> p = null;
+
+				synchronized (cache) {
+					p = cache.get(k);
+				}
+
+				if (p == null) {
+					notFound.add(k);
+				} else {
+					found.put(k, p);
+				}
+			}
+
+			if (found.size() == 0) {
+				ByteArray data = null;
+
+				synchronized (fc) {
+					fc.position(starts.get(i));
+					data = FileUtils.readByteArray(fc, ArrayMath.sum(lens.values(), i, j));
+				}
+
+				ByteBufferWrapper buf = new ByteBufferWrapper(data);
+
+				for (int k = i; k < j; k++) {
+					ByteArrayMatrix sub = buf.readByteArrayMatrix();
+
+					String docid = null;
+					IntegerArray d = null;
+					int u = 0;
+					if (encode) {
+						docid = DataCompression.decodeToString(sub.get(u++));
+						d = DataCompression.decodeToIntegerArray(sub.get(u++));
+					} else {
+						docid = new String(sub.get(u++).values());
+						d = ByteArrayUtils.toIntegerArray(sub.get(u++));
+					}
+					Pair<String, IntegerArray> p = Generics.newPair(docid, d);
+					ret.add(p);
+
+					synchronized (cache) {
+						cache.put(k, p);
+					}
+				}
+			} else {
+				if (found.size() != size) {
+					for (int k : notFound) {
+						found.put(k, get(k));
+					}
+				}
+				for (int k = i; k < j; k++) {
+					ret.add(found.get(k));
+				}
+			}
+		} else {
 			ByteArray data = null;
 
 			synchronized (fc) {
@@ -450,26 +490,13 @@ public class DocumentCollection {
 				}
 				Pair<String, IntegerArray> p = Generics.newPair(docid, d);
 				ret.add(p);
-
-				synchronized (cache) {
-					cache.put(k, p);
-				}
-			}
-		} else {
-			if (found.size() != size) {
-				for (int k : notFound) {
-					found.put(k, get(k));
-				}
-			}
-			for (int k = i; k < j; k++) {
-				ret.add(found.get(k));
 			}
 		}
 		return ret;
 	}
 
 	public List<Pair<String, IntegerArray>> getRange(int[] range) throws Exception {
-		return getRange(range[0], range[1]);
+		return getRange(range[0], range[1], true);
 	}
 
 	public List<String> getDocIds() throws Exception {
@@ -548,7 +575,7 @@ public class DocumentCollection {
 
 	public List<Pair<String, String>> getText(int i, int j) throws Exception {
 		List<Pair<String, String>> ret = Generics.newArrayList(j - i);
-		for (Pair<String, IntegerArray> p : getRange(i, j)) {
+		for (Pair<String, IntegerArray> p : getRange(i, j, true)) {
 			IntegerArrayMatrix doc = toMultiSentences(p.getSecond());
 			StringBuffer sb = new StringBuffer();
 			for (int k = 0; k < doc.size(); k++) {

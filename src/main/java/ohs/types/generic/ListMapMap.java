@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import ohs.utils.Generics;
 import ohs.utils.Generics.ListType;
 
 public class ListMapMap<K, V, F> implements Serializable {
@@ -26,7 +27,7 @@ public class ListMapMap<K, V, F> implements Serializable {
 
 	public ListMapMap(int size, ListType lt) {
 		this.lt = lt;
-		ents = new HashMap<K, ListMap<V, F>>(size);
+		ents = Generics.newHashMap(size);
 	}
 
 	public ListMapMap(ListType lt) {
@@ -38,10 +39,8 @@ public class ListMapMap<K, V, F> implements Serializable {
 	}
 
 	public void clear(boolean deep_clear) {
-		if (deep_clear) {
-			for (ListMap<V, F> lm : ents.values()) {
-				lm.clear(deep_clear);
-			}
+		for (ListMap<V, F> lm : ents.values()) {
+			lm.clear(deep_clear);
 		}
 		ents.clear();
 	}
@@ -53,7 +52,7 @@ public class ListMapMap<K, V, F> implements Serializable {
 	protected ListMap<V, F> ensure(K key1) {
 		ListMap<V, F> ret = ents.get(key1);
 		if (ret == null) {
-			ret = new ListMap<V, F>(lt);
+			ret = Generics.newListMap(lt);
 			ents.put(key1, ret);
 		}
 		return ret;
