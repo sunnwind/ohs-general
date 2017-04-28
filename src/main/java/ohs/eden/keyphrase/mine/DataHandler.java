@@ -63,8 +63,8 @@ public class DataHandler {
 		// dh.getWikiPhrases();
 		// dh.getFrequentPhrases();
 
-		 dh.getPaperKeywords();
-//		dh.mergeKeywords();
+//		 dh.getPaperKeywords();
+		dh.mergeKeywords();
 		// dh.getPositiveData();
 
 		// dh.getQualityTrainingPhrases();

@@ -90,34 +90,30 @@ public class DocumentIdMapCreator {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 
-		DocumentIdMapCreator dcc = new DocumentIdMapCreator();
-		dcc.setThreadSize(5);
+		DocumentIdMapCreator dic = new DocumentIdMapCreator();
+		dic.setThreadSize(5);
 
-		dcc.create(MIRPath.CLUEWEB_COL_DC_DIR);
+		dic.create(MIRPath.CLUEWEB_COL_DC_DIR);
 
-		// dcc.create(MIRPath.OHSUMED_COL_DC_DIR, 1, new int[] { 3, 5 });
-		// dcc.create(MIRPath.TREC_CDS_2014_COL_DC_DIR, 0, new int[] { 1, 2, 3 });
-		// dcc.create(MIRPath.TREC_CDS_2016_COL_DC_DIR, 0, new int[] { 1, 2, 3 });
-		// dcc.create("../../data/medical_ir/scopus/col/dc/", 0, new int[] { 1, 2 });
-		// dcc.create(MIRPath.BIOASQ_COL_DC_DIR, 0, new int[] { 4, 5 });
-		// dcc.create(MIRPath.WIKI_COL_DC_DIR, 0, new int[] { 3 });
-		// dcc.create(MIRPath.CLUEWEB_COL_DC_DIR, 0, new int[] { 1 });
+		// dic.create(MIRPath.OHSUMED_COL_DC_DIR, 1, new int[] { 3, 5 });
+		// dic.create(MIRPath.TREC_CDS_2014_COL_DC_DIR, 0, new int[] { 1, 2, 3 });
+		// dic.create(MIRPath.TREC_CDS_2016_COL_DC_DIR, 0, new int[] { 1, 2, 3 });
+		// dic.create("../../data/medical_ir/scopus/col/dc/", 0, new int[] { 1, 2 });
+		// dic.create(MIRPath.BIOASQ_COL_DC_DIR, 0, new int[] { 4, 5 });
+		// dic.create(MIRPath.WIKI_COL_DC_DIR, 0, new int[] { 3 });
+		// dic.create(MIRPath.CLUEWEB_COL_DC_DIR, 0, new int[] { 1 });
 
-		// dcc.create(MIRPath.CLEF_EH_2014_COL_DC_DIR, 0, new int[] { 3 });
-		// dcc.create(MIRPath.TREC_GENO_2007_COL_DC_DIR, 0, new int[] { 1 });
-		// dcc.create(MIRPath.CLUEWEB_COL_DC_DIR, 0, new int[] { 1 });
+		// dic.create(MIRPath.CLEF_EH_2014_COL_DC_DIR, 0, new int[] { 3 });
+		// dic.create(MIRPath.TREC_GENO_2007_COL_DC_DIR, 0, new int[] { 1 });
+		// dic.create(MIRPath.CLUEWEB_COL_DC_DIR, 0, new int[] { 1 });
 
-		// scc.setMinDocFreq(0);
-		// scc.create(MIRPath.MESH_COL_LINE_DIR, 0, new int[] { 1 },
-		// MIRPath.MESH_COL_DC_DIR);
-
-		// dcc.setStringNormalizer(new ThreePStringNormalizer());
-		// dcc.create(KPPath.COL_DC_DIR, 0, new int[] { 4, 5, 6, 7 });
+		// dic.setStringNormalizer(new ThreePStringNormalizer());
+		// dic.create(KPPath.COL_DC_DIR, 0, new int[] { 4, 5, 6, 7 });
 
 		System.out.println("process ends.");
 	}
 
-	private boolean encode = false;
+	private boolean encode = true;
 
 	private int thread_size = 1;
 

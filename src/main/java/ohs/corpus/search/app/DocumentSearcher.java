@@ -12,6 +12,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.lucene.queries.function.valuesource.MaxDocValueSource;
+
 import ohs.corpus.search.index.InvertedIndex;
 import ohs.corpus.search.index.Posting;
 import ohs.corpus.search.index.PostingList;
@@ -225,8 +227,6 @@ public class DocumentSearcher {
 
 	private boolean print_log = false;
 
-	private SparseVector D = null;
-
 	public DocumentSearcher(Scorer scorer, RawDocumentCollection rdc, DocumentCollection dc, InvertedIndex ii, WordFilter wf)
 			throws Exception {
 		this.scorer = scorer;
@@ -238,7 +238,6 @@ public class DocumentSearcher {
 
 		fbb = new FeedbackBuilder(vocab, dc, ii, wf);
 
-		D = new SparseVector(ArrayUtils.range(dc.size()));
 	}
 
 	public DocumentSearcher(String dataDir, String stopwordFileName) throws Exception {
@@ -265,7 +264,6 @@ public class DocumentSearcher {
 
 		fbb = new FeedbackBuilder(vocab, dc, ii, wf);
 
-		D = new SparseVector(ArrayUtils.range(dc.size()));
 	}
 
 	public void close() throws Exception {
@@ -414,6 +412,14 @@ public class DocumentSearcher {
 	public SparseVector match(IntegerArray Q) throws Exception {
 		Timer timer = Timer.newTimer();
 
+		int max_doc_freq = 0;
+		for (int w : Q) {
+			int doc_freq = vocab.getDocFreq(w);
+			max_doc_freq = Math.max(doc_freq, max_doc_freq);
+		}
+
+		Counter<Integer> c = Generics.newCounter(max_doc_freq);
+
 		for (int w : Q) {
 			PostingList pl = ii.getPostingList(w);
 
@@ -426,34 +432,18 @@ public class DocumentSearcher {
 			double idf = TermWeighting.idf(vocab.getDocCnt(), doc_freq);
 
 			for (int dseq : dseqs) {
-				if (use_idf_match) {
-					D.addAt(dseq, idf);
-				} else {
-					D.addAt(dseq, 1);
-				}
+				double val = use_idf_match ? idf : 1;
+				c.incrementCount(dseq, val);
 			}
 		}
 
-		D.sortValues();
-
-		int end = 0;
-
-		while (end < D.size()) {
-			if (D.valueAt(end) == 0) {
-				break;
-			}
-			end++;
-		}
+		SparseVector ret = new SparseVector(c);
 
 		if (max_match_size < Integer.MAX_VALUE) {
-			end = Math.min(end, max_match_size);
+			ret.sortValues();
+			ret = ret.subVector(max_match_size);
+			ret.sortIndexes();
 		}
-
-		SparseVector ret = D.subVector(end);
-		ret.sortIndexes();
-
-		D.sortIndexes();
-		D.setAll(0);
 
 		System.out.printf("[Matching Time, %s]\n", timer.stop());
 		return ret;

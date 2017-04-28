@@ -176,7 +176,8 @@ public class RawDocumentCollection {
 			synchronized (fc) {
 				long start = starts.get(dseq);
 				fc.position(start);
-				data = FileUtils.readByteArrayMatrix(fc);
+				int len = lens.get(dseq);
+				data = new ByteBufferWrapper(FileUtils.readByteArray(fc, len)).readByteArrayMatrix();
 			}
 
 			List<Boolean> flags = flagData.get(types.get(dseq), false);

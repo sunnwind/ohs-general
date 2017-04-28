@@ -128,24 +128,19 @@ public class DocumentIdMap {
 		}
 
 		if (ret == null) {
-
-			ByteArrayMatrix data = null;
+			ByteArray data = null;
 
 			synchronized (fc) {
 				long start = starts.get(i);
 				fc.position(start);
-				data = FileUtils.readByteArrayMatrix(fc);
+				data = FileUtils.readByteArray(fc);
 			}
-
-			String docid = null;
-			IntegerArray d = null;
 
 			if (encode) {
-				docid = DataCompression.decodeToString(data.get(0));
+				ret = DataCompression.decodeToString(data);
 			} else {
-				docid = new String(data.get(0).values());
+				ret = new String(data.values());
 			}
-			ret = docid;
 
 			synchronized (cache) {
 				cache.put(i, ret);

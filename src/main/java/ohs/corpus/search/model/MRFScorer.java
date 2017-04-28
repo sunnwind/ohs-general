@@ -14,11 +14,11 @@ import ohs.utils.StrUtils;
 
 public class MRFScorer extends LMScorer {
 
-	private DenseVector mixtures = new DenseVector(new double[] { 0.7, 0.2, 0.1 });
+	private DenseVector mixtures = new DenseVector(new double[] { 0.1, 0.6, 0.3 });
 
 	private int window_size = 5;
 
-	public int phrase_size = 3;
+	private int phrase_size = 3;
 
 	public MRFScorer(DocumentSearcher ds) {
 		this(ds.getVocab(), ds.getDocumentCollection(), ds.getInvertedIndex());
@@ -29,10 +29,20 @@ public class MRFScorer extends LMScorer {
 		setType(Type.QL);
 	}
 
+	@Override
+	public void postprocess(SparseVector scores) {
+		VectorMath.softmax(scores);
+		scores.sortValues();
+	}
+
 	public SparseVector score(SparseVector Q, SparseVector docs) throws Exception {
 		SparseVector s1 = super.score(Q, docs);
 		SparseVector s2 = scoreOrderedPhrases(Q, docs);
 		SparseVector s3 = scoreUnorderedPhrases(Q, docs);
+
+		if (mixtures.sum() != 1) {
+			mixtures.normalize();
+		}
 
 		for (int i = 0; i < docs.size(); i++) {
 			int dseq = docs.indexAt(i);
@@ -50,6 +60,8 @@ public class MRFScorer extends LMScorer {
 
 	private SparseVector scorePhrases(IntegerArray Q, SparseVector docs, boolean keep_order, int window_size) throws Exception {
 		SparseVector ret = new SparseVector(ArrayUtils.copy(docs.indexes()));
+
+		String str = StrUtils.join(" ", vocab.getObjects(Q.values()));
 
 		for (int s = 0; s < Q.size() - 1; s++) {
 			int r1 = s + 2;
@@ -69,12 +81,6 @@ public class MRFScorer extends LMScorer {
 			}
 		}
 		return ret;
-	}
-
-	@Override
-	public void postprocess(SparseVector scores) {
-		VectorMath.softmax(scores);
-		scores.sortValues();
 	}
 
 	private SparseVector scoreUnorderedPhrases(SparseVector Q, SparseVector docs) throws Exception {

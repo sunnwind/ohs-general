@@ -314,7 +314,8 @@ public class DocumentCollection {
 			synchronized (fc) {
 				long start = starts.get(i);
 				fc.position(start);
-				data = FileUtils.readByteArrayMatrix(fc);
+				int len = lens.get(i);
+				data = new ByteBufferWrapper(FileUtils.readByteArray(fc, len)).readByteArrayMatrix();
 			}
 
 			String docid = null;

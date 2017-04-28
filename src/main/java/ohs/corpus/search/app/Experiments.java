@@ -25,7 +25,9 @@ import ohs.corpus.search.model.MRFScorer;
 import ohs.corpus.search.model.TranslationModelScorer;
 import ohs.corpus.search.model.VsmScorer;
 import ohs.corpus.type.DocumentCollection;
+import ohs.corpus.type.DocumentIdMap;
 import ohs.corpus.type.SimpleStringNormalizer;
+import ohs.corpus.type.StringNormalizer;
 import ohs.eden.keyphrase.mine.PhraseMapper;
 import ohs.io.FileUtils;
 import ohs.io.RandomAccessDenseMatrix;
@@ -134,7 +136,7 @@ public class Experiments {
 
 		Experiments e = new Experiments();
 
-		e.test();
+		e.runPhraseMapping();
 		// e.runInitSearch();
 		// e.runFeedback();
 		// e.runKLDFB();
@@ -193,7 +195,7 @@ public class Experiments {
 			m.put(file.getName(), p);
 		}
 
-		String baseFileName = "p_kld.ser.gz";
+		String baseFileName = "p_lmd.ser.gz";
 
 		Performance base = m.remove(baseFileName);
 
@@ -203,12 +205,12 @@ public class Experiments {
 
 		StringBuffer sb = new StringBuffer();
 		sb.append(String.format("FileName:\t%s", baseFileName));
-		sb.append("\n" + base.toString(true));
+		sb.append("\n" + base.toString(false));
 
 		for (String fileName : m.keySet()) {
 			Performance p = m.get(fileName);
 			sb.append(String.format("\n\nFileName:\t%s", fileName));
-			sb.append("\n" + p.toString(true));
+			sb.append("\n" + p.toString(false));
 		}
 
 		FileUtils.writeAsText(dataDir + "analysis_perfs.txt", sb.toString());
@@ -410,8 +412,8 @@ public class Experiments {
 		}
 	}
 
-	private void collectSearchResults(DocumentSearcher ds, List<BaseQuery> bqs, List<SparseVector> scoreData,
-			CounterMap<String, String> resData, int top_k) throws Exception {
+	private void collectSearchResults(DocumentIdMap dim, List<BaseQuery> bqs, List<SparseVector> scoreData,
+			CounterMap<String, String> resData) throws Exception {
 
 		Map<Integer, String> m = Generics.newHashMap();
 
@@ -425,7 +427,7 @@ public class Experiments {
 		}
 
 		for (int dseq : m.keySet()) {
-			String did = ds.getDocumentCollection().get(dseq).getFirst();
+			String did = dim.get(dseq);
 			m.put(dseq, did);
 		}
 
@@ -1101,13 +1103,75 @@ public class Experiments {
 		System.out.println(p);
 	}
 
-	public void test() throws Exception {
-		DocumentCollection dc = new DocumentCollection(MIRPath.TREC_CDS_2016_COL_DC_DIR);
+	public void runPhraseMapping() throws Exception {
 
+		List<BaseQuery> bqs = QueryReader.readQueries(queryFileName);
+
+		DocumentCollection dc = new DocumentCollection(MIRPath.TREC_CDS_2016_COL_DC_DIR);
+		//
 		RandomAccessDenseMatrix E = new RandomAccessDenseMatrix(MIRPath.TREC_CDS_2016_DIR + "emb/glove_ra.ser", true);
 
 		WordSearcher ws = new WordSearcher(dc.getVocab(), E, null);
-		WordSearcher.interact(ws);
+		// WordSearcher.interact(ws);
+
+		PhraseMapper<String> pm = null;
+
+		{
+			List<String> lines = FileUtils.readLinesFromText("../../data/medical_ir/phrs.txt");
+			List<String> phrss = Generics.newArrayList(lines.size());
+			for (String line : lines) {
+				String[] ps = line.split("\t");
+				String phrs = ps[0];
+				if (phrs.split(" ").length > 1) {
+					phrss.add(phrs);
+				}
+			}
+			pm = new PhraseMapper<String>(PhraseMapper.createDict(phrss));
+		}
+
+		StringNormalizer sn = new SimpleStringNormalizer(true);
+
+		List<String> l1 = Generics.newArrayList();
+
+		for (BaseQuery bq : bqs) {
+			String Q = sn.normalize(bq.getSearchText());
+
+			List<String> l2 = Generics.newArrayList();
+
+			l2.add("QID:\t" + bq.getId());
+			l2.add("Q:\t" + Q);
+
+			List<String> words = StrUtils.split(Q);
+			List<Pair<Integer, Integer>> ps = pm.map(words);
+
+			if (ps.size() > 0) {
+				for (Pair<Integer, Integer> p : ps) {
+					int s = p.getFirst();
+					int e = p.getSecond();
+
+					StringBuffer sb = new StringBuffer();
+					sb.append(String.format("[%d-%d,", s, e));
+
+					for (int j = s; j < e; j++) {
+						String w = words.get(j);
+						sb.append(" ");
+						sb.append(w);
+					}
+
+					l2.add(String.format("P\t%d-%d\t%s", s, e, StrUtils.join(" ", words, s, e)));
+				}
+			}
+
+			for (int i = 0; i < words.size(); i++) {
+				String word = words.get(i);
+				Counter<String> c = ws.getSimilarWords(word, 5);
+				l2.add(String.format("W\t%d\t%s\t", i, word, c.toString()));
+			}
+
+			l1.add(StrUtils.join("\n", l2));
+		}
+
+		FileUtils.writeAsText(MIRPath.CLEF_EH_2017_DIR + "qs.txt", StrUtils.join("\n\n", l1));
 	}
 
 	public void runInitSearch() throws Exception {
@@ -1117,86 +1181,31 @@ public class Experiments {
 		List<SparseVector> qData = Generics.newArrayList(bqs.size());
 		List<SparseVector> dData = Generics.newArrayList(bqs.size());
 
-		CounterMap<String, Integer> cm = Generics.newCounterMap();
-
-		for (String qid : relvData.keySet()) {
-			Counter<String> rels = relvData.getCounter(qid);
-
-			for (Entry<String, Double> e : rels.entrySet()) {
-				cm.incrementCount(qid, e.getValue().intValue(), 1);
-			}
-		}
-
 		DocumentSearcher ds = new DocumentSearcher(idxDir, stopwordFileName);
 		ds.setTopK(top_k);
 		ds.setUseFeedback(false);
 
-		String modelName = "lmd";
+		String modelName = "mrf";
 
 		if (modelName.equals("mrf")) {
 			ds.setScorer(new MRFScorer(ds));
 		}
-
-		// PhraseMapper<Integer> pm = null;
-		//
-		// {
-		// List<String> lines = FileUtils.readLinesFromText("../../data/medical_ir/phrs.txt");
-		// List<String> phrss = Generics.newArrayList(lines.size());
-		// for (String line : lines) {
-		// String[] ps = line.split("\t");
-		// phrss.add(ps[0]);
-		// }
-		//
-		// pm = new PhraseMapper<Integer>(PhraseMapper.createDict(phrss, ds.getVocab()));
-		// }
 
 		List<String> Qs = Generics.newArrayList(bqs.size());
 
 		for (BaseQuery bq : bqs) {
 			Qs.add(bq.getSearchText());
 			qData.add(ds.index(bq.getSearchText()));
-
-			SparseVector Q = ds.index(bq.getSearchText());
-
-			List<Integer> input = Generics.newArrayList(Q.size());
-
-			for (int w : Q.indexes()) {
-				input.add(w);
-			}
-
-			// List<Pair<Integer, Integer>> ps = pm.map(input);
-			//
-			// if (ps.size() > 0) {
-			// System.out.println(bq.toString());
-			//
-			// for (Pair<Integer, Integer> p : ps) {
-			// int s = p.getFirst();
-			// int e = p.getSecond();
-			// StringBuffer sb = new StringBuffer();
-			// sb.append(String.format("[%d-%d,", s, e));
-			//
-			// for (int j = s; j < e; j++) {
-			// int w = input.get(j);
-			// String word = ds.getVocab().getObject(w);
-			// sb.append(" ");
-			// sb.append(word);
-			// }
-			// sb.append("]");
-			// System.out.println(sb.toString());
-			// }
-			// System.out.println();
-			// }
-
 		}
 
 		{
-			List<SparseVector> res = ds.search(bqs, 2);
+			List<SparseVector> res = ds.search(bqs, 1);
 			dData.addAll(res);
 		}
 
-		collectSearchResults(ds, bqs, dData, srData, top_k);
+		collectSearchResults(new DocumentIdMap(idxDir), bqs, dData, srData);
 
-		FileUtils.deleteFilesUnder(resDir);
+		// FileUtils.deleteFilesUnder(resDir);
 
 		Performance p = PerformanceEvaluator.evalute(srData, relvData);
 

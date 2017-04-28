@@ -28,7 +28,7 @@ public class InvertedIndex {
 	public static final String META_NAME = "posting_meta.ser";
 
 	public static IntegerArrayMatrix findCollocations(IntegerArray poss_x, IntegerArray poss_y, boolean keep_order, int window_size) {
-		List<IntegerArray> ret = Generics.newLinkedList();
+		List<IntegerArray> ret = Generics.newArrayList(Math.min(poss_x.size(), poss_y.size()));
 		int i = 0;
 		int j = 0;
 
@@ -67,9 +67,11 @@ public class InvertedIndex {
 		IntegerArrayMatrix posData_y = pl_y.getPosData();
 		IntegerArrayMatrix posData_x_min = pl_x.getEndPosData();
 
-		List<Integer> dseqs_xy = Generics.newLinkedList();
-		List<IntegerArray> posData_xy = Generics.newLinkedList();
-		List<IntegerArray> posData_xy_min = Generics.newLinkedList();
+		int size = Math.min(pl_x.size(), pl_y.size());
+
+		List<Integer> dseqs_xy = Generics.newArrayList(size);
+		List<IntegerArray> posData_xy = Generics.newArrayList(size);
+		List<IntegerArray> posData_xy_min = Generics.newArrayList(size);
 
 		int i = 0;
 		int j = 0;
@@ -232,23 +234,24 @@ public class InvertedIndex {
 
 	private Vocab vocab;
 
-	public void setVocab(Vocab vocab) {
-		this.vocab = vocab;
-	}
-
-	public InvertedIndex(FileChannel fc, LongArray starts, IntegerArray lens, int doc_cnt) {
-		this(fc, starts, lens, doc_cnt, Generics.newWeakHashMap());
-	}
-
-	public InvertedIndex(FileChannel fc, LongArray starts, IntegerArray lens, int doc_cnt, Map<Integer, PostingList> cache) {
+	public InvertedIndex(FileChannel fc, LongArray starts, IntegerArray lens, int doc_cnt, Map<Integer, PostingList> cache, Vocab vocab) {
 		this.fc = fc;
 		this.starts = starts;
 		this.lens = lens;
 		this.doc_cnt = doc_cnt;
 		this.cache = cache;
+		this.vocab = vocab;
+	}
+
+	public InvertedIndex(FileChannel fc, LongArray starts, IntegerArray lens, int doc_cnt, Vocab vocab) {
+		this(fc, starts, lens, doc_cnt, Generics.newWeakHashMap(), vocab);
 	}
 
 	public InvertedIndex(String dataDir) throws Exception {
+		this(dataDir, null);
+	}
+
+	public InvertedIndex(String dataDir, Vocab vocab) throws Exception {
 		this.dataDir = new File(dataDir);
 
 		{
@@ -264,6 +267,8 @@ public class InvertedIndex {
 		}
 
 		fc = FileUtils.openFileChannel(new File(dataDir, DATA_NAME), "r");
+
+		this.vocab = vocab;
 	}
 
 	public void close() throws Exception {
@@ -271,7 +276,7 @@ public class InvertedIndex {
 	}
 
 	public InvertedIndex copyShallow() throws Exception {
-		return new InvertedIndex(FileUtils.openFileChannel(new File(dataDir, DATA_NAME), "r"), starts, lens, doc_cnt, cache);
+		return new InvertedIndex(FileUtils.openFileChannel(new File(dataDir, DATA_NAME), "r"), starts, lens, doc_cnt, cache, vocab);
 	}
 
 	public int getDocCnt() {
@@ -317,8 +322,8 @@ public class InvertedIndex {
 			}
 		}
 
-		String word = vocab == null ? "null" : vocab.getObject(w);
-		System.out.printf("PL of word=[%s], %s, time=[%s]\n", word, ret, timer);
+		// String word = vocab == null ? "null" : vocab.getObject(w);
+		// System.out.printf("PL of word=[%s], %s, time=[%s]\n", word, ret, timer.stop());
 		return ret;
 	}
 
@@ -424,6 +429,10 @@ public class InvertedIndex {
 			ret.add(getPostingList(w));
 		}
 		return ret;
+	}
+
+	public void setVocab(Vocab vocab) {
+		this.vocab = vocab;
 	}
 
 	public int size() {

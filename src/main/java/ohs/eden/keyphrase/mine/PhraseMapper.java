@@ -20,10 +20,8 @@ public class PhraseMapper<K> {
 		Trie<String> ret = new Trie<String>();
 		for (String phrs : phrss) {
 			List<String> words = StrUtils.split(phrs);
-			if (words.size() > 1) {
-				Node<String> node = ret.insert(words);
-				node.setFlag(true);
-			}
+			Node<String> node = ret.insert(words);
+			node.setFlag(true);
 		}
 		ret.trimToSize();
 		return ret;
@@ -80,6 +78,7 @@ public class PhraseMapper<K> {
 						ret.add(Generics.newPair(i, j + 1));
 					}
 				} else {
+					System.out.println();
 					break;
 				}
 				j++;
