@@ -1,6 +1,5 @@
 package ohs.corpus.search.model;
 
-import java.util.List;
 import java.util.Map.Entry;
 
 import ohs.corpus.search.app.DocumentSearcher;
@@ -8,7 +7,9 @@ import ohs.corpus.search.index.PostingList;
 import ohs.corpus.type.DocumentCollection;
 import ohs.ir.weight.TermWeighting;
 import ohs.matrix.DenseVector;
+import ohs.matrix.SparseMatrix;
 import ohs.matrix.SparseVector;
+import ohs.ml.neuralnet.com.BatchUtils;
 import ohs.types.generic.Counter;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
@@ -16,27 +17,37 @@ import ohs.utils.Generics;
 
 public class VsmScorer extends Scorer {
 
-	public static DenseVector getDocNorms(Vocab vocab, DocumentCollection dc) throws Exception {
+	public static DenseVector getDocNorms(DocumentCollection dc) throws Exception {
 		DenseVector ret = new DenseVector(dc.size());
-		for (int i = 0; i < dc.size(); i++) {
-			SparseVector dv = dc.getDocVector(i);
-			double norm = 0;
-			for (int j = 0; j < dv.size(); j++) {
-				int w = dv.indexAt(j);
-				double cnt = dv.valueAt(j);
-				double tfidf = TermWeighting.tfidf(cnt, vocab.getDocCnt(), vocab.getDocFreq(w));
-				norm += (tfidf * tfidf);
+		int[][] rs = BatchUtils.getBatchRanges(dc.size(), 200);
+
+		Vocab vocab = dc.getVocab();
+
+		for (int k = 0; k < rs.length; k++) {
+			int[] r = rs[k];
+			SparseMatrix dvs = dc.getDocVectors(r[0], r[1]);
+			for (int i = 0; k < dvs.rowSize(); i++) {
+				int dseq = dvs.indexAt(i);
+				SparseVector dv = dvs.rowAt(i);
+				double norm = 0;
+				for (int j = 0; j < dv.size(); j++) {
+					int w = dv.indexAt(j);
+					double cnt = dv.valueAt(j);
+					double tfidf = TermWeighting.tfidf(cnt, vocab.getDocCnt(), vocab.getDocFreq(w));
+					norm += (tfidf * tfidf);
+				}
+				norm = Math.sqrt(norm);
+				ret.add(dseq, norm);
 			}
-			norm = Math.sqrt(norm);
-			ret.add(i, norm);
 		}
 		return ret;
 	}
 
-	private DenseVector norms_doc;
+	private DenseVector docNorms;
 
-	public VsmScorer(DocumentSearcher ds) {
+	public VsmScorer(DocumentSearcher ds, DenseVector docNorms) {
 		super(ds);
+		this.docNorms = docNorms;
 	}
 
 	@Override
@@ -81,7 +92,7 @@ public class VsmScorer extends Scorer {
 		for (Entry<Integer, Double> e : scores.entrySet()) {
 			int dseq = e.getKey();
 			double score = e.getValue();
-			double norm_d = norms_doc.value(dseq);
+			double norm_d = docNorms.value(dseq);
 			score /= (norm_q * norm_d);
 			ret.addAt(loc, dseq, score);
 			loc++;

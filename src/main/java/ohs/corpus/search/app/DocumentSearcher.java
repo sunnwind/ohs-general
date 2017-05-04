@@ -47,15 +47,18 @@ public class DocumentSearcher {
 
 	class SearchWorker implements Callable<Map<Integer, SparseVector>> {
 
-		private List<BaseQuery> bqs;
+		private List<SparseVector> qData;
+
+		private List<SparseVector> dData;
 
 		private DocumentSearcher ds;
 
 		private AtomicInteger q_cnt;
 
-		public SearchWorker(DocumentSearcher ds, List<BaseQuery> bqs, AtomicInteger q_cnt) {
+		public SearchWorker(DocumentSearcher ds, List<SparseVector> qData, List<SparseVector> dData, AtomicInteger q_cnt) {
 			this.ds = ds;
-			this.bqs = bqs;
+			this.qData = qData;
+			this.dData = dData;
 			this.q_cnt = q_cnt;
 		}
 
@@ -64,16 +67,24 @@ public class DocumentSearcher {
 			int q_loc = 0;
 			Map<Integer, SparseVector> ret = Generics.newHashMap();
 
-			while ((q_loc = q_cnt.getAndIncrement()) < bqs.size()) {
-				BaseQuery bq = bqs.get(q_loc);
+			while ((q_loc = q_cnt.getAndIncrement()) < qData.size()) {
+				SparseVector Q = qData.get(q_loc);
+				SparseVector scores = null;
 
-				Thread t = Thread.currentThread();
 				StringBuffer sb = new StringBuffer();
 				sb.append("-------------------------");
-				sb.append(String.format("\nthread name:\t%s", t.getName()));
-				sb.append("\n" + bq.toString());
+				sb.append(String.format("\nthread name:\t%s", Thread.currentThread().getName()));
+				sb.append("\n" + StrUtils.join(" ", ds.getVocab().getObjects(Q.indexes())));
 				System.out.println(sb.toString() + "\n\n");
-				SparseVector scores = ds.search(bq.getSearchText());
+
+				if (qData == null) {
+					scores = ds.search(Q);
+				} else {
+					SparseVector prevScores = dData.get(q_loc);
+					prevScores.sortIndexes();
+					scores = ds.search(Q, prevScores);
+					prevScores.sortValues();
+				}
 				ret.put(q_loc, scores);
 			}
 			return ret;
@@ -478,7 +489,7 @@ public class DocumentSearcher {
 		return ii.getPostingList(Q, keep_order, window_size);
 	}
 
-	public List<SparseVector> search(List<BaseQuery> bqs, int thread_size) throws Exception {
+	public List<SparseVector> search(List<SparseVector> qData, List<SparseVector> dData, int thread_size) throws Exception {
 
 		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
 
@@ -493,12 +504,12 @@ public class DocumentSearcher {
 		AtomicInteger q_cnt = new AtomicInteger(0);
 
 		for (int i = 0; i < thread_size; i++) {
-			fs.add(tpe.submit(new SearchWorker(dss.get(i), bqs, q_cnt)));
+			fs.add(tpe.submit(new SearchWorker(dss.get(i), qData, dData, q_cnt)));
 		}
 
-		List<SparseVector> ret = Generics.newArrayList(bqs.size());
+		List<SparseVector> ret = Generics.newArrayList(qData.size());
 
-		for (int i = 0; i < bqs.size(); i++) {
+		for (int i = 0; i < qData.size(); i++) {
 			ret.add(new SparseVector(0));
 		}
 
@@ -528,6 +539,8 @@ public class DocumentSearcher {
 			SparseVector scores = search(lm_q, match(new IntegerArray(lm_q.indexes())));
 			SparseVector lm_fb = fbb.buildRM1(scores);
 			SparseVector lm_q2 = updateQueryModel(lm_q, lm_fb);
+
+			scores.sortIndexes();
 			ret = new LMScorer(this).score(lm_q2, scores);
 		} else {
 			ret = search(lm_q, match(new IntegerArray(lm_q.indexes())));

@@ -360,6 +360,24 @@ public class DocumentCollection {
 		return dataDir;
 	}
 
+	public String getDocId(int dseq) throws Exception {
+		return get(dseq).getFirst();
+	}
+
+	public List<String> getDocIds() throws Exception {
+		List<String> ret = Generics.newArrayList(size());
+		int[][] ranges = BatchUtils.getBatchRanges(size(), 1000);
+		for (int i = 0; i < ranges.length; i++) {
+			int[] range = ranges[i];
+			List<Pair<String, IntegerArray>> ls = getRange(range);
+			for (int j = 0; j < ls.size(); j++) {
+				int dseq = range[0] + j;
+				ret.add(ls.get(j).getFirst());
+			}
+		}
+		return ret;
+	}
+
 	public int getDocLength(int i) {
 		return lens.get(i);
 	}
@@ -376,6 +394,28 @@ public class DocumentCollection {
 		return new SparseVector(c);
 	}
 
+	public SparseMatrix getDocVectors(int i, int j) throws Exception {
+		List<Pair<String, IntegerArray>> ps = getRange(i, j, false);
+		List<Integer> idxs = Generics.newArrayList(ps.size());
+		List<SparseVector> dvs = Generics.newArrayList(ps.size());
+
+		int k = i;
+		for (Pair<String, IntegerArray> p : ps) {
+			IntegerArray d = p.getSecond();
+			Counter<Integer> c = Generics.newCounter(d.size());
+			for (int w : d) {
+				if (w == SENT_END) {
+					continue;
+				}
+				c.incrementCount(w, 1);
+			}
+
+			idxs.add(k++);
+			dvs.add(new SparseVector(c));
+		}
+		return new SparseMatrix(idxs, dvs);
+	}
+
 	public SparseMatrix getDocVectors(int[] is) throws Exception {
 		Map<Integer, SparseVector> m = Generics.newHashMap(is.length);
 		for (int i : is) {
@@ -386,10 +426,6 @@ public class DocumentCollection {
 
 	public FileChannel getFileChannel() {
 		return fc;
-	}
-
-	public String getDocId(int dseq) throws Exception {
-		return get(dseq).getFirst();
 	}
 
 	public long getLength() {
@@ -498,20 +534,6 @@ public class DocumentCollection {
 
 	public List<Pair<String, IntegerArray>> getRange(int[] range) throws Exception {
 		return getRange(range[0], range[1], true);
-	}
-
-	public List<String> getDocIds() throws Exception {
-		List<String> ret = Generics.newArrayList(size());
-		int[][] ranges = BatchUtils.getBatchRanges(size(), 1000);
-		for (int i = 0; i < ranges.length; i++) {
-			int[] range = ranges[i];
-			List<Pair<String, IntegerArray>> ls = getRange(range);
-			for (int j = 0; j < ls.size(); j++) {
-				int dseq = range[0] + j;
-				ret.add(ls.get(j).getFirst());
-			}
-		}
-		return ret;
 	}
 
 	public List<Pair<String, IntegerArray>> getRange2(int i, int j) throws Exception {

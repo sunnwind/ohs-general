@@ -217,7 +217,7 @@ public class WordSearcher {
 
 		eq.setAll(0);
 
-		Set<Integer> toRemove = Generics.newHashSet();
+		Set<Integer> toRemove = Generics.newHashSet(Q.size());
 
 		for (int w : Q) {
 			DenseVector v = getVector(w);
@@ -249,7 +249,7 @@ public class WordSearcher {
 	}
 
 	public Counter<String> getSimilarWords(List<String> words, int top_k) throws Exception {
-		List<Integer> q = Generics.newArrayList();
+		List<Integer> q = Generics.newArrayList(words.size());
 
 		for (String word : words) {
 			if (stopwords != null && stopwords.contains(word)) {

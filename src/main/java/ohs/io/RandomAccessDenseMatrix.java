@@ -210,8 +210,17 @@ public class RandomAccessDenseMatrix {
 					ret = hardCache.get(i);
 					if (ret == null) {
 						fc.position(starts.get(i));
-						ByteArray data = FileUtils.readByteArray(fc);
-						ret = new DenseVector(ByteArrayUtils.toDoubleArray(data));
+						int len = lens.get(i);
+						ByteArray data = FileUtils.readByteArray(fc, len);
+
+						ByteBufferWrapper buf = new ByteBufferWrapper(data);
+						buf.readInteger();
+
+						ret = new DenseVector(colSize());
+						for (int j = 0; j < ret.size(); j++) {
+							ret.add(j, buf.readDouble());
+						}
+
 						hardCache.set(i, ret);
 					}
 				} finally {
@@ -223,8 +232,16 @@ public class RandomAccessDenseMatrix {
 					ret = softCache.get(i);
 					if (ret == null) {
 						fc.position(starts.get(i));
-						ByteArray data = FileUtils.readByteArray(fc);
-						ret = new DenseVector(ByteArrayUtils.toDoubleArray(data));
+						ByteArray data = FileUtils.readByteArray(fc, lens.get(i));
+
+						ByteBufferWrapper buf = new ByteBufferWrapper(data);
+						buf.readInteger();
+
+						ret = new DenseVector(colSize());
+						for (int j = 0; j < ret.size(); j++) {
+							ret.add(j, buf.readDouble());
+						}
+
 						softCache.put(i, ret);
 					}
 				} finally {

@@ -108,33 +108,37 @@ public class LMScorer extends Scorer {
 		int n = 0;
 
 		while (m < ret.size() && n < pl.size()) {
-			Posting p = pl.getPosting(n);
 			int dseq1 = ret.indexAt(m);
+			Posting p = pl.getPosting(n);
 			int dseq2 = p.getDocseq();
 
-			if (dseq1 == dseq2 || dseq1 < dseq2) {
-				double cnt_w_in_d = dseq1 == dseq2 ? p.size() : 0;
-				double len_d = dc.getDocLength(dseq1);
-				double pr_w_in_d = TermWeighting.twoStageSmoothing(cnt_w_in_d, len_d, pr_w_in_c, prior_dir, pr_w_in_qbg, mixture_jm);
-
-				if (pr_w_in_d > 0) {
-					double val = 0;
-					if (type == Type.KLD) {
-						val = pr_w_in_q * Math.log(pr_w_in_q / pr_w_in_d);
-					} else {
-						val = Math.log(pr_w_in_d);
-					}
-					ret.addAt(m, val);
-				}
-
-				if (dseq1 == dseq2) {
-					m++;
-					n++;
-				} else {
-					m++;
-				}
-			} else {
+			if (ret.location(dseq2) == -1) {
 				n++;
+			} else {
+				if (dseq1 == dseq2 || dseq1 < dseq2) {
+					double cnt_w_in_d = dseq1 == dseq2 ? p.size() : 0;
+					double len_d = dc.getDocLength(dseq1);
+					double pr_w_in_d = TermWeighting.twoStageSmoothing(cnt_w_in_d, len_d, pr_w_in_c, prior_dir, pr_w_in_qbg, mixture_jm);
+
+					if (pr_w_in_d > 0) {
+						double val = 0;
+						if (type == Type.KLD) {
+							val = pr_w_in_q * Math.log(pr_w_in_q / pr_w_in_d);
+						} else {
+							val = Math.log(pr_w_in_d);
+						}
+						ret.addAt(m, val);
+					}
+
+					if (dseq1 == dseq2) {
+						m++;
+						n++;
+					} else {
+						m++;
+					}
+				} else {
+					n++;
+				}
 			}
 		}
 
@@ -195,7 +199,7 @@ public class LMScorer extends Scorer {
 			if (pl == null) {
 				continue;
 			}
-
+			// System.out.printf("word=[%s], %s\n", word, pl.toString());
 			score(w, pr_w_in_q, pl, ret);
 		}
 

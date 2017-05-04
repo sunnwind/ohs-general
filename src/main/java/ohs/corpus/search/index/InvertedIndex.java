@@ -301,21 +301,21 @@ public class InvertedIndex {
 		}
 
 		if (ret == null) {
+			ByteArray data = null;
+
 			synchronized (fc) {
 				long start = starts.get(w);
-				int len = lens.get(w);
-
 				if (start < 0) {
 					return null;
 				}
 				fc.position(start);
 
-				ByteBufferWrapper buf = new ByteBufferWrapper(FileUtils.readByteArray(fc, len));
-				ByteArrayMatrix data = buf.readByteArrayMatrix();
-
-				// ret = PostingList.readPostingList(fc, encode);
-				ret = PostingList.toPostingList(data, encode);
+				int len = lens.get(w);
+				data = FileUtils.readByteArray(fc, len);
 			}
+
+			// ret = PostingList.readPostingList(fc, encode);
+			ret = PostingList.toPostingList(new ByteBufferWrapper(data).readByteArrayMatrix(), encode);
 
 			synchronized (cache) {
 				cache.put(w, ret);

@@ -14,7 +14,7 @@ import ohs.utils.StrUtils;
 
 public class MRFScorer extends LMScorer {
 
-	private DenseVector mixtures = new DenseVector(new double[] { 0.1, 0.6, 0.3 });
+	private DenseVector mixtures = new DenseVector(new double[] { 0.8, 0.1, 0.1 });
 
 	private int window_size = 5;
 
