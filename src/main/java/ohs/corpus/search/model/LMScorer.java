@@ -160,38 +160,14 @@ public class LMScorer extends Scorer {
 			}
 			m++;
 		}
-
-		if (n > pl.size()) {
-			// while (n < pl.size()) {
-			// Posting p = pl.getPosting(n);
-			// int dseq = p.getDocseq();
-			// double cnt_w_in_d = p.size();
-			// double len_d = dc.getDocLength(dseq);
-			// double pr_w_in_d = TermWeighting.twoStageSmoothing(cnt_w_in_d, len_d, pr_w_in_c, prior_dir, pr_w_in_qbg, mixture_jm);
-			// if (pr_w_in_d > 0) {
-			// double val = 0;
-			// if (type == Type.KLD) {
-			// val = pr_w_in_q * Math.log(pr_w_in_q / pr_w_in_d);
-			// } else {
-			// val = Math.log(pr_w_in_d);
-			// }
-			// try {
-			// ret.addAt(n, val);
-			// } catch (Exception e) {
-			// e.printStackTrace();
-			// }
-			// }
-			// n++;
-			// }
-		}
 	}
 
-	public SparseVector score(SparseVector lm_q, SparseVector docs) throws Exception {
+	public SparseVector score(SparseVector Q, SparseVector docs) throws Exception {
 		SparseVector ret = new SparseVector(ArrayUtils.copy(docs.indexes()));
 
-		for (int i = 0; i < lm_q.size(); i++) {
-			int w = lm_q.indexAt(i);
-			double pr_w_in_q = lm_q.probAt(i);
+		for (int i = 0; i < Q.size(); i++) {
+			int w = Q.indexAt(i);
+			double pr_w_in_q = Q.probAt(i);
 			String word = vocab.getObject(w);
 
 			PostingList pl = ii.getPostingList(w);

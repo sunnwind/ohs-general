@@ -17,6 +17,7 @@ import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.pipeline.Annotation;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import edu.stanford.nlp.util.CoreMap;
+import ohs.corpus.search.index.PostingList;
 import ohs.corpus.search.model.BM25Scorer;
 import ohs.corpus.search.model.FeedbackBuilder;
 import ohs.corpus.search.model.LMScorer;
@@ -58,6 +59,7 @@ import ohs.types.generic.BidMap;
 import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
 import ohs.types.generic.ListMap;
+import ohs.types.generic.ListMapMap;
 import ohs.types.generic.Pair;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
@@ -139,9 +141,10 @@ public class Experiments {
 		// e.getLemmas();
 
 		// e.runPhraseMapping();
-		// e.runInitSearch();
-		// e.runEmbeddingRanking();
-		e.runFeedback();
+		e.runInitSearch();
+		// e.runReranking1();
+
+		// e.runFeedback();
 		// e.runKLDFB();
 		//
 		// e.runKLDLemma();
@@ -951,7 +954,7 @@ public class Experiments {
 			ds.setScorer(new MRFScorer(ds));
 		} else if (modelName.equals("wmrf")) {
 			Counter<String> phrss = null;
-			List<String> lines = FileUtils.readLinesFromText("../../data/medical_ir/phrs.txt");
+			List<String> lines = FileUtils.readLinesFromText("../../data/medical_ir/phrs/phrs.txt");
 			phrss = Generics.newCounter(lines.size());
 
 			for (String line : lines) {
@@ -1001,7 +1004,7 @@ public class Experiments {
 		System.out.println(p);
 	}
 
-	public void runEmbeddingRanking() throws Exception {
+	public void runReranking1() throws Exception {
 		List<BaseQuery> bqs = QueryReader.readQueries(queryFileName);
 		CounterMap<String, String> relvData = RelevanceReader.readRelevances(relFileName);
 		CounterMap<String, String> srData = Generics.newCounterMap(bqs.size());

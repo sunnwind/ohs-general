@@ -47,18 +47,18 @@ public class DocumentSearcher {
 
 	class SearchWorker implements Callable<Map<Integer, SparseVector>> {
 
-		private List<SparseVector> qData;
+		private List<SparseVector> queryData;
 
-		private List<SparseVector> dData;
+		private List<SparseVector> scoreData;
 
 		private DocumentSearcher ds;
 
 		private AtomicInteger q_cnt;
 
-		public SearchWorker(DocumentSearcher ds, List<SparseVector> qData, List<SparseVector> dData, AtomicInteger q_cnt) {
+		public SearchWorker(DocumentSearcher ds, List<SparseVector> queryData, List<SparseVector> scoreData, AtomicInteger q_cnt) {
 			this.ds = ds;
-			this.qData = qData;
-			this.dData = dData;
+			this.queryData = queryData;
+			this.scoreData = scoreData;
 			this.q_cnt = q_cnt;
 		}
 
@@ -67,8 +67,8 @@ public class DocumentSearcher {
 			int q_loc = 0;
 			Map<Integer, SparseVector> ret = Generics.newHashMap();
 
-			while ((q_loc = q_cnt.getAndIncrement()) < qData.size()) {
-				SparseVector Q = qData.get(q_loc);
+			while ((q_loc = q_cnt.getAndIncrement()) < queryData.size()) {
+				SparseVector Q = queryData.get(q_loc);
 				SparseVector scores = null;
 
 				StringBuffer sb = new StringBuffer();
@@ -77,10 +77,10 @@ public class DocumentSearcher {
 				sb.append("\n" + StrUtils.join(" ", ds.getVocab().getObjects(Q.indexes())));
 				System.out.println(sb.toString() + "\n\n");
 
-				if (qData == null) {
+				if (scoreData == null) {
 					scores = ds.search(Q);
 				} else {
-					SparseVector prevScores = dData.get(q_loc);
+					SparseVector prevScores = scoreData.get(q_loc);
 					prevScores.sortIndexes();
 					scores = ds.search(Q, prevScores);
 					prevScores.sortValues();

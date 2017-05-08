@@ -12,6 +12,7 @@ import java.util.regex.Pattern;
 
 import kr.co.shineware.nlp.komoran.core.analyzer.Komoran;
 import kr.co.shineware.util.common.model.Pair;
+import ohs.corpus.search.index.PostingList;
 import ohs.corpus.type.DocumentCollection;
 import ohs.corpus.type.RawDocumentCollection;
 import ohs.corpus.type.SimpleStringNormalizer;
@@ -33,7 +34,11 @@ import ohs.tree.trie.hash.Trie;
 import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
 import ohs.types.generic.ListList;
+import ohs.types.generic.ListMap;
+import ohs.types.generic.ListMapMap;
 import ohs.types.generic.Vocab;
+import ohs.types.number.IntegerArray;
+import ohs.types.number.IntegerArrayMatrix;
 import ohs.utils.ByteSize;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
@@ -55,6 +60,7 @@ public class DataHandler {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 		DataHandler dh = new DataHandler();
+
 		// dh.getSentences();
 		// dh.tagPOS();
 		// dh.trainGlove();
@@ -63,8 +69,9 @@ public class DataHandler {
 		// dh.getWikiPhrases();
 		// dh.getFrequentPhrases();
 
-//		 dh.getPaperKeywords();
-		dh.mergeKeywords();
+		// dh.getPaperKeywords();
+		// dh.mergeKeywords();
+
 		// dh.getPositiveData();
 
 		// dh.getQualityTrainingPhrases();

@@ -267,7 +267,7 @@ public class FrequentPhraseDetector {
 
 			for (int i = 0; i < ranges.size(); i++) {
 				List<Integer> range = ranges.get(i);
-				List<Pair<String, IntegerArray>> ds = dc.getRange(range.get(0), range.get(1));
+				List<Pair<String, IntegerArray>> ds = dc.getRange(range.get(0), range.get(1), false);
 
 				for (int j = 0; j < ds.size(); j++) {
 					int dseq = j + range.get(0);

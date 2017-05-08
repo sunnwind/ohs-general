@@ -232,10 +232,6 @@ public class DocumentCollectionCreator {
 							System.out.printf("[%d percent, %d/%d, %s]\n", prog, k, rdc.size(), timer.stop());
 						}
 					}
-
-					for (int j = subrange[0]; j < subrange[1]; j++) {
-
-					}
 				}
 
 				if (docs.size() > 0) {
@@ -276,7 +272,7 @@ public class DocumentCollectionCreator {
 		// dcc.create(MIRPath.OHSUMED_COL_DC_DIR, 1, new int[] { 3, 5 });
 		// dcc.create(MIRPath.TREC_CDS_2014_COL_DC_DIR, 0, new int[] { 1, 2, 3 });
 		// dcc.create(MIRPath.TREC_CDS_2016_COL_DC_DIR, 0, new int[] { 1, 2, 3 });
-		dcc.create("../../data/medical_ir/scopus/col/dc/", 0, new int[] { 1, 2 });
+		// dcc.create("../../data/medical_ir/scopus/col/dc/", 0, new int[] { 1, 2 });
 		// dcc.create(MIRPath.BIOASQ_COL_DC_DIR, 0, new int[] { 4, 5 });
 		// dcc.create(MIRPath.WIKI_COL_DC_DIR, 0, new int[] { 3 });
 		// dcc.create(MIRPath.CLUEWEB_COL_DC_DIR, 0, new int[] { 1 });

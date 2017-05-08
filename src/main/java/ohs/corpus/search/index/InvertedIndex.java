@@ -234,17 +234,27 @@ public class InvertedIndex {
 
 	private Vocab vocab;
 
-	public InvertedIndex(FileChannel fc, LongArray starts, IntegerArray lens, int doc_cnt, Map<Integer, PostingList> cache, Vocab vocab) {
+	private Map<Integer, PostingList> plm;
+
+	public InvertedIndex(FileChannel fc, LongArray starts, IntegerArray lens, int doc_cnt, Map<Integer, PostingList> cache, Vocab vocab,
+			Map<Integer, PostingList> plm) {
 		this.fc = fc;
 		this.starts = starts;
 		this.lens = lens;
 		this.doc_cnt = doc_cnt;
 		this.cache = cache;
 		this.vocab = vocab;
+		this.plm = plm;
 	}
 
 	public InvertedIndex(FileChannel fc, LongArray starts, IntegerArray lens, int doc_cnt, Vocab vocab) {
-		this(fc, starts, lens, doc_cnt, Generics.newWeakHashMap(), vocab);
+		this(fc, starts, lens, doc_cnt, Generics.newWeakHashMap(), vocab, null);
+	}
+
+	public InvertedIndex(Map<Integer, PostingList> plm, int doc_cnt, Vocab vocab) {
+		this.plm = plm;
+		this.vocab = vocab;
+		this.doc_cnt = doc_cnt;
 	}
 
 	public InvertedIndex(String dataDir) throws Exception {
@@ -276,7 +286,7 @@ public class InvertedIndex {
 	}
 
 	public InvertedIndex copyShallow() throws Exception {
-		return new InvertedIndex(FileUtils.openFileChannel(new File(dataDir, DATA_NAME), "r"), starts, lens, doc_cnt, cache, vocab);
+		return new InvertedIndex(FileUtils.openFileChannel(new File(dataDir, DATA_NAME), "r"), starts, lens, doc_cnt, cache, vocab, plm);
 	}
 
 	public int getDocCnt() {
@@ -290,36 +300,40 @@ public class InvertedIndex {
 	public PostingList getPostingList(int w) throws Exception {
 		Timer timer = Timer.newTimer();
 
-		if (w < 0 || w >= starts.size()) {
-			return null;
-		}
-
 		PostingList ret = null;
 
-		synchronized (cache) {
-			ret = cache.get(w);
-		}
-
-		if (ret == null) {
-			ByteArray data = null;
-
-			synchronized (fc) {
-				long start = starts.get(w);
-				if (start < 0) {
-					return null;
-				}
-				fc.position(start);
-
-				int len = lens.get(w);
-				data = FileUtils.readByteArray(fc, len);
+		if (plm == null) {
+			if (w < 0 || w >= starts.size()) {
+				return null;
 			}
-
-			// ret = PostingList.readPostingList(fc, encode);
-			ret = PostingList.toPostingList(new ByteBufferWrapper(data).readByteArrayMatrix(), encode);
 
 			synchronized (cache) {
-				cache.put(w, ret);
+				ret = cache.get(w);
 			}
+
+			if (ret == null) {
+				ByteArray data = null;
+
+				synchronized (fc) {
+					long start = starts.get(w);
+					if (start < 0) {
+						return null;
+					}
+					fc.position(start);
+
+					int len = lens.get(w);
+					data = FileUtils.readByteArray(fc, len);
+				}
+
+				// ret = PostingList.readPostingList(fc, encode);
+				ret = PostingList.toPostingList(new ByteBufferWrapper(data).readByteArrayMatrix(), encode);
+
+				synchronized (cache) {
+					cache.put(w, ret);
+				}
+			}
+		} else {
+			ret = plm.get(w);
 		}
 
 		// String word = vocab == null ? "null" : vocab.getObject(w);
@@ -336,34 +350,30 @@ public class InvertedIndex {
 	 */
 	public PostingList getPostingList(IntegerArray Q, boolean keep_order, int window_size) throws Exception {
 		PostingList pl_x = getPostingList(Q.get(0));
-		PostingList ret = pl_x;
+		PostingList ret = null;
 
-		if (Q.size() > 1) {
-			PostingList tmp = pl_x;
+		int i = 0;
+		while (++i < Q.size()) {
+			int y = Q.get(i);
+			PostingList pl_y = getPostingList(y);
+			PostingList pl_xy = findCollocations(pl_x, pl_y, keep_order, window_size);
 
-			int i = 0;
-			while (++i < Q.size()) {
-				int y = Q.get(i);
-				PostingList pl_y = getPostingList(y);
-				PostingList pl_xy = findCollocations(pl_x, pl_y, keep_order, window_size);
-
-				if (pl_xy.size() == 0) {
-					break;
-				}
-
-				pl_x = pl_xy;
+			if (pl_xy.size() == 0) {
+				break;
 			}
 
-			if (i == Q.size()) {
-				ret = pl_x;
-				ret.setWord(-1);
+			pl_x = pl_xy;
+		}
 
-				IntegerArrayMatrix posData_min = ret.getEndPosData();
-				IntegerArrayMatrix posData = ret.getPosData();
+		if (i == Q.size()) {
+			ret = pl_x;
+			ret.setWord(-1);
 
-				ret.setPosData(posData_min);
-				ret.setEndPosData(posData);
-			}
+			IntegerArrayMatrix posData_min = ret.getEndPosData();
+			IntegerArrayMatrix posData = ret.getPosData();
+
+			ret.setPosData(posData_min);
+			ret.setEndPosData(posData);
 		}
 
 		return ret;
@@ -376,50 +386,55 @@ public class InvertedIndex {
 	public List<PostingList> getPostingLists(int i, int j) throws Exception {
 		int size = j - i;
 
-		Map<Integer, PostingList> found = Generics.newHashMap(size);
-		Set<Integer> notFound = Generics.newHashSet(size);
-
-		for (int k = i; k < j; k++) {
-			PostingList p = null;
-
-			synchronized (cache) {
-				p = cache.get(k);
-			}
-
-			if (p == null) {
-				notFound.add(k);
-			} else {
-				found.put(k, p);
-			}
-		}
-
 		List<PostingList> ret = Generics.newArrayList(size);
 
-		if (found.size() == 0) {
-			fc.position(starts.get(i));
-			ByteArray data = FileUtils.readByteArray(fc, ArrayMath.sum(lens.values(), i, j));
-			ByteBufferWrapper buf = new ByteBufferWrapper(data);
+		if (plm == null) {
+			Map<Integer, PostingList> found = Generics.newHashMap(size);
+			Set<Integer> notFound = Generics.newHashSet(size);
 
 			for (int k = i; k < j; k++) {
-				ByteArrayMatrix sub = buf.readByteArrayMatrix();
-				PostingList pl = PostingList.toPostingList(sub, encode);
-				ret.add(pl);
+				PostingList p = null;
 
 				synchronized (cache) {
-					cache.put(k, pl);
+					p = cache.get(k);
+				}
+
+				if (p == null) {
+					notFound.add(k);
+				} else {
+					found.put(k, p);
+				}
+			}
+
+			if (found.size() == 0) {
+				fc.position(starts.get(i));
+				ByteArray data = FileUtils.readByteArray(fc, ArrayMath.sum(lens.values(), i, j));
+				ByteBufferWrapper buf = new ByteBufferWrapper(data);
+
+				for (int k = i; k < j; k++) {
+					ByteArrayMatrix sub = buf.readByteArrayMatrix();
+					PostingList pl = PostingList.toPostingList(sub, encode);
+					ret.add(pl);
+
+					synchronized (cache) {
+						cache.put(k, pl);
+					}
+				}
+			} else {
+				if (found.size() != size) {
+					for (int k : notFound) {
+						found.put(k, getPostingList(k));
+					}
+				}
+				for (int k = i; k < j; k++) {
+					ret.add(found.get(k));
 				}
 			}
 		} else {
-			if (found.size() != size) {
-				for (int k : notFound) {
-					found.put(k, getPostingList(k));
-				}
-			}
 			for (int k = i; k < j; k++) {
-				ret.add(found.get(k));
+				ret.add(getPostingList(k));
 			}
 		}
-
 		return ret;
 	}
 

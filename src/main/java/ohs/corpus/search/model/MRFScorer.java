@@ -14,11 +14,11 @@ import ohs.utils.StrUtils;
 
 public class MRFScorer extends LMScorer {
 
-	private DenseVector mixtures = new DenseVector(new double[] { 0.8, 0.1, 0.1 });
+	protected DenseVector mixtures = new DenseVector(new double[] { 0.8, 0.1, 0.1 });
 
-	private int window_size = 5;
+	protected int window_size = 5;
 
-	private int phrase_size = 3;
+	protected int phrase_size = 3;
 
 	public MRFScorer(DocumentSearcher ds) {
 		this(ds.getVocab(), ds.getDocumentCollection(), ds.getInvertedIndex());
