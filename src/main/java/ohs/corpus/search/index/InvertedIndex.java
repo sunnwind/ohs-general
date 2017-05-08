@@ -349,31 +349,39 @@ public class InvertedIndex {
 	 * @throws Exception
 	 */
 	public PostingList getPostingList(IntegerArray Q, boolean keep_order, int window_size) throws Exception {
-		PostingList pl_x = getPostingList(Q.get(0));
 		PostingList ret = null;
 
-		int i = 0;
-		while (++i < Q.size()) {
-			int y = Q.get(i);
-			PostingList pl_y = getPostingList(y);
-			PostingList pl_xy = findCollocations(pl_x, pl_y, keep_order, window_size);
+		PostingList pl_x = getPostingList(Q.get(0));
 
-			if (pl_xy.size() == 0) {
-				break;
+		if (pl_x != null && Q.size() > 1) {
+			int i = 0;
+			while (++i < Q.size()) {
+				int y = Q.get(i);
+				PostingList pl_y = getPostingList(y);
+
+				if (pl_y == null) {
+					break;
+				}
+
+				PostingList pl_xy = findCollocations(pl_x, pl_y, keep_order, window_size);
+
+				if (pl_xy.size() == 0) {
+					break;
+				}
+
+				pl_x = pl_xy;
 			}
 
-			pl_x = pl_xy;
-		}
+			if (i == Q.size()) {
+				ret = pl_x;
+				ret.setWord(-1);
 
-		if (i == Q.size()) {
-			ret = pl_x;
-			ret.setWord(-1);
+				IntegerArrayMatrix posData_min = ret.getEndPosData();
+				IntegerArrayMatrix posData = ret.getPosData();
 
-			IntegerArrayMatrix posData_min = ret.getEndPosData();
-			IntegerArrayMatrix posData = ret.getPosData();
-
-			ret.setPosData(posData_min);
-			ret.setEndPosData(posData);
+				ret.setPosData(posData_min);
+				ret.setEndPosData(posData);
+			}
 		}
 
 		return ret;

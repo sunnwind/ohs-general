@@ -14,11 +14,11 @@ import ohs.utils.StrUtils;
 
 public class MRFScorer extends LMScorer {
 
-	protected DenseVector mixtures = new DenseVector(new double[] { 0.8, 0.1, 0.1 });
+	protected DenseVector mixtures = new DenseVector(new double[] { 0.85, 0.1, 0.05 });
 
 	protected int window_size = 5;
 
-	protected int phrase_size = 3;
+	protected int phrs_size = 3;
 
 	public MRFScorer(DocumentSearcher ds) {
 		this(ds.getVocab(), ds.getDocumentCollection(), ds.getInvertedIndex());
@@ -54,18 +54,18 @@ public class MRFScorer extends LMScorer {
 		return s1;
 	}
 
-	private SparseVector scoreOrderedPhrases(SparseVector Q, SparseVector docs) throws Exception {
+	protected SparseVector scoreOrderedPhrases(SparseVector Q, SparseVector docs) throws Exception {
 		return scorePhrases(new IntegerArray(Q.indexes()), docs, true, 1);
 	}
 
-	private SparseVector scorePhrases(IntegerArray Q, SparseVector docs, boolean keep_order, int window_size) throws Exception {
+	protected SparseVector scorePhrases(IntegerArray Q, SparseVector docs, boolean keep_order, int window_size) throws Exception {
 		SparseVector ret = new SparseVector(ArrayUtils.copy(docs.indexes()));
 
 		String str = StrUtils.join(" ", vocab.getObjects(Q.values()));
 
 		for (int s = 0; s < Q.size() - 1; s++) {
 			int r1 = s + 2;
-			int r2 = Math.min(r1 + phrase_size, Q.size() + 1);
+			int r2 = Math.min(r1 + phrs_size, Q.size() + 1);
 
 			for (int e = r1; e < r2; e++) {
 				String phrs = StrUtils.join(" ", vocab.getObjects(Q.subArray(s, e)));
@@ -83,7 +83,7 @@ public class MRFScorer extends LMScorer {
 		return ret;
 	}
 
-	private SparseVector scoreUnorderedPhrases(SparseVector Q, SparseVector docs) throws Exception {
+	protected SparseVector scoreUnorderedPhrases(SparseVector Q, SparseVector docs) throws Exception {
 		return scorePhrases(new IntegerArray(Q.indexes()), docs, false, window_size);
 	}
 
@@ -91,8 +91,8 @@ public class MRFScorer extends LMScorer {
 		this.mixtures.setValues(mixtures);
 	}
 
-	public void setGramSize(int gram_size) {
-		this.phrase_size = gram_size;
+	public void setPhraseSize(int phrs_size) {
+		this.phrs_size = phrs_size;
 	}
 
 	public void setWindowSize(int window_size) {

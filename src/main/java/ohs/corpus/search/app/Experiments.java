@@ -141,7 +141,7 @@ public class Experiments {
 		// e.getLemmas();
 
 		// e.runPhraseMapping();
-		e.runInitSearch();
+		// e.runInitSearch();
 		// e.runReranking1();
 
 		// e.runFeedback();

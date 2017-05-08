@@ -36,9 +36,7 @@ public class WeightedMRFScorer extends MRFScorer {
 
 	public WeightedMRFScorer(Vocab vocab, DocumentCollection dc, InvertedIndex ii, Counter<String> phrss) {
 		super(vocab, dc, ii);
-		setType(Type.QL);
 		this.phrsCnts = phrss;
-
 		createPhraseInvertedIndex();
 	}
 
@@ -115,20 +113,19 @@ public class WeightedMRFScorer extends MRFScorer {
 		return s1;
 	}
 
-	private SparseVector scoreOrderedPhrases(SparseVector Q, SparseVector docs) throws Exception {
+	protected SparseVector scoreOrderedPhrases(SparseVector Q, SparseVector docs) throws Exception {
 		return scorePhrases(new IntegerArray(Q.indexes()), docs, true, 1);
 	}
 
-	private SparseVector scorePhrases(IntegerArray Q, SparseVector docs, boolean keep_order, int window_size) throws Exception {
+	protected SparseVector scorePhrases(IntegerArray Q, SparseVector docs, boolean keep_order, int window_size) throws Exception {
 		SparseVector ret = new SparseVector(ArrayUtils.copy(docs.indexes()));
 		SparseVector tmp = ret.copy();
-		tmp.setAll(0);
 
 		String Qstr = StrUtils.join(" ", vocab.getObjects(Q.values()));
 
 		for (int s = 0; s < Q.size() - 1; s++) {
 			int r1 = s + 2;
-			int r2 = Math.min(r1 + phrase_size, Q.size() + 1);
+			int r2 = Math.min(r1 + phrs_size, Q.size() + 1);
 
 			for (int e = r1; e < r2; e++) {
 				IntegerArray Qsub = Q.subArray(s, e);
@@ -158,9 +155,12 @@ public class WeightedMRFScorer extends MRFScorer {
 				}
 
 				tmp.setAll(0);
-				super.score(pl.getWord(), 1, pl, tmp);
 
-				ArrayMath.add(tmp.values(), phrs_weight, ret.values());
+				score(pl.getWord(), 1, pl, tmp);
+
+				for (int j = 0; j < ret.size(); j++) {
+					ret.addAt(j, tmp.valueAt(j) * phrs_weight);
+				}
 			}
 		}
 		return ret;
@@ -168,14 +168,12 @@ public class WeightedMRFScorer extends MRFScorer {
 
 	private SparseVector scoreUnigrams(SparseVector Q, SparseVector docs) throws Exception {
 		SparseVector ret = new SparseVector(ArrayUtils.copy(docs.indexes()));
-		SparseVector lm_q = Q.copy();
-		lm_q.normalize();
 
 		SparseVector tmp = ret.copy();
 
-		for (int i = 0; i < lm_q.size(); i++) {
-			int w = lm_q.indexAt(i);
-			double pr_w_in_q = lm_q.probAt(i);
+		for (int i = 0; i < Q.size(); i++) {
+			int w = Q.indexAt(i);
+			double pr_w_in_q = Q.probAt(i);
 			String word = vocab.getObject(w);
 
 			PostingList pl = ii.getPostingList(w);
@@ -198,13 +196,14 @@ public class WeightedMRFScorer extends MRFScorer {
 				phrs_weight = Math.exp(1 + phrs_weight);
 			}
 
-			ArrayMath.addAfterMultiply(tmp.values(), phrs_weight, ret.values());
+			for (int j = 0; j < ret.size(); j++) {
+				ret.addAt(j, tmp.valueAt(j) * phrs_weight);
+			}
 		}
-
 		return ret;
 	}
 
-	private SparseVector scoreUnorderedPhrases(SparseVector Q, SparseVector docs) throws Exception {
+	protected SparseVector scoreUnorderedPhrases(SparseVector Q, SparseVector docs) throws Exception {
 		return scorePhrases(new IntegerArray(Q.indexes()), docs, false, window_size);
 	}
 
