@@ -55,11 +55,9 @@ public class WordFilter {
 
 	public boolean filter(int w) {
 		boolean ret = false;
-
 		if (stopwords.contains(w) || w < 0 || w >= vocab.size()) {
 			ret = true;
 		}
-
 		return ret;
 	}
 

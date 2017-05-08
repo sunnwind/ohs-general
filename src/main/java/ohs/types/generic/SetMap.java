@@ -176,7 +176,6 @@ public class SetMap<K, V> implements Serializable {
 			Set<V> newSet = Generics.newSet(st, oldSet.size());
 			newSet.addAll(oldSet);
 			temp.put(key, newSet);
-			oldSet = null;
 		}
 
 		entries = temp;

@@ -4,14 +4,15 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
-import ohs.matrix.SparseMatrix;
 import ohs.matrix.SparseVector;
+import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
 import ohs.types.generic.SetMap;
 import ohs.types.generic.Vocab;
-import ohs.types.number.DoubleArray;
 import ohs.types.number.IntegerArray;
+import ohs.types.number.IntegerArrayMatrix;
 import ohs.utils.Generics;
 
 public class LemmaExpander {
@@ -50,57 +51,38 @@ public class LemmaExpander {
 			lemmaToVars.put(l, w);
 		}
 
-		lemmaToVars.trimToSize();
+		// lemmaToVars.trimToSize();
 	}
 
 	public SparseVector expand(SparseVector Q) {
-		SparseMatrix wordToVars = mapWordToVariants(Q);
+		Q = Q.copy();
+		Q.normalize();
 
-		IntegerArray idxs = new IntegerArray();
-		DoubleArray vals = new DoubleArray();
-
+		IntegerArrayMatrix wordToVars = mapWordToVariants(Q);
+		Counter<Integer> c = Generics.newCounter();
 		for (int i = 0; i < Q.size(); i++) {
 			int w = Q.indexAt(i);
-			double cnt_w_in_q = Q.valueAt(i);
-			SparseVector vars = wordToVars.row(w);
+			IntegerArray vars = wordToVars.get(i);
 
-			for (int j = 0; j < vars.size(); j++) {
-				int v = vars.indexAt(j);
-				double pr_v_in_c = vocab.getProb(v);
-
+			for (int v : vars) {
 				if (w == v) {
-					pr_v_in_c *= 5;
-				}
-				vars.setAt(j, pr_v_in_c);
-			}
 
-			vars.normalizeAfterSummation();
-
-			if (vars.size() < 2) {
-				idxs.add(w);
-				vals.add(cnt_w_in_q);
-				// vals.add(vocab.getCount(w));
-			} else {
-				// double weight = 1f / vars.size();
-				// double cnt2 = weight * cnt;
-
-				for (int w2 : vars.indexes()) {
-					double pr2 = cnt_w_in_q * vars.value(w2);
-					idxs.add(w2);
-					vals.add(pr2);
-					// vals.add(vocab.getCount(w2));
+				} else {
+					c.incrementCount(v, 1);
 				}
 			}
 		}
 
-		idxs.trimToSize();
-		vals.trimToSize();
+		SparseVector L = VectorUtils.toSparseVector(c);
+		L.normalize();
 
-		return new SparseVector(idxs.values(), vals.values());
+		double mixture = 0.1;
+		SparseVector ret = VectorMath.addAfterMultiply(Q, 1 - mixture, L, mixture);
+		return ret;
 	}
 
-	public SparseMatrix mapWordToVariants(SparseVector Q) {
-		CounterMap<Integer, Integer> cm = Generics.newCounterMap();
+	public IntegerArrayMatrix mapWordToVariants(SparseVector Q) {
+		IntegerArrayMatrix ret = new IntegerArrayMatrix(Q.size());
 		for (int j = 0; j < Q.size(); j++) {
 			int w = Q.indexAt(j);
 			Integer lemma = wordToLemma.get(w);
@@ -109,21 +91,18 @@ public class LemmaExpander {
 				continue;
 			}
 
+			IntegerArray tmp = new IntegerArray();
+
 			Set<Integer> vars = lemmaToVars.get(lemma);
 
-			if (vars == null) {
-				continue;
+			if (vars != null) {
+				tmp = new IntegerArray(vars);
 			}
 
-			for (int var : vars) {
-				cm.incrementCount(w, var, 1);
-			}
+			ret.add(tmp);
+
 		}
-
-		// System.out.println(VectorUtils.toCounterMap(cm, vocab, vocab));
-		// System.out.println();
-
-		return VectorUtils.toSparseMatrix(cm);
+		return ret;
 	}
 
 }

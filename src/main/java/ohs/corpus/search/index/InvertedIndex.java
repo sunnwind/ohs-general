@@ -298,6 +298,8 @@ public class InvertedIndex {
 	}
 
 	public PostingList getPostingList(int w) throws Exception {
+		
+		
 		Timer timer = Timer.newTimer();
 
 		PostingList ret = null;

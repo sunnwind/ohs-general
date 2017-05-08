@@ -2,13 +2,12 @@ package ohs.corpus.search.model;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map.Entry;
 
 import ohs.corpus.search.app.DocumentSearcher;
 import ohs.corpus.search.index.InvertedIndex;
 import ohs.corpus.search.index.PostingList;
-import ohs.corpus.search.model.LMScorer.Type;
 import ohs.corpus.type.DocumentCollection;
-import ohs.math.ArrayMath;
 import ohs.math.ArrayUtils;
 import ohs.math.VectorMath;
 import ohs.matrix.DenseVector;
@@ -24,7 +23,7 @@ import ohs.utils.StrUtils;
 
 public class WeightedMRFScorer extends MRFScorer {
 
-	private Counter<String> phrsCnts;
+	private IntegerArray srcCnts;
 
 	private List<String> phrss;
 
@@ -34,16 +33,21 @@ public class WeightedMRFScorer extends MRFScorer {
 		this(ds.getVocab(), ds.getDocumentCollection(), ds.getInvertedIndex(), phrss);
 	}
 
-	public WeightedMRFScorer(Vocab vocab, DocumentCollection dc, InvertedIndex ii, Counter<String> phrss) {
+	public WeightedMRFScorer(Vocab vocab, DocumentCollection dc, InvertedIndex ii, Counter<String> phrsCnts) {
 		super(vocab, dc, ii);
-		this.phrsCnts = phrss;
-		createPhraseInvertedIndex();
+		createPhraseInvertedIndex(phrsCnts);
 	}
 
-	public void createPhraseInvertedIndex() {
+	public void createPhraseInvertedIndex(Counter<String> phrsCnts) {
 		ListMapMap<Integer, Integer, Integer> lmm = Generics.newListMapMap();
 
-		phrss = Generics.newArrayList(phrsCnts.keySet());
+		phrss = Generics.newArrayList(phrsCnts.size());
+		srcCnts = new IntegerArray(phrsCnts.size());
+
+		for (Entry<String, Double> e : phrsCnts.entrySet()) {
+			phrss.add(e.getKey());
+			srcCnts.add(e.getValue().intValue());
+		}
 
 		for (int i = 0; i < phrss.size(); i++) {
 			String phrs = phrss.get(i);
@@ -129,29 +133,31 @@ public class WeightedMRFScorer extends MRFScorer {
 
 			for (int e = r1; e < r2; e++) {
 				IntegerArray Qsub = Q.subArray(s, e);
-				String phrs = StrUtils.join(" ", vocab.getObjects(Qsub));
+				String Qsubstr = StrUtils.join(" ", vocab.getObjects(Qsub));
 
-				PostingList pl = ii.getPostingList(Q.subArray(s, e), keep_order, window_size);
+				PostingList pl = ii.getPostingList(Qsub, keep_order, window_size);
 
 				if (pl == null) {
 					continue;
 				}
 
-				PostingList ppl = pii.getPostingList(Qsub, keep_order, 1);
+				PostingList ppl = pii.getPostingList(Qsub, keep_order, window_size);
 				double phrs_weight = 1;
 
 				if (ppl != null) {
 					// System.out.printf("phrs=[%s], %s\n", phrs, ppl);
 					//
-					// IntegerArray dseqs = ppl.getDocSeqs();
-					//
-					// for (int k = 0; k < dseqs.size(); k++) {
-					// int dseq = dseqs.get(k);
-					// System.out.println(phrss.get(dseq));
-					// }
-					// System.out.println();
-					phrs_weight = 1f * ppl.size() / pii.getDocCnt();
-					phrs_weight = Math.exp(phrs_weight + 1);
+					IntegerArray dseqs = ppl.getDocSeqs();
+					double avg_src_cnt = 0;
+					for (int k = 0; k < dseqs.size(); k++) {
+						int dseq = dseqs.get(k);
+						String phrs = phrss.get(dseq);
+						int src_cnt = srcCnts.get(dseq);
+						avg_src_cnt += src_cnt;
+					}
+					avg_src_cnt /= dseqs.size();
+					double ratio = 1f * ppl.size() / pii.getDocCnt();
+					phrs_weight = Math.exp(ratio * avg_src_cnt);
 				}
 
 				tmp.setAll(0);
@@ -192,8 +198,17 @@ public class WeightedMRFScorer extends MRFScorer {
 			double phrs_weight = 1;
 
 			if (ppl != null) {
-				phrs_weight = 1f * ppl.size() / pii.getDocCnt();
-				phrs_weight = Math.exp(1 + phrs_weight);
+				IntegerArray dseqs = ppl.getDocSeqs();
+				double avg_src_cnt = 0;
+				for (int k = 0; k < dseqs.size(); k++) {
+					int dseq = dseqs.get(k);
+					String phrs = phrss.get(dseq);
+					int src_cnt = srcCnts.get(dseq);
+					avg_src_cnt += src_cnt;
+				}
+				avg_src_cnt /= dseqs.size();
+				double ratio = 1f * ppl.size() / pii.getDocCnt();
+				phrs_weight = Math.exp(ratio * avg_src_cnt);
 			}
 
 			for (int j = 0; j < ret.size(); j++) {
