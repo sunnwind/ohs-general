@@ -118,46 +118,38 @@ public class WeightedMRFScorer extends MRFScorer {
 	}
 
 	protected SparseVector scoreOrderedPhrases(SparseVector Q, SparseVector docs) throws Exception {
-		return scorePhrases(new IntegerArray(Q.indexes()), docs, true, 1);
+		return scorePhrases(Q, docs, true, 1);
 	}
 
-	protected SparseVector scorePhrases(IntegerArray Q, SparseVector docs, boolean keep_order, int window_size) throws Exception {
+	protected SparseVector scorePhrases(SparseVector Q, SparseVector docs, boolean keep_order, int window_size) throws Exception {
 		SparseVector ret = new SparseVector(ArrayUtils.copy(docs.indexes()));
 		SparseVector tmp = ret.copy();
 
-		String Qstr = StrUtils.join(" ", vocab.getObjects(Q.values()));
+		String Qstr = StrUtils.join(" ", vocab.getObjects(Q.indexes()));
 
 		for (int s = 0; s < Q.size() - 1; s++) {
 			int r1 = s + 2;
 			int r2 = Math.min(r1 + phrs_size, Q.size() + 1);
 
 			for (int e = r1; e < r2; e++) {
-				IntegerArray Qsub = Q.subArray(s, e);
-				String Qsubstr = StrUtils.join(" ", vocab.getObjects(Qsub));
+				SparseVector Qsub = Q.subVector(s, e);
+				String Qsubstr = StrUtils.join(" ", vocab.getObjects(Qsub.indexes()));
 
-				PostingList pl = ii.getPostingList(Qsub, keep_order, window_size);
+				PostingList pl = ii.getPostingList(new IntegerArray(Qsub.indexes()), keep_order, window_size);
 
 				if (pl == null) {
 					continue;
 				}
 
-				PostingList ppl = pii.getPostingList(Qsub, keep_order, window_size);
+				PostingList ppl = pii.getPostingList(new IntegerArray(Qsub.indexes()), keep_order, window_size);
 				double phrs_weight = 1;
 
 				if (ppl != null) {
 					// System.out.printf("phrs=[%s], %s\n", phrs, ppl);
 					//
 					IntegerArray dseqs = ppl.getDocSeqs();
-					double avg_src_cnt = 0;
-					for (int k = 0; k < dseqs.size(); k++) {
-						int dseq = dseqs.get(k);
-						String phrs = phrss.get(dseq);
-						int src_cnt = srcCnts.get(dseq);
-						avg_src_cnt += src_cnt;
-					}
-					avg_src_cnt /= dseqs.size();
 					double ratio = 1f * ppl.size() / pii.getDocCnt();
-					phrs_weight = Math.exp(ratio * avg_src_cnt);
+					phrs_weight = Math.exp(ratio);
 				}
 
 				tmp.setAll(0);
@@ -199,16 +191,8 @@ public class WeightedMRFScorer extends MRFScorer {
 
 			if (ppl != null) {
 				IntegerArray dseqs = ppl.getDocSeqs();
-				double avg_src_cnt = 0;
-				for (int k = 0; k < dseqs.size(); k++) {
-					int dseq = dseqs.get(k);
-					String phrs = phrss.get(dseq);
-					int src_cnt = srcCnts.get(dseq);
-					avg_src_cnt += src_cnt;
-				}
-				avg_src_cnt /= dseqs.size();
 				double ratio = 1f * ppl.size() / pii.getDocCnt();
-				phrs_weight = Math.exp(ratio * avg_src_cnt);
+				phrs_weight = Math.exp(ratio);
 			}
 
 			for (int j = 0; j < ret.size(); j++) {
@@ -219,7 +203,7 @@ public class WeightedMRFScorer extends MRFScorer {
 	}
 
 	protected SparseVector scoreUnorderedPhrases(SparseVector Q, SparseVector docs) throws Exception {
-		return scorePhrases(new IntegerArray(Q.indexes()), docs, false, window_size);
+		return scorePhrases(Q, docs, false, window_size);
 	}
 
 }

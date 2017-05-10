@@ -308,7 +308,6 @@ public class DocumentCollection {
 		}
 
 		if (ret == null) {
-
 			ByteArrayMatrix data = null;
 
 			synchronized (fc) {
@@ -534,15 +533,6 @@ public class DocumentCollection {
 
 	public List<Pair<String, IntegerArray>> getRange(int[] range) throws Exception {
 		return getRange(range[0], range[1], true);
-	}
-
-	public List<Pair<String, IntegerArray>> getRange2(int i, int j) throws Exception {
-		int size = j - i;
-		List<Pair<String, IntegerArray>> ret = Generics.newArrayList(size);
-		for (int k = i; k < j; k++) {
-			ret.add(get(k));
-		}
-		return ret;
 	}
 
 	public Pair<String, IntegerArrayMatrix> getSents(int i) throws Exception {

@@ -17,6 +17,8 @@ import edu.stanford.nlp.pipeline.Annotation;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import edu.stanford.nlp.util.CoreMap;
 import ohs.corpus.search.model.BM25Scorer;
+import ohs.corpus.search.model.FeedbackBuilder;
+import ohs.corpus.search.model.LMScorer;
 import ohs.corpus.search.model.MRFScorer;
 import ohs.corpus.search.model.VsmScorer;
 import ohs.corpus.search.model.WeightedMRFScorer;
@@ -54,6 +56,7 @@ import ohs.types.number.IntegerArray;
 import ohs.types.number.IntegerArrayMatrix;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
+import ohs.utils.Timer;
 
 public class Experiments {
 
@@ -526,9 +529,9 @@ public class Experiments {
 					String pos = token.get(PartOfSpeechAnnotation.class);
 					String lemma = token.get(LemmaAnnotation.class);
 
-					if (!lemma.equals(word)) {
-						m.put(word, lemma);
-					}
+					// if (!lemma.equals(word)) {
+					m.put(word, lemma);
+					// }
 				}
 			}
 		}
@@ -580,24 +583,39 @@ public class Experiments {
 
 		CounterMap<String, String> srData = Generics.newCounterMap(bqs.size());
 		List<SparseVector> qData2 = Generics.newArrayList(bqs.size());
+		List<SparseVector> dData2 = Generics.newArrayList(bqs.size());
 
 		DocumentSearcher ds = new DocumentSearcher(idxDir, stopwordFileName);
+		LMScorer scorer = new LMScorer(ds);
+
+		FeedbackBuilder fb = new FeedbackBuilder(ds.getVocab(), ds.getDocumentCollection(), ds.getInvertedIndex(), ds.getWordFilter());
 
 		// ds.getFeedbackBuilder().setUseDocumentPrior(true);
 		// ds.getFeedbackBuilder().setFbWordSize(15);
 
 		for (int i = 0; i < qData1.rowSize(); i++) {
+			Timer timer = Timer.newTimer();
+
 			SparseVector Q = qData1.rowAt(i);
 			SparseVector lm_q1 = VectorUtils.toSparseVector(Q);
 			lm_q1.normalize();
 
 			SparseVector scores = dData1.rowAt(i).subVector(top_k);
-			SparseVector lm_fb = ds.getFeedbackBuilder().buildRM1(scores, 0);
-			SparseVector lm_q2 = ds.updateQueryModel(lm_q1, lm_fb);
+			SparseVector lm_fb = fb.buildRM1(scores, 0);
+			SparseVector lm_q2 = fb.updateQueryModel(lm_q1, lm_fb);
+
+			scores = scorer.score2(lm_q2, scores);
+
+			dData2.add(scores);
 			qData2.add(lm_q2);
+
+			System.out.printf("No:\t%d\n", i);
+			System.out.println(VectorUtils.toCounter(lm_q1, ds.getVocab()));
+			System.out.println(VectorUtils.toCounter(lm_q2, ds.getVocab()));
+			System.out.println(timer.stop() + "\n");
 		}
 
-		List<SparseVector> dData2 = ds.search(qData2, null, 2);
+		// List<SparseVector> dData2 = ds.search(qData2, null, 2);
 
 		collectSearchResults(new DocumentIdMap(idxDir), bqs, dData2, srData);
 
@@ -713,16 +731,18 @@ public class Experiments {
 
 		DocumentSearcher ds = new DocumentSearcher(idxDir, stopwordFileName);
 		ds.setTopK(top_k);
-		ds.setUseFeedback(false);
 
-		// LemmaExpander lm = new LemmaExpander(ds.getVocab(), FileUtils.readStringHashMapFromText(MIRPath.CLEF_EH_2017_DIR + "lemma.txt"));
-		//
+		LemmaExpander le = new LemmaExpander(ds.getWordFilter(),
+				FileUtils.readStringHashMapFromText(MIRPath.CLEF_EH_2017_DIR + "lemma.txt"));
+		ds.setLemmaExpander(le);
+
 		for (BaseQuery bq : bqs) {
 			SparseVector Q = ds.index(bq.getSearchText());
+			Q = le.expand(Q);
 			qData.add(Q);
 		}
 
-		String modelName = "wmrf";
+		String modelName = "lmd";
 
 		if (modelName.equals("mrf")) {
 			ds.setScorer(new MRFScorer(ds));
@@ -781,7 +801,6 @@ public class Experiments {
 
 		DocumentSearcher ds = new DocumentSearcher(idxDir, stopwordFileName);
 		ds.setTopK(top_k);
-		ds.setUseFeedback(false);
 
 		List<File> files = FileUtils.getFilesUnder(resDir);
 

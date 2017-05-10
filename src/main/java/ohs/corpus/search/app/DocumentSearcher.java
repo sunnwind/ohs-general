@@ -75,6 +75,7 @@ public class DocumentSearcher {
 				sb.append("-------------------------");
 				sb.append(String.format("\nthread name:\t%s", Thread.currentThread().getName()));
 				sb.append("\n" + StrUtils.join(" ", ds.getVocab().getObjects(Q.indexes())));
+				sb.append("\n" + VectorUtils.toCounter(Q, ds.getVocab()));
 				System.out.println(sb.toString() + "\n\n");
 
 				if (scoreData == null) {
@@ -222,8 +223,6 @@ public class DocumentSearcher {
 
 	private File dataDir;
 
-	private FeedbackBuilder fbb;
-
 	private WordFilter wf;
 
 	private double mixture_fb = 0.5;
@@ -234,9 +233,9 @@ public class DocumentSearcher {
 
 	private boolean use_idf_match = false;
 
-	private boolean use_feedback = false;
-
 	private boolean print_log = false;
+
+	private LemmaExpander le;
 
 	public DocumentSearcher(Scorer scorer, RawDocumentCollection rdc, DocumentCollection dc, InvertedIndex ii, WordFilter wf)
 			throws Exception {
@@ -246,9 +245,6 @@ public class DocumentSearcher {
 		this.ii = ii;
 		this.wf = wf;
 		this.vocab = dc.getVocab();
-
-		fbb = new FeedbackBuilder(vocab, dc, ii, wf);
-
 	}
 
 	public DocumentSearcher(String dataDir, String stopwordFileName) throws Exception {
@@ -257,14 +253,12 @@ public class DocumentSearcher {
 		rdc = new RawDocumentCollection(dataDir);
 
 		dc = new DocumentCollection(dataDir);
-
-		ii = new InvertedIndex(dataDir);
-
 		vocab = dc.getVocab();
 
-		scorer = new LMScorer(vocab, dc, ii);
-
+		ii = new InvertedIndex(dataDir);
 		ii.setVocab(vocab);
+
+		scorer = new LMScorer(vocab, dc, ii);
 
 		if (stopwordFileName != null) {
 			Set<String> stopwords = FileUtils.readStringSetFromText(stopwordFileName);
@@ -272,9 +266,6 @@ public class DocumentSearcher {
 		} else {
 			wf = new WordFilter(vocab, null);
 		}
-
-		fbb = new FeedbackBuilder(vocab, dc, ii, wf);
-
 	}
 
 	public void close() throws Exception {
@@ -289,8 +280,6 @@ public class DocumentSearcher {
 		ds.setMaxMatchSize(max_match_size);
 		ds.setTopK(top_k);
 		ds.setUseIdfMatch(use_idf_match);
-		ds.setUseFeedback(use_feedback);
-		ds.setFeedbackBuilder(fbb);
 		return ds;
 	}
 
@@ -339,30 +328,12 @@ public class DocumentSearcher {
 		return sb.toString();
 	}
 
-	public FeedbackBuilder getFeedbackBuilder() {
-		return fbb;
-	}
-
 	public double getFeedbackMixture() {
 		return mixture_fb;
 	}
 
 	public InvertedIndex getInvertedIndex() {
 		return ii;
-	}
-
-	public SparseVector getQueryModel(SparseVector Q) throws Exception {
-		SparseVector lm_q = Q.copy();
-		lm_q.normalize();
-
-		if (use_feedback) {
-			System.out.println("feedback");
-			SparseVector scores = search(lm_q, match(new IntegerArray(lm_q.indexes())));
-			SparseVector lm_fb = fbb.buildRM1(scores);
-			SparseVector lm_q2 = updateQueryModel(lm_q, lm_fb);
-			lm_q = lm_q2;
-		}
-		return lm_q;
 	}
 
 	public RawDocumentCollection getRawDocumentCollection() {
@@ -420,18 +391,18 @@ public class DocumentSearcher {
 		return ret;
 	}
 
-	public SparseVector match(IntegerArray Q) throws Exception {
+	public SparseVector match(SparseVector Q) throws Exception {
 		Timer timer = Timer.newTimer();
 
 		int max_doc_freq = 0;
-		for (int w : Q) {
+		for (int w : Q.indexes()) {
 			int doc_freq = vocab.getDocFreq(w);
 			max_doc_freq = Math.max(doc_freq, max_doc_freq);
 		}
 
 		Counter<Integer> c = Generics.newCounter(max_doc_freq);
 
-		for (int w : Q) {
+		for (int w : Q.indexes()) {
 			PostingList pl = ii.getPostingList(w);
 
 			if (pl == null) {
@@ -460,7 +431,7 @@ public class DocumentSearcher {
 		return ret;
 	}
 
-	public SparseVector matchSeq(IntegerArray Q, boolean keep_order, int window_size) throws Exception {
+	public SparseVector matchSeq(SparseVector Q, boolean keep_order, int window_size) throws Exception {
 		Timer timer = Timer.newTimer();
 
 		PostingList pl = matchSeqPostingList(Q, keep_order, window_size);
@@ -485,8 +456,8 @@ public class DocumentSearcher {
 		return ret;
 	}
 
-	public PostingList matchSeqPostingList(IntegerArray Q, boolean keep_order, int window_size) throws Exception {
-		return ii.getPostingList(Q, keep_order, window_size);
+	public PostingList matchSeqPostingList(SparseVector Q, boolean keep_order, int window_size) throws Exception {
+		return ii.getPostingList(new IntegerArray(Q.indexes()), keep_order, window_size);
 	}
 
 	public List<SparseVector> search(List<SparseVector> qData, List<SparseVector> dData, int thread_size) throws Exception {
@@ -532,19 +503,13 @@ public class DocumentSearcher {
 
 	public SparseVector search(SparseVector Q) throws Exception {
 		SparseVector ret = null;
-		SparseVector lm_q = Q.copy();
-		lm_q.normalize();
-		if (use_feedback) {
-			System.out.println("feedback");
-			SparseVector scores = search(lm_q, match(new IntegerArray(lm_q.indexes())));
-			SparseVector lm_fb = fbb.buildRM1(scores);
-			SparseVector lm_q2 = updateQueryModel(lm_q, lm_fb);
 
-			scores.sortIndexes();
-			ret = new LMScorer(this).score(lm_q2, scores);
+		if (le == null) {
+			ret = search(Q, match(Q));
 		} else {
-			ret = search(lm_q, match(new IntegerArray(lm_q.indexes())));
+
 		}
+
 		return ret;
 	}
 
@@ -565,12 +530,12 @@ public class DocumentSearcher {
 		return search(index(Q));
 	}
 
-	public void setFeedbackBuilder(FeedbackBuilder fbb) {
-		this.fbb = fbb;
-	}
-
 	public void setFeedbackMixture(double mixture_fb) {
 		this.mixture_fb = mixture_fb;
+	}
+
+	public void setLemmaExpander(LemmaExpander le) {
+		this.le = le;
 	}
 
 	public void setMaxMatchSize(int max_match_size) {
@@ -593,27 +558,8 @@ public class DocumentSearcher {
 		this.top_k = top_k;
 	}
 
-	public void setUseFeedback(boolean use_feedback) {
-		this.use_feedback = use_feedback;
-	}
-
 	public void setUseIdfMatch(boolean use_idf_match) {
 		this.use_idf_match = use_idf_match;
-	}
-
-	public SparseVector updateQueryModel(SparseVector lm_q, SparseVector lm_fb) {
-		SparseVector lm_q2 = VectorMath.addAfterMultiply(lm_q, 1 - mixture_fb, lm_fb, mixture_fb);
-
-		if (print_log) {
-			StringBuffer sb = new StringBuffer();
-			sb.append("<EXPAND>");
-			sb.append(String.format("\nlm_q\t%s", VectorUtils.toCounter(lm_q, vocab)));
-			sb.append(String.format("\nlm_fb\t%s", VectorUtils.toCounter(lm_fb, vocab)));
-			sb.append(String.format("\nlm_q2\t%s\n", VectorUtils.toCounter(lm_q2, vocab)));
-			System.out.println(sb.toString());
-		}
-
-		return lm_q2;
 	}
 
 }

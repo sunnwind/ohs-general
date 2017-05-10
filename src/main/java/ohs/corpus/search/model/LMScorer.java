@@ -11,7 +11,6 @@ import ohs.matrix.DenseVector;
 import ohs.matrix.SparseMatrix;
 import ohs.matrix.SparseVector;
 import ohs.types.generic.Vocab;
-import ohs.utils.Timer;
 
 public class LMScorer extends Scorer {
 
@@ -94,7 +93,7 @@ public class LMScorer extends Scorer {
 		scores.sortValues();
 	}
 
-	protected void score(int w, double pr_w_in_q, PostingList pl, SparseVector ret) {
+	public void score(int w, double pr_w_in_q, PostingList pl, SparseVector ret) {
 		double len_c = dc.getLength();
 		double cnt_w_in_c = pl.getCount();
 		double pr_w_in_c = cnt_w_in_c / len_c;
@@ -142,8 +141,6 @@ public class LMScorer extends Scorer {
 			}
 		}
 
-		int diff = m - n;
-
 		while (m < ret.size()) {
 			int dseq = ret.indexAt(m);
 			double cnt_w_in_d = 0;
@@ -178,6 +175,60 @@ public class LMScorer extends Scorer {
 			// System.out.printf("word=[%s], %s\n", word, pl.toString());
 			score(w, pr_w_in_q, pl, ret);
 		}
+
+		if (type == Type.KLD) {
+			for (int i = 0; i < ret.size(); i++) {
+				double div = ret.valueAt(i);
+				double score = Math.exp(-div);
+				ret.setAt(i, score);
+			}
+			ret.summation();
+		}
+		return ret;
+	}
+
+	public SparseVector score2(SparseVector Q, SparseVector docs) throws Exception {
+		SparseVector ret = docs.copy();
+		ret.setAll(0);
+		ret.sortIndexes();
+
+		for (int i = 0; i < docs.size(); i++) {
+			int dseq = docs.indexAt(i);
+			SparseVector dv = dc.getDocVector(dseq);
+			double score = 0;
+
+			for (int j = 0; j < Q.size(); j++) {
+				int w = Q.indexAt(j);
+				double pr_w_in_q = Q.probAt(j);
+				String word = vocab.getObject(w);
+
+				double len_c = dc.getLength();
+				double cnt_w_in_c = vocab.sizeOfTokens();
+				double pr_w_in_c = cnt_w_in_c / len_c;
+				double pr_w_in_qbg = pr_w_in_c;
+
+				if (lm_qbg != null && w != -1) {
+					pr_w_in_qbg = lm_qbg.value(w);
+				}
+
+				double cnt_w_in_d = dv.value(w);
+				double len_d = dv.sum();
+				double pr_w_in_d = TermWeighting.twoStageSmoothing(cnt_w_in_d, len_d, pr_w_in_c, prior_dir, pr_w_in_qbg, mixture_jm);
+
+				if (pr_w_in_d > 0) {
+					double val = 0;
+					if (type == Type.KLD) {
+						val = pr_w_in_q * Math.log(pr_w_in_q / pr_w_in_d);
+					} else {
+						val = Math.log(pr_w_in_d);
+					}
+					score += val;
+				}
+			}
+			ret.addAt(i, dseq, score);
+		}
+
+		ret.sortValues();
 
 		if (type == Type.KLD) {
 			for (int i = 0; i < ret.size(); i++) {

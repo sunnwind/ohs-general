@@ -22,18 +22,18 @@ public class QueryModelBuilder {
 		this.E = E;
 	}
 
-	public SparseVector estimate(SparseVector lm_q) throws Exception {
-		DenseMatrix m = new DenseMatrix(lm_q.size());
+	public SparseVector build1(SparseVector Q) throws Exception {
+		DenseMatrix m = new DenseMatrix(Q.size());
 		CounterMap<String, String> cm = Generics.newCounterMap();
 
-		for (int j = 0; j < lm_q.size(); j++) {
-			int w1 = lm_q.indexAt(j);
+		for (int j = 0; j < Q.size(); j++) {
+			int w1 = Q.indexAt(j);
 			double pr1 = vocab.getProb(w1);
 			double idf1 = TermWeighting.idf(vocab.getDocCnt(), vocab.getDocFreq(w1));
 			DenseVector e1 = E.row(w1);
 
-			for (int k = j + 1; k < lm_q.size(); k++) {
-				int w2 = lm_q.indexAt(k);
+			for (int k = j + 1; k < Q.size(); k++) {
+				int w2 = Q.indexAt(k);
 				double pr2 = vocab.getProb(w2);
 				double idf2 = TermWeighting.idf(vocab.getDocCnt(), vocab.getDocFreq(w2));
 
@@ -49,22 +49,23 @@ public class QueryModelBuilder {
 
 		m.normalizeColumns();
 
-		SparseVector lm_q2 = lm_q.copy();
+		SparseVector ret = Q.copy();
+		ret.normalize();
 
-		ArrayMath.randomWalk(m.values(), lm_q2.values(), 20);
+		ArrayMath.randomWalk(m.values(), ret.values(), 20);
 
-		return lm_q2;
+		return ret;
 	}
 
-	public SparseVector estimate2(SparseVector lm_q) throws Exception {
-		DenseMatrix m = new DenseMatrix(lm_q.size());
+	public SparseVector build2(SparseVector Q) throws Exception {
+		DenseMatrix m = new DenseMatrix(Q.size());
 
-		for (int i = 0; i < lm_q.size(); i++) {
-			int w1 = lm_q.indexAt(i);
+		for (int i = 0; i < Q.size(); i++) {
+			int w1 = Q.indexAt(i);
 			DenseVector e1 = E.row(w1);
 
-			for (int j = i + 1; j < lm_q.size(); j++) {
-				int w2 = lm_q.indexAt(j);
+			for (int j = i + 1; j < Q.size(); j++) {
+				int w2 = Q.indexAt(j);
 				DenseVector e2 = E.row(w2);
 				double cosine = VectorMath.dotProduct(e1, e2);
 				// double weight = CommonMath.sigmoid(cosine);
@@ -78,20 +79,20 @@ public class QueryModelBuilder {
 
 		m.normalizeColumns();
 
-		SparseVector lm_q2 = new SparseVector(lm_q.copyIndexes());
+		SparseVector ret = new SparseVector(Q.copyIndexes());
 
-		for (int i = 0; i < lm_q.size(); i++) {
-			int w = lm_q.indexAt(i);
-			double pr_w_in_q = lm_q.valueAt(i);
-			double pr_w_in_q_emb = ArrayMath.dotProduct(lm_q.values(), m.row(i).values());
-			lm_q2.addAt(i, w, pr_w_in_q_emb);
+		for (int i = 0; i < Q.size(); i++) {
+			int w = Q.indexAt(i);
+			double pr_w_in_q = Q.valueAt(i);
+			double pr_w_in_q_emb = ArrayMath.dotProduct(Q.values(), m.row(i).values());
+			ret.addAt(i, w, pr_w_in_q_emb);
 		}
 
-		ArrayMath.randomWalk(m.values(), lm_q2.values(), 20);
+		ArrayMath.randomWalk(m.values(), ret.values(), 20);
 
-		lm_q2.summation();
+		ret.summation();
 
-		return lm_q2;
+		return ret;
 	}
 
 }
