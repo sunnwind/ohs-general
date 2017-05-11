@@ -85,6 +85,7 @@ public class PassageScorer extends Scorer {
 		return ret;
 	}
 
+	@Override
 	public SparseVector score(SparseVector lm_q, SparseVector docCnts) throws Exception {
 		double pr_w_in_c = 0;
 		double pr_w_in_psg_jm = 0;

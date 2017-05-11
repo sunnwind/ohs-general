@@ -106,6 +106,7 @@ public class TranslationModelScorer extends Scorer {
 		return score;
 	}
 
+	@Override
 	public SparseVector score(SparseVector lm_q, SparseVector docCnt) throws Exception {
 		SparseVector ret = new SparseVector(docCnt.size());
 		for (int i = 0; i < docCnt.size(); i++) {

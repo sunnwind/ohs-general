@@ -35,10 +35,11 @@ public class MRFScorer extends LMScorer {
 		scores.sortValues();
 	}
 
+	@Override
 	public SparseVector score(SparseVector Q, SparseVector docs) throws Exception {
-		SparseVector s1 = super.score(Q, docs);
-		SparseVector s2 = scoreOrderedPhrases(Q, docs);
-		SparseVector s3 = scoreUnorderedPhrases(Q, docs);
+		SparseVector s1 = mixtures.value(0) > 0 ? super.score(Q, docs) : new SparseVector(ArrayUtils.copy(docs.indexes()));
+		SparseVector s2 = mixtures.value(1) > 0 ? scoreOrderedPhrases(Q, docs) : new SparseVector(ArrayUtils.copy(docs.indexes()));
+		SparseVector s3 = mixtures.value(2) > 0 ? scoreUnorderedPhrases(Q, docs) : new SparseVector(ArrayUtils.copy(docs.indexes()));
 
 		for (int i = 0; i < docs.size(); i++) {
 			int dseq = docs.indexAt(i);
@@ -50,11 +51,11 @@ public class MRFScorer extends LMScorer {
 		return s1;
 	}
 
-	protected SparseVector scoreOrderedPhrases(SparseVector Q, SparseVector docs) throws Exception {
+	public SparseVector scoreOrderedPhrases(SparseVector Q, SparseVector docs) throws Exception {
 		return scorePhrases(Q, docs, true, 1);
 	}
 
-	protected SparseVector scorePhrases(SparseVector Q, SparseVector docs, boolean keep_order, int window_size) throws Exception {
+	public SparseVector scorePhrases(SparseVector Q, SparseVector docs, boolean keep_order, int window_size) throws Exception {
 		SparseVector ret = new SparseVector(ArrayUtils.copy(docs.indexes()));
 
 		String str = StrUtils.join(" ", vocab.getObjects(Q.indexes()));
@@ -63,8 +64,8 @@ public class MRFScorer extends LMScorer {
 			int r1 = s + 2;
 			int r2 = Math.min(r1 + phrs_size, Q.size() + 1);
 
-			for (int e = r1; e < r2; e++) {
-
+			for (int m = r1; m < r2; m++) {
+				int e = m - s;
 				String phrs = StrUtils.join(" ", vocab.getObjects(Q.subVector(s, e).indexes()));
 				// System.out.println(phrs);
 
@@ -80,12 +81,13 @@ public class MRFScorer extends LMScorer {
 		return ret;
 	}
 
-	protected SparseVector scoreUnorderedPhrases(SparseVector Q, SparseVector docs) throws Exception {
+	public SparseVector scoreUnorderedPhrases(SparseVector Q, SparseVector docs) throws Exception {
 		return scorePhrases(Q, docs, false, window_size);
 	}
 
 	public void setCliqueTypeMixtures(double[] mixtures) {
 		this.mixtures.setValues(mixtures);
+		this.mixtures.normalizeAfterSummation();
 	}
 
 	public void setPhraseSize(int phrs_size) {

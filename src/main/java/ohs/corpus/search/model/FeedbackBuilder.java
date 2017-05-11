@@ -32,9 +32,9 @@ public class FeedbackBuilder {
 
 	private Vocab vocab;
 
-	private int size_doc_fb = 10;
+	private int fb_doc_size = 10;
 
-	private int size_word_fb = 30;
+	private int fb_word_size = 30;
 
 	private double prior_dir = 2000;
 
@@ -88,7 +88,7 @@ public class FeedbackBuilder {
 			WordFilter filter = ds.getWordFilter();
 
 			SparseVector docScores = docScoreData.get(i).copy();
-			docScores.keepTopN(size_doc_fb);
+			docScores.keepTopN(fb_doc_size);
 
 			SparseMatrix docVecs = ds.getDocumentCollection().getDocVectors(docScores.indexes());
 			SparseVector cnts_w_in_fb = getWordCounts(docVecs);
@@ -157,7 +157,7 @@ public class FeedbackBuilder {
 				}
 			}
 
-			lm_fb.keepTopNKeys(size_word_fb);
+			lm_fb.keepTopNKeys(fb_word_size);
 			lm_fb.normalize();
 
 			rms.add(VectorUtils.toCounter(lm_fb, vocab));
@@ -184,7 +184,7 @@ public class FeedbackBuilder {
 			}
 		}
 
-		rmm.keepTopNKeys(size_word_fb);
+		rmm.keepTopNKeys(fb_word_size);
 		rmm.normalize();
 
 		if (print_log) {
@@ -225,7 +225,7 @@ public class FeedbackBuilder {
 			SparseVector rm = buildRM1(scores);
 			rms.add(VectorUtils.toCounter(rm, vocab));
 
-			int size_doc_fb = Integer.min(scores.size(), this.size_doc_fb);
+			int size_doc_fb = Integer.min(scores.size(), this.fb_doc_size);
 			priors_col[i] = scores.subVector(size_doc_fb).sum();
 
 			double len = 0;
@@ -257,7 +257,7 @@ public class FeedbackBuilder {
 			}
 		}
 
-		c.keepTopNKeys(size_word_fb);
+		c.keepTopNKeys(fb_word_size);
 		c.normalize();
 
 		if (print_log) {
@@ -269,7 +269,7 @@ public class FeedbackBuilder {
 	}
 
 	public SparseVector buildEmbeddingRM1(SparseVector lm_q, SparseVector scores, WordSearcher ws) throws Exception {
-		scores = scores.subVector(Math.min(size_doc_fb, scores.size()));
+		scores = scores.subVector(Math.min(fb_doc_size, scores.size()));
 
 		SparseMatrix dvs = dc.getDocVectors(scores.indexes());
 		SparseVector lm_fb = getWordCounts(dvs);
@@ -360,13 +360,13 @@ public class FeedbackBuilder {
 		ArrayMath.multiply(lm_fb.values(), cents.values(), lm_fb.values());
 
 		lm_fb.sortValues();
-		lm_fb = lm_fb.subVector(size_word_fb);
+		lm_fb = lm_fb.subVector(fb_word_size);
 		lm_fb.normalize();
 		return lm_fb;
 	}
 
 	public SparseVector buildEmbeddingRM2(SparseVector lm_q, SparseVector scores, WordSearcher ws) throws Exception {
-		scores = scores.subVector(Math.min(size_doc_fb, scores.size()));
+		scores = scores.subVector(Math.min(fb_doc_size, scores.size()));
 
 		SparseMatrix dvs = dc.getDocVectors(scores.indexes());
 		SparseVector lm_fb = getWordCounts(dvs);
@@ -448,7 +448,7 @@ public class FeedbackBuilder {
 		}
 
 		lm_fb.sortValues();
-		lm_fb = lm_fb.subVector(size_word_fb);
+		lm_fb = lm_fb.subVector(fb_word_size);
 		lm_fb.normalize();
 		return lm_fb;
 	}
@@ -464,7 +464,7 @@ public class FeedbackBuilder {
 		}
 
 		rm3.sortValues();
-		rm3 = rm3.subVector(size_word_fb);
+		rm3 = rm3.subVector(fb_word_size);
 		rm3.normalize();
 		return rm3;
 
@@ -473,7 +473,7 @@ public class FeedbackBuilder {
 	public SparseVector buildPassageRM1(SparseVector lm_q, SparseVector docScores) throws Exception {
 		docScores = docScores.copy();
 
-		docScores.keepTopN(size_doc_fb);
+		docScores.keepTopN(fb_doc_size);
 
 		SparseMatrix docVecs = dc.getDocVectors(docScores.indexes());
 
@@ -577,7 +577,7 @@ public class FeedbackBuilder {
 			}
 		}
 
-		lm_fb.keepTopNKeys(size_word_fb);
+		lm_fb.keepTopNKeys(fb_word_size);
 		lm_fb.normalize();
 
 		SparseVector ret = VectorUtils.toSparseVector(lm_fb);
@@ -588,7 +588,7 @@ public class FeedbackBuilder {
 	public SparseVector buildPassageRM2(SparseVector lm_q, SparseVector docScores) throws Exception {
 		docScores = docScores.copy();
 
-		docScores.keepTopN(size_doc_fb);
+		docScores.keepTopN(fb_doc_size);
 
 		SparseMatrix docVecs = dc.getDocVectors(docScores.indexes());
 
@@ -702,7 +702,7 @@ public class FeedbackBuilder {
 			}
 		}
 
-		lm_fb.keepTopNKeys(size_word_fb);
+		lm_fb.keepTopNKeys(fb_word_size);
 		lm_fb.normalize();
 
 		return VectorUtils.toSparseVector(lm_fb);
@@ -713,7 +713,7 @@ public class FeedbackBuilder {
 	}
 
 	public SparseVector buildRM1(SparseVector scores, int start) throws Exception {
-		scores = scores.subVector(start, Math.min(size_doc_fb, scores.size() - start));
+		scores = scores.subVector(start, Math.min(fb_doc_size, scores.size() - start));
 
 		SparseMatrix dvs = dc.getDocVectors(scores.indexes());
 		SparseVector lm_fb = getWordCounts(dvs);
@@ -757,7 +757,7 @@ public class FeedbackBuilder {
 		}
 
 		lm_fb.sortValues();
-		lm_fb = lm_fb.subVector(size_word_fb);
+		lm_fb = lm_fb.subVector(fb_word_size);
 		lm_fb.normalize();
 		return lm_fb;
 	}
@@ -765,7 +765,7 @@ public class FeedbackBuilder {
 	public SparseVector buildSpecificLM(SparseVector docScores) throws Exception {
 		docScores = docScores.copy();
 
-		docScores.keepTopN(size_doc_fb);
+		docScores.keepTopN(fb_doc_size);
 
 		SparseMatrix docVecs = dc.getDocVectors(docScores.indexes());
 		SparseVector cnts_w_in_fb = getWordCounts(docVecs);
@@ -819,7 +819,7 @@ public class FeedbackBuilder {
 		// System.out.println(new IntegerArray(dvs.rowIndexes()));
 		// System.out.println(VectorUtils.toCounter(wcnts, vocab));
 
-		lm_fb.keepTopNKeys(size_word_fb);
+		lm_fb.keepTopNKeys(fb_word_size);
 		lm_fb.normalize();
 
 		// System.out.println(VectorUtils.toCounter(lm_fb, vocab));
@@ -828,7 +828,7 @@ public class FeedbackBuilder {
 	}
 
 	public SparseVector buildTRM1(SparseVector scores, int start) throws Exception {
-		scores = scores.subVector(start, Math.min(size_doc_fb, scores.size() - start));
+		scores = scores.subVector(start, Math.min(fb_doc_size, scores.size() - start));
 
 		SparseMatrix dvs = dc.getDocVectors(scores.indexes());
 		SparseVector lm_fb = getWordCounts(dvs);
@@ -888,13 +888,13 @@ public class FeedbackBuilder {
 		}
 
 		lm_fb.sortValues();
-		lm_fb = lm_fb.subVector(size_word_fb);
+		lm_fb = lm_fb.subVector(fb_word_size);
 		lm_fb.normalize();
 		return lm_fb;
 	}
 
 	public SparseVector buildTRM2(SparseVector docScores, int start) throws Exception {
-		docScores = docScores.subVector(start, Math.min(size_doc_fb, docScores.size() - start));
+		docScores = docScores.subVector(start, Math.min(fb_doc_size, docScores.size() - start));
 
 		SparseMatrix dvs = dc.getDocVectors(docScores.indexes());
 		SparseVector lm_fb = getWordCounts(dvs);
@@ -973,7 +973,7 @@ public class FeedbackBuilder {
 		}
 
 		lm_fb.sortValues();
-		lm_fb = lm_fb.subVector(size_word_fb);
+		lm_fb = lm_fb.subVector(fb_word_size);
 		lm_fb.normalize();
 		return lm_fb;
 	}
@@ -983,11 +983,11 @@ public class FeedbackBuilder {
 	}
 
 	public int getFbDocSize() {
-		return size_doc_fb;
+		return fb_doc_size;
 	}
 
 	public int getFbWordSize() {
-		return size_word_fb;
+		return fb_word_size;
 	}
 
 	public double getMixtureJM() {
@@ -1075,12 +1075,12 @@ public class FeedbackBuilder {
 	// return ret;
 	// }
 
-	public void setFbDocSize(int size_doc_fb) {
-		this.size_doc_fb = size_doc_fb;
+	public void setFbDocSize(int fb_doc_size) {
+		this.fb_doc_size = fb_doc_size;
 	}
 
-	public void setFbWordSize(int size_word_fb) {
-		this.size_word_fb = size_word_fb;
+	public void setFbWordSize(int fb_word_size) {
+		this.fb_word_size = fb_word_size;
 	}
 
 	public void setMixtureJM(double mixture_jm) {

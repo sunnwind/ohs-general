@@ -1,7 +1,5 @@
 package ohs.corpus.search.model;
 
-import java.util.List;
-
 import ohs.corpus.search.app.DocumentSearcher;
 import ohs.corpus.search.index.PostingList;
 import ohs.ir.weight.TermWeighting;

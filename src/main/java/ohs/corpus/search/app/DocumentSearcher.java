@@ -71,13 +71,6 @@ public class DocumentSearcher {
 				SparseVector Q = queryData.get(q_loc);
 				SparseVector scores = null;
 
-				StringBuffer sb = new StringBuffer();
-				sb.append("-------------------------");
-				sb.append(String.format("\nthread name:\t%s", Thread.currentThread().getName()));
-				sb.append("\n" + StrUtils.join(" ", ds.getVocab().getObjects(Q.indexes())));
-				sb.append("\n" + VectorUtils.toCounter(Q, ds.getVocab()));
-				System.out.println(sb.toString() + "\n\n");
-
 				if (scoreData == null) {
 					scores = ds.search(Q);
 				} else {
@@ -87,6 +80,18 @@ public class DocumentSearcher {
 					prevScores.sortValues();
 				}
 				ret.put(q_loc, scores);
+
+				// if (print_log) {
+				StringBuffer sb = new StringBuffer();
+				sb.append("=====================================");
+				sb.append(String.format("\nThread Name:\t%s", Thread.currentThread().getName()));
+				sb.append("\nNo:\t" + (q_loc + 1));
+				sb.append("\nQ1:\t" + StrUtils.join(" ", ds.getVocab().getObjects(Q.indexes())));
+				sb.append("\nQ2:\t" + VectorUtils.toCounter(Q, ds.getVocab()));
+				sb.append("\nDocs: " + scores.size());
+				System.out.println(sb.toString());
+				// }
+
 			}
 			return ret;
 		}
@@ -427,15 +432,19 @@ public class DocumentSearcher {
 			ret.sortIndexes();
 		}
 
-		System.out.printf("[Matching Time, %s]\n", timer.stop());
+		if (print_log) {
+			System.out.printf("[Matching Time, %s]\n", timer.stop());
+		}
 		return ret;
 	}
 
 	public SparseVector matchSeq(SparseVector Q, boolean keep_order, int window_size) throws Exception {
 		Timer timer = Timer.newTimer();
 
-		PostingList pl = matchSeqPostingList(Q, keep_order, window_size);
 		SparseVector ret = new SparseVector(0);
+
+		PostingList pl = matchSeqPostingList(Q, keep_order, window_size);
+
 		if (pl != null) {
 			IntegerArray dseqs = pl.getDocSeqs();
 			IntegerArray cnts = pl.getCounts();
@@ -452,7 +461,9 @@ public class DocumentSearcher {
 			ret.sortIndexes();
 		}
 
-		System.out.printf("[Matching Time, %s]\n", timer.stop());
+		if (print_log) {
+			System.out.printf("[Matching Time, %s]\n", timer.stop());
+		}
 		return ret;
 	}
 
@@ -522,7 +533,9 @@ public class DocumentSearcher {
 			ret = ret.subVector(top_k);
 		}
 
-		System.out.printf("[Scoring Time, %s]\n", timer.stop());
+		if (print_log) {
+			System.out.printf("[Scoring Time, %s]\n", timer.stop());
+		}
 		return ret;
 	}
 

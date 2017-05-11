@@ -82,6 +82,7 @@ public class LMScorer extends Scorer {
 		return lm_qbg;
 	}
 
+	@Override
 	public void postprocess(SparseVector scores) {
 		if (type == Type.QL) {
 			for (int i = 0; i < scores.size(); i++) {
@@ -159,6 +160,7 @@ public class LMScorer extends Scorer {
 		}
 	}
 
+	@Override
 	public SparseVector score(SparseVector Q, SparseVector docs) throws Exception {
 		SparseVector ret = new SparseVector(ArrayUtils.copy(docs.indexes()));
 
@@ -190,7 +192,6 @@ public class LMScorer extends Scorer {
 	public SparseVector score2(SparseVector Q, SparseVector docs) throws Exception {
 		SparseVector ret = docs.copy();
 		ret.setAll(0);
-		ret.sortIndexes();
 
 		for (int i = 0; i < docs.size(); i++) {
 			int dseq = docs.indexAt(i);
@@ -203,7 +204,7 @@ public class LMScorer extends Scorer {
 				String word = vocab.getObject(w);
 
 				double len_c = dc.getLength();
-				double cnt_w_in_c = vocab.sizeOfTokens();
+				double cnt_w_in_c = vocab.getCount(w);
 				double pr_w_in_c = cnt_w_in_c / len_c;
 				double pr_w_in_qbg = pr_w_in_c;
 
@@ -228,8 +229,6 @@ public class LMScorer extends Scorer {
 			ret.addAt(i, dseq, score);
 		}
 
-		ret.sortValues();
-
 		if (type == Type.KLD) {
 			for (int i = 0; i < ret.size(); i++) {
 				double div = ret.valueAt(i);
@@ -238,6 +237,7 @@ public class LMScorer extends Scorer {
 			}
 			ret.summation();
 		}
+
 		return ret;
 	}
 

@@ -29,6 +29,12 @@ import ohs.types.generic.Vocab;
  */
 public class DocumentCentralityEstimator {
 
+	public static void main(String[] args) {
+		System.out.println("process begins.");
+
+		System.out.println("process ends.");
+	}
+
 	private double dirichlet_prior = 1500;
 
 	private double mixture_jm = 0;
@@ -42,12 +48,6 @@ public class DocumentCentralityEstimator {
 	public DocumentCentralityEstimator(Vocab vocab, DocumentCollection ldc) {
 		this.vocab = vocab;
 		this.ldc = ldc;
-	}
-
-	public static void main(String[] args) {
-		System.out.println("process begins.");
-
-		System.out.println("process ends.");
 	}
 
 	public SparseVector estimate(SparseVector scores) throws Exception {

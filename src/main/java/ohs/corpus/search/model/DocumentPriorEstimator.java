@@ -19,6 +19,8 @@ public class DocumentPriorEstimator {
 
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
+		
+		
 
 		System.out.println("process ends.");
 	}
@@ -49,6 +51,10 @@ public class DocumentPriorEstimator {
 
 	public DenseVector estimate() throws Exception {
 		return estimateUsingLM(ArrayUtils.range(dc.size())).toDenseVector();
+	}
+
+	public void estimateUsingConcepts(Counter<String> cptCnts) {
+
 	}
 
 	public SparseVector estimateUsingDocLen(int[] dseqs) throws Exception {
@@ -135,8 +141,7 @@ public class DocumentPriorEstimator {
 					double cnt_w_in_d = dv.valueAt(j);
 					double len_d = dv.sum();
 					double pr_w_in_c = vocab.getProb(w);
-					double pr_w_in_d_jm = TermWeighting.twoStageSmoothing(cnt_w_in_d, len_d, pr_w_in_c, prior_dir,
-							pr_w_in_c, mixture_jm);
+					double pr_w_in_d_jm = TermWeighting.twoStageSmoothing(cnt_w_in_d, len_d, pr_w_in_c, prior_dir, pr_w_in_c, mixture_jm);
 					prior += pr_w_in_d_jm;
 					// log_probs[j] = Math.log(pr_w_in_d_jm);
 				}

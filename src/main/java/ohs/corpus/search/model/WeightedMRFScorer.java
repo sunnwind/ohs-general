@@ -98,10 +98,11 @@ public class WeightedMRFScorer extends MRFScorer {
 		pii = new InvertedIndex(plm, phrsCnts.size(), vocab);
 	}
 
+	@Override
 	public SparseVector score(SparseVector Q, SparseVector docs) throws Exception {
-		SparseVector s1 = scoreUnigrams(Q, docs);
-		SparseVector s2 = scoreOrderedPhrases(Q, docs);
-		SparseVector s3 = scoreUnorderedPhrases(Q, docs);
+		SparseVector s1 = mixtures.value(0) > 0 ? scoreUnigrams(Q, docs) : new SparseVector(ArrayUtils.copy(docs.indexes()));
+		SparseVector s2 = mixtures.value(1) > 0 ? scoreOrderedPhrases(Q, docs) : new SparseVector(ArrayUtils.copy(docs.indexes()));
+		SparseVector s3 = mixtures.value(2) > 0 ? scoreUnorderedPhrases(Q, docs) : new SparseVector(ArrayUtils.copy(docs.indexes()));
 
 		if (mixtures.sum() != 1) {
 			mixtures.normalize();
@@ -117,11 +118,13 @@ public class WeightedMRFScorer extends MRFScorer {
 		return s1;
 	}
 
-	protected SparseVector scoreOrderedPhrases(SparseVector Q, SparseVector docs) throws Exception {
+	@Override
+	public SparseVector scoreOrderedPhrases(SparseVector Q, SparseVector docs) throws Exception {
 		return scorePhrases(Q, docs, true, 1);
 	}
 
-	protected SparseVector scorePhrases(SparseVector Q, SparseVector docs, boolean keep_order, int window_size) throws Exception {
+	@Override
+	public SparseVector scorePhrases(SparseVector Q, SparseVector docs, boolean keep_order, int window_size) throws Exception {
 		SparseVector ret = new SparseVector(ArrayUtils.copy(docs.indexes()));
 		SparseVector tmp = ret.copy();
 
@@ -202,7 +205,8 @@ public class WeightedMRFScorer extends MRFScorer {
 		return ret;
 	}
 
-	protected SparseVector scoreUnorderedPhrases(SparseVector Q, SparseVector docs) throws Exception {
+	@Override
+	public SparseVector scoreUnorderedPhrases(SparseVector Q, SparseVector docs) throws Exception {
 		return scorePhrases(Q, docs, false, window_size);
 	}
 

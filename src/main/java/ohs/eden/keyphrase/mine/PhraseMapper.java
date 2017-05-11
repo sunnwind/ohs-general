@@ -78,7 +78,6 @@ public class PhraseMapper<K> {
 						ret.add(Generics.newPair(i, j + 1));
 					}
 				} else {
-					System.out.println();
 					break;
 				}
 				j++;

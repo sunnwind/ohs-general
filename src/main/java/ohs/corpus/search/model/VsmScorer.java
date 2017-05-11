@@ -14,10 +14,13 @@ import ohs.types.generic.Counter;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
 import ohs.utils.Generics;
+import ohs.utils.Timer;
 
 public class VsmScorer extends Scorer {
 
 	public static DenseVector getDocNorms(DocumentCollection dc) throws Exception {
+		Timer timer = Timer.newTimer();
+
 		DenseVector ret = new DenseVector(dc.size());
 		int[][] rs = BatchUtils.getBatchRanges(dc.size(), 200);
 
@@ -26,7 +29,7 @@ public class VsmScorer extends Scorer {
 		for (int k = 0; k < rs.length; k++) {
 			int[] r = rs[k];
 			SparseMatrix dvs = dc.getDocVectors(r[0], r[1]);
-			for (int i = 0; k < dvs.rowSize(); i++) {
+			for (int i = 0; i < dvs.rowSize(); i++) {
 				int dseq = dvs.indexAt(i);
 				SparseVector dv = dvs.rowAt(i);
 				double norm = 0;
@@ -39,7 +42,14 @@ public class VsmScorer extends Scorer {
 				norm = Math.sqrt(norm);
 				ret.add(dseq, norm);
 			}
+
+			int prog = BatchUtils.progress(k + 1, rs.length);
+
+			if (prog > 0) {
+				System.out.printf("[%d percent, %s]\n", prog, timer.stop());
+			}
 		}
+
 		return ret;
 	}
 
@@ -48,6 +58,17 @@ public class VsmScorer extends Scorer {
 	public VsmScorer(DocumentSearcher ds, DenseVector docNorms) {
 		super(ds);
 		this.docNorms = docNorms;
+	}
+
+	@Override
+	public void postprocess(SparseVector scores) {
+		for (int i = 0; i < scores.size(); i++) {
+			double score = scores.valueAt(i);
+			score = Math.exp(score);
+			scores.setAt(i, score);
+		}
+		scores.summation();
+		scores.sortValues();
 	}
 
 	@Override
@@ -93,6 +114,19 @@ public class VsmScorer extends Scorer {
 			int dseq = e.getKey();
 			double score = e.getValue();
 			double norm_d = docNorms.value(dseq);
+
+			if (norm_d == 0) {
+				SparseVector dv = dc.getDocVector(dseq);
+				for (int j = 0; j < dv.size(); j++) {
+					int w = dv.indexAt(j);
+					double cnt = dv.valueAt(j);
+					double tfidf = TermWeighting.tfidf(cnt, vocab.getDocCnt(), vocab.getDocFreq(w));
+					norm_d += (tfidf * tfidf);
+				}
+				norm_d = Math.sqrt(norm_d);
+				docNorms.set(dseq, norm_d);
+			}
+
 			score /= (norm_q * norm_d);
 			ret.addAt(loc, dseq, score);
 			loc++;
