@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import org.tartarus.snowball.ext.PorterStemmer;
 
@@ -40,7 +41,6 @@ import ohs.ir.medical.general.MIRPath;
 import ohs.ir.medical.query.BaseQuery;
 import ohs.ir.medical.query.QueryReader;
 import ohs.ir.medical.query.RelevanceReader;
-import ohs.ir.medical.query.TrecCdsQuery;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.DenseVector;
@@ -133,12 +133,12 @@ public class Experiments {
 		// e.getLemmas();
 
 		// e.runPhraseMapping();
-		e.getDocPriors();
+		// e.getDocPriors();
 		// e.getDocPriors2();
 		// e.runInitSearch();
 		// e.runReranking1();
 
-		// e.runFeedback();
+		e.runFeedback();
 		// e.runKLDFB();
 		//
 		// e.runKLDLemma();
@@ -588,11 +588,24 @@ public class Experiments {
 		List<SparseVector> qData2 = Generics.newArrayList(bqs.size());
 		List<SparseVector> dData2 = Generics.newArrayList(bqs.size());
 
+		DenseVector docPriors = new DenseVector(dataDir + "doc_phrs_prior.ser.gz");
+
+		{
+			for (int i = 0; i < docPriors.size(); i++) {
+				double prior = docPriors.value(i);
+				prior = Math.exp(prior);
+				docPriors.set(i, prior);
+			}
+			docPriors.normalizeAfterSummation();
+
+			// DenseVector matchCnts = new DenseVector(dataDir + "doc_phrs_match.ser.gz");
+		}
+
 		DocumentSearcher ds = new DocumentSearcher(idxDir, stopwordFileName);
 		LMScorer scorer = new LMScorer(ds);
 
 		FeedbackBuilder fb = new FeedbackBuilder(ds.getVocab(), ds.getDocumentCollection(), ds.getInvertedIndex(), ds.getWordFilter());
-		fb.setFbWordSize(10);
+		// fb.setFbWordSize(10);
 
 		for (int i = 0; i < qData1.rowSize(); i++) {
 			Timer timer = Timer.newTimer();
@@ -602,7 +615,7 @@ public class Experiments {
 			lm_q1.normalize();
 
 			SparseVector scores = dData1.rowAt(i).subVector(top_k);
-			SparseVector lm_fb = fb.buildRM1(scores, 0);
+			SparseVector lm_fb = fb.buildRM1(scores, 0, docPriors);
 			SparseVector lm_q2 = fb.updateQueryModel(lm_q1, lm_fb);
 
 			scores = scorer.score2(lm_q2, scores);
@@ -730,8 +743,6 @@ public class Experiments {
 
 		Counter<String> phrsCnts = Generics.newCounter();
 
-		List<String> phrss = Generics.newArrayList();
-
 		{
 			List<String> lines = FileUtils.readLinesFromText("../../data/medical_ir/phrs/phrs.txt");
 			phrsCnts = Generics.newCounter(lines.size());
@@ -740,12 +751,47 @@ public class Experiments {
 				String[] ps = line.split("\t");
 				String phrs = ps[0];
 				int src_cnt = Integer.parseInt(ps[1]);
-				if (phrs.split(" ").length > 1) {
+
+				Set<String> srcs = Generics.newHashSet();
+
+				for (int i = 2; i < ps.length; i++) {
+					String src = ps[i];
+					srcs.add(src);
+				}
+
+				boolean is_in_mesh = false;
+				boolean is_in_snomed = false;
+				boolean is_in_cds = false;
+				boolean is_in_wiki = false;
+				boolean is_in_scopus = false;
+
+				if (srcs.contains("mes")) {
+					is_in_mesh = true;
+				}
+
+				if (srcs.contains("sno")) {
+					is_in_snomed = true;
+				}
+
+				if (srcs.contains("cds")) {
+					is_in_cds = true;
+				}
+
+				if (srcs.contains("wkt")) {
+					is_in_wiki = true;
+				}
+
+				if (srcs.contains("sco")) {
+					is_in_scopus = true;
+				}
+
+				if (is_in_mesh && is_in_snomed && is_in_wiki) {
 					phrsCnts.setCount(phrs, src_cnt);
-					phrss.add(phrs);
 				}
 			}
 		}
+
+		List<String> phrss = Generics.newArrayList(phrsCnts.keySet());
 
 		Collections.sort(phrss);
 
@@ -754,16 +800,10 @@ public class Experiments {
 
 		DocumentSearcher ds = new DocumentSearcher(idxDir, stopwordFileName);
 
-		IntegerArray srcCnts = new IntegerArray(phrss.size());
-
 		for (String phrs : phrss) {
-			int src_cnt = (int) phrsCnts.getCount(phrs);
 			SparseVector Q = ds.index(phrs);
-			if (Q.size() > 0 && src_cnt > 2) {
+			if (Q.size() > 0) {
 				qData.add(Q);
-				srcCnts.add(src_cnt);
-			} else {
-				// System.out.println(phrs);
 			}
 		}
 
@@ -805,58 +845,89 @@ public class Experiments {
 			}
 
 			int prog = BatchUtils.progress(i + 1, rs.length);
+			//
+			// if (prog > 0) {
+			System.out.printf("[%d percent, %d/%d, %d/%d, %s]", prog, i + 1, rs.length, r[1], ds.getDocumentCollection().size(),
+					timer.stop());
+			// }
+		}
 
-			if (prog > 0) {
-				System.out.printf("[%d percent, %d/%d, %d/%d, %s]", prog, i + 1, rs.length, r[1], ds.getDocumentCollection().size(),
-						timer.stop());
+		docPriors.writeObject(dataDir + "doc_phrs_prior.ser.gz");
+		matchCnts.writeObject(dataDir + "doc_phrs_match.ser.gz");
+	}
+
+	public void getDocPriors2() throws Exception {
+		Timer timer = Timer.newTimer();
+		Counter<String> phrsCnts = Generics.newCounter();
+
+		{
+			List<String> lines = FileUtils.readLinesFromText("../../data/medical_ir/phrs/phrs.txt");
+			phrsCnts = Generics.newCounter(lines.size());
+
+			for (String line : lines) {
+				String[] ps = line.split("\t");
+				String phrs = ps[0];
+				int src_cnt = Integer.parseInt(ps[1]);
+				phrsCnts.setCount(phrs, src_cnt);
 			}
 		}
 
-		docPriors.writeObject(MIRPath.CLEF_EH_2017_DIR + "doc_phrs_prior.ser.gz");
-		matchCnts.writeObject(MIRPath.CLEF_EH_2017_DIR + "doc_phrs_match.ser.gz");
-	}
+		DocumentSearcher ds = new DocumentSearcher(idxDir, stopwordFileName);
 
-	// public void getDocPriors2() throws Exception {
-	// Counter<String> phrsCnts = Generics.newCounter();
-	//
-	// {
-	// List<String> lines = FileUtils.readLinesFromText("../../data/medical_ir/phrs/phrs.txt");
-	// phrsCnts = Generics.newCounter(lines.size());
-	//
-	// for (String line : lines) {
-	// String[] ps = line.split("\t");
-	// String phrs = ps[0];
-	// int src_cnt = Integer.parseInt(ps[1]);
-	// if (phrs.split(" ").length > 1) {
-	// phrsCnts.setCount(phrs, src_cnt);
-	// }
-	// }
-	// }
-	//
-	// DocumentSearcher ds = new DocumentSearcher(idxDir, stopwordFileName);
-	//
-	// PhraseMapper<Integer> pm = new PhraseMapper<Integer>(PhraseMapper.createDict(phrsCnts.keySet(), ds.getVocab()));
-	//
-	// int[][] rs = BatchUtils.getBatchRanges(ds.getDocumentCollection().size(), 300);
-	//
-	// for (int i = 0; i < rs.length; i++) {
-	// int[] r = rs[i];
-	//
-	// List<Pair<String, IntegerArray>> docs = ds.getDocumentCollection().getRange(r);
-	//
-	// for (int j = 0; j < docs.size(); j++) {
-	// int dseq = j + r[0];
-	// IntegerArray d = docs.get(j).getSecond();
-	// List<Integer> words = Generics.newArrayList(d.size());
-	//
-	//
-	// pm.map(words)
-	// }
-	// }
-	//
-	// docPriors.writeObject(MIRPath.CLEF_EH_2017_DIR + "doc_phrs_prior.ser.gz");
-	// matchCnts.writeObject(MIRPath.CLEF_EH_2017_DIR + "doc_phrs_match.ser.gz");
-	// }
+		PhraseMapper<String> pm = new PhraseMapper<String>(PhraseMapper.createDict(phrsCnts.keySet()));
+
+		int[][] rs = BatchUtils.getBatchRanges(ds.getDocumentCollection().size(), 300);
+
+		Counter<String> phrsFreqs = Generics.newCounter(phrsCnts.size());
+		for (String phrs : phrsCnts.keySet()) {
+			phrsFreqs.setCount(phrs, 0);
+		}
+
+		for (int i = 0; i < rs.length; i++) {
+			int[] r = rs[i];
+
+			List<Pair<String, IntegerArray>> docs = ds.getDocumentCollection().getRange(r);
+
+			for (int j = 0; j < docs.size(); j++) {
+				int dseq = j + r[0];
+				IntegerArray d = docs.get(j).getSecond();
+
+				List<String> words = Generics.newArrayList(d.size());
+
+				for (int w : d) {
+					if (w != DocumentCollection.SENT_END) {
+						words.add(ds.getVocab().getObject(w));
+					}
+				}
+
+				List<Pair<Integer, Integer>> ps = pm.map(words);
+
+				Counter<String> c = Generics.newCounter();
+
+				for (Pair<Integer, Integer> p : ps) {
+					String phrs = StrUtils.join(" ", words, p.getFirst(), p.getSecond());
+					c.incrementCount(phrs, 1);
+				}
+
+				for (String phrs : c.keySet()) {
+					phrsFreqs.incrementCount(phrs, 1);
+				}
+			}
+
+			int prog = BatchUtils.progress(i + 1, rs.length);
+
+			if (prog > 0) {
+				System.out.printf("[%d percent, %d/%d, %d/%d, %s]\n", prog, i + 1, rs.length, r[1], ds.getDocumentCollection().size(),
+						timer.stop());
+			}
+
+			if (prog == 5) {
+				FileUtils.writeStringCounterAsText("../../data/medical_ir/phrs/phrs_freq.txt", phrsFreqs);
+			}
+		}
+
+		FileUtils.writeStringCounterAsText("../../data/medical_ir/phrs/phrs_freq.txt", phrsFreqs);
+	}
 
 	public void runInitSearch() throws Exception {
 		List<BaseQuery> bqs = QueryReader.readQueries(queryFileName);

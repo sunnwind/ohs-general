@@ -454,8 +454,8 @@ public class FeedbackBuilder {
 	}
 
 	public SparseVector buildNegRM1(SparseVector docScores, int start) throws Exception {
-		SparseVector rm1 = buildRM1(docScores, 0);
-		SparseVector rm2 = buildRM1(docScores, 100);
+		SparseVector rm1 = buildRM1(docScores, 0, null);
+		SparseVector rm2 = buildRM1(docScores, 100, null);
 		SparseVector rm3 = VectorMath.addAfterMultiply(rm1, 1, rm2, -1);
 
 		for (int k = 0; k < rm3.size(); k++) {
@@ -467,7 +467,6 @@ public class FeedbackBuilder {
 		rm3 = rm3.subVector(fb_word_size);
 		rm3.normalize();
 		return rm3;
-
 	}
 
 	public SparseVector buildPassageRM1(SparseVector lm_q, SparseVector docScores) throws Exception {
@@ -709,20 +708,14 @@ public class FeedbackBuilder {
 	}
 
 	public SparseVector buildRM1(SparseVector scores) throws Exception {
-		return buildRM1(scores, 0);
+		return buildRM1(scores, 0, null);
 	}
 
-	public SparseVector buildRM1(SparseVector scores, int start) throws Exception {
+	public SparseVector buildRM1(SparseVector scores, int start, DenseVector docPriors) throws Exception {
 		scores = scores.subVector(start, Math.min(fb_doc_size, scores.size() - start));
 
 		SparseMatrix dvs = dc.getDocVectors(scores.indexes());
 		SparseVector lm_fb = getWordCounts(dvs);
-
-		SparseVector docPriors = null;
-
-		if (use_doc_prior) {
-			docPriors = dpe.estimateUsingLM(scores.indexes());
-		}
 
 		lm_fb.setAll(0);
 
@@ -745,7 +738,7 @@ public class FeedbackBuilder {
 				double prior_d = 1;
 
 				if (docPriors != null) {
-					prior_d = docPriors.valueAt(j);
+					prior_d = docPriors.value(dseq);
 				}
 
 				double pr_w_in_fb = weight_d * pr_w_in_d * prior_d;
