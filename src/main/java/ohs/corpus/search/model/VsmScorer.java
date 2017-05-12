@@ -28,7 +28,7 @@ public class VsmScorer extends Scorer {
 
 		for (int k = 0; k < rs.length; k++) {
 			int[] r = rs[k];
-			SparseMatrix dvs = dc.getDocVectors(r[0], r[1]);
+			SparseMatrix dvs = dc.getRangeDocVectors(r[0], r[1]);
 			for (int i = 0; i < dvs.rowSize(); i++) {
 				int dseq = dvs.indexAt(i);
 				SparseVector dv = dvs.rowAt(i);

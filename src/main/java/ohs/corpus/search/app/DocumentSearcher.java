@@ -240,8 +240,6 @@ public class DocumentSearcher {
 
 	private boolean print_log = false;
 
-	private LemmaExpander le;
-
 	public DocumentSearcher(Scorer scorer, RawDocumentCollection rdc, DocumentCollection dc, InvertedIndex ii, WordFilter wf)
 			throws Exception {
 		this.scorer = scorer;
@@ -514,13 +512,7 @@ public class DocumentSearcher {
 
 	public SparseVector search(SparseVector Q) throws Exception {
 		SparseVector ret = null;
-
-		if (le == null) {
-			ret = search(Q, match(Q));
-		} else {
-
-		}
-
+		ret = search(Q, match(Q));
 		return ret;
 	}
 
@@ -545,10 +537,6 @@ public class DocumentSearcher {
 
 	public void setFeedbackMixture(double mixture_fb) {
 		this.mixture_fb = mixture_fb;
-	}
-
-	public void setLemmaExpander(LemmaExpander le) {
-		this.le = le;
 	}
 
 	public void setMaxMatchSize(int max_match_size) {

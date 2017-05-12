@@ -31,8 +31,8 @@ public class MRFScorer extends LMScorer {
 
 	@Override
 	public void postprocess(SparseVector scores) {
+		super.postprocess(scores);
 		VectorMath.softmax(scores);
-		scores.sortValues();
 	}
 
 	@Override
@@ -66,15 +66,13 @@ public class MRFScorer extends LMScorer {
 
 			for (int m = r1; m < r2; m++) {
 				int e = m - s;
-				String phrs = StrUtils.join(" ", vocab.getObjects(Q.subVector(s, e).indexes()));
-				// System.out.println(phrs);
-
-				PostingList pl = ii.getPostingList(new IntegerArray(Q.subVector(s, e).indexes()), keep_order, window_size);
+				IntegerArray subQ = new IntegerArray(Q.subVector(s, e).indexes());
+				String phrs = StrUtils.join(" ", vocab.getObjects(subQ));
+				PostingList pl = ii.getPostingList(subQ, keep_order, window_size);
 
 				if (pl == null) {
 					continue;
 				}
-
 				super.score(pl.getWord(), 1, pl, ret);
 			}
 		}

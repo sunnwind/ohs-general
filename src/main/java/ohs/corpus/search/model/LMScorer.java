@@ -10,6 +10,7 @@ import ohs.math.ArrayUtils;
 import ohs.matrix.DenseVector;
 import ohs.matrix.SparseMatrix;
 import ohs.matrix.SparseVector;
+import ohs.ml.neuralnet.com.BatchUtils;
 import ohs.types.generic.Vocab;
 
 public class LMScorer extends Scorer {
@@ -90,7 +91,16 @@ public class LMScorer extends Scorer {
 					scores.setAt(i, Double.NEGATIVE_INFINITY);
 				}
 			}
+		} else if (type == Type.KLD) {
+			for (int i = 0; i < scores.size(); i++) {
+				int dseq = scores.indexAt(i);
+				double div = scores.valueAt(i);
+				double score = Math.exp(-div);
+				scores.setAt(i, score);
+			}
 		}
+
+		scores.summation();
 		scores.sortValues();
 	}
 
@@ -178,64 +188,55 @@ public class LMScorer extends Scorer {
 			score(w, pr_w_in_q, pl, ret);
 		}
 
-		if (type == Type.KLD) {
-			for (int i = 0; i < ret.size(); i++) {
-				double div = ret.valueAt(i);
-				double score = Math.exp(-div);
-				ret.setAt(i, score);
-			}
-			ret.summation();
-		}
 		return ret;
 	}
 
-	public SparseVector score2(SparseVector Q, SparseVector docs) throws Exception {
+	public SparseVector scoreDirect(SparseVector Q, SparseVector docs) throws Exception {
 		SparseVector ret = docs.copy();
 		ret.setAll(0);
 
-		for (int i = 0; i < docs.size(); i++) {
-			int dseq = docs.indexAt(i);
-			SparseVector dv = dc.getDocVector(dseq);
-			double score = 0;
+		int[][] rs = BatchUtils.getBatchRanges(docs.indexes());
 
-			for (int j = 0; j < Q.size(); j++) {
-				int w = Q.indexAt(j);
-				double pr_w_in_q = Q.probAt(j);
-				String word = vocab.getObject(w);
+		for (int k = 0, m = 0; k < rs.length; k++) {
+			int[] r = rs[k];
+			SparseMatrix dvs = dc.getRangeDocVectors(r[0], r[1]);
 
-				double len_c = dc.getLength();
-				double cnt_w_in_c = vocab.getCount(w);
-				double pr_w_in_c = cnt_w_in_c / len_c;
-				double pr_w_in_qbg = pr_w_in_c;
+			for (int i = 0; i < dvs.rowSize(); i++) {
+				int dseq = dvs.indexAt(i);
+				SparseVector dv = dc.getDocVector(dseq);
+				double score = 0;
 
-				if (lm_qbg != null && w != -1) {
-					pr_w_in_qbg = lm_qbg.value(w);
-				}
+				for (int j = 0; j < Q.size(); j++) {
+					int w = Q.indexAt(j);
+					double pr_w_in_q = Q.probAt(j);
+					String word = vocab.getObject(w);
 
-				double cnt_w_in_d = dv.value(w);
-				double len_d = dv.sum();
-				double pr_w_in_d = TermWeighting.twoStageSmoothing(cnt_w_in_d, len_d, pr_w_in_c, prior_dir, pr_w_in_qbg, mixture_jm);
+					double len_c = dc.getLength();
+					double cnt_w_in_c = vocab.getCount(w);
+					double pr_w_in_c = cnt_w_in_c / len_c;
+					double pr_w_in_qbg = pr_w_in_c;
 
-				if (pr_w_in_d > 0) {
-					double val = 0;
-					if (type == Type.KLD) {
-						val = pr_w_in_q * Math.log(pr_w_in_q / pr_w_in_d);
-					} else {
-						val = Math.log(pr_w_in_d);
+					if (lm_qbg != null && w != -1) {
+						pr_w_in_qbg = lm_qbg.value(w);
 					}
-					score += val;
-				}
-			}
-			ret.addAt(i, dseq, score);
-		}
 
-		if (type == Type.KLD) {
-			for (int i = 0; i < ret.size(); i++) {
-				double div = ret.valueAt(i);
-				double score = Math.exp(-div);
-				ret.setAt(i, score);
+					double cnt_w_in_d = dv.value(w);
+					double len_d = dv.sum();
+					double pr_w_in_d = TermWeighting.twoStageSmoothing(cnt_w_in_d, len_d, pr_w_in_c, prior_dir, pr_w_in_qbg, mixture_jm);
+
+					if (pr_w_in_d > 0) {
+						double val = 0;
+						if (type == Type.KLD) {
+							val = pr_w_in_q * Math.log(pr_w_in_q / pr_w_in_d);
+						} else {
+							val = Math.log(pr_w_in_d);
+						}
+						score += val;
+					}
+				}
+				ret.addAt(m++, dseq, score);
 			}
-			ret.summation();
+
 		}
 
 		return ret;

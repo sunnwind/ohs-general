@@ -70,7 +70,7 @@ public class DataHandler {
 		// dh.getFrequentPhrases();
 
 		// dh.getPaperKeywords();
-		// dh.mergeKeywords();
+		dh.mergeKeywords();
 
 		// dh.getPositiveData();
 
@@ -581,17 +581,28 @@ public class DataHandler {
 
 		CounterMap<String, String> cm = Generics.newCounterMap(2000000);
 
-		for (int i = 0; i < dirs.length; i++) {
-			String dir = dirs[i];
-			String name = names[i];
-			Counter<String> c = FileUtils.readStringCounterFromText(dir);
+		{
+			for (int i = 0; i < dirs.length; i++) {
+				String dir = dirs[i];
+				String name = names[i];
+				Counter<String> c = FileUtils.readStringCounterFromText(dir);
 
-			for (String phrs : c.keySet()) {
-				double cnt = c.getCount(phrs);
-				// if (phrs.length() > 1) {
-				cm.incrementCount(phrs, name, cnt);
-				// }
+				for (String phrs : c.keySet()) {
+					double cnt = c.getCount(phrs);
+					// if (phrs.length() > 1) {
+					cm.incrementCount(phrs, name, cnt);
+					// }
+				}
 			}
+
+			CounterMap<String, String> cm2 = cm.invert();
+			Counter<String> c = Generics.newCounter();
+
+			for (String src : cm2.keySet()) {
+				c.setCount(src, cm2.getCounter(src).size());
+			}
+
+			System.out.println(c.toStringSortedByValues(true, true, c.size(), "\t"));
 		}
 
 		Counter<String> c = Generics.newCounter(cm.size());
@@ -614,7 +625,7 @@ public class DataHandler {
 		}
 
 		// FileUtils.writeStringCounterMapAsText("../../data/medical_ir/trec_cds/2016/phrs/cpts.txt", cm);
-		FileUtils.writeStringCollectionAsText("../../data/medical_ir/trec_cds/2016/phrs/cpts.txt", res);
+		// FileUtils.writeStringCollectionAsText("../../data/medical_ir/trec_cds/2016/phrs/cpts.txt", res);
 
 	}
 

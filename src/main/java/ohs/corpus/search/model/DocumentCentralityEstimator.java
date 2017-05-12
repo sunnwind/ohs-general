@@ -1,6 +1,7 @@
 package ohs.corpus.search.model;
 
 import ohs.corpus.type.DocumentCollection;
+import ohs.ir.weight.TermWeighting;
 import ohs.math.ArrayMath;
 import ohs.math.ArrayUtils;
 import ohs.matrix.SparseMatrix;
@@ -41,13 +42,13 @@ public class DocumentCentralityEstimator {
 
 	private int num_top_docs = 10;
 
-	private DocumentCollection ldc;
+	private DocumentCollection dc;
 
 	private Vocab vocab;
 
 	public DocumentCentralityEstimator(Vocab vocab, DocumentCollection ldc) {
 		this.vocab = vocab;
-		this.ldc = ldc;
+		this.dc = ldc;
 	}
 
 	public SparseVector estimate(SparseVector scores) throws Exception {
@@ -63,18 +64,18 @@ public class DocumentCentralityEstimator {
 		return ret;
 	}
 
-	private double[][] getTransitions(SparseVector docScores) throws Exception {
-		SparseMatrix docVecs = ldc.getDocVectors(docScores.indexes());
+	private double[][] getTransitions(SparseVector scores) throws Exception {
+		SparseMatrix dvs = dc.getDocVectors(scores.indexes());
 
-		int size = docVecs.rowSize();
+		int size = dvs.rowSize();
 
 		double[][] tran_probs = ArrayMath.matrix(size);
 
 		for (int i = 0; i < size; i++) {
-			SparseVector dv1 = docVecs.rowAt(i);
+			SparseVector dv1 = dvs.rowAt(i);
 
 			for (int j = i + 1; j < size; j++) {
-				SparseVector dv2 = docVecs.rowAt(j);
+				SparseVector dv2 = dvs.rowAt(j);
 				double forward_score = score(dv1, dv2);
 				double backward_score = score(dv2, dv1);
 
@@ -104,12 +105,10 @@ public class DocumentCentralityEstimator {
 
 			double cnt_w_in_d = d.value(w);
 			double len_d = d.sum();
+			double pr_w_in_d = TermWeighting.twoStageSmoothing(cnt_w_in_d, len_d, pr_w_in_c, dirichlet_prior, pr_w_in_c, mixture_jm);
 
-			double pr_w_in_d_dir = (cnt_w_in_d + dirichlet_prior * pr_w_in_c) / (len_d + dirichlet_prior);
-			double pr_w_in_d_jm = (1 - mixture_jm) * pr_w_in_d_dir + mixture_jm * pr_w_in_c;
-
-			if (pr_w_in_d_jm > 0) {
-				div += pr_w_in_q * Math.log(pr_w_in_q / pr_w_in_d_jm);
+			if (pr_w_in_d > 0) {
+				div += pr_w_in_q * Math.log(pr_w_in_q / pr_w_in_d);
 			}
 		}
 

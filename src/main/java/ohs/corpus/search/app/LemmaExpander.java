@@ -120,7 +120,7 @@ public class LemmaExpander {
 				if (vars != null) {
 					for (int v : vars) {
 						String word = vocab.getObject(v);
-						if (wf.filter(v) || word.contains("+")) {
+						if (wf.filter(v) || word.contains("+") || word.contains("`")) {
 							continue;
 						}
 						ws.add(v);

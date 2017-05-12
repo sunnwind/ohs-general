@@ -393,28 +393,6 @@ public class DocumentCollection {
 		return new SparseVector(c);
 	}
 
-	public SparseMatrix getDocVectors(int i, int j) throws Exception {
-		List<Pair<String, IntegerArray>> ps = getRange(i, j, false);
-		List<Integer> idxs = Generics.newArrayList(ps.size());
-		List<SparseVector> dvs = Generics.newArrayList(ps.size());
-
-		int k = i;
-		for (Pair<String, IntegerArray> p : ps) {
-			IntegerArray d = p.getSecond();
-			Counter<Integer> c = Generics.newCounter(d.size());
-			for (int w : d) {
-				if (w == SENT_END) {
-					continue;
-				}
-				c.incrementCount(w, 1);
-			}
-
-			idxs.add(k++);
-			dvs.add(new SparseVector(c));
-		}
-		return new SparseMatrix(idxs, dvs);
-	}
-
 	public SparseMatrix getDocVectors(int[] is) throws Exception {
 		Map<Integer, SparseVector> m = Generics.newHashMap(is.length);
 		for (int i : is) {
@@ -533,6 +511,28 @@ public class DocumentCollection {
 
 	public List<Pair<String, IntegerArray>> getRange(int[] range) throws Exception {
 		return getRange(range[0], range[1], true);
+	}
+
+	public SparseMatrix getRangeDocVectors(int i, int j) throws Exception {
+		List<Pair<String, IntegerArray>> ps = getRange(i, j, false);
+		List<Integer> idxs = Generics.newArrayList(ps.size());
+		List<SparseVector> dvs = Generics.newArrayList(ps.size());
+
+		int k = i;
+		for (Pair<String, IntegerArray> p : ps) {
+			IntegerArray d = p.getSecond();
+			Counter<Integer> c = Generics.newCounter(d.size());
+			for (int w : d) {
+				if (w == SENT_END) {
+					continue;
+				}
+				c.incrementCount(w, 1);
+			}
+
+			idxs.add(k++);
+			dvs.add(new SparseVector(c));
+		}
+		return new SparseMatrix(idxs, dvs);
 	}
 
 	public Pair<String, IntegerArrayMatrix> getSents(int i) throws Exception {
