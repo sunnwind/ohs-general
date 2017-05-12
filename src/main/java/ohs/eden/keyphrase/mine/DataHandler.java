@@ -70,7 +70,8 @@ public class DataHandler {
 		// dh.getFrequentPhrases();
 
 		// dh.getPaperKeywords();
-		dh.mergeKeywords();
+		// dh.mergeKeywords();
+		dh.getMedicalPhrases();
 
 		// dh.getPositiveData();
 
@@ -626,6 +627,31 @@ public class DataHandler {
 
 		// FileUtils.writeStringCounterMapAsText("../../data/medical_ir/trec_cds/2016/phrs/cpts.txt", cm);
 		// FileUtils.writeStringCollectionAsText("../../data/medical_ir/trec_cds/2016/phrs/cpts.txt", res);
+	}
+
+	public void getMedicalPhrases() throws Exception {
+		List<String> lines = FileUtils.readLinesFromText("../../data/medical_ir/phrs/phrs.txt");
+		List<String> phrss = Generics.newArrayList();
+
+		for (String line : lines) {
+			String[] ps = line.split("\t");
+			String phrs = ps[0];
+			Set<String> srcs = Generics.newHashSet();
+
+			for (int i = 2; i < ps.length; i++) {
+				srcs.add(ps[i]);
+			}
+
+			boolean in_mesh = srcs.contains("mes") ? true : false;
+			boolean in_snomed = srcs.contains("sno") ? true : false;
+			boolean in_cds = srcs.contains("cds") ? true : false;
+
+			if (in_mesh && in_snomed) {
+				phrss.add(phrs);
+			}
+		}
+
+		FileUtils.writeStringCollectionAsText("../../data/medical_ir/phrs/phrs_medical.txt", phrss);
 
 	}
 

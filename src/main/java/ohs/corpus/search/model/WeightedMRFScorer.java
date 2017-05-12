@@ -24,31 +24,21 @@ import ohs.utils.StrUtils;
 
 public class WeightedMRFScorer extends MRFScorer {
 
-	private IntegerArray docFreqs;
-
 	private List<String> phrss;
 
 	private InvertedIndex pii;
 
-	public WeightedMRFScorer(DocumentSearcher ds, Counter<String> phrsDocFreqs) {
-		this(ds.getVocab(), ds.getDocumentCollection(), ds.getInvertedIndex(), phrsDocFreqs);
+	public WeightedMRFScorer(DocumentSearcher ds, List<String> phrss) {
+		this(ds.getVocab(), ds.getDocumentCollection(), ds.getInvertedIndex(), phrss);
 	}
 
-	public WeightedMRFScorer(Vocab vocab, DocumentCollection dc, InvertedIndex ii, Counter<String> phrsDocFreqs) {
+	public WeightedMRFScorer(Vocab vocab, DocumentCollection dc, InvertedIndex ii, List<String> phrss) {
 		super(vocab, dc, ii);
-		createPhraseInvertedIndex(phrsDocFreqs);
+		createPhraseInvertedIndex(phrss);
 	}
 
-	public void createPhraseInvertedIndex(Counter<String> phrsDocFreqs) {
+	public void createPhraseInvertedIndex(List<String> phrss) {
 		ListMapMap<Integer, Integer, Integer> lmm = Generics.newListMapMap();
-
-		phrss = Generics.newArrayList(phrsDocFreqs.size());
-		docFreqs = new IntegerArray(phrsDocFreqs.size());
-
-		for (Entry<String, Double> e : phrsDocFreqs.entrySet()) {
-			phrss.add(e.getKey());
-			docFreqs.add(e.getValue().intValue());
-		}
 
 		for (int i = 0; i < phrss.size(); i++) {
 			String phrs = phrss.get(i);
@@ -96,29 +86,14 @@ public class WeightedMRFScorer extends MRFScorer {
 			plm.put(w, pl);
 		}
 
-		pii = new InvertedIndex(plm, phrsDocFreqs.size(), vocab);
+		pii = new InvertedIndex(plm, phrss.size(), vocab);
 	}
 
 	private double getPhraseWeight(PostingList pl) {
 		double ret = 1;
 		if (pl != null) {
 			IntegerArray pids = pl.getDocSeqs();
-			double avg_idf = 0;
-			double cnt = 0;
-			for (int pid : pids) {
-				String phrs = phrss.get(pid);
-				double doc_freq = docFreqs.get(pid);
-				if (doc_freq > 0) {
-					double idf = TermWeighting.idf(dc.size(), doc_freq);
-					avg_idf += idf;
-					cnt++;
-				}
-				// System.out.printf("[%s, %f]\n", phrs, doc_freq);
-			}
-			avg_idf /= cnt;
-			// double ratio = 1f * ppl.size() / pii.getDocCnt();
-			// phrs_weight = Math.exp(ratio);
-			ret = Math.log(avg_idf);
+			ret = 1 + Math.log(pids.size() + 1);
 		}
 		return ret;
 	}
@@ -128,10 +103,6 @@ public class WeightedMRFScorer extends MRFScorer {
 		SparseVector s1 = mixtures.value(0) > 0 ? scoreUnigrams(Q, docs) : new SparseVector(ArrayUtils.copy(docs.indexes()));
 		SparseVector s2 = mixtures.value(1) > 0 ? scoreOrderedPhrases(Q, docs) : new SparseVector(ArrayUtils.copy(docs.indexes()));
 		SparseVector s3 = mixtures.value(2) > 0 ? scoreUnorderedPhrases(Q, docs) : new SparseVector(ArrayUtils.copy(docs.indexes()));
-
-		if (mixtures.sum() != 1) {
-			mixtures.normalize();
-		}
 
 		for (int i = 0; i < docs.size(); i++) {
 			int dseq = docs.indexAt(i);

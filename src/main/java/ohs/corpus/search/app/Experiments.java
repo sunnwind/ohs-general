@@ -1063,47 +1063,39 @@ public class Experiments {
 		LemmaExpander le = new LemmaExpander(ds.getWordFilter(),
 				FileUtils.readStringHashMapFromText(MIRPath.CLEF_EH_2017_DIR + "lemma.txt"));
 
-		for (BaseQuery bq : bqs) {
+		for (int i = 21; i < bqs.size(); i++) {
+			BaseQuery bq = bqs.get(i);
 			SparseVector Q = ds.index(bq.getSearchText());
 			// Q = le.expand(Q);
+
 			qData.add(Q);
 		}
 
 		String modelName = "wmrf";
 
-		{
-
-			DenseVector docPriors = new DenseVector(dataDir + "doc_phrs_prior.ser.gz");
-
-			for (int i = 0; i < docPriors.size(); i++) {
-				double prior = docPriors.value(i);
-				prior = Math.exp(prior);
-				docPriors.set(i, prior);
-			}
-			docPriors.summation();
-
-			// DenseVector matchCnts = new DenseVector(dataDir + "doc_phrs_match.ser.gz");
-
-			LMScorer scorer = (LMScorer) ds.getScorer();
-		}
+		// {
+		//
+		// DenseVector docPriors = new DenseVector(dataDir + "doc_phrs_prior.ser.gz");
+		//
+		// for (int i = 0; i < docPriors.size(); i++) {
+		// double prior = docPriors.value(i);
+		// prior = Math.exp(prior);
+		// docPriors.set(i, prior);
+		// }
+		// docPriors.summation();
+		//
+		// // DenseVector matchCnts = new DenseVector(dataDir + "doc_phrs_match.ser.gz");
+		//
+		// LMScorer scorer = (LMScorer) ds.getScorer();
+		// }
 
 		if (modelName.equals("mrf")) {
 			ds.setScorer(new MRFScorer(ds));
 		} else if (modelName.equals("wmrf")) {
-			Counter<String> phrsDocFreqs = FileUtils.readStringCounterFromText("../../data/medical_ir/phrs/phrs_freq.txt");
-			// List<String> lines = FileUtils.readLinesFromText("../../data/medical_ir/phrs/phrs_freqs.txt");
-			// phrsDocFreqs = Generics.newCounter(lines.size());
+			// Counter<String> phrsDocFreqs = FileUtils.readStringCounterFromText("../../data/medical_ir/phrs/phrs_freq.txt");
+			List<String> phrss = FileUtils.readLinesFromText("../../data/medical_ir/phrs/phrs_medical.txt");
 
-			// for (String line : lines) {
-			// String[] ps = line.split("\t");
-			// String phrs = ps[0];
-			// int source_cnt = Integer.parseInt(ps[1]);
-			// if (phrs.split(" ").length > 1) {
-			// phrss.setCount(phrs, source_cnt);
-			// }
-			// }
-
-			ds.setScorer(new WeightedMRFScorer(ds, phrsDocFreqs));
+			ds.setScorer(new WeightedMRFScorer(ds, phrss));
 		} else if (modelName.equals("bm25")) {
 			ds.setScorer(new BM25Scorer(ds));
 		} else if (modelName.equals("vsm")) {
