@@ -89,7 +89,7 @@ public class DocumentSearcher {
 				sb.append("\nQ1:\t" + StrUtils.join(" ", ds.getVocab().getObjects(Q.indexes())));
 				sb.append("\nQ2:\t" + VectorUtils.toCounter(Q, ds.getVocab()));
 				sb.append("\nDocs: " + scores.size());
-				System.out.println(sb.toString());
+				System.out.println(sb.toString() + "\n");
 				// }
 
 			}

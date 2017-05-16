@@ -254,8 +254,14 @@ public class DocumentCollection {
 
 	private boolean encode = false;
 
+	private boolean use_cache = true;
+
 	public DocumentCollection() {
 
+	}
+
+	public void setUseCache(boolean use_cache) {
+		this.use_cache = use_cache;
 	}
 
 	public DocumentCollection(FileChannel fc, LongArray starts, IntegerArray lens, Vocab vocab,
@@ -303,8 +309,10 @@ public class DocumentCollection {
 	public Pair<String, IntegerArray> get(int i) throws Exception {
 		Pair<String, IntegerArray> ret = null;
 
-		synchronized (cache) {
-			ret = cache.get(i);
+		if (use_cache) {
+			synchronized (cache) {
+				ret = cache.get(i);
+			}
 		}
 
 		if (ret == null) {
@@ -329,8 +337,10 @@ public class DocumentCollection {
 			}
 			ret = Generics.newPair(docid, d);
 
-			synchronized (cache) {
-				cache.put(i, ret);
+			if (use_cache) {
+				synchronized (cache) {
+					cache.put(i, ret);
+				}
 			}
 		}
 

@@ -133,11 +133,11 @@ public class Experiments {
 		// e.getRelevanceJudgeDocIds();
 
 		// e.runPhraseMapping();
-		// e.getDocPriors();
+		e.getDocPriors();
 		// e.getDocPriors2();
 		// e.runInitSearch();
-//		e.runReranking();
-		 e.runFeedback();
+		// e.runReranking();
+		// e.runFeedback();
 
 		// e.analyze1();
 		// e.analyze2();
@@ -448,7 +448,10 @@ public class Experiments {
 			SparseVector lm_fb = new SparseVector(0);
 			SparseVector lm_q2 = lm_q1;
 
-			SparseVector docPriors = dpe.estimateDocLenPriors(scores.indexes());
+			// SparseVector docPriors = dpe.estimateDocLenPriors(scores.indexes());
+			SparseVector docPriors = dpe.estimateLmPriors(scores.indexes());
+			// SparseVector docPriors = scores.copy();
+			// docPriors.setAll(1);
 
 			if (fb != null) {
 				lm_fb = fb.buildRM1(scores, 0, docPriors);
@@ -745,14 +748,10 @@ public class Experiments {
 		}
 
 		MRFScorer scorer = new MRFScorer(ds);
-		scorer.setCliqueTypeMixtures(new double[] { 0, 1, 0 });
 		ds.setScorer(scorer);
 
 		DenseVector docPriors = new DenseVector(ds.getDocumentCollection().size());
 		DenseVector matchCnts = new DenseVector(ds.getDocumentCollection().size());
-
-		int window_size = 3;
-		boolean keep_order = true;
 
 		int thread_size = 3;
 
