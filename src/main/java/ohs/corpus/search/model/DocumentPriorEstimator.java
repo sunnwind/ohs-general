@@ -5,7 +5,9 @@ import ohs.corpus.type.DocumentCollection;
 import ohs.ir.weight.TermWeighting;
 import ohs.math.ArrayUtils;
 import ohs.matrix.DenseVector;
+import ohs.matrix.SparseMatrix;
 import ohs.matrix.SparseVector;
+import ohs.ml.neuralnet.com.BatchUtils;
 import ohs.types.generic.Counter;
 import ohs.types.generic.Vocab;
 import ohs.utils.Generics;
@@ -19,8 +21,6 @@ public class DocumentPriorEstimator {
 
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
-		
-		
 
 		System.out.println("process ends.");
 	}
@@ -33,7 +33,7 @@ public class DocumentPriorEstimator {
 
 	private Vocab vocab;
 
-	private Counter<Integer> cache;
+	private DenseVector cache;
 
 	private WordFilter filter;
 
@@ -42,31 +42,29 @@ public class DocumentPriorEstimator {
 		vocab = dc.getVocab();
 	}
 
-	public DocumentPriorEstimator(Vocab vocab, DocumentCollection ds, WordFilter filter) {
-		this.vocab = vocab;
+	public DocumentPriorEstimator(DocumentCollection ds, WordFilter filter) {
 		this.dc = ds;
+		this.vocab = ds.getVocab();
 		this.filter = filter;
-		cache = Generics.newCounter();
+		cache = new DenseVector(ds.size());
 	}
 
 	public DenseVector estimate() throws Exception {
-		return estimateUsingLM(ArrayUtils.range(dc.size())).toDenseVector();
+		return estimateLmPriors(ArrayUtils.range(dc.size())).toDenseVector();
 	}
 
 	public void estimateUsingConcepts(Counter<String> cptCnts) {
 
 	}
 
-	public SparseVector estimateUsingDocLen(int[] dseqs) throws Exception {
+	public SparseVector estimateDocLenPriors(int[] dseqs) throws Exception {
 		SparseVector ret = new SparseVector(dseqs.length);
 
 		for (int i = 0; i < dseqs.length; i++) {
 			int dseq = dseqs[i];
-			double prior = 0;
+			double prior = cache.value(dseq);
 
-			if (cache.containsKey(dseq)) {
-				prior = cache.getCount(dseq);
-			} else {
+			if (prior == 0) {
 				SparseVector dv = dc.getDocVector(dseq);
 				for (int j = 0; j < dv.size(); j++) {
 					int w = dv.indexAt(j);
@@ -78,23 +76,21 @@ public class DocumentPriorEstimator {
 					double cnt_w = dv.valueAt(j);
 					prior += cnt_w;
 				}
-				cache.setCount(dseq, prior);
+				cache.add(dseq, prior);
 			}
 			ret.addAt(i, dseq, prior);
 		}
 		return ret;
 	}
 
-	public SparseVector estimateUsingIDF(int[] dseqs) throws Exception {
+	public SparseVector estimateIdfPriors(int[] dseqs) throws Exception {
 		SparseVector ret = new SparseVector(dseqs.length);
 
 		for (int i = 0; i < dseqs.length; i++) {
 			int dseq = dseqs[i];
 			double prior = 0;
 
-			if (cache.containsKey(dseq)) {
-				prior = cache.getCount(dseq);
-			} else {
+			if (prior == 0) {
 				SparseVector dv = dc.getDocVector(dseq);
 				double size = 0;
 				for (int j = 0; j < dv.size(); j++) {
@@ -114,7 +110,7 @@ public class DocumentPriorEstimator {
 					size++;
 				}
 				// prior /= size;
-				cache.setCount(dseq, prior);
+				cache.add(dseq, prior);
 			}
 			ret.addAt(i, dseq, prior);
 		}
@@ -122,16 +118,14 @@ public class DocumentPriorEstimator {
 		return ret;
 	}
 
-	public SparseVector estimateUsingLM(int[] dseqs) throws Exception {
+	public SparseVector estimateLmPriors(int[] dseqs) throws Exception {
 		SparseVector ret = new SparseVector(dseqs.length);
 
 		for (int i = 0; i < dseqs.length; i++) {
 			int dseq = dseqs[i];
 			double prior = 0;
 
-			if (cache.containsKey(dseq)) {
-				prior = cache.getCount(dseq);
-			} else {
+			if (prior == 0) {
 				SparseVector dv = dc.getDocVector(dseq);
 				// double[] log_probs = new double[dv.size()];
 
@@ -148,8 +142,7 @@ public class DocumentPriorEstimator {
 
 				// prior = ArrayMath.sumLogProbs(log_probs);
 				// prior = Math.exp(prior);
-
-				cache.setCount(dseq, prior);
+				cache.add(dseq, prior);
 			}
 
 			ret.addAt(i, dseq, prior);

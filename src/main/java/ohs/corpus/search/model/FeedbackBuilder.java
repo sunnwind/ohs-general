@@ -58,16 +58,16 @@ public class FeedbackBuilder {
 
 	private DenseVector lm_qbg;
 
-	public FeedbackBuilder(Vocab vocab, DocumentCollection dc, InvertedIndex ii, WordFilter filter) {
+	public FeedbackBuilder(DocumentCollection dc, InvertedIndex ii, WordFilter filter) {
 		super();
-		this.vocab = vocab;
 		this.dc = dc;
+		this.vocab = dc.getVocab();
 		this.ii = ii;
 		this.filter = filter;
 
 		cache = Generics.newHashMap();
 
-		dpe = new DocumentPriorEstimator(vocab, dc, filter);
+		dpe = new DocumentPriorEstimator(dc, filter);
 		dpe.setDirichletPrior(prior_dir);
 		dpe.setMixtureJM(mixture_jm);
 	}
@@ -98,7 +98,7 @@ public class FeedbackBuilder {
 			SparseVector docPriors = null;
 
 			if (use_doc_prior) {
-				docPriors = dpe.estimateUsingLM(docScores.indexes());
+				docPriors = dpe.estimateLmPriors(docScores.indexes());
 			}
 
 			double pr_w_in_d_jm = 0;
@@ -277,7 +277,7 @@ public class FeedbackBuilder {
 		SparseVector docPriors = null;
 
 		if (use_doc_prior) {
-			docPriors = dpe.estimateUsingLM(scores.indexes());
+			docPriors = dpe.estimateLmPriors(scores.indexes());
 			// docPriors = dpe.estimateUsingIDF(docScores.indexes());
 		}
 
@@ -374,7 +374,7 @@ public class FeedbackBuilder {
 		SparseVector docPriors = null;
 
 		if (use_doc_prior) {
-			docPriors = dpe.estimateUsingLM(scores.indexes());
+			docPriors = dpe.estimateLmPriors(scores.indexes());
 			// docPriors = dpe.estimateUsingIDF(docScores.indexes());
 		}
 
@@ -483,7 +483,7 @@ public class FeedbackBuilder {
 		SparseVector docPriors = null;
 
 		if (use_doc_prior) {
-			docPriors = dpe.estimateUsingLM(docScores.indexes());
+			docPriors = dpe.estimateLmPriors(docScores.indexes());
 		}
 
 		List<SparseMatrix> psgData = Generics.newArrayList(docScores.size());
@@ -598,7 +598,7 @@ public class FeedbackBuilder {
 		SparseVector docPriors = null;
 
 		if (use_doc_prior) {
-			docPriors = dpe.estimateUsingLM(docScores.indexes());
+			docPriors = dpe.estimateLmPriors(docScores.indexes());
 		}
 
 		List<SparseMatrix> psgData = Generics.newArrayList(docScores.size());
@@ -711,7 +711,7 @@ public class FeedbackBuilder {
 		return buildRM1(scores, 0, null);
 	}
 
-	public SparseVector buildRM1(SparseVector scores, int start, DenseVector docPriors) throws Exception {
+	public SparseVector buildRM1(SparseVector scores, int start, SparseVector docPriors) throws Exception {
 		scores = scores.subVector(start, Math.min(fb_doc_size, scores.size() - start));
 
 		SparseMatrix dvs = dc.getDocVectors(scores.indexes());
@@ -738,7 +738,7 @@ public class FeedbackBuilder {
 				double prior_d = 1;
 
 				if (docPriors != null) {
-					prior_d = docPriors.value(dseq);
+					prior_d = docPriors.valueAt(j);
 				}
 
 				double pr_w_in_fb = weight_d * pr_w_in_d * prior_d;
@@ -768,7 +768,7 @@ public class FeedbackBuilder {
 		SparseVector docPriors = null;
 
 		if (use_doc_prior) {
-			docPriors = dpe.estimateUsingLM(docScores.indexes());
+			docPriors = dpe.estimateLmPriors(docScores.indexes());
 		}
 
 		double pr_w_in_d = 0;
@@ -829,7 +829,7 @@ public class FeedbackBuilder {
 		SparseVector docPriors = null;
 
 		if (use_doc_prior) {
-			docPriors = dpe.estimateUsingLM(scores.indexes());
+			docPriors = dpe.estimateLmPriors(scores.indexes());
 			// docPriors = dpe.estimateUsingIDF(docScores.indexes());
 		}
 
@@ -895,7 +895,7 @@ public class FeedbackBuilder {
 		SparseVector docPriors = null;
 
 		if (use_doc_prior) {
-			docPriors = dpe.estimateUsingLM(docScores.indexes());
+			docPriors = dpe.estimateLmPriors(docScores.indexes());
 			// docPriors = dpe.estimateUsingIDF(docScores.indexes());
 		}
 
