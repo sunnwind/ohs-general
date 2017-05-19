@@ -86,7 +86,7 @@ public class PassageScorer extends Scorer {
 	}
 
 	@Override
-	public SparseVector score(SparseVector lm_q, SparseVector docCnts) throws Exception {
+	public SparseVector scoreFromCollection(SparseVector lm_q, SparseVector docCnts) throws Exception {
 		double pr_w_in_c = 0;
 		double pr_w_in_psg_jm = 0;
 		double pr_w_in_q = 0;
@@ -127,6 +127,12 @@ public class PassageScorer extends Scorer {
 		}
 
 		return ret;
+	}
+
+	@Override
+	public SparseVector scoreFromIndex(SparseVector Q, SparseVector docs) throws Exception {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	public void setDirichletPrior(double dirichlet_prior) {

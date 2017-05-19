@@ -45,6 +45,17 @@ public class DocumentCollection {
 
 	public static final int SENT_END = -1;
 
+	public static SparseVector getDocVector(IntegerArray d) {
+		Counter<Integer> c = Generics.newCounter(d.size());
+		for (int w : d) {
+			if (w == SENT_END) {
+				continue;
+			}
+			c.incrementCount(w, 1);
+		}
+		return new SparseVector(c);
+	}
+
 	public static String getText(Vocab vocab, IntegerArrayMatrix doc) {
 		StringBuffer sb = new StringBuffer();
 		for (int i = 0; i < doc.size(); i++) {
@@ -187,7 +198,7 @@ public class DocumentCollection {
 	}
 
 	public static IntegerArrayMatrix toMultiSentences(IntegerArray d) {
-		List<Integer> cnts = Generics.newLinkedList();
+		List<Integer> cnts = Generics.newArrayList(d.size());
 		int w_cnt = 0;
 		for (int w : d) {
 			if (w == SENT_END) {
@@ -230,9 +241,9 @@ public class DocumentCollection {
 		}
 		ret.trimToSize();
 		return ret;
-	}
+	};
 
-	private Map<Integer, Pair<String, IntegerArray>> cache = Generics.newWeakHashMap();;
+	private Map<Integer, Pair<String, IntegerArray>> cache = Generics.newWeakHashMap();
 
 	private Vocab vocab = new Vocab();
 
@@ -260,17 +271,14 @@ public class DocumentCollection {
 
 	}
 
-	public void setUseCache(boolean use_cache) {
-		this.use_cache = use_cache;
-	}
-
-	public DocumentCollection(FileChannel fc, LongArray starts, IntegerArray lens, Vocab vocab,
-			Map<Integer, Pair<String, IntegerArray>> cache) throws Exception {
+	private DocumentCollection(FileChannel fc, LongArray starts, IntegerArray lens, Vocab vocab,
+			Map<Integer, Pair<String, IntegerArray>> cache, boolean use_cache) throws Exception {
 		this.fc = fc;
 		this.starts = starts;
 		this.lens = lens;
 		this.vocab = vocab;
 		this.cache = cache;
+		this.use_cache = use_cache;
 	}
 
 	public DocumentCollection(String dataDir) throws Exception {
@@ -303,7 +311,7 @@ public class DocumentCollection {
 	}
 
 	public DocumentCollection copyShallow() throws Exception {
-		return new DocumentCollection(FileUtils.openFileChannel(new File(dataDir, DATA_NAME), "r"), starts, lens, vocab, cache);
+		return new DocumentCollection(FileUtils.openFileChannel(new File(dataDir, DATA_NAME), "r"), starts, lens, vocab, cache, use_cache);
 	}
 
 	public Pair<String, IntegerArray> get(int i) throws Exception {
@@ -392,15 +400,21 @@ public class DocumentCollection {
 	}
 
 	public SparseVector getDocVector(int i) throws Exception {
-		IntegerArray d = get(i).getSecond();
-		Counter<Integer> c = Generics.newCounter(d.size());
-		for (int w : d) {
-			if (w == SENT_END) {
-				continue;
-			}
-			c.incrementCount(w, 1);
+		return getDocVector(get(i).getSecond());
+	}
+
+	public SparseMatrix getDocVectorRange(int i, int j) throws Exception {
+		List<Pair<String, IntegerArray>> ps = getRange(i, j, false);
+		List<Integer> idxs = Generics.newArrayList(ps.size());
+		List<SparseVector> dvs = Generics.newArrayList(ps.size());
+
+		int k = i;
+		for (Pair<String, IntegerArray> p : ps) {
+			IntegerArray d = p.getSecond();
+			idxs.add(k++);
+			dvs.add(getDocVector(d));
 		}
-		return new SparseVector(c);
+		return new SparseMatrix(idxs, dvs);
 	}
 
 	public SparseMatrix getDocVectors(int[] is) throws Exception {
@@ -523,28 +537,6 @@ public class DocumentCollection {
 		return getRange(range[0], range[1], true);
 	}
 
-	public SparseMatrix getRangeDocVectors(int i, int j) throws Exception {
-		List<Pair<String, IntegerArray>> ps = getRange(i, j, false);
-		List<Integer> idxs = Generics.newArrayList(ps.size());
-		List<SparseVector> dvs = Generics.newArrayList(ps.size());
-
-		int k = i;
-		for (Pair<String, IntegerArray> p : ps) {
-			IntegerArray d = p.getSecond();
-			Counter<Integer> c = Generics.newCounter(d.size());
-			for (int w : d) {
-				if (w == SENT_END) {
-					continue;
-				}
-				c.incrementCount(w, 1);
-			}
-
-			idxs.add(k++);
-			dvs.add(new SparseVector(c));
-		}
-		return new SparseMatrix(idxs, dvs);
-	}
-
 	public Pair<String, IntegerArrayMatrix> getSents(int i) throws Exception {
 		Pair<String, IntegerArray> p = get(i);
 		return Generics.newPair(p.getFirst(), toMultiSentences(p.getSecond()));
@@ -553,33 +545,6 @@ public class DocumentCollection {
 	public LongArray getStarts() {
 		return starts;
 	}
-
-	// public LongArray getPositions(int i) throws Exception {
-	// long start = starts.get(i);
-	// fc.position(start);
-	//
-	// ByteArrayMatrix data = ByteArrayUtils.readByteArrayMatrix(fc);
-	// String docid = null;
-	// IntegerArray d = null;
-	//
-	// int j = 0;
-	// if (encode) {
-	// docid = DataCompression.decodeToString(data.get(j++));
-	// d = DataCompression.decodeToIntegerArray(data.get(j++));
-	// } else {
-	// docid = new String(data.get(j++).values());
-	// d = ByteArrayUtils.toIntegerArray(data.get(j++));
-	// }
-	//
-	// long tmp_start = start + 3 * Integer.BYTES + data.get(0).size();
-	// LongArray ret = new LongArray(d.size());
-	//
-	// for (int k = 0; k < d.size(); k++) {
-	// ret.add(tmp_start + k * Integer.BYTES);
-	// }
-	//
-	// return ret;
-	// }
 
 	public Pair<String, String> getText(int i) throws Exception {
 		Pair<String, IntegerArray> p = get(i);
@@ -613,6 +578,33 @@ public class DocumentCollection {
 		return ret;
 	}
 
+	// public LongArray getPositions(int i) throws Exception {
+	// long start = starts.get(i);
+	// fc.position(start);
+	//
+	// ByteArrayMatrix data = ByteArrayUtils.readByteArrayMatrix(fc);
+	// String docid = null;
+	// IntegerArray d = null;
+	//
+	// int j = 0;
+	// if (encode) {
+	// docid = DataCompression.decodeToString(data.get(j++));
+	// d = DataCompression.decodeToIntegerArray(data.get(j++));
+	// } else {
+	// docid = new String(data.get(j++).values());
+	// d = ByteArrayUtils.toIntegerArray(data.get(j++));
+	// }
+	//
+	// long tmp_start = start + 3 * Integer.BYTES + data.get(0).size();
+	// LongArray ret = new LongArray(d.size());
+	//
+	// for (int k = 0; k < d.size(); k++) {
+	// ret.add(tmp_start + k * Integer.BYTES);
+	// }
+	//
+	// return ret;
+	// }
+
 	public Vocab getVocab() {
 		return vocab;
 	}
@@ -642,6 +634,10 @@ public class DocumentCollection {
 		sb.append(String.format("avg doc len:\t[%f]\n", len_d_avg));
 		sb.append(String.format("mem:\t%s", getByteSize().toString()));
 		return sb.toString();
+	}
+
+	public void setUseCache(boolean use_cache) {
+		this.use_cache = use_cache;
 	}
 
 	public int size() {

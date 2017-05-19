@@ -240,6 +240,8 @@ public class DocumentSearcher {
 
 	private boolean print_log = false;
 
+	private boolean use_cache = false;
+
 	public DocumentSearcher(Scorer scorer, RawDocumentCollection rdc, DocumentCollection dc, InvertedIndex ii, WordFilter wf)
 			throws Exception {
 		this.scorer = scorer;
@@ -283,6 +285,7 @@ public class DocumentSearcher {
 		ds.setMaxMatchSize(max_match_size);
 		ds.setTopK(top_k);
 		ds.setUseIdfMatch(use_idf_match);
+		ds.setUseCache(use_cache);
 		return ds;
 	}
 
@@ -518,7 +521,7 @@ public class DocumentSearcher {
 
 	public SparseVector search(SparseVector Q, SparseVector docs) throws Exception {
 		Timer timer = Timer.newTimer();
-		SparseVector ret = scorer.score(Q, docs);
+		SparseVector ret = scorer.scoreFromIndex(Q, docs);
 		scorer.postprocess(ret);
 
 		if (top_k != Integer.MAX_VALUE) {
@@ -557,6 +560,13 @@ public class DocumentSearcher {
 
 	public void setTopK(int top_k) {
 		this.top_k = top_k;
+	}
+
+	public void setUseCache(boolean use_cache) {
+		this.use_cache = use_cache;
+		dc.setUseCache(use_cache);
+		ii.setUseCache(use_cache);
+		rdc.setUseCache(use_cache);
 	}
 
 	public void setUseIdfMatch(boolean use_idf_match) {

@@ -15,7 +15,12 @@ public class BM25Scorer extends Scorer {
 	}
 
 	@Override
-	public SparseVector score(SparseVector Q, SparseVector docs) throws Exception {
+	public SparseVector scoreFromCollection(SparseVector Q, SparseVector docs) throws Exception {
+		return null;
+	}
+
+	@Override
+	public SparseVector scoreFromIndex(SparseVector Q, SparseVector docs) throws Exception {
 		Counter<Integer> c = Generics.newCounter();
 
 		double k1 = TermWeighting.k1;

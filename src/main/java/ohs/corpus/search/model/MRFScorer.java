@@ -36,8 +36,8 @@ public class MRFScorer extends LMScorer {
 	}
 
 	@Override
-	public SparseVector score(SparseVector Q, SparseVector docs) throws Exception {
-		SparseVector s1 = mixtures.value(0) > 0 ? super.score(Q, docs) : new SparseVector(ArrayUtils.copy(docs.indexes()));
+	public SparseVector scoreFromIndex(SparseVector Q, SparseVector docs) throws Exception {
+		SparseVector s1 = mixtures.value(0) > 0 ? super.scoreFromIndex(Q, docs) : new SparseVector(ArrayUtils.copy(docs.indexes()));
 		SparseVector s2 = mixtures.value(1) > 0 ? scoreOrderedPhrases(Q, docs) : new SparseVector(ArrayUtils.copy(docs.indexes()));
 		SparseVector s3 = mixtures.value(2) > 0 ? scoreUnorderedPhrases(Q, docs) : new SparseVector(ArrayUtils.copy(docs.indexes()));
 

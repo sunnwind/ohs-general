@@ -236,8 +236,10 @@ public class InvertedIndex {
 
 	private Map<Integer, PostingList> plm;
 
-	public InvertedIndex(FileChannel fc, LongArray starts, IntegerArray lens, int doc_cnt, Map<Integer, PostingList> cache, Vocab vocab,
-			Map<Integer, PostingList> plm) {
+	private boolean use_cache = true;
+
+	private InvertedIndex(FileChannel fc, LongArray starts, IntegerArray lens, int doc_cnt, Map<Integer, PostingList> cache, Vocab vocab,
+			Map<Integer, PostingList> plm, boolean use_cache) {
 		this.fc = fc;
 		this.starts = starts;
 		this.lens = lens;
@@ -245,10 +247,11 @@ public class InvertedIndex {
 		this.cache = cache;
 		this.vocab = vocab;
 		this.plm = plm;
+		this.use_cache = use_cache;
 	}
 
 	public InvertedIndex(FileChannel fc, LongArray starts, IntegerArray lens, int doc_cnt, Vocab vocab) {
-		this(fc, starts, lens, doc_cnt, Generics.newWeakHashMap(), vocab, null);
+		this(fc, starts, lens, doc_cnt, Generics.newWeakHashMap(), vocab, null, true);
 	}
 
 	public InvertedIndex(Map<Integer, PostingList> plm, int doc_cnt, Vocab vocab) {
@@ -286,7 +289,8 @@ public class InvertedIndex {
 	}
 
 	public InvertedIndex copyShallow() throws Exception {
-		return new InvertedIndex(FileUtils.openFileChannel(new File(dataDir, DATA_NAME), "r"), starts, lens, doc_cnt, cache, vocab, plm);
+		return new InvertedIndex(FileUtils.openFileChannel(new File(dataDir, DATA_NAME), "r"), starts, lens, doc_cnt, cache, vocab, plm,
+				use_cache);
 	}
 
 	public int getDocCnt() {
@@ -298,8 +302,6 @@ public class InvertedIndex {
 	}
 
 	public PostingList getPostingList(int w) throws Exception {
-		
-		
 		Timer timer = Timer.newTimer();
 
 		PostingList ret = null;
@@ -309,8 +311,10 @@ public class InvertedIndex {
 				return null;
 			}
 
-			synchronized (cache) {
-				ret = cache.get(w);
+			if (use_cache) {
+				synchronized (cache) {
+					ret = cache.get(w);
+				}
 			}
 
 			if (ret == null) {
@@ -330,8 +334,10 @@ public class InvertedIndex {
 				// ret = PostingList.readPostingList(fc, encode);
 				ret = PostingList.toPostingList(new ByteBufferWrapper(data).readByteArrayMatrix(), encode);
 
-				synchronized (cache) {
-					cache.put(w, ret);
+				if (use_cache) {
+					synchronized (cache) {
+						cache.put(w, ret);
+					}
 				}
 			}
 		} else {
@@ -405,8 +411,10 @@ public class InvertedIndex {
 			for (int k = i; k < j; k++) {
 				PostingList p = null;
 
-				synchronized (cache) {
-					p = cache.get(k);
+				if (use_cache) {
+					synchronized (cache) {
+						p = cache.get(k);
+					}
 				}
 
 				if (p == null) {
@@ -417,8 +425,13 @@ public class InvertedIndex {
 			}
 
 			if (found.size() == 0) {
-				fc.position(starts.get(i));
-				ByteArray data = FileUtils.readByteArray(fc, ArrayMath.sum(lens.values(), i, j));
+				ByteArray data = null;
+
+				synchronized (fc) {
+					fc.position(starts.get(i));
+					data = FileUtils.readByteArray(fc, ArrayMath.sum(lens.values(), i, j));
+				}
+
 				ByteBufferWrapper buf = new ByteBufferWrapper(data);
 
 				for (int k = i; k < j; k++) {
@@ -426,8 +439,10 @@ public class InvertedIndex {
 					PostingList pl = PostingList.toPostingList(sub, encode);
 					ret.add(pl);
 
-					synchronized (cache) {
-						cache.put(k, pl);
+					if (use_cache) {
+						synchronized (cache) {
+							cache.put(k, pl);
+						}
 					}
 				}
 			} else {
@@ -454,6 +469,10 @@ public class InvertedIndex {
 			ret.add(getPostingList(w));
 		}
 		return ret;
+	}
+
+	public void setUseCache(boolean use_cache) {
+		this.use_cache = use_cache;
 	}
 
 	public void setVocab(Vocab vocab) {

@@ -211,7 +211,7 @@ public class TermWeighting {
 
 	public static double dirichletSmoothing(int cnt_w_in_d, double len_d, double pr_w_in_c, double prior_dir) {
 		double mixture_dir = prior_dir / (len_d + prior_dir);
-		double pr_w_in_d = cnt_w_in_d / len_d;
+		double pr_w_in_d = len_d > 0 ? cnt_w_in_d / len_d : 0;
 		return (1 - mixture_dir) * pr_w_in_d + mixture_dir * pr_w_in_c;
 	}
 
@@ -474,9 +474,9 @@ public class TermWeighting {
 
 	public static double twoStageSmoothing(double cnt_w_in_d, double len_d, double pr_w_in_c, double prior_dir, double pr_w_in_bg,
 			double mixture_jm) {
-		double pr_w_in_d = cnt_w_in_d / len_d;
+		double pr_w_in_d = len_d > 0 ? cnt_w_in_d / len_d : 0;
 		double pr_w_in_d_dir = dirichletSmoothing(pr_w_in_d, len_d, pr_w_in_c, prior_dir);
-		double pr_w_in_d_jm = jelinekMercerSmoothing(pr_w_in_d_dir, pr_w_in_c, mixture_jm);
+		double pr_w_in_d_jm = jelinekMercerSmoothing(pr_w_in_d_dir, pr_w_in_bg, mixture_jm);
 		return pr_w_in_d_jm;
 	}
 

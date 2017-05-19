@@ -1,16 +1,23 @@
 package ohs.corpus.search.model;
 
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import kr.co.shineware.nlp.komoran.a.a;
 import ohs.corpus.search.index.WordFilter;
 import ohs.corpus.type.DocumentCollection;
 import ohs.ir.weight.TermWeighting;
-import ohs.math.ArrayUtils;
 import ohs.matrix.DenseVector;
 import ohs.matrix.SparseMatrix;
 import ohs.matrix.SparseVector;
 import ohs.ml.neuralnet.com.BatchUtils;
-import ohs.types.generic.Counter;
 import ohs.types.generic.Vocab;
 import ohs.utils.Generics;
+import ohs.utils.Timer;
 
 /**
  * 
@@ -19,11 +26,61 @@ import ohs.utils.Generics;
  */
 public class DocumentPriorEstimator {
 
-	public static void main(String[] args) throws Exception {
-		System.out.println("process begins.");
-
-		System.out.println("process ends.");
+	public enum Type {
+		CDD, QDLM, IDF, DLM, LEN
 	}
+
+	class Worker implements Callable<Integer> {
+
+		private AtomicInteger range_cnt;
+
+		private int[][] rs;
+
+		private DocumentCollection dc;
+
+		private Timer timer;
+
+		private DenseVector priors;
+
+		public Worker(DocumentCollection dc, int[][] ranges, AtomicInteger range_cnt, DenseVector priors, Timer timer) {
+			this.dc = dc;
+			this.rs = ranges;
+			this.range_cnt = range_cnt;
+			this.priors = priors;
+			this.timer = timer;
+		}
+
+		@Override
+		public Integer call() throws Exception {
+			int loc = 0;
+
+			while ((loc = range_cnt.getAndIncrement()) < rs.length) {
+				int[] r = rs[loc];
+				DenseVector subPriors = estimate(r[0], r[1]);
+
+				for (int i = 0; i < subPriors.size(); i++) {
+					int dseq = i + r[0];
+					priors.set(dseq, subPriors.value(i));
+				}
+
+				int prog = BatchUtils.progress(loc, rs.length);
+				if (prog > 0) {
+					System.out.printf("[%d percent, %d/%d, %d/%d, %s]\n", prog, loc, rs.length, r[1], dc.size(), timer.stop());
+				}
+			}
+			return null;
+		}
+
+		@Override
+		protected void finalize() throws Throwable {
+			super.finalize();
+			dc.close();
+		}
+	}
+
+	private int batch_size = 1000;
+
+	private int thread_size = 5;
 
 	private double prior_dir = 2000;
 
@@ -33,150 +90,188 @@ public class DocumentPriorEstimator {
 
 	private Vocab vocab;
 
-	private DenseVector cache;
+	private WordFilter wf;
 
-	private WordFilter filter;
+	private Type type = Type.CDD;
+
+	private SparseVector Q;
+
+	public DocumentPriorEstimator(DocumentCollection dc, WordFilter wf) {
+		this.dc = dc;
+		this.vocab = dc.getVocab();
+		this.wf = wf;
+	}
 
 	public DocumentPriorEstimator(String idxDir) throws Exception {
 		dc = new DocumentCollection(idxDir);
 		vocab = dc.getVocab();
 	}
 
-	public DocumentPriorEstimator(DocumentCollection ds, WordFilter filter) {
-		this.dc = ds;
-		this.vocab = ds.getVocab();
-		this.filter = filter;
-		cache = new DenseVector(ds.size());
-		cache.setAll(-1);
-	}
-
 	public DenseVector estimate() throws Exception {
-		return estimateLmPriors(ArrayUtils.range(dc.size())).toDenseVector();
+		Timer timer = Timer.newTimer();
+
+		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
+
+		List<Future<Integer>> fs = Generics.newArrayList(thread_size);
+
+		List<DocumentCollection> dss = Generics.newArrayList(thread_size);
+
+		for (int i = 0; i < thread_size; i++) {
+			dss.add(dc.copyShallow());
+		}
+
+		int[][] rs = BatchUtils.getBatchRanges(dc.size(), batch_size);
+
+		AtomicInteger range_cnt = new AtomicInteger(0);
+
+		DenseVector priors = new DenseVector(dc.size());
+
+		for (int i = 0; i < thread_size; i++) {
+			fs.add(tpe.submit(new Worker(dss.get(i), rs, range_cnt, priors, timer)));
+		}
+
+		for (int i = 0; i < thread_size; i++) {
+			fs.get(i).get();
+		}
+		fs.clear();
+
+		priors.summation();
+
+		tpe.shutdown();
+
+		for (int i = 0; i < thread_size; i++) {
+			dss.get(i).close();
+		}
+
+		return priors;
 	}
 
-	public void estimateUsingConcepts(Counter<String> cptCnts) {
-
-	}
-
-	public SparseVector estimateDocLenPriors(int[] dseqs) throws Exception {
-		SparseVector ret = new SparseVector(dseqs.length);
-
-		for (int i = 0; i < dseqs.length; i++) {
-			int dseq = dseqs[i];
-			double prior = cache.value(dseq);
-
-			if (prior == -1) {
-				SparseVector dv = dc.getDocVector(dseq);
-				for (int j = 0; j < dv.size(); j++) {
-					int w = dv.indexAt(j);
-
-					if (filter.filter(w)) {
-						continue;
-					}
-
-					double cnt_w = dv.valueAt(j);
-					prior += cnt_w;
-				}
-				cache.set(dseq, prior);
-			}
-			ret.addAt(i, dseq, prior);
+	public DenseVector estimate(int i, int j) throws Exception {
+		DenseVector ret = null;
+		if (type == Type.CDD) {
+			ret = estimateCollectionDocumentDistancePriors(i, j);
+		} else if (type == Type.QDLM) {
+			ret = estimateQueryDependentPriors(i, j);
+		} else if (type == Type.IDF) {
+			ret = estimateIDFPriors(i, j);
+		} else if (type == Type.DLM) {
+			ret = estimateLanguageModelPriors(i, j);
+		} else if (type == Type.LEN) {
+			ret = estimateLengthPriors(i, j);
 		}
 		return ret;
 	}
 
-	public SparseVector estimateIdfPriors(int[] dseqs) throws Exception {
-		SparseVector ret = new SparseVector(dseqs.length);
+	public DenseVector estimateCollectionDocumentDistancePriors(int i, int j) throws Exception {
+		DenseVector ret = new DenseVector(j - i);
+		SparseMatrix dvs = dc.getDocVectorRange(i, j);
 
-		for (int i = 0; i < dseqs.length; i++) {
-			int dseq = dseqs[i];
-			double prior = 0;
+		for (int k = 0; k < dvs.rowSize(); k++) {
+			int dseq = dvs.indexAt(k);
+			SparseVector dv = dvs.rowAt(k);
+			double div_sum = 0;
 
-			if (prior == 0) {
-				SparseVector dv = dc.getDocVector(dseq);
-				double size = 0;
-				for (int j = 0; j < dv.size(); j++) {
-					int w = dv.indexAt(j);
-
-					if (filter.filter(w)) {
-						continue;
-					}
-
-					double cnt_w = dv.valueAt(j);
-					double doc_freq = vocab.getDocFreq(w);
-					double num_docs = vocab.getDocCnt();
-					// double tfidf = TermWeighting.tfidf(cnt_w, num_docs,
-					// doc_freq);
-					double idf = TermWeighting.idf(num_docs, doc_freq);
-					prior += idf;
-					size++;
-				}
-				// prior /= size;
-				cache.set(dseq, prior);
+			for (int l = 0; l < dv.size(); l++) {
+				int w = dv.indexAt(l);
+				double cnt_w_in_d = dv.valueAt(l);
+				double len_d = dv.sum();
+				double pr_w_in_c = vocab.getProb(w);
+				double pr_w_in_d = TermWeighting.twoStageSmoothing(cnt_w_in_d, len_d, pr_w_in_c, prior_dir, pr_w_in_c, mixture_jm);
+				div_sum += pr_w_in_d * Math.log(pr_w_in_d / pr_w_in_c);
 			}
-			ret.addAt(i, dseq, prior);
-		}
 
+			if (div_sum != 0) {
+				double score = Math.exp(-div_sum);
+				ret.add(k, score);
+			}
+		}
 		return ret;
 	}
 
-	public SparseVector estimateLmPriors(int[] dseqs) throws Exception {
-		SparseVector ret = new SparseVector(dseqs.length);
+	public DenseVector estimateIDFPriors(int i, int j) throws Exception {
+		DenseVector ret = new DenseVector(j - i);
+		SparseMatrix dvs = dc.getDocVectorRange(i, j);
 
-		int[][] rs = BatchUtils.getBatchRanges(dseqs);
-
-		for (int i = 0, l = 0; i < rs.length; i++) {
-			int[] r = rs[i];
-			SparseMatrix dvs = dc.getRangeDocVectors(r[0], r[1]);
-
-			for (int j = 0; j < dvs.rowSize(); j++) {
-				int dseq = dvs.indexAt(j);
-				SparseVector dv = dvs.rowAt(j);
-				double prior = cache.value(dseq);
-
-				if (prior == -1) {
-					for (int k = 0; k < dv.size(); k++) {
-						int w = dv.indexAt(k);
-						double cnt_w_in_d = dv.valueAt(k);
-						double len_d = dv.sum();
-						double pr_w_in_c = vocab.getProb(w);
-						double pr_w_in_d = TermWeighting.twoStageSmoothing(cnt_w_in_d, len_d, pr_w_in_c, prior_dir, pr_w_in_c, mixture_jm);
-						prior += pr_w_in_d;
-					}
-					cache.set(dseq, prior);
-				}
-
-				ret.addAt(l++, dseq, prior);
+		for (int k = 0; k < dvs.rowSize(); k++) {
+			int dseq = dvs.indexAt(k);
+			SparseVector dv = dvs.rowAt(k);
+			double avg_idf = 0;
+			for (int l = 0; l < dv.size(); l++) {
+				int w = dv.indexAt(l);
+				double doc_freq = vocab.getDocFreq(w);
+				double idf = TermWeighting.idf(vocab.getDocCnt(), doc_freq);
+				avg_idf += idf;
 			}
 
+			if (avg_idf > 0) {
+				avg_idf /= dv.size();
+				ret.add(k, avg_idf);
+			}
 		}
+		return ret;
+	}
 
-		// for (int i = 0; i < dseqs.length; i++) {
-		// int dseq = dseqs[i];
-		// double prior = 0;
-		//
-		// if (prior == 0) {
-		// SparseVector dv = dc.getDocVector(dseq);
-		// // double[] log_probs = new double[dv.size()];
-		//
-		// double div_sum = 0;
-		//
-		// for (int j = 0; j < dv.size(); j++) {
-		// int w = dv.indexAt(j);
-		// double cnt_w_in_d = dv.valueAt(j);
-		// double len_d = dv.sum();
-		// double pr_w_in_c = vocab.getProb(w);
-		// double pr_w_in_d = TermWeighting.twoStageSmoothing(cnt_w_in_d, len_d, pr_w_in_c, prior_dir, pr_w_in_c, mixture_jm);
-		// prior += pr_w_in_d;
-		// }
-		//
-		// // prior = ArrayMath.sumLogProbs(log_probs);
-		// // prior = Math.exp(prior);
-		// cache.add(dseq, prior);
-		// }
-		//
-		// ret.addAt(i, dseq, prior);
-		// }
+	public DenseVector estimateLanguageModelPriors(int i, int j) throws Exception {
+		DenseVector ret = new DenseVector(j - i);
+		SparseMatrix dvs = dc.getDocVectorRange(i, j);
 
+		for (int k = 0; k < dvs.rowSize(); k++) {
+			int dseq = dvs.indexAt(k);
+			SparseVector dv = dvs.rowAt(k);
+			double score = 0;
+
+			for (int l = 0; l < dv.size(); l++) {
+				int w = dv.indexAt(l);
+				double cnt_w_in_d = dv.valueAt(l);
+				double len_d = dv.sum();
+				double pr_w_in_c = vocab.getProb(w);
+				double pr_w_in_d = TermWeighting.twoStageSmoothing(cnt_w_in_d, len_d, pr_w_in_c, prior_dir, pr_w_in_c, mixture_jm);
+				score += pr_w_in_d;
+			}
+			ret.add(k, score);
+		}
+		return ret;
+	}
+
+	public DenseVector estimateLengthPriors(int i, int j) throws Exception {
+		DenseVector ret = new DenseVector(j - i);
+		SparseMatrix dvs = dc.getDocVectorRange(i, j);
+		double len_avg = dc.getAvgDocLength();
+		for (int k = 0; k < dvs.rowSize(); k++) {
+			int dseq = dvs.indexAt(k);
+			SparseVector dv = dvs.rowAt(k);
+			double len_d = dv.sum();
+			double prior = len_d / len_avg;
+			ret.add(k, prior);
+		}
+		return ret;
+	}
+
+	public DenseVector estimateQueryDependentPriors(int i, int j) throws Exception {
+		DenseVector ret = new DenseVector(j - i);
+		SparseMatrix dvs = dc.getDocVectorRange(i, j);
+
+		for (int k = 0; k < dvs.rowSize(); k++) {
+			int dseq = dvs.indexAt(k);
+			SparseVector dv = dvs.rowAt(k);
+			double score = 0;
+			for (int l = 0; l < Q.size(); l++) {
+				int w = Q.indexAt(l);
+				double pr_w_in_q = Q.probAt(l);
+				double cnt_w_in_d = dv.value(w);
+				double len_d = dv.sum();
+				double pr_w_in_c = vocab.getProb(w);
+				double pr_w_in_d = TermWeighting.twoStageSmoothing(cnt_w_in_d, len_d, pr_w_in_c, prior_dir, pr_w_in_c, mixture_jm);
+				// div_sum += pr_w_in_q * Math.log(pr_w_in_q / pr_w_in_d);
+				score += pr_w_in_d;
+			}
+			ret.add(k, score);
+
+			// if (div_sum != 0) {
+			// double score = Math.exp(-div_sum);
+			// ret.add(k, score);
+			// }
+		}
 		return ret;
 	}
 
@@ -188,11 +283,32 @@ public class DocumentPriorEstimator {
 		return mixture_jm;
 	}
 
+	public void setBatchSize(int batch_size) {
+		this.batch_size = batch_size;
+	}
+
 	public void setDirichletPrior(double dirichlet_prior) {
 		this.prior_dir = dirichlet_prior;
+	}
+
+	public void setJmMixture(double mixture_jm) {
+		this.mixture_jm = mixture_jm;
 	}
 
 	public void setMixtureJM(double mixture_jm) {
 		this.mixture_jm = mixture_jm;
 	}
+
+	public void setQuery(SparseVector Q) {
+		this.Q = Q;
+	}
+
+	public void setThreadSize(int thread_size) {
+		this.thread_size = thread_size;
+	}
+
+	public void setType(Type type) {
+		this.type = type;
+	}
+
 }

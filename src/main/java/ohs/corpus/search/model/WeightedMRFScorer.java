@@ -99,7 +99,7 @@ public class WeightedMRFScorer extends MRFScorer {
 	}
 
 	@Override
-	public SparseVector score(SparseVector Q, SparseVector docs) throws Exception {
+	public SparseVector scoreFromIndex(SparseVector Q, SparseVector docs) throws Exception {
 		SparseVector s1 = mixtures.value(0) > 0 ? scoreUnigrams(Q, docs) : new SparseVector(ArrayUtils.copy(docs.indexes()));
 		SparseVector s2 = mixtures.value(1) > 0 ? scoreOrderedPhrases(Q, docs) : new SparseVector(ArrayUtils.copy(docs.indexes()));
 		SparseVector s3 = mixtures.value(2) > 0 ? scoreUnorderedPhrases(Q, docs) : new SparseVector(ArrayUtils.copy(docs.indexes()));

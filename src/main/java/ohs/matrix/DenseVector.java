@@ -385,10 +385,10 @@ public class DenseVector implements Vector {
 	}
 
 	@Override
-	public DenseVector subVector(int[] is) {
-		DenseVector ret = new DenseVector(is.length);
-		for (int j = 0; j < is.length; j++) {
-			ret.add(j, value(is[j]));
+	public DenseVector subVector(int[] idxs) {
+		DenseVector ret = new DenseVector(idxs.length);
+		for (int j = 0; j < idxs.length; j++) {
+			ret.add(j, value(idxs[j]));
 		}
 		return ret;
 	}

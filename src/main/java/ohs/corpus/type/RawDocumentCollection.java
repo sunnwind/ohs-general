@@ -94,8 +94,10 @@ public class RawDocumentCollection {
 
 	private File dataDir;
 
-	public RawDocumentCollection(FileChannel fc, ListList<String> attrData, ListList<Boolean> flagData, LongArray starts, IntegerArray lens,
-			ShortArray types, WeakHashMap<Integer, ArrayList<String>> cache) {
+	private boolean use_cache = true;
+
+	private RawDocumentCollection(FileChannel fc, ListList<String> attrData, ListList<Boolean> flagData, LongArray starts,
+			IntegerArray lens, ShortArray types, WeakHashMap<Integer, ArrayList<String>> cache, boolean use_cache) {
 		super();
 		this.fc = fc;
 		this.attrData = attrData;
@@ -104,6 +106,7 @@ public class RawDocumentCollection {
 		this.lens = lens;
 		this.types = types;
 		this.cache = cache;
+		this.use_cache = use_cache;
 	}
 
 	public RawDocumentCollection(String dataDir) throws Exception {
@@ -160,14 +163,16 @@ public class RawDocumentCollection {
 
 	public RawDocumentCollection copyShallow() throws Exception {
 		return new RawDocumentCollection(FileUtils.openFileChannel(new File(dataDir, DATA_NAME), "r"), attrData, flagData, starts, lens,
-				types, cache);
+				types, cache, use_cache);
 	}
 
 	public ArrayList<String> get(int dseq) throws Exception {
 		ArrayList<String> ret = null;
 
-		synchronized (cache) {
-			ret = cache.get(dseq);
+		if (use_cache) {
+			synchronized (cache) {
+				ret = cache.get(dseq);
+			}
 		}
 
 		if (ret == null) {
@@ -189,8 +194,10 @@ public class RawDocumentCollection {
 				ret.add(val);
 			}
 
-			synchronized (cache) {
-				cache.put(dseq, ret);
+			if (use_cache) {
+				synchronized (cache) {
+					cache.put(dseq, ret);
+				}
 			}
 		}
 		return ret;
@@ -232,8 +239,10 @@ public class RawDocumentCollection {
 		for (int k = i; k < j; k++) {
 			ArrayList<String> p = null;
 
-			synchronized (cache) {
-				p = cache.get(k);
+			if (use_cache) {
+				synchronized (cache) {
+					p = cache.get(k);
+				}
 			}
 
 			if (p == null) {
@@ -268,8 +277,10 @@ public class RawDocumentCollection {
 				}
 				ret.add(vals);
 
-				synchronized (cache) {
-					cache.put(k, vals);
+				if (use_cache) {
+					synchronized (cache) {
+						cache.put(k, vals);
+					}
 				}
 			}
 		} else {
@@ -309,6 +320,10 @@ public class RawDocumentCollection {
 
 	public ListList<String> getValues(int[] range) throws Exception {
 		return getRange(range[0], range[1]);
+	}
+
+	public void setUseCache(boolean use_cache) {
+		this.use_cache = use_cache;
 	}
 
 	public int size() {

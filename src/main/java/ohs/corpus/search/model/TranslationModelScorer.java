@@ -106,23 +106,6 @@ public class TranslationModelScorer extends Scorer {
 		return score;
 	}
 
-	@Override
-	public SparseVector score(SparseVector lm_q, SparseVector docCnt) throws Exception {
-		SparseVector ret = new SparseVector(docCnt.size());
-		for (int i = 0; i < docCnt.size(); i++) {
-			int dseq = docCnt.indexAt(i);
-			double cnt = docCnt.valueAt(i);
-			ret.addAt(i, dseq, score0(lm_q, dseq));
-		}
-		// ret.normalize();
-
-		// ArrayMath.multiply(ret.values(), docCnt.values(), ret.values());
-		// ret.summation();
-
-		ret.sortValues();
-		return ret;
-	}
-
 	public double score0(SparseVector lm_q, int dseq) throws Exception {
 		SparseVector dv = dc.getDocVector(dseq);
 
@@ -188,6 +171,29 @@ public class TranslationModelScorer extends Scorer {
 		}
 
 		double ret = VectorMath.cosine(scores, weights);
+		return ret;
+	}
+
+	@Override
+	public SparseVector scoreFromCollection(SparseVector Q, SparseVector docs) throws Exception {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public SparseVector scoreFromIndex(SparseVector lm_q, SparseVector docCnt) throws Exception {
+		SparseVector ret = new SparseVector(docCnt.size());
+		for (int i = 0; i < docCnt.size(); i++) {
+			int dseq = docCnt.indexAt(i);
+			double cnt = docCnt.valueAt(i);
+			ret.addAt(i, dseq, score0(lm_q, dseq));
+		}
+		// ret.normalize();
+
+		// ArrayMath.multiply(ret.values(), docCnt.values(), ret.values());
+		// ret.summation();
+
+		ret.sortValues();
 		return ret;
 	}
 

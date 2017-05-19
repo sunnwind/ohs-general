@@ -1,5 +1,7 @@
 package ohs.corpus.search.model;
 
+import java.util.List;
+
 import ohs.corpus.search.app.DocumentSearcher;
 import ohs.corpus.search.index.InvertedIndex;
 import ohs.corpus.search.index.Posting;
@@ -11,7 +13,9 @@ import ohs.matrix.DenseVector;
 import ohs.matrix.SparseMatrix;
 import ohs.matrix.SparseVector;
 import ohs.ml.neuralnet.com.BatchUtils;
+import ohs.types.generic.Pair;
 import ohs.types.generic.Vocab;
+import ohs.types.number.IntegerArray;
 
 public class LMScorer extends Scorer {
 
@@ -63,6 +67,8 @@ public class LMScorer extends Scorer {
 
 	protected Type type = Type.KLD;
 
+	private DenseVector docPriors;
+
 	public LMScorer(DocumentSearcher ds) {
 		super(ds.getVocab(), ds.getDocumentCollection(), ds.getInvertedIndex());
 	}
@@ -75,7 +81,7 @@ public class LMScorer extends Scorer {
 		return prior_dir;
 	}
 
-	public double getJMMixture() {
+	public double getJmMixture() {
 		return mixture_jm;
 	}
 
@@ -170,45 +176,23 @@ public class LMScorer extends Scorer {
 		}
 	}
 
-	@Override
-	public SparseVector score(SparseVector Q, SparseVector docs) throws Exception {
-		SparseVector ret = new SparseVector(ArrayUtils.copy(docs.indexes()));
-
-		for (int i = 0; i < Q.size(); i++) {
-			int w = Q.indexAt(i);
-			double pr_w_in_q = Q.probAt(i);
-			String word = vocab.getObject(w);
-
-			PostingList pl = ii.getPostingList(w);
-
-			if (pl == null) {
-				continue;
-			}
-			// System.out.printf("word=[%s], %s\n", word, pl.toString());
-			score(w, pr_w_in_q, pl, ret);
-		}
-
-		return ret;
-	}
-
-	public SparseVector scoreDirect(SparseVector Q, SparseVector docs) throws Exception {
-		SparseVector ret = docs.copy();
-		ret.setAll(0);
+	public SparseVector scoreDirectOld(SparseVector Q, SparseVector docs) throws Exception {
+		SparseVector ret = new SparseVector(docs.size());
 
 		int[][] rs = BatchUtils.getBatchRanges(docs.indexes());
 
-		for (int k = 0, m = 0; k < rs.length; k++) {
-			int[] r = rs[k];
-			SparseMatrix dvs = dc.getRangeDocVectors(r[0], r[1]);
+		for (int i = 0, j = 0; i < rs.length; i++) {
+			int[] r = rs[i];
+			List<Pair<String, IntegerArray>> ps = dc.getRange(r[0], r[1], false);
 
-			for (int i = 0; i < dvs.rowSize(); i++) {
-				int dseq = dvs.indexAt(i);
-				SparseVector dv = dc.getDocVector(dseq);
+			for (int k = 0; k < ps.size(); k++) {
+				SparseVector dv = DocumentCollection.getDocVector(ps.get(k).getSecond());
+				int dseq = r[0] + k;
 				double score = 0;
 
-				for (int j = 0; j < Q.size(); j++) {
-					int w = Q.indexAt(j);
-					double pr_w_in_q = Q.probAt(j);
+				for (int l = 0; l < Q.size(); l++) {
+					int w = Q.indexAt(l);
+					double pr_w_in_q = Q.probAt(l);
 					String word = vocab.getObject(w);
 
 					double len_c = dc.getLength();
@@ -234,11 +218,68 @@ public class LMScorer extends Scorer {
 						score += val;
 					}
 				}
-				ret.addAt(m++, dseq, score);
+				ret.addAt(j++, dseq, score);
 			}
-
 		}
+		return ret;
+	}
 
+	public SparseVector scoreFromCollection(SparseVector Q, SparseVector docs) throws Exception {
+		SparseVector ret = new SparseVector(ArrayUtils.copy(docs.indexes()));
+
+		for (int i = 0; i < docs.size(); i++) {
+			int dseq = docs.indexAt(i);
+			SparseVector dv = dc.getDocVector(dseq);
+			double score = 0;
+
+			for (int j = 0; j < Q.size(); j++) {
+				int w = Q.indexAt(j);
+				double pr_w_in_q = Q.probAt(j);
+				String word = vocab.getObject(w);
+
+				double len_c = dc.getLength();
+				double cnt_w_in_c = vocab.getCount(w);
+				double pr_w_in_c = cnt_w_in_c / len_c;
+				double pr_w_in_qbg = pr_w_in_c;
+
+				if (lm_qbg != null) {
+					pr_w_in_qbg = lm_qbg.value(w);
+				}
+
+				double cnt_w_in_d = dv.value(w);
+				double len_d = dv.sum();
+				double pr_w_in_d = TermWeighting.twoStageSmoothing(cnt_w_in_d, len_d, pr_w_in_c, prior_dir, pr_w_in_qbg, mixture_jm);
+
+				if (pr_w_in_d > 0) {
+					double val = 0;
+					if (type == Type.KLD) {
+						val = pr_w_in_q * Math.log(pr_w_in_q / pr_w_in_d);
+					} else {
+						val = Math.log(pr_w_in_d);
+					}
+					score += val;
+				}
+			}
+			ret.addAt(i, score);
+		}
+		return ret;
+	}
+
+	public SparseVector scoreFromIndex(SparseVector Q, SparseVector docs) throws Exception {
+		SparseVector ret = new SparseVector(ArrayUtils.copy(docs.indexes()));
+		for (int i = 0; i < Q.size(); i++) {
+			int w = Q.indexAt(i);
+			double pr_w_in_q = Q.probAt(i);
+			String word = vocab.getObject(w);
+
+			PostingList pl = ii.getPostingList(w);
+
+			if (pl == null) {
+				continue;
+			}
+			// System.out.printf("word=[%s], %s\n", word, pl.toString());
+			score(w, pr_w_in_q, pl, ret);
+		}
 		return ret;
 	}
 
@@ -246,7 +287,7 @@ public class LMScorer extends Scorer {
 		this.prior_dir = prior_dir;
 	}
 
-	public void setJMMixture(double mixture_jm) {
+	public void setJmMixture(double mixture_jm) {
 		this.mixture_jm = mixture_jm;
 	}
 

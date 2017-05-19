@@ -1984,7 +1984,7 @@ public class ExperimentsOld {
 
 		for (int i = 0; i < mixtures_jm.length; i++) {
 			for (int j = 0; j < priors_dir.length; j++) {
-				scorer.setJMMixture(mixtures_jm[i]);
+				scorer.setJmMixture(mixtures_jm[i]);
 				scorer.setDirichletPrior(priors_dir[j]);
 				for (int k = 0; k < bqs.size(); k++) {
 					BaseQuery bq = bqs.get(k);

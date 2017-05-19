@@ -28,7 +28,7 @@ public class VsmScorer extends Scorer {
 
 		for (int k = 0; k < rs.length; k++) {
 			int[] r = rs[k];
-			SparseMatrix dvs = dc.getRangeDocVectors(r[0], r[1]);
+			SparseMatrix dvs = dc.getDocVectorRange(r[0], r[1]);
 			for (int i = 0; i < dvs.rowSize(); i++) {
 				int dseq = dvs.indexAt(i);
 				SparseVector dv = dvs.rowAt(i);
@@ -72,7 +72,17 @@ public class VsmScorer extends Scorer {
 	}
 
 	@Override
-	public SparseVector score(SparseVector Q, SparseVector docCnts) throws Exception {
+	public SparseVector score(SparseVector Q, SparseVector docs, boolean use_inverted_index) throws Exception {
+		return null;
+	}
+
+	public SparseVector scoreFromCollection(SparseVector Q, SparseVector docCnts) throws Exception {
+		SparseVector ret = null;
+
+		return ret;
+	}
+
+	public SparseVector scoreFromIndex(SparseVector Q, SparseVector docCnts) throws Exception {
 		Q = Q.copy();
 		Counter<Integer> scores = Generics.newCounter();
 
