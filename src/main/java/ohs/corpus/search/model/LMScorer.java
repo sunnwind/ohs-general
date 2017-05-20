@@ -59,15 +59,13 @@ public class LMScorer extends Scorer {
 		return score;
 	}
 
+	protected Type type = Type.KLD;
+
 	protected double prior_dir = 2000;
 
 	protected double mixture_jm = 0.5;
 
 	protected DenseVector lm_qbg;
-
-	protected Type type = Type.KLD;
-
-	private DenseVector docPriors;
 
 	public LMScorer(DocumentSearcher ds) {
 		super(ds.getVocab(), ds.getDocumentCollection(), ds.getInvertedIndex());
@@ -103,6 +101,15 @@ public class LMScorer extends Scorer {
 				double div = scores.valueAt(i);
 				double score = Math.exp(-div);
 				scores.setAt(i, score);
+			}
+		}
+
+		if (docPriors != null) {
+			for (int i = 0; i < scores.size(); i++) {
+				int w = scores.indexAt(i);
+				double score = scores.valueAt(i);
+				double doc_prior = docPriors.value(w);
+				scores.setAt(i, score * doc_prior);
 			}
 		}
 
@@ -174,54 +181,6 @@ public class LMScorer extends Scorer {
 			}
 			m++;
 		}
-	}
-
-	public SparseVector scoreDirectOld(SparseVector Q, SparseVector docs) throws Exception {
-		SparseVector ret = new SparseVector(docs.size());
-
-		int[][] rs = BatchUtils.getBatchRanges(docs.indexes());
-
-		for (int i = 0, j = 0; i < rs.length; i++) {
-			int[] r = rs[i];
-			List<Pair<String, IntegerArray>> ps = dc.getRange(r[0], r[1], false);
-
-			for (int k = 0; k < ps.size(); k++) {
-				SparseVector dv = DocumentCollection.getDocVector(ps.get(k).getSecond());
-				int dseq = r[0] + k;
-				double score = 0;
-
-				for (int l = 0; l < Q.size(); l++) {
-					int w = Q.indexAt(l);
-					double pr_w_in_q = Q.probAt(l);
-					String word = vocab.getObject(w);
-
-					double len_c = dc.getLength();
-					double cnt_w_in_c = vocab.getCount(w);
-					double pr_w_in_c = cnt_w_in_c / len_c;
-					double pr_w_in_qbg = pr_w_in_c;
-
-					if (lm_qbg != null && w != -1) {
-						pr_w_in_qbg = lm_qbg.value(w);
-					}
-
-					double cnt_w_in_d = dv.value(w);
-					double len_d = dv.sum();
-					double pr_w_in_d = TermWeighting.twoStageSmoothing(cnt_w_in_d, len_d, pr_w_in_c, prior_dir, pr_w_in_qbg, mixture_jm);
-
-					if (pr_w_in_d > 0) {
-						double val = 0;
-						if (type == Type.KLD) {
-							val = pr_w_in_q * Math.log(pr_w_in_q / pr_w_in_d);
-						} else {
-							val = Math.log(pr_w_in_d);
-						}
-						score += val;
-					}
-				}
-				ret.addAt(j++, dseq, score);
-			}
-		}
-		return ret;
 	}
 
 	public SparseVector scoreFromCollection(SparseVector Q, SparseVector docs) throws Exception {

@@ -712,7 +712,7 @@ public class FeedbackBuilder {
 		return buildRM1(scores, 0, null);
 	}
 
-	public SparseVector buildRM1(SparseVector scores, int start, SparseVector docPriors) throws Exception {
+	public SparseVector buildRM1(SparseVector scores, int start, DenseVector docPriors) throws Exception {
 		scores = scores.subVector(start, Math.min(fb_doc_size, scores.size() - start));
 
 		SparseMatrix dvs = dc.getDocVectors(scores.indexes());
@@ -739,7 +739,7 @@ public class FeedbackBuilder {
 				double prior_d = 1;
 
 				if (docPriors != null) {
-					prior_d = docPriors.valueAt(j);
+					prior_d = docPriors.value(dseq);
 				}
 
 				double pr_w_in_fb = weight_d * pr_w_in_d * prior_d;
@@ -751,7 +751,9 @@ public class FeedbackBuilder {
 		}
 
 		lm_fb.sortValues();
-		lm_fb = lm_fb.subVector(fb_word_size);
+		if (fb_word_size < Integer.MAX_VALUE) {
+			lm_fb = lm_fb.subVector(fb_word_size);
+		}
 		lm_fb.normalize();
 		return lm_fb;
 	}
@@ -1048,6 +1050,10 @@ public class FeedbackBuilder {
 		dpe.setDirichletPrior(dirichlet_prior);
 	}
 
+	public void setFbDocSize(int fb_doc_size) {
+		this.fb_doc_size = fb_doc_size;
+	}
+
 	// public IntegerArrayMatrix getPassages(int docseq) throws Exception {
 	// IntegerArrayMatrix ret = new IntegerArrayMatrix();
 	// IntegerArrayMatrix doc = ds.getDocument(docseq).getSecond();
@@ -1069,12 +1075,12 @@ public class FeedbackBuilder {
 	// return ret;
 	// }
 
-	public void setFbDocSize(int fb_doc_size) {
-		this.fb_doc_size = fb_doc_size;
-	}
-
 	public void setFbWordSize(int fb_word_size) {
 		this.fb_word_size = fb_word_size;
+	}
+
+	public void setFeedbackMixture(double mixture_fb) {
+		this.mixture_fb = mixture_fb;
 	}
 
 	public void setMixtureJM(double mixture_jm) {

@@ -314,6 +314,12 @@ public class DocumentCollection {
 		return new DocumentCollection(FileUtils.openFileChannel(new File(dataDir, DATA_NAME), "r"), starts, lens, vocab, cache, use_cache);
 	}
 
+	private int max_cache_size = 10000;
+
+	public void setMaxCacheSize(int max_cache_size) {
+		this.max_cache_size = max_cache_size;
+	}
+
 	public Pair<String, IntegerArray> get(int i) throws Exception {
 		Pair<String, IntegerArray> ret = null;
 
