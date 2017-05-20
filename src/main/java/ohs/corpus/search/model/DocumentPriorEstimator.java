@@ -27,7 +27,7 @@ import ohs.utils.Timer;
 public class DocumentPriorEstimator {
 
 	public enum Type {
-		CDD, QDLM, IDF, DLM, LEN
+		CDD, QDLM, IDF, DLM, LEN, STOP_RATIO
 	}
 
 	class Worker implements Callable<Integer> {
@@ -158,6 +158,8 @@ public class DocumentPriorEstimator {
 			ret = estimateLanguageModelPriors(i, j);
 		} else if (type == Type.LEN) {
 			ret = estimateLengthPriors(i, j);
+		} else if (type == Type.STOP_RATIO) {
+			ret = estimateStopRatioPriors(i, j);
 		}
 		return ret;
 	}
@@ -206,6 +208,36 @@ public class DocumentPriorEstimator {
 			if (avg_idf > 0) {
 				avg_idf /= dv.size();
 				ret.add(k, avg_idf);
+			}
+		}
+		return ret;
+	}
+
+	public DenseVector estimateStopRatioPriors(int i, int j) throws Exception {
+		DenseVector ret = new DenseVector(j - i);
+		SparseMatrix dvs = dc.getDocVectorRange(i, j);
+
+		for (int k = 0; k < dvs.rowSize(); k++) {
+			int dseq = dvs.indexAt(k);
+			SparseVector dv = dvs.rowAt(k);
+
+			double cnt_stop = 0;
+			double cnt_nonstop = 0;
+
+			for (int l = 0; l > dv.size(); l++) {
+				int w = dv.indexAt(l);
+				double cnt = dv.valueAt(l);
+
+				if (wf.filter(w)) {
+					cnt_stop += cnt;
+				} else {
+					cnt_nonstop += cnt;
+				}
+			}
+
+			if (dv.sum() > 0) {
+				double ratio = (cnt_nonstop + 1) / (cnt_stop + 1);
+				ret.add(k, ratio);
 			}
 		}
 		return ret;

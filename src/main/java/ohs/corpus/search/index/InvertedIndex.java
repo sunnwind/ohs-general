@@ -238,8 +238,10 @@ public class InvertedIndex {
 
 	private boolean use_cache = true;
 
+	private boolean print_log = false;
+
 	private InvertedIndex(FileChannel fc, LongArray starts, IntegerArray lens, int doc_cnt, Map<Integer, PostingList> cache, Vocab vocab,
-			Map<Integer, PostingList> plm, boolean use_cache) {
+			Map<Integer, PostingList> plm, boolean use_cache, boolean print_log) {
 		this.fc = fc;
 		this.starts = starts;
 		this.lens = lens;
@@ -251,7 +253,7 @@ public class InvertedIndex {
 	}
 
 	public InvertedIndex(FileChannel fc, LongArray starts, IntegerArray lens, int doc_cnt, Vocab vocab) {
-		this(fc, starts, lens, doc_cnt, Generics.newWeakHashMap(), vocab, null, true);
+		this(fc, starts, lens, doc_cnt, Generics.newWeakHashMap(), vocab, null, true, false);
 	}
 
 	public InvertedIndex(Map<Integer, PostingList> plm, int doc_cnt, Vocab vocab) {
@@ -290,7 +292,7 @@ public class InvertedIndex {
 
 	public InvertedIndex copyShallow() throws Exception {
 		return new InvertedIndex(FileUtils.openFileChannel(new File(dataDir, DATA_NAME), "r"), starts, lens, doc_cnt, cache, vocab, plm,
-				use_cache);
+				use_cache, print_log);
 	}
 
 	public int getDocCnt() {
@@ -305,6 +307,7 @@ public class InvertedIndex {
 		Timer timer = Timer.newTimer();
 
 		PostingList ret = null;
+		boolean is_cached = false;
 
 		if (plm == null) {
 			if (w < 0 || w >= starts.size()) {
@@ -339,13 +342,17 @@ public class InvertedIndex {
 						cache.put(w, ret);
 					}
 				}
+			} else {
+				is_cached = true;
 			}
 		} else {
 			ret = plm.get(w);
 		}
 
-		// String word = vocab == null ? "null" : vocab.getObject(w);
-		// System.out.printf("PL of word=[%s], %s, time=[%s]\n", word, ret, timer.stop());
+		if (print_log) {
+			String word = vocab == null ? "null" : vocab.getObject(w);
+			System.out.printf("PL of word=[%s], cached=[%s], %s, time=[%s]\n", word, is_cached, ret, timer.stop());
+		}
 		return ret;
 	}
 
@@ -469,6 +476,10 @@ public class InvertedIndex {
 			ret.add(getPostingList(w));
 		}
 		return ret;
+	}
+
+	public void setPrintLog(boolean print_log) {
+		this.print_log = print_log;
 	}
 
 	public void setUseCache(boolean use_cache) {
