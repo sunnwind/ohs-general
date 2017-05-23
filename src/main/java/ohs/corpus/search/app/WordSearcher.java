@@ -307,12 +307,15 @@ public class WordSearcher {
 		if (w >= 0 && w < E.rowSize()) {
 			ret = E.row(w);
 		}
-
 		return ret;
 	}
 
 	public DenseVector getVector(String word) throws Exception {
 		return getVector(vocab.indexOf(word));
+	}
+
+	public Vocab getVocab() {
+		return vocab;
 	}
 
 	public void setWeightEmbedding(boolean weight_embedding) {

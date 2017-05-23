@@ -224,7 +224,7 @@ public class DocumentPriorEstimator {
 			double cnt_stop = 0;
 			double cnt_nonstop = 0;
 
-			for (int l = 0; l > dv.size(); l++) {
+			for (int l = 0; l < dv.size(); l++) {
 				int w = dv.indexAt(l);
 				double cnt = dv.valueAt(l);
 
@@ -287,9 +287,12 @@ public class DocumentPriorEstimator {
 			int dseq = dvs.indexAt(k);
 			SparseVector dv = dvs.rowAt(k);
 			double score = 0;
-			for (int l = 0; l < Q.size(); l++) {
-				int w = Q.indexAt(l);
-				double pr_w_in_q = Q.probAt(l);
+
+			for (int l = 0; l < dv.size(); l++) {
+				int w = dv.indexAt(l);
+				if (Q.location(w) < 0) {
+					continue;
+				}
 				double cnt_w_in_d = dv.value(w);
 				double len_d = dv.sum();
 				double pr_w_in_c = vocab.getProb(w);

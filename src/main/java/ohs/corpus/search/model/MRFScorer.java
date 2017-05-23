@@ -31,8 +31,36 @@ public class MRFScorer extends LMScorer {
 
 	@Override
 	public void postprocess(SparseVector scores) {
-		super.postprocess(scores);
 		VectorMath.softmax(scores);
+
+		if (docPriors != null) {
+			for (int i = 0; i < scores.size(); i++) {
+				int w = scores.indexAt(i);
+				double score = scores.valueAt(i);
+				double doc_prior = docPriors.value(w);
+				scores.setAt(i, score * doc_prior);
+			}
+		}
+
+		scores.summation();
+		scores.sortValues();
+
+	}
+
+	@Override
+	public SparseVector scoreFromCollection(SparseVector Q, SparseVector docs) throws Exception {
+		SparseVector s1 = mixtures.value(0) > 0 ? super.scoreFromCollection(Q, docs) : new SparseVector(ArrayUtils.copy(docs.indexes()));
+		SparseVector s2 = mixtures.value(1) > 0 ? scoreOrderedPhrases(Q, docs) : new SparseVector(ArrayUtils.copy(docs.indexes()));
+		SparseVector s3 = mixtures.value(2) > 0 ? scoreUnorderedPhrases(Q, docs) : new SparseVector(ArrayUtils.copy(docs.indexes()));
+
+		for (int i = 0; i < docs.size(); i++) {
+			int dseq = docs.indexAt(i);
+			DenseVector scores = new DenseVector(new double[] { s1.valueAt(i), s2.valueAt(i), s3.valueAt(i) });
+			double score = VectorMath.dotProduct(mixtures, scores);
+			s1.setAt(i, score);
+		}
+		s1.summation();
+		return s1;
 	}
 
 	@Override
@@ -60,13 +88,13 @@ public class MRFScorer extends LMScorer {
 
 		String str = StrUtils.join(" ", vocab.getObjects(Q.indexes()));
 
-		for (int s = 0; s < Q.size() - 1; s++) {
-			int r1 = s + 2;
-			int r2 = Math.min(r1 + phrs_size, Q.size() + 1);
+		for (int i = 0; i < Q.size() - 1; i++) {
+			for (int j = 2; j <= phrs_size; j++) {
+				if (i + j > Q.size()) {
+					break;
+				}
 
-			for (int m = r1; m < r2; m++) {
-				int e = m - s;
-				IntegerArray subQ = new IntegerArray(Q.subVector(s, e).indexes());
+				IntegerArray subQ = new IntegerArray(Q.subVector(i, j).indexes());
 				String phrs = StrUtils.join(" ", vocab.getObjects(subQ));
 				PostingList pl = ii.getPostingList(subQ, keep_order, window_size);
 

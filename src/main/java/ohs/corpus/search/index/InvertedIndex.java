@@ -351,7 +351,7 @@ public class InvertedIndex {
 
 		if (print_log) {
 			String word = vocab == null ? "null" : vocab.getObject(w);
-			System.out.printf("PL of word=[%s], cached=[%s], %s, time=[%s]\n", word, is_cached, ret, timer.stop());
+			System.out.printf("PL: cached=[%s], word=[%s], %s, time=[%s]\n", is_cached, word, is_cached, ret, timer.stop());
 		}
 		return ret;
 	}

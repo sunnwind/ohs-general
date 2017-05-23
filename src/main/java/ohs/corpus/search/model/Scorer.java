@@ -39,7 +39,7 @@ public abstract class Scorer {
 
 	public abstract SparseVector scoreFromIndex(SparseVector Q, SparseVector docs) throws Exception;
 
-	public void setDocPriors(DenseVector docPriors) {
+	public void setDocumentPriors(DenseVector docPriors) {
 		this.docPriors = docPriors;
 	}
 

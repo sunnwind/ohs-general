@@ -126,33 +126,33 @@ public class WeightedMRFScorer extends MRFScorer {
 
 		String strQ = StrUtils.join(" ", vocab.getObjects(Q.indexes()));
 
-		for (int s = 0; s < Q.size() - 1; s++) {
-			int r1 = s + 2;
-			int r2 = Math.min(r1 + phrs_size, Q.size() + 1);
+		for (int i = 0; i < Q.size() - 1; i++) {
+			for (int j = 2; j <= phrs_size; j++) {
+				if (i + j > Q.size()) {
+					break;
+				}
 
-			for (int m = r1; m < r2; m++) {
-				int e = m - s;
-				IntegerArray subQ = new IntegerArray(Q.subVector(s, e).indexes());
-				String substrQ = StrUtils.join(" ", vocab.getObjects(subQ));
-
+				IntegerArray subQ = new IntegerArray(Q.subVector(i, j).indexes());
+				String phrs = StrUtils.join(" ", vocab.getObjects(subQ));
 				PostingList pl = ii.getPostingList(subQ, keep_order, window_size);
 
 				if (pl == null) {
 					continue;
 				}
 
-				PostingList ppl = pii.getPostingList(subQ, keep_order, window_size);
+				PostingList ppl = pii.getPostingList(subQ, keep_order, 1);
 				double phrs_weight = getPhraseWeight(ppl);
 
 				tmp.setAll(0);
 
 				score(pl.getWord(), 1, pl, tmp);
 
-				for (int j = 0; j < ret.size(); j++) {
-					ret.addAt(j, tmp.valueAt(j) * phrs_weight);
+				for (int k = 0; k < ret.size(); k++) {
+					ret.addAt(k, tmp.valueAt(k) * phrs_weight);
 				}
 			}
 		}
+
 		return ret;
 	}
 

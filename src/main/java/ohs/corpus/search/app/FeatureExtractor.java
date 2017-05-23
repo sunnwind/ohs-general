@@ -70,7 +70,8 @@ public class FeatureExtractor {
 				st = strNormlizer.normalize(st);
 
 				SparseVector Q = ds.index(st);
-				SparseVector lm_q = ds.getQueryModel(Q, false);
+				SparseVector lm_q = Q.copy();
+				lm_q.normalize();
 
 				SparseVector docScores = ds.search(lm_q);
 
@@ -256,7 +257,9 @@ public class FeatureExtractor {
 
 			feats.add(VectorMath.cosine(Q, d));
 
-			SparseVector lm_q = ds.getQueryModel(Q, false);
+			SparseVector lm_q = Q.copy();
+			lm_q.normalize();
+
 			feats.add(LMScorer.score(lm_q, d, ds.getVocab(), 2000, 0));
 			feats.add(LMScorer.score(lm_q, d, ds.getVocab(), 0, 0.5));
 			feats.add(LMScorer.score(lm_q, d, ds.getVocab(), 2000, 0.5));

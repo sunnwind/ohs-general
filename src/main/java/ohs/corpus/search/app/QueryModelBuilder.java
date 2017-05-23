@@ -4,9 +4,11 @@ import ohs.io.RandomAccessDenseMatrix;
 import ohs.ir.weight.TermWeighting;
 import ohs.math.ArrayMath;
 import ohs.math.VectorMath;
+import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseVector;
 import ohs.matrix.SparseVector;
+import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
 import ohs.types.generic.Vocab;
 import ohs.utils.Generics;
@@ -22,9 +24,14 @@ public class QueryModelBuilder {
 		this.E = E;
 	}
 
+	Counter<String> build1(Counter<String> Q) throws Exception {
+		SparseVector ret = build1(VectorUtils.toSparseVector(Q, vocab));
+		return VectorUtils.toCounter(ret, vocab);
+	}
+
 	public SparseVector build1(SparseVector Q) throws Exception {
 		DenseMatrix m = new DenseMatrix(Q.size());
-		CounterMap<String, String> cm = Generics.newCounterMap();
+		// CounterMap<String, String> cm = Generics.newCounterMap();
 
 		for (int j = 0; j < Q.size(); j++) {
 			int w1 = Q.indexAt(j);
@@ -39,11 +46,11 @@ public class QueryModelBuilder {
 
 				DenseVector e2 = E.row(w2);
 				double cosine = VectorMath.dotProduct(e1, e2);
-				double weight = Math.exp(cosine);
+				double weight = Math.exp(cosine) * idf1 * idf2;
 				m.add(j, k, weight);
 				m.add(k, j, weight);
-				cm.incrementCount(vocab.getObject(w1), vocab.getObject(w2), weight);
-				cm.incrementCount(vocab.getObject(w2), vocab.getObject(w1), weight);
+				// cm.incrementCount(vocab.getObject(w1), vocab.getObject(w2), weight);
+				// cm.incrementCount(vocab.getObject(w2), vocab.getObject(w1), weight);
 			}
 		}
 
@@ -52,7 +59,8 @@ public class QueryModelBuilder {
 		SparseVector ret = Q.copy();
 		ret.normalize();
 
-		ArrayMath.randomWalk(m.values(), ret.values(), 20);
+		// ArrayMath.randomWalk(m.values(), ret.values(), 20);
+		ArrayMath.randomWalk(m.values(), ret.values(), 20, 0.0000001, 1);
 
 		return ret;
 	}
@@ -93,6 +101,10 @@ public class QueryModelBuilder {
 		ret.summation();
 
 		return ret;
+	}
+
+	public RandomAccessDenseMatrix getEmbeddingMatrix() {
+		return E;
 	}
 
 }

@@ -1,6 +1,6 @@
 package ohs.corpus.search.model;
 
-import java.util.List;
+import java.util.Set;
 
 import ohs.corpus.search.app.DocumentSearcher;
 import ohs.corpus.search.index.InvertedIndex;
@@ -12,10 +12,7 @@ import ohs.math.ArrayUtils;
 import ohs.matrix.DenseVector;
 import ohs.matrix.SparseMatrix;
 import ohs.matrix.SparseVector;
-import ohs.ml.neuralnet.com.BatchUtils;
-import ohs.types.generic.Pair;
 import ohs.types.generic.Vocab;
-import ohs.types.number.IntegerArray;
 
 public class LMScorer extends Scorer {
 
@@ -223,6 +220,7 @@ public class LMScorer extends Scorer {
 		}
 		return ret;
 	}
+
 
 	public SparseVector scoreFromIndex(SparseVector Q, SparseVector docs) throws Exception {
 		SparseVector ret = new SparseVector(ArrayUtils.copy(docs.indexes()));
