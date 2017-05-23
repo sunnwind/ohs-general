@@ -820,9 +820,28 @@ public class ArrayMath {
 
 	public static double divide(double[] a, double[] b, double[] c) {
 		double sum = 0;
+		double v = 0;
 		for (int i = 0; i < a.length; i++) {
-			c[i] = a[i] / b[i];
-			sum += c[i];
+			v = b[i];
+			if (v == 0 || v == 1) {
+
+			} else {
+				c[i] = a[i] / b[i];
+				sum += c[i];
+			}
+		}
+		return sum;
+	}
+
+	public static double divide(double[] a, double b, double[] c) {
+		double sum = 0;
+		for (int i = 0; i < a.length; i++) {
+			if (b == 0 || b == 1) {
+
+			} else {
+				c[i] = a[i] / b;
+				sum += c[i];
+			}
 		}
 		return sum;
 	}
@@ -3168,7 +3187,7 @@ public class ArrayMath {
 
 			double sum = add(cents, uniform_cent, cents);
 
-			if (sum != 1) {
+			if (sum != 0 && sum != 1) {
 				multiply(cents, 1f / sum, cents);
 			}
 

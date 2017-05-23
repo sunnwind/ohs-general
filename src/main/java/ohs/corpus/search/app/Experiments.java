@@ -1202,8 +1202,8 @@ public class Experiments {
 
 		QueryModelBuilder qmb = new QueryModelBuilder(ws.getVocab(), ws.getEmbeddingMatrix());
 
-		DenseVector e_medical = null;
-		double idf_medical = 0;
+		DenseVector e_med = new DenseVector(ws.getEmbeddingMatrix().colSize());
+		double idf_med = 0;
 		{
 			Set<Integer> wordSet = Generics.newHashSet();
 			Counter<String> phrsCnts = getPhrases();
@@ -1234,12 +1234,12 @@ public class Experiments {
 				if (e == null) {
 					continue;
 				}
-				VectorMath.add(e, e_medical);
-				idf_medical += TermWeighting.idf(vocab.getDocCnt(), vocab.getDocFreq(w));
+				VectorMath.add(e, e_med);
+				idf_med += TermWeighting.idf(vocab.getDocCnt(), vocab.getDocFreq(w));
 				cnt++;
 			}
-			e_medical.multiply(1f / cnt);
-			idf_medical /= cnt;
+			e_med.multiply(1f / cnt);
+			idf_med /= cnt;
 		}
 
 		int top_n = 4000;
@@ -1258,7 +1258,7 @@ public class Experiments {
 
 				SparseVector Q1 = qData.rowAt(i);
 				Counter<String> c1 = VectorUtils.toCounter(Q1, vocab);
-				Counter<String> c2 = qmb.build1(c1);
+				Counter<String> c2 = qmb.build1(c1, e_med, idf_med);
 				SparseVector Q2 = VectorUtils.toSparseVector(c2, vocab);
 
 				Q2 = fb.updateQueryModel(Q1, Q2);

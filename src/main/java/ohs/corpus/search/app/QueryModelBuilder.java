@@ -1,16 +1,19 @@
 package ohs.corpus.search.app;
 
+import java.util.List;
+
 import ohs.io.RandomAccessDenseMatrix;
 import ohs.ir.weight.TermWeighting;
 import ohs.math.ArrayMath;
+import ohs.math.ArrayUtils;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseVector;
 import ohs.matrix.SparseVector;
 import ohs.types.generic.Counter;
-import ohs.types.generic.CounterMap;
 import ohs.types.generic.Vocab;
+import ohs.types.number.DoubleArray;
 import ohs.utils.Generics;
 
 public class QueryModelBuilder {
@@ -24,27 +27,64 @@ public class QueryModelBuilder {
 		this.E = E;
 	}
 
-	Counter<String> build1(Counter<String> Q) throws Exception {
-		SparseVector ret = build1(VectorUtils.toSparseVector(Q, vocab));
+	Counter<String> build1(Counter<String> Q, DenseVector e_ext, double idf_ext) throws Exception {
+		SparseVector ret = build1(VectorUtils.toSparseVector(Q, vocab), e_ext, idf_ext);
 		return VectorUtils.toCounter(ret, vocab);
 	}
 
-	public SparseVector build1(SparseVector Q) throws Exception {
-		DenseMatrix m = new DenseMatrix(Q.size());
+	public SparseVector build1(SparseVector Q, DenseVector e_ext, double idf_ext) throws Exception {
+		List<DenseVector> e_ds = Generics.newArrayList(Q.size() + 2);
+		DoubleArray idfs = new DoubleArray(Q.size() + 2);
+
+		DenseVector e_q = new DenseVector(E.colSize());
+		double idf_q = 0;
+		int cnt = 0;
+		for (int w : Q.indexes()) {
+			double idf = TermWeighting.idf(vocab.getDocCnt(), vocab.getDocFreq(w));
+			DenseVector e = E.row(w);
+			VectorMath.add(e, e_q);
+			idf_q += idf;
+
+			if (e != null) {
+				cnt++;
+			}
+
+			e_ds.add(e);
+			idfs.add(idf);
+		}
+
+		if (cnt > 0) {
+			e_q.multiply(1f / cnt);
+			idf_q /= cnt;
+		}
+
+		e_ds.add(e_q);
+		idfs.add(idf_q);
+
+		if (e_ext != null) {
+			e_ds.add(e_ext);
+			idfs.add(idf_ext);
+		}
+
+		DenseMatrix m = new DenseMatrix(e_ds.size());
 		// CounterMap<String, String> cm = Generics.newCounterMap();
 
-		for (int j = 0; j < Q.size(); j++) {
-			int w1 = Q.indexAt(j);
-			double pr1 = vocab.getProb(w1);
-			double idf1 = TermWeighting.idf(vocab.getDocCnt(), vocab.getDocFreq(w1));
-			DenseVector e1 = E.row(w1);
+		for (int j = 0; j < e_ds.size(); j++) {
+			double idf1 = idfs.get(j);
+			DenseVector e1 = e_ds.get(j);
 
-			for (int k = j + 1; k < Q.size(); k++) {
-				int w2 = Q.indexAt(k);
-				double pr2 = vocab.getProb(w2);
-				double idf2 = TermWeighting.idf(vocab.getDocCnt(), vocab.getDocFreq(w2));
+			if (e1 == null) {
+				continue;
+			}
 
-				DenseVector e2 = E.row(w2);
+			for (int k = j + 1; k < e_ds.size(); k++) {
+				double idf2 = idfs.get(k);
+				DenseVector e2 = e_ds.get(k);
+
+				if (e2 == null) {
+					continue;
+				}
+
 				double cosine = VectorMath.dotProduct(e1, e2);
 				double weight = Math.exp(cosine) * idf1 * idf2;
 				m.add(j, k, weight);
@@ -56,12 +96,13 @@ public class QueryModelBuilder {
 
 		m.normalizeColumns();
 
-		SparseVector ret = Q.copy();
-		ret.normalize();
+		SparseVector ret = new SparseVector(e_ds.size());
 
 		// ArrayMath.randomWalk(m.values(), ret.values(), 20);
 		ArrayMath.randomWalk(m.values(), ret.values(), 20, 0.0000001, 1);
 
+		ret = ret.subVector(0, Q.size());
+		ret.setIndexes(ArrayUtils.copy(Q.indexes()));
 		return ret;
 	}
 

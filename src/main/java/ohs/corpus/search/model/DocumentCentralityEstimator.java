@@ -36,19 +36,18 @@ public class DocumentCentralityEstimator {
 		System.out.println("process ends.");
 	}
 
-	private double dirichlet_prior = 1500;
-
-	private double mixture_jm = 0;
-
 	private int num_top_docs = 10;
 
 	private DocumentCollection dc;
 
 	private Vocab vocab;
 
-	public DocumentCentralityEstimator(Vocab vocab, DocumentCollection ldc) {
-		this.vocab = vocab;
-		this.dc = ldc;
+	private Scorer scorer;
+
+	public DocumentCentralityEstimator(DocumentCollection dc, Scorer scorer) {
+		this.dc = dc;
+		this.scorer = scorer;
+		this.vocab = dc.getVocab();
 	}
 
 	public SparseVector estimate(SparseVector scores) throws Exception {
@@ -71,14 +70,15 @@ public class DocumentCentralityEstimator {
 
 		double[][] tran_probs = ArrayMath.matrix(size);
 
-		for (int i = 0; i < size; i++) {
+		for (int i = 0; i < scores.size(); i++) {
+			int dseq1 = scores.indexAt(i);
 			SparseVector dv1 = dvs.rowAt(i);
 
-			for (int j = i + 1; j < size; j++) {
+			for (int j = i + 1; j < scores.size(); j++) {
+				int dseq2 = scores.indexAt(j);
 				SparseVector dv2 = dvs.rowAt(j);
-				double forward_score = score(dv1, dv2);
-				double backward_score = score(dv2, dv1);
-
+				double forward_score = scorer.scoreFromCollection(dv1, new SparseVector(new int[] { dseq2 })).valueAt(0);
+				double backward_score = scorer.scoreFromCollection(dv2, new SparseVector(new int[] { dseq1 })).valueAt(0);
 				tran_probs[i][j] = forward_score;
 				tran_probs[j][i] = backward_score;
 			}
@@ -96,23 +96,4 @@ public class DocumentCentralityEstimator {
 		return tran_probs;
 	}
 
-	private double score(SparseVector d, SparseVector q) {
-		double div = 0;
-		for (int i = 0; i < q.size(); i++) {
-			int w = q.indexAt(i);
-			double pr_w_in_q = q.prob(w);
-			double pr_w_in_c = vocab.getProb(w);
-
-			double cnt_w_in_d = d.value(w);
-			double len_d = d.sum();
-			double pr_w_in_d = TermWeighting.twoStageSmoothing(cnt_w_in_d, len_d, pr_w_in_c, dirichlet_prior, pr_w_in_c, mixture_jm);
-
-			if (pr_w_in_d > 0) {
-				div += pr_w_in_q * Math.log(pr_w_in_q / pr_w_in_d);
-			}
-		}
-
-		div = Math.exp(-div);
-		return div;
-	}
 }
