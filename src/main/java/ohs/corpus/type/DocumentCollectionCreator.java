@@ -65,21 +65,16 @@ public class DocumentCollectionCreator {
 		public Pair<Counter<String>, Counter<String>> call() throws Exception {
 			int range_loc = 0;
 
-			Counter<String> cnts = Generics.newCounter();
-			Counter<String> freqs = Generics.newCounter();
-			Counter<String> c = Generics.newCounter();
-
 			while ((range_loc = range_cnt.getAndIncrement()) < ranges.length) {
 				int[] range = ranges[range_loc];
 
 				ListList<String> data = rdc.getValues(range);
-
-				cnts.clear();
-				freqs.clear();
+				Counter<String> cnts = Generics.newCounter();
+				Counter<String> freqs = Generics.newCounter();
 
 				for (int i = 0; i < data.size(); i++) {
 					List<String> vals = data.get(i, false);
-					c.clear();
+					Counter<String> c = Generics.newCounter();
 
 					for (int loc : target_locs) {
 						String p = vals.get(loc);
@@ -405,7 +400,7 @@ public class DocumentCollectionCreator {
 		mergeFiles(vocab);
 	}
 
-	private Vocab createVocab() throws Exception {
+	public Vocab createVocab() throws Exception {
 		System.out.println("create vocab.");
 
 		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(counting_thread_size);
@@ -437,10 +432,6 @@ public class DocumentCollectionCreator {
 		tpe.shutdown();
 
 		return createVocab(docFreqs, wordCnts);
-	}
-
-	public void setMinWordCnt(int min_word_cnt) {
-		this.min_word_cnt = min_word_cnt;
 	}
 
 	private Vocab createVocab(Counter<String> docFreqs, Counter<String> wordCnts) {
@@ -677,6 +668,10 @@ public class DocumentCollectionCreator {
 
 	public void setMinDocFreq(int min_doc_freq) {
 		this.min_doc_freq = min_doc_freq;
+	}
+
+	public void setMinWordCnt(int min_word_cnt) {
+		this.min_word_cnt = min_word_cnt;
 	}
 
 	public void setReuseVocab(boolean reuse_vocab) {

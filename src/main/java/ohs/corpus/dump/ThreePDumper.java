@@ -126,7 +126,8 @@ public class ThreePDumper extends TextDumper {
 					List<String> korKwds = getKeywords(korKwdStr);
 					List<String> engKwds = getKeywords(engKwdStr);
 
-					parts = new String[] { type, cn, StrUtils.join(";", korKwds), StrUtils.join(";", engKwds), korTitle, engTitle, korAbs, engAbs };
+					parts = new String[] { type, cn, StrUtils.join(";", korKwds), StrUtils.join(";", engKwds), korTitle, engTitle, korAbs,
+							engAbs };
 
 					res.add(StrUtils.join("\t", StrUtils.wrap(parts)));
 

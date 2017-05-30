@@ -3,6 +3,7 @@ package ohs.corpus.type;
 import java.io.File;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,14 +12,18 @@ import java.util.WeakHashMap;
 
 import org.apache.xalan.xsltc.compiler.sym;
 
+import kr.co.shineware.nlp.komoran.a.a;
 import ohs.io.ByteArray;
 import ohs.io.ByteArrayMatrix;
 import ohs.io.ByteBufferWrapper;
 import ohs.io.FileUtils;
+import ohs.ir.medical.general.MIRPath;
 import ohs.math.ArrayMath;
+import ohs.types.generic.Counter;
 import ohs.types.generic.ListList;
 import ohs.types.generic.Pair;
 import ohs.types.number.IntegerArray;
+import ohs.types.number.IntegerArrayMatrix;
 import ohs.types.number.LongArray;
 import ohs.types.number.ShortArray;
 import ohs.utils.Generics;
@@ -74,6 +79,16 @@ public class RawDocumentCollection {
 		// System.out.println(rdc.getAttrValueText(0));
 		// System.out.println(rdc.getAttrValueText(20913));
 		// }
+
+		{
+			RawDocumentCollection rdc = new RawDocumentCollection(MIRPath.DATA_DIR + "merged/col/dc/");
+			ListList<String> atrData = rdc.getAttrData();
+			IntegerArrayMatrix ranges = rdc.getTypeRanges();
+			System.out.println(atrData);
+			System.out.println(ranges);
+			System.out.println();
+
+		}
 
 		System.out.println("process ends.");
 	}
@@ -312,6 +327,28 @@ public class RawDocumentCollection {
 			}
 		}
 		return sb.toString();
+	}
+
+	public IntegerArrayMatrix getTypeRanges() {
+		Counter<Integer> typeCnts = Generics.newCounter();
+		for (int i = 0; i < types.size(); i++) {
+			typeCnts.incrementCount((int) types.get(i), 1);
+		}
+
+		List<Integer> keys = Generics.newArrayList(typeCnts.keySet());
+		Collections.sort(keys);
+
+		IntegerArrayMatrix ret = new IntegerArrayMatrix(keys.size());
+
+		int s = 0;
+		for (int i = 0; i < keys.size(); i++) {
+			int type = keys.get(i);
+			int size = (int) typeCnts.getCount(type);
+			int e = s + size + 1;
+			ret.add(new IntegerArray(new int[] { s, e }));
+			s = e;
+		}
+		return ret;
 	}
 
 	public ShortArray getTypes() {

@@ -281,6 +281,44 @@ public class MIRPath {
 	public static final String TREC_GENO_2007_RELEVANCE_JUDGE_FILE = TREC_GENO_2007_QUERY_DIR + "trecgen2007.all.judgments.tsv.txt";
 
 	/*
+	 * TREC Precision Medicine
+	 */
+
+	public static final String TREC_PM_DIR = DATA_DIR + "trec_pm/";
+
+	public static final String TREC_PM_2017_DIR = TREC_PM_DIR + "2017/";
+
+	public static final String TREC_PM_2017_COL_MEDLINE_DIR = TREC_PM_2017_DIR + "col_medline/";
+
+	public static final String TREC_PM_2017_COL_CLINICAL_DIR = TREC_PM_2017_DIR + "col_clinical/";
+
+	public static final String TREC_PM_2017_COL_MEDLINE_RAW_DIR = TREC_PM_2017_COL_MEDLINE_DIR + "raw/";
+
+	public static final String TREC_PM_2017_COL_MEDLINE_LINE_DIR = TREC_PM_2017_COL_MEDLINE_DIR + "line/";
+
+	public static final String TREC_PM_2017_COL_MEDLINE_TOK_DIR = TREC_PM_2017_COL_MEDLINE_DIR + "tok/";
+
+	public static final String TREC_PM_2017_COL_MEDLINE_DC_DIR = TREC_PM_2017_COL_MEDLINE_DIR + "dc/";
+
+	public static final String TREC_PM_2017_COL_MEDLINE_INDEX_DIR = TREC_PM_2017_COL_MEDLINE_DIR + "idx/";
+
+	public static final String TREC_PM_2017_COL_CLINICAL_RAW_DIR = TREC_PM_2017_COL_CLINICAL_DIR + "raw/";
+
+	public static final String TREC_PM_2017_COL_CLINICAL_LINE_DIR = TREC_PM_2017_COL_CLINICAL_DIR + "line/";
+
+	public static final String TREC_PM_2017_COL_CLINICAL_TOK_DIR = TREC_PM_2017_COL_CLINICAL_DIR + "tok/";
+
+	public static final String TREC_PM_2017_COL_CLINICAL_DC_DIR = TREC_PM_2017_COL_CLINICAL_DIR + "dc/";
+
+	public static final String TREC_PM_2017_COL_CLINICAL_INDEX_DIR = TREC_PM_2017_COL_CLINICAL_DIR + "idx/";
+
+	public static final String TREC_PM_2017_QUERY_DIR = TREC_PM_2017_DIR + "query/";
+
+	public static final String TREC_PM_2017_QUERY_FILE = TREC_PM_2017_QUERY_DIR + "2017topics.txt";
+
+	public static final String TREC_PM_2017_RELEVANCE_JUDGE_FILE = TREC_PM_2017_QUERY_DIR + "trecgen2017.all.judgments.tsv.txt";
+
+	/*
 	 * OHSUMED
 	 */
 

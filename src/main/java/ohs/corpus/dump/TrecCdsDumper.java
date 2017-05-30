@@ -16,9 +16,15 @@ import java.util.zip.GZIPInputStream;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.jsoup.Jsoup;
+import org.jsoup.helper.StringUtil;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.nodes.Node;
+import org.jsoup.nodes.TextNode;
 import org.jsoup.parser.Parser;
 import org.jsoup.select.Elements;
+import org.jsoup.select.NodeTraversor;
+import org.jsoup.select.NodeVisitor;
 
 import ohs.io.FileUtils;
 import ohs.io.TextFileReader;
@@ -75,6 +81,12 @@ public class TrecCdsDumper extends TextDumper {
 					String abs = "";
 					String body = "";
 					String kwds = "";
+					String jTitle = "";
+					String year = "";
+					String month = "";
+					String pmid = "";
+					String doi = "";
+					String refs = "";
 
 					Elements elem1 = doc.getElementsByAttributeValue("pub-id-type", "pmc");
 
@@ -83,44 +95,128 @@ public class TrecCdsDumper extends TextDumper {
 
 					}
 
-					String[] tags = { "article-title", "abstract", "body", "kwd" };
+					{
+						Elements elem = doc.getElementsByTag("journal-meta");
 
-					for (int i = 0; i < tags.length; i++) {
-						Elements elem3 = doc.getElementsByTag(tags[i]);
+						if (elem.size() > 0) {
+							jTitle = elem.get(0).getElementsByTag("<journal-title>").text();
+						}
+					}
 
-						if (elem3.size() > 0) {
-							if (i == 0) {
-								title = elem3.get(0).text();
-							} else if (i == 1) {
-								abs = elem3.get(0).text();
-							} else if (i == 2) {
-								body = elem3.get(0).text();
-							} else if (i == 3) {
-								List<String> l = Generics.newArrayList();
-								for (int j = 0; j < elem3.size(); j++) {
-									l.add(elem3.get(j).text());
+					{
+						Elements elem = doc.getElementsByTag("article-meta");
+
+						if (elem.size() > 0) {
+
+							{
+								Elements elem2 = elem.get(0).getElementsByTag("article-id");
+								if (elem2.size() > 0) {
+									Elements elem3 = elem2.get(0).getElementsByAttribute("pub-id-type");
+									for (int i = 0; i < elem3.size(); i++) {
+										Element elem4 = elem3.get(i);
+										String val = elem4.attr("pub-id-type");
+										String text = elem4.text();
+										if (val.equals("pmid")) {
+											pmid = text;
+										} else if (val.equals("pmc")) {
+											pmcid = text;
+										} else if (val.equals("doi")) {
+											doi = text;
+										}
+									}
 								}
-								if (l.size() > 0) {
-									kwds = StrUtils.join(StrUtils.LINE_REP, l);
+							}
+						}
+
+						{
+							Elements elem2 = elem.get(0).getElementsByTag("pub-date");
+							if (elem2.size() > 0) {
+								Elements elem3 = elem2.get(0).getElementsByAttribute("pub-type");
+								for (int i = 0; i < elem3.size(); i++) {
+									Element elem4 = elem3.get(i);
+									String val = elem4.attr("pub-type");
+									String text = elem4.text();
+									// if (val.equals("pmid")) {
+									// pmid = text;
+									// } else if (val.equals("pmc")) {
+									// pmcid = text;
+									// } else if (val.equals("doi")) {
+									// doi = text;
+									// }
+
+									// System.out.println(val + "\t" + text);
 								}
 							}
 						}
 					}
 
-					List<String> values = Generics.newLinkedList();
-					values.add(pmcid);
-					values.add(title);
-					values.add(abs);
-					values.add(body);
-					values.add(kwds);
+					{
+						Elements elem = doc.getElementsByTag("kwd-group");
+						if (elem.size() > 0) {
+							Elements elem2 = elem.get(0).getElementsByTag("kwd");
+							List<String> l = Generics.newArrayList();
+							for (int i = 0; i < elem2.size(); i++) {
+								Element elem3 = elem2.get(i);
+								l.add(elem3.text());
+							}
+							kwds = StrUtils.join("<NL>", l);
+						}
 
-					for (int i = 0; i < values.size(); i++) {
-						values.set(i, StrUtils.normalizeSpaces(values.get(i)));
+						// System.out.println(elem.toString());
+					}
+					{
+						Elements elem = doc.getElementsByTag("ref-list");
+
+						if (elem.size() > 0) {
+							Elements elem2 = elem.get(0).getElementsByTag("ref");
+							List<String> l = Generics.newArrayList();
+							for (int i = 0; i < elem2.size(); i++) {
+								Element elem3 = elem2.get(i);
+								l.add(elem3.text());
+							}
+							refs = StrUtils.join("<NL>", l);
+						}
 					}
 
-					values = StrUtils.wrap(values);
+					// {
+					// String[] tags = { "article-title", "abstract", "body", "kwd", "journal-title" };
+					// for (int i = 0; i < tags.length; i++) {
+					// Elements elem3 = doc.getElementsByTag(tags[i]);
+					//
+					// if (elem3.size() > 0) {
+					// if (i == 0) {
+					// title = elem3.get(0).text();
+					// } else if (i == 1) {
+					// abs = elem3.get(0).text();
+					// } else if (i == 2) {
+					// body = elem3.get(0).text();
+					// } else if (i == 3) {
+					// List<String> l = Generics.newArrayList();
+					// for (int j = 0; j < elem3.size(); j++) {
+					// l.add(elem3.get(j).text());
+					// }
+					// if (l.size() > 0) {
+					// kwds = StrUtils.join(StrUtils.LINE_REP, l);
+					// }
+					// }
+					// }
+					// }
+					// }
 
-					res.add(StrUtils.join("\t", values));
+					List<String> vals = Generics.newLinkedList();
+					vals.add(pmcid);
+					vals.add(title);
+					vals.add(abs);
+					vals.add(body);
+					vals.add(kwds);
+
+					for (int i = 0; i < vals.size(); i++) {
+						vals.set(i, StrUtils.normalizeSpaces(vals.get(i)));
+					}
+
+					vals = StrUtils.wrap(vals);
+
+					res.add(StrUtils.join("\t", vals));
 
 					if (res.size() % batch_size == 0) {
 						DecimalFormat df = new DecimalFormat("00000");

@@ -12,7 +12,6 @@ import java.util.regex.Pattern;
 
 import kr.co.shineware.nlp.komoran.core.analyzer.Komoran;
 import kr.co.shineware.util.common.model.Pair;
-import ohs.corpus.search.index.PostingList;
 import ohs.corpus.type.DocumentCollection;
 import ohs.corpus.type.RawDocumentCollection;
 import ohs.corpus.type.SimpleStringNormalizer;
@@ -20,8 +19,10 @@ import ohs.corpus.type.StringNormalizer;
 import ohs.eden.keyphrase.cluster.KPPath;
 import ohs.io.FileUtils;
 import ohs.io.TextFileReader;
+import ohs.io.TextFileWriter;
 import ohs.ir.medical.general.MIRPath;
 import ohs.ir.medical.general.NLPUtils;
+import ohs.ir.search.index.PostingList;
 import ohs.matrix.DenseMatrix;
 import ohs.ml.glove.CooccurrenceCounter;
 import ohs.ml.glove.GloveModel;
@@ -60,7 +61,6 @@ public class DataHandler {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 		DataHandler dh = new DataHandler();
-
 		// dh.getSentences();
 		// dh.tagPOS();
 		// dh.trainGlove();
@@ -71,14 +71,77 @@ public class DataHandler {
 
 		// dh.getPaperKeywords();
 		// dh.mergeKeywords();
-		dh.getMedicalPhrases();
+		// dh.getMedicalPhrases();
 
 		// dh.getPositiveData();
 
 		// dh.getQualityTrainingPhrases();
 		// dh.getMedicalTrainingPhrases();
 
+		dh.test();
+
 		System.out.println("process ends.");
+	}
+
+	public void test() throws Exception {
+		RawDocumentCollection rdc = new RawDocumentCollection(KPPath.COL_DC_DIR);
+
+		TextFileWriter writer = new TextFileWriter(KPPath.DATA_DIR + "kwd_doc.txt");
+		ListList<String> attrs = rdc.getAttrData();
+
+		int doc_cnt1 = 0;
+		int doc_cnt2 = 0;
+		int kwd_cnt1 = 0;
+		int kwd_cnt2 = 0;
+
+		CounterMap<String, String> cm = Generics.newCounterMap();
+
+		for (int i = 0; i < rdc.size(); i++) {
+			HashMap<String, String> m = rdc.getMap(i);
+
+			String kwdStr = m.get("kor_kwds");
+			String title = m.get("kor_title");
+			String abs = m.get("kor_abs");
+			String[] kwds = kwdStr.split(";");
+
+			if (kwds.length == 0 || abs.length() == 0) {
+				continue;
+			}
+			// System.out.printf("%s\t%s\t%s\n", kwdStr, title, abs);
+
+			doc_cnt1++;
+
+			String content = title + "\n" + abs;
+
+			Counter<String> c = Generics.newCounter();
+
+			for (String kwd : kwds) {
+				kwd = kwd.trim();
+				if (kwd.length() == 0) {
+					continue;
+				}
+				kwd_cnt1++;
+				cm.incrementCount("KWD", kwd, 1);
+
+				if (content.contains(kwd)) {
+					kwd_cnt2++;
+					cm.incrementCount("KWD_OCCUR", kwd, 1);
+					c.incrementCount(kwd, 1);
+				}
+			}
+
+			if (c.size() > 0) {
+				doc_cnt2++;
+				writer.write(String.format("%d\t%s\t%s\t%s", i, kwdStr, title, abs));
+				writer.write("\n");
+			}
+		}
+		writer.close();
+
+		System.out.println(doc_cnt1);
+		System.out.println(doc_cnt2);
+		System.out.println(kwd_cnt1);
+		System.out.println(kwd_cnt2);
 	}
 
 	public void get3PKeywords() throws Exception {

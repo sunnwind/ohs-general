@@ -295,7 +295,6 @@ public class DataCompression {
 	public static ByteArray encode(String s) throws Exception {
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		GZIPOutputStream zos = new GZIPOutputStream(baos);
-
 		zos.write(s.getBytes());
 		zos.close();
 		baos.close();
@@ -314,10 +313,10 @@ public class DataCompression {
 				sb.append("\t");
 			}
 		}
-
 		zos.write(sb.toString().getBytes());
 		zos.finish();
 		zos.close();
+		baos.close();
 		byte[] ret = baos.toByteArray();
 		return ret;
 	}

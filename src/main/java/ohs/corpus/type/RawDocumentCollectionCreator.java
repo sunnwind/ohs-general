@@ -2,15 +2,22 @@ package ohs.corpus.type;
 
 import java.io.File;
 import java.nio.channels.FileChannel;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import ohs.io.ByteArray;
 import ohs.io.ByteArrayMatrix;
+import ohs.io.ByteArrayUtils;
 import ohs.io.ByteBufferWrapper;
 import ohs.io.FileUtils;
 import ohs.ir.medical.general.MIRPath;
+import ohs.types.common.IntPair;
+import ohs.types.generic.Counter;
+import ohs.types.generic.ListList;
 import ohs.types.number.IntegerArray;
+import ohs.types.number.IntegerArrayMatrix;
 import ohs.types.number.LongArray;
 import ohs.types.number.ShortArray;
 import ohs.utils.ByteSize;
@@ -29,7 +36,31 @@ import ohs.utils.Timer;
  */
 public class RawDocumentCollectionCreator {
 
-	public static void createFromTokenizedData(RawDocumentCollectionCreator rdc, String inDir) throws Exception {
+	public static void create(List<String> inDirNames, String outDirName) throws Exception {
+		Timer timer = Timer.newTimer();
+
+		int cnt = 0;
+		RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDirName, false);
+		for (int i = 0; i < inDirNames.size(); i++) {
+			String inDirName = inDirNames.get(i);
+			RawDocumentCollection rdc = new RawDocumentCollection(inDirName);
+			rdcc.addAttrs(rdc.getAttrData().get(0));
+
+			for (int j = 0; j < rdc.size(); j++) {
+				ArrayList<String> vals = rdc.get(j);
+				rdcc.addValues(vals);
+
+				if (++cnt % 100000 == 0) {
+					System.out.printf("[%d, %s, %s]\n", cnt, timer.stop(), inDirName);
+				}
+			}
+			System.out.printf("[%d, %s, %s]\n", cnt, timer.stop(), inDirName);
+		}
+		rdcc.close();
+		System.out.printf("[%d, %s]\n", cnt, timer.stop());
+	}
+
+	public static void createFromTokenizedData(String inDir, RawDocumentCollectionCreator rdc) throws Exception {
 		Timer timer = Timer.newTimer();
 		int doc_cnt = 0;
 
@@ -57,43 +88,43 @@ public class RawDocumentCollectionCreator {
 		// String inDir = MIRPath.OHSUMED_COL_TOK_DIR;
 		// String outDir = MIRPath.OHSUMED_COL_DC_DIR;
 		// boolean append = false;
-		// RawDocumentCollectionCreator dcc = new RawDocumentCollectionCreator(outDir, append);
-		// dcc.addAttrs(Generics.newArrayList(attrs));
-		// createFromTokenizedData(dcc, inDir);
-		// dcc.close();
+		// RawDocumentCollectionCreator rdc = new RawDocumentCollectionCreator(outDir, append);
+		// rdc.addAttrs(Generics.newArrayList(attrs));
+		// createFromTokenizedData(inDir, rdc);
+		// rdc.close();
 		// }
 
-		{
-			String[] attrs = { "pmcid", "title", "abs", "body", "kwds" };
-			String inDir = MIRPath.TREC_CDS_2016_COL_TOK_DIR;
-			String outDir = MIRPath.TREC_CDS_2016_COL_DC_DIR;
-			boolean append = false;
-			RawDocumentCollectionCreator dcc = new RawDocumentCollectionCreator(outDir, append);
-			dcc.addAttrs(Generics.newArrayList(attrs));
-			createFromTokenizedData(dcc, inDir);
-			dcc.close();
-		}
-
-		{
-			String[] attrs = { "pmcid", "title", "abs", "body", "kwds" };
-			String inDir = MIRPath.TREC_CDS_2014_COL_TOK_DIR;
-			String outDir = MIRPath.TREC_CDS_2014_COL_DC_DIR;
-			boolean append = false;
-			RawDocumentCollectionCreator rdc = new RawDocumentCollectionCreator(outDir, append);
-			rdc.addAttrs(Generics.newArrayList(attrs));
-			createFromTokenizedData(rdc, inDir);
-			rdc.close();
-		}
+		// {
+		// String[] attrs = { "pmcid", "title", "abs", "body", "kwds" };
+		// String inDir = MIRPath.TREC_CDS_2016_COL_TOK_DIR;
+		// String outDir = MIRPath.TREC_CDS_2016_COL_DC_DIR;
+		// boolean append = false;
+		// RawDocumentCollectionCreator rdc = new RawDocumentCollectionCreator(outDir, append);
+		// dcc.addAttrs(Generics.newArrayList(attrs));
+		// createFromTokenizedData(inDir, rdc);
+		// dcc.close();
+		// }
+		//
+		// {
+		// String[] attrs = { "pmcid", "title", "abs", "body", "kwds" };
+		// String inDir = MIRPath.TREC_CDS_2014_COL_TOK_DIR;
+		// String outDir = MIRPath.TREC_CDS_2014_COL_DC_DIR;
+		// boolean append = false;
+		// RawDocumentCollectionCreator rdc = new RawDocumentCollectionCreator(outDir, append);
+		// rdc.addAttrs(Generics.newArrayList(attrs));
+		// createFromTokenizedData(inDir, rdc);
+		// rdc.close();
+		// }
 
 		// {
 		// String[] attrs = { "id", "url", "title", "content", "phrs" };
 		// String inDir = MIRPath.WIKI_COL_TOK_DIR;
 		// String outDir = MIRPath.WIKI_COL_DC_DIR;
 		// boolean append = false;
-		// RawDocumentCollectionCreator dcc = new
+		// RawDocumentCollectionCreator rdc = new
 		// RawDocumentCollectionCreator(outDir, append);
-		// dcc.addAttrs(Generics.newArrayList(attrs));
-		// createFromTokenizedData(dcc, inDir);
+		// rdc.addAttrs(Generics.newArrayList(attrs));
+		// createFromTokenizedData( inDir, rdc);
 		// dcc.close();
 		// }
 		//
@@ -103,10 +134,10 @@ public class RawDocumentCollectionCreator {
 		// String inDir = MIRPath.BIOASQ_COL_TOK_DIR;
 		// String outDir = MIRPath.BIOASQ_COL_DC_DIR;
 		// boolean append = false;
-		// RawDocumentCollectionCreator dcc = new
+		// RawDocumentCollectionCreator rdc = new
 		// RawDocumentCollectionCreator(outDir, append);
-		// dcc.addAttrs(Generics.newArrayList(attrs));
-		// createFromTokenizedData(dcc, inDir);
+		// rdc.addAttrs(Generics.newArrayList(attrs));
+		// createFromTokenizedData(inDir, rdc);
 		// dcc.close();
 		// }
 		//
@@ -115,10 +146,10 @@ public class RawDocumentCollectionCreator {
 		// String inDir = MIRPath.CLUEWEB_COL_TOK_DIR;
 		// String outDir = MIRPath.CLUEWEB_COL_DC_DIR;
 		// boolean append = false;
-		// RawDocumentCollectionCreator dcc = new
+		// RawDocumentCollectionCreator rdc = new
 		// RawDocumentCollectionCreator(outDir, append);
-		// dcc.addAttrs(Generics.newArrayList(attrs));
-		// createFromTokenizedData(dcc, inDir);
+		// rdc.addAttrs(Generics.newArrayList(attrs));
+		// createFromTokenizedData(inDir, rdc);
 		// dcc.close();
 		// }
 
@@ -128,10 +159,10 @@ public class RawDocumentCollectionCreator {
 		// String inDir = MIRPath.CLEF_EH_2014_COL_TOK_DIR;
 		// String outDir = MIRPath.CLEF_EH_2014_COL_DC_DIR;
 		// boolean append = false;
-		// RawDocumentCollectionCreator dcc = new
+		// RawDocumentCollectionCreator rdc = new
 		// RawDocumentCollectionCreator(outDir, append);
-		// dcc.addAttrs(Generics.newArrayList(attrs));
-		// createFromTokenizedData(dcc, inDir);
+		// rdc.addAttrs(Generics.newArrayList(attrs));
+		// createFromTokenizedData( inDir, rdc);
 		// dcc.close();
 		// }
 		//
@@ -140,32 +171,29 @@ public class RawDocumentCollectionCreator {
 		// String inDir = MIRPath.TREC_GENO_2007_COL_TOK_DIR;
 		// String outDir = MIRPath.TREC_GENO_2007_COL_DC_DIR;
 		// boolean append = false;
-		// RawDocumentCollectionCreator dcc = new
-		// RawDocumentCollectionCreator(outDir, append);
-		// dcc.addAttrs(Generics.newArrayList(attrs));
-		// createFromTokenizedData(dcc, inDir);
+		// RawDocumentCollectionCreator rdc = new RawDocumentCollectionCreator(outDir, append);
+		// rdc.addAttrs(Generics.newArrayList(attrs));
+		// createFromTokenizedData(inDir, rdc);
+		// rdc.close();
+		// }
+
+		// {
+		// String[] attrs = { "docid", "title", "abs", "kwds" };
+		// String inDir = "../../data/medical_ir/scopus/col/tok/";
+		// String outDir = "../../data/medical_ir/scopus/col/dc/";
+		// boolean append = false;
+		// RawDocumentCollectionCreator rdc = new RawDocumentCollectionCreator(outDir, append);
+		// rdc.addAttrs(Generics.newArrayList(attrs));
+		// createFromTokenizedData(inDir,rdc);
 		// dcc.close();
 		// }
 
-		{
-			String[] attrs = { "docid", "title", "abs", "kwds" };
-			String inDir = "../../data/medical_ir/scopus/col/tok/";
-			String outDir = "../../data/medical_ir/scopus/col/dc/";
-			boolean append = false;
-			RawDocumentCollectionCreator dcc = new RawDocumentCollectionCreator(outDir, append);
-			dcc.addAttrs(Generics.newArrayList(attrs));
-			createFromTokenizedData(dcc, inDir);
-			dcc.close();
-		}
-
 		// {
-		// String[] attrs = { "type", "cn", "kor_kwds", "eng_kwds", "kor_title",
-		// "eng_title", "kor_abs", "eng_abs" };
+		// String[] attrs = { "type", "cn", "kor_kwds", "eng_kwds", "kor_title", "eng_title", "kor_abs", "eng_abs" };
 		// String inDir = KPPath.COL_LINE_DIR;
 		// String outDir = KPPath.COL_DC_DIR;
 		// boolean append = false;
-		// RawDocumentCollectionCreator rdc = new
-		// RawDocumentCollectionCreator(outDir, append);
+		// RawDocumentCollectionCreator rdc = new RawDocumentCollectionCreator(outDir, append);
 		// rdc.addAttrs(Generics.newArrayList(attrs));
 		//
 		// Timer timer = Timer.newTimer();
@@ -180,20 +208,33 @@ public class RawDocumentCollectionCreator {
 		// vals[i] = vals[i].replace(StrUtils.TAB_REP, "\t");
 		// }
 		// rdc.addValues(vals);
+		//
 		// }
 		// }
 		// }
 		// rdc.close();
 		// }
 
+		{
+			List<String> inDirNames = Generics.newArrayList();
+			inDirNames.add(MIRPath.OHSUMED_COL_DC_DIR);
+			inDirNames.add(MIRPath.TREC_GENO_2007_COL_DC_DIR);
+			inDirNames.add(MIRPath.BIOASQ_COL_DC_DIR);
+			inDirNames.add(MIRPath.TREC_CDS_2016_COL_DC_DIR);
+
+			String outDirName = MIRPath.DATA_DIR + "merged/col/dc/";
+
+			create(inDirNames, outDirName);
+		}
+
 		System.out.println("process ends.");
 	}
 
-	private List<Long> starts;
+	private LongArray starts;
 
-	private List<Integer> lens;
+	private IntegerArray lens;
 
-	private List<Integer> types;
+	private ShortArray types;
 
 	private File docFile;
 
@@ -217,10 +258,12 @@ public class RawDocumentCollectionCreator {
 
 	private ByteBufferWrapper buf = new ByteBufferWrapper(new ByteSize(64, Type.MEGA).getBytes());
 
+	private int init_col_size = 1000000;
+
 	public RawDocumentCollectionCreator(String dataDirName, boolean append) throws Exception {
-		starts = Generics.newLinkedList();
-		types = Generics.newLinkedList();
-		lens = Generics.newLinkedList();
+		starts = new LongArray(init_col_size);
+		types = new ShortArray(init_col_size);
+		lens = new IntegerArray(init_col_size);
 
 		attrData = Generics.newArrayList();
 		flagData = Generics.newArrayList();
@@ -303,54 +346,50 @@ public class RawDocumentCollectionCreator {
 
 		fc.close();
 
-		FileChannel fc = FileUtils.openFileChannel(metaFile, "rw");
-
 		{
+			FileChannel fc = FileUtils.openFileChannel(metaFile, "rw");
+			{
+				starts.trimToSize();
+				lens.trimToSize();
+				types.trimToSize();
 
-			LongArray ss = new LongArray(starts);
-			IntegerArray ls = new IntegerArray(lens);
-			ShortArray ts = new ShortArray(starts.size());
+				DataCompression.encodeGaps(starts);
 
-			for (int type : types) {
-				ts.add((short) type);
+				ByteArrayMatrix data = new ByteArrayMatrix(3);
+				data.add(DataCompression.encode(starts));
+				data.add(DataCompression.encode(lens));
+				data.add(DataCompression.encode(types));
+				long[] info = FileUtils.write(data, buf, fc);
 			}
 
-			DataCompression.encodeGaps(ss);
-
-			ByteArrayMatrix data = new ByteArrayMatrix(3);
-			data.add(DataCompression.encode(ss));
-			data.add(DataCompression.encode(ls));
-			data.add(DataCompression.encode(ts));
-			long[] info = FileUtils.write(data, buf, fc);
-		}
-
-		{
-			ByteArrayMatrix data = new ByteArrayMatrix(attrData.size());
-			for (int i = 0; i < attrData.size(); i++) {
-				List<String> attrs = attrData.get(i);
-				data.add(DataCompression.encode(attrs));
-			}
-			long[] info = FileUtils.write(data, buf, fc);
-		}
-
-		{
-			byte[][] data = new byte[flagData.size()][];
-			for (int i = 0; i < flagData.size(); i++) {
-				boolean[] flags = new boolean[flagData.get(i).size()];
-				int j = 0;
-				for (Boolean flag : flagData.get(i)) {
-					flags[j++] = flag;
+			{
+				ByteArrayMatrix data = new ByteArrayMatrix(attrData.size());
+				for (int i = 0; i < attrData.size(); i++) {
+					List<String> attrs = attrData.get(i);
+					data.add(DataCompression.encode(attrs));
 				}
-
-				ByteBufferWrapper buf = new ByteBufferWrapper();
-				buf.write(flags);
-
-				data[i] = buf.toByteArray().values();
+				long[] info = FileUtils.write(data, buf, fc);
 			}
-			long[] info = FileUtils.write(new ByteArrayMatrix(data), buf, fc);
-		}
 
-		fc.close();
+			{
+				byte[][] data = new byte[flagData.size()][];
+				for (int i = 0; i < flagData.size(); i++) {
+					boolean[] flags = new boolean[flagData.get(i).size()];
+					int j = 0;
+					for (Boolean flag : flagData.get(i)) {
+						flags[j++] = flag;
+					}
+
+					ByteBufferWrapper buf = new ByteBufferWrapper();
+					buf.write(flags);
+
+					data[i] = buf.toByteArray().values();
+				}
+				long[] info = FileUtils.write(new ByteArrayMatrix(data), buf, fc);
+			}
+
+			fc.close();
+		}
 	}
 
 	public List<Boolean> getEncodeFlags() {
@@ -359,6 +398,10 @@ public class RawDocumentCollectionCreator {
 
 	public void setEncode(boolean encode) {
 		this.encode = encode;
+	}
+
+	public void setInitialCollectionSize(int init_col_size) {
+		this.init_col_size = init_col_size;
 	}
 
 	public void setMaxBufferSize(int max_buf_size) {
@@ -370,7 +413,7 @@ public class RawDocumentCollectionCreator {
 			long[] info = FileUtils.write(m, buf, fc);
 			starts.add(info[0]);
 			lens.add((int) info[1]);
-			types.add(type);
+			types.add((short) type);
 		}
 		docs.clear();
 	}

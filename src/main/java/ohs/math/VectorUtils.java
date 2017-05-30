@@ -14,6 +14,7 @@ import ohs.matrix.Vector;
 import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
 import ohs.types.generic.Indexer;
+import ohs.types.number.DoubleArray;
 import ohs.types.number.IntegerArray;
 import ohs.types.number.IntegerArrayMatrix;
 import ohs.utils.Generics;
@@ -450,7 +451,26 @@ public class VectorUtils {
 	}
 
 	public static SparseVector toSparseVector(SparseVector x, Indexer<String> oldIndexer, Indexer<String> newIndexer) {
-		return toSparseVector(toCounter(x, oldIndexer), newIndexer);
+		IntegerArray idxs = new IntegerArray();
+		DoubleArray vals = new DoubleArray();
+
+		for (int i = 0; i < x.size(); i++) {
+			int idx1 = x.indexAt(i);
+			double val = x.valueAt(i);
+			String key = oldIndexer.getObject(idx1);
+			int idx2 = newIndexer.indexOf(key);
+
+			if (idx2 == -1) {
+				continue;
+			}
+
+			idxs.add(idx2);
+			vals.add(val);
+		}
+		idxs.trimToSize();
+		vals.trimToSize();
+		SparseVector ret = new SparseVector(idxs, vals);
+		return ret;
 	}
 
 	public static SparseVector toSparseVector(String s, Indexer<String> indexer) {

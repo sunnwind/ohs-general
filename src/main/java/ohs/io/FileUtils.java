@@ -1211,10 +1211,6 @@ public class FileUtils {
 		long pos_old = b.position();
 		int size = a.position();
 
-		if (size < 0) {
-			System.out.println();
-		}
-
 		a.flip();
 		b.write(a);
 		a.clear();

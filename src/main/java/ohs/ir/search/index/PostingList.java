@@ -1,4 +1,4 @@
-package ohs.eden.keyphrase.mine;
+package ohs.ir.search.index;
 
 import java.nio.channels.FileChannel;
 import java.util.List;
@@ -8,13 +8,12 @@ import ohs.io.ByteArray;
 import ohs.io.ByteArrayMatrix;
 import ohs.io.ByteArrayUtils;
 import ohs.io.FileUtils;
-import ohs.ir.search.index.Posting;
-import ohs.math.ArrayMath;
 import ohs.types.number.IntegerArray;
 import ohs.types.number.IntegerArrayMatrix;
+import ohs.utils.ByteSize;
 import ohs.utils.Generics;
 
-public class SPostingList {
+public class PostingList {
 
 	private static IntegerArrayMatrix partition(IntegerArray a, int chunk_size) {
 		int window_size = chunk_size / Integer.BYTES;
@@ -28,33 +27,33 @@ public class SPostingList {
 		return new IntegerArrayMatrix(ret);
 	}
 
-	public static SPostingList readPostingList(FileChannel fc, boolean encode) throws Exception {
-		SPostingList ret = null;
+	public static PostingList readPostingList(FileChannel fc, boolean encode) throws Exception {
+		PostingList ret = null;
 		if (fc.position() < fc.size()) {
 			ret = toPostingList(FileUtils.readByteArrayMatrix(fc), encode);
 		}
 		return ret;
 	}
 
-	public static List<SPostingList> readPostingLists(FileChannel fc, boolean encode) throws Exception {
-		List<SPostingList> ret = Generics.newLinkedList();
+	public static List<PostingList> readPostingLists(FileChannel fc, boolean encode) throws Exception {
+		List<PostingList> ret = Generics.newLinkedList();
 		if (fc.position() < fc.size()) {
 			ret.add(toPostingList(FileUtils.readByteArrayMatrix(fc), encode));
 		}
 		return ret;
 	}
 
-	public static int sizeOfByteBuffer(SPostingList pl) {
+	public static int sizeOfByteBuffer(PostingList pl) {
 		int ret = Integer.BYTES;
-		ret += Integer.BYTES * pl.getDocseqs().size() * 2;
+		ret += Integer.BYTES * pl.getDocSeqs().size() * 2;
 		ret += Integer.BYTES * pl.getPosData().sizeOfEntries();
 		ret += Integer.BYTES * pl.getPosData().size();
 		return ret;
 	}
 
-	public static ByteArrayMatrix toByteArrayMatrix(SPostingList pl, boolean encode) throws Exception {
-		String phrs = pl.getPhrase();
-		IntegerArray dseqs = pl.getDocseqs();
+	public static ByteArrayMatrix toByteArrayMatrix(PostingList pl, boolean encode) throws Exception {
+		int w = pl.getWord();
+		IntegerArray dseqs = pl.getDocSeqs();
 		IntegerArrayMatrix posData = pl.getPosData();
 
 		int min_encode_len = 20;
@@ -70,7 +69,7 @@ public class SPostingList {
 				encode_dseqs = 1;
 			}
 
-			data.add(new ByteArray(phrs.getBytes()));
+			data.add(ByteArrayUtils.toByteArray(w));
 			data.add(new ByteArray(new byte[] { encode_dseqs }));
 			data.add(ByteArrayUtils.toByteArray(dseqs.size()));
 
@@ -107,14 +106,9 @@ public class SPostingList {
 				b.trimToSize();
 
 				data.add(b);
-
-				// if(phrs.equals("air_embolization")){
-				// System.out.println(pl);
-				// System.out.println(new ByteArrayMatrix(data));
-				// }
 			}
 		} else {
-			data.add(new ByteArray(phrs.getBytes()));
+			data.add(ByteArrayUtils.toByteArray(w));
 			data.add(ByteArrayUtils.toByteArray(dseqs.size()));
 
 			{
@@ -136,14 +130,14 @@ public class SPostingList {
 		return new ByteArrayMatrix(data);
 	}
 
-	public static SPostingList toPostingList(ByteArrayMatrix data, boolean encode) throws Exception {
-		String phrs = "";
+	public static PostingList toPostingList(ByteArrayMatrix data, boolean encode) throws Exception {
+		int w = 0;
 		IntegerArray dseqs = null;
 		IntegerArrayMatrix posData = null;
 
 		if (encode) {
 			int i = 0;
-			phrs = new String(data.get(i++).values());
+			w = ByteArrayUtils.toInteger(data.get(i++));
 			byte encode_seqs = data.get(i++).get(0);
 			int pl_size = ByteArrayUtils.toInteger(data.get(i++));
 
@@ -172,7 +166,7 @@ public class SPostingList {
 			}
 		} else {
 			int i = 0;
-			phrs = new String(data.get(i++).values());
+			w = ByteArrayUtils.toInteger(data.get(i++));
 			int pl_size = ByteArrayUtils.toInteger(data.get(i++));
 
 			dseqs = new IntegerArray(pl_size);
@@ -190,22 +184,22 @@ public class SPostingList {
 					posData.add(ByteArrayUtils.toIntegerArray(data.get(i++)));
 				}
 			}
-
 		}
-		return new SPostingList(phrs, dseqs, posData);
+
+		return new PostingList(w, dseqs, posData);
 	}
 
-	public static long[] writePostingList(SPostingList pl, FileChannel fc, boolean encode) throws Exception {
+	public static long[] writePostingList(PostingList pl, FileChannel fc, boolean encode) throws Exception {
 		return FileUtils.write(toByteArrayMatrix(pl, encode), fc);
 	}
 
-	public static void writePostingLists(List<SPostingList> pls, FileChannel fc, boolean encode) throws Exception {
-		for (SPostingList pl : pls) {
+	public static void writePostingLists(List<PostingList> pls, FileChannel fc, boolean encode) throws Exception {
+		for (PostingList pl : pls) {
 			FileUtils.write(toByteArrayMatrix(pl, encode), fc);
 		}
 	}
 
-	private String phrs;
+	private int w;
 
 	private IntegerArray dseqs;
 
@@ -213,32 +207,42 @@ public class SPostingList {
 
 	private IntegerArrayMatrix posData;
 
-	public SPostingList(String phrs, IntegerArray dseqs, IntegerArrayMatrix posData) {
-		this.phrs = phrs;
+	private IntegerArrayMatrix endPosData;
+
+	private int total_cnt;
+
+	public PostingList(int w, IntegerArray dseqs, IntegerArray cnts, IntegerArrayMatrix posData) {
+		this.w = w;
+		this.dseqs = dseqs;
+		this.cnts = cnts;
+		this.posData = posData;
+	}
+
+	public PostingList(int w, IntegerArray dseqs, IntegerArrayMatrix posData) {
+		this.w = w;
 		this.dseqs = dseqs;
 		this.posData = posData;
-
 		cnts = new IntegerArray(dseqs.size());
-
 		for (IntegerArray poss : posData) {
 			cnts.add(poss.size());
+			total_cnt += poss.size();
 		}
 	}
 
-	public IntegerArray getCnts() {
+	public int getCount() {
+		return total_cnt;
+	}
+
+	public IntegerArray getCounts() {
 		return cnts;
 	}
 
-	public int getCount() {
-		return ArrayMath.sum(cnts.values());
-	}
-
-	public IntegerArray getDocseqs() {
+	public IntegerArray getDocSeqs() {
 		return dseqs;
 	}
 
-	public String getPhrase() {
-		return phrs;
+	public IntegerArrayMatrix getEndPosData() {
+		return endPosData;
 	}
 
 	public IntegerArrayMatrix getPosData() {
@@ -250,7 +254,23 @@ public class SPostingList {
 	}
 
 	public Posting getPosting(int i) {
-		return new Posting(dseqs.get(i), posData.get(i));
+		return new Posting(dseqs.get(i), posData.get(i), endPosData == null ? null : endPosData.get(i));
+	}
+
+	public int getWord() {
+		return w;
+	}
+
+	public void setEndPosData(IntegerArrayMatrix starts) {
+		this.endPosData = starts;
+	}
+
+	public void setPosData(IntegerArrayMatrix posData) {
+		this.posData = posData;
+	}
+
+	public void setWord(int w) {
+		this.w = w;
 	}
 
 	public int size() {
@@ -258,8 +278,11 @@ public class SPostingList {
 	}
 
 	public String toString() {
+
+		long bytes = ByteArrayUtils.sizeOfByteBuffer(dseqs) * 2 + ByteArrayUtils.sizeOfByteBuffer(posData);
+		ByteSize bs = new ByteSize(bytes);
 		StringBuffer sb = new StringBuffer();
-		sb.append(String.format("w=[%s], docs=[%d], cnt=[%d]", phrs, size(), getCount()));
+		sb.append(String.format("w=[%d], docs=[%d], cnt=[%d], mem=%s", w, size(), getCount(), bs));
 		return sb.toString();
 	}
 
