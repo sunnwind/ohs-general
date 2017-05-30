@@ -88,18 +88,18 @@ public class TrecCdsDumper extends TextDumper {
 					String doi = "";
 					String refs = "";
 
-					Elements elem1 = doc.getElementsByAttributeValue("pub-id-type", "pmc");
-
-					if (elem1.size() > 0) {
-						pmcid = elem1.get(0).text();
-
+					{
+						Elements elem = doc.getElementsByAttributeValue("pub-id-type", "pmc");
+						if (elem.size() > 0) {
+							pmcid = elem.get(0).text();
+						}
 					}
 
 					{
 						Elements elem = doc.getElementsByTag("journal-meta");
 
 						if (elem.size() > 0) {
-							jTitle = elem.get(0).getElementsByTag("<journal-title>").text();
+							jTitle = elem.get(0).getElementsByTag("journal-title").text();
 						}
 					}
 
@@ -126,6 +126,35 @@ public class TrecCdsDumper extends TextDumper {
 									}
 								}
 							}
+
+							{
+								Elements elem2 = elem.get(0).getElementsByTag("article-title");
+
+								if (elem2.size() > 0) {
+									title = elem2.get(0).text();
+								}
+							}
+
+							{
+								Elements elem2 = doc.getElementsByTag("abstract");
+
+								if (elem2.size() > 0) {
+									abs = elem2.get(0).text();
+								}
+							}
+
+							{
+								Elements elem2 = doc.getElementsByTag("kwd-group");
+								if (elem2.size() > 0) {
+									Elements elem3 = elem2.get(0).getElementsByTag("kwd");
+									List<String> l = Generics.newArrayList();
+									for (int i = 0; i < elem3.size(); i++) {
+										Element elem4 = elem3.get(i);
+										l.add(elem4.text());
+									}
+									kwds = StrUtils.join(StrUtils.LINE_REP, l);
+								}
+							}
 						}
 
 						{
@@ -148,22 +177,17 @@ public class TrecCdsDumper extends TextDumper {
 								}
 							}
 						}
+
 					}
 
 					{
-						Elements elem = doc.getElementsByTag("kwd-group");
-						if (elem.size() > 0) {
-							Elements elem2 = elem.get(0).getElementsByTag("kwd");
-							List<String> l = Generics.newArrayList();
-							for (int i = 0; i < elem2.size(); i++) {
-								Element elem3 = elem2.get(i);
-								l.add(elem3.text());
-							}
-							kwds = StrUtils.join("<NL>", l);
-						}
+						Elements elem = doc.getElementsByTag("body");
 
-						// System.out.println(elem.toString());
+						if (elem.size() > 0) {
+							body = elem.get(0).text();
+						}
 					}
+
 					{
 						Elements elem = doc.getElementsByTag("ref-list");
 
@@ -174,7 +198,7 @@ public class TrecCdsDumper extends TextDumper {
 								Element elem3 = elem2.get(i);
 								l.add(elem3.text());
 							}
-							refs = StrUtils.join("<NL>", l);
+							refs = StrUtils.join(StrUtils.LINE_REP, l);
 						}
 					}
 
@@ -209,6 +233,9 @@ public class TrecCdsDumper extends TextDumper {
 					vals.add(abs);
 					vals.add(body);
 					vals.add(kwds);
+					vals.add(jTitle);
+					vals.add(pmid);
+					vals.add(doi);
 
 					for (int i = 0; i < vals.size(); i++) {
 						vals.set(i, StrUtils.normalizeSpaces(vals.get(i)));

@@ -113,7 +113,7 @@ public class TrecPmMedlineDumper extends TextDumper {
 							}
 						}
 
-						meshes = StrUtils.join(";", l);
+						meshes = StrUtils.join(StrUtils.LINE_REP, l);
 					}
 
 					List<String> vals = Generics.newLinkedList();

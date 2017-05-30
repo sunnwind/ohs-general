@@ -98,7 +98,7 @@ public class TrecPmClinicalTrialDumper extends TextDumper {
 							}
 						}
 
-						content = StrUtils.join("<NL><NL>", l);
+						content = StrUtils.join(StrUtils.LINE_REP + StrUtils.LINE_REP, l);
 					}
 
 					{
@@ -108,7 +108,7 @@ public class TrecPmClinicalTrialDumper extends TextDumper {
 							for (int j = 0; j < elem.size(); j++) {
 								l.add(elem.get(j).text());
 							}
-							kwds = StrUtils.join("<NL>", l);
+							kwds = StrUtils.join(StrUtils.LINE_REP, l);
 						}
 					}
 
@@ -119,7 +119,7 @@ public class TrecPmClinicalTrialDumper extends TextDumper {
 							for (int j = 0; j < elem.size(); j++) {
 								l.add(elem.get(j).text());
 							}
-							meshes = StrUtils.join("<NL>", l);
+							meshes = StrUtils.join(StrUtils.LINE_REP, l);
 						}
 					}
 

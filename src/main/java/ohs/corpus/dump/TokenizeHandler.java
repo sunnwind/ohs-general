@@ -48,9 +48,9 @@ public class TokenizeHandler {
 
 				if (FileUtils.exists(logFileName)) {
 					for (String line : FileUtils.readLinesFromText(logFileName)) {
-						String[] parts = line.split("\t");
-						int i = Integer.parseInt(parts[0]);
-						sm.put(i, parts[1]);
+						String[] ps = line.split("\t");
+						int i = Integer.parseInt(ps[0]);
+						sm.put(i, ps[1]);
 					}
 				}
 
@@ -139,7 +139,12 @@ public class TokenizeHandler {
 		// th.tokenize(MIRPath.WIKI_COL_LINE_DIR, new int[] { 3 }, MIRPath.WIKI_COL_TOK_DIR, true);
 		// th.tokenize(MIRPath.CLUEWEB_COL_LINE_DIR, new int[] { 1 }, MIRPath.CLUEWEB_COL_TOK_DIR, false);
 		// th.tokenize(MIRPath.BIOASQ_COL_LINE_DIR, new int[] { 4, 5 }, MIRPath.BIOASQ_COL_TOK_DIR, false);
-		th.tokenize("../../data/medical_ir/scopus/col/line/", new int[] { 1, 2, 3 }, "../../data/medical_ir/scopus/col/tok/", true);
+		// th.tokenize("../../data/medical_ir/scopus/col/line/", new int[] { 1, 2, 3 }, "../../data/medical_ir/scopus/col/tok/", true);
+
+		th.tokenize(MIRPath.TREC_PM_2017_COL_MEDLINE_LINE_DIR, new int[] { 2, 3, 4 }, MIRPath.TREC_PM_2017_COL_MEDLINE_TOK_DIR, true);
+		th.tokenize(MIRPath.TREC_PM_2017_COL_CLINICAL_LINE_DIR, new int[] { 1, 2, 2, 3, 4, 5 }, MIRPath.TREC_PM_2017_COL_CLINICAL_TOK_DIR,
+				true);
+
 		System.out.println("process ends.");
 	}
 

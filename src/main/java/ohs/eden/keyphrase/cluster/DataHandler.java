@@ -64,7 +64,6 @@ public class DataHandler {
 
 		// dh.extractKeywordAbbreviations();
 
-		// dh.getKeywordStats();
 		// dh.extractCNs();
 		// dh.test();
 
