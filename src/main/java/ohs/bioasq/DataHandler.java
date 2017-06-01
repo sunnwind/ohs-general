@@ -8,10 +8,11 @@ import java.util.Map;
 import java.util.Set;
 
 import ohs.corpus.search.DocumentStore;
-import ohs.corpus.search.app.DocumentSearcher;
+import ohs.corpus.type.DocumentCollection;
 import ohs.io.FileUtils;
 import ohs.io.RandomAccessDenseMatrix;
 import ohs.ir.medical.general.MIRPath;
+import ohs.ir.search.app.DocumentSearcher;
 import ohs.math.ArrayMath;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
@@ -21,6 +22,7 @@ import ohs.matrix.SparseVector;
 import ohs.types.generic.Counter;
 import ohs.types.generic.Indexer;
 import ohs.types.generic.ListMap;
+import ohs.types.generic.Pair;
 import ohs.types.generic.SetMap;
 import ohs.types.generic.Triple;
 import ohs.types.generic.Vocab;
@@ -122,7 +124,7 @@ public class DataHandler {
 
 		for (int i = 0; i < docseqs.size(); i++) {
 			int docseq = docseqs.get(i);
-			Triple<String, IntegerArrayMatrix, String> t = ds.getDocumentCollection().getSents(docseq);
+			Pair<String, IntegerArrayMatrix> t = ds.getDocumentCollection().getSents(docseq);
 			String s = t.getThird();
 
 			String[] items = StrUtils.unwrap(s.split("\t"));
@@ -160,7 +162,7 @@ public class DataHandler {
 
 		if (!FileUtils.exists(tmpFileName)) {
 			DocumentSearcher ds = new DocumentSearcher(MIRPath.BIOASQ_COL_INDEX_DIR, MIRPath.STOPWORD_INQUERY_FILE);
-			DocumentStore store = ds.getDocumentCollection();
+			DocumentCollection store = ds.getDocumentCollection();
 
 			DenseMatrix EW = new RandomAccessDenseMatrix(MIRPath.BIOASQ_DIR + "glove_model_raf.ser").rowsAsMatrix();
 			ObjectOutputStream oos = FileUtils.openObjectOutputStream(MIRPath.BIOASQ_DIR + "emb-doc-tmp.ser.gz");
@@ -271,7 +273,7 @@ public class DataHandler {
 			}
 		}
 
-		DocumentStore store = ds.getDocumentCollection();
+		DocumentCollection store = ds.getDocumentCollection();
 
 		ListMap<Integer, Integer> meshToDoc = Generics.newListMap();
 

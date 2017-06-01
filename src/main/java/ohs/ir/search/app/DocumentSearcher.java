@@ -14,8 +14,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import ohs.corpus.type.DocumentCollection;
 import ohs.corpus.type.RawDocumentCollection;
-import ohs.corpus.type.SimpleStringNormalizer;
+import ohs.corpus.type.EnglishNormalizer;
+import ohs.corpus.type.EnglishTokenizer;
 import ohs.corpus.type.StringNormalizer;
+import ohs.corpus.type.StringTokenizer;
 import ohs.io.FileUtils;
 import ohs.ir.medical.general.MIRPath;
 import ohs.ir.search.index.InvertedIndex;
@@ -208,7 +210,7 @@ public class DocumentSearcher {
 
 	}
 
-	private StringNormalizer sn = new SimpleStringNormalizer(true);
+	private StringTokenizer st = new EnglishTokenizer();
 
 	private Vocab vocab;
 
@@ -344,8 +346,8 @@ public class DocumentSearcher {
 		return scorer;
 	}
 
-	public StringNormalizer getStringNormalizer() {
-		return sn;
+	public StringTokenizer getStringTokenizer() {
+		return st;
 	}
 
 	public Vocab getVocab() {
@@ -361,11 +363,9 @@ public class DocumentSearcher {
 	}
 
 	public SparseVector index(String Q, boolean keep_order) {
-		Q = sn.normalize(Q);
-
 		IntegerArray ws = new IntegerArray();
 
-		for (String word : StrUtils.split(Q)) {
+		for (String word : st.tokenize(Q)) {
 			int w = vocab.indexOf(word);
 			if (wf.filter(w)) {
 				continue;
@@ -549,8 +549,8 @@ public class DocumentSearcher {
 		this.scorer = scorer;
 	}
 
-	public void setStringNormalizer(StringNormalizer sn) {
-		this.sn = sn;
+	public void setStringNormalizer(StringTokenizer st) {
+		this.st = st;
 	}
 
 	public void setTopK(int top_k) {

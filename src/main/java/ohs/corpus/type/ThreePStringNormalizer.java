@@ -2,10 +2,14 @@ package ohs.corpus.type;
 
 import ohs.utils.StrUtils;
 
-public class ThreePStringNormalizer implements StringNormalizer {
+public class ThreePStringNormalizer extends StringNormalizer {
 
 	@Override
 	public String normalize(String s) {
+		return StrUtils.normalizeSpaces(s);
+	}
+
+	public String normalizePosTagged(String s) {
 		StringBuffer sb = new StringBuffer();
 
 		for (String part : s.split(" \\+ ")) {

@@ -1,7 +1,13 @@
 package ohs.corpus.type;
 
-public interface StringNormalizer {
+import ohs.utils.StrUtils;
 
-	public String normalize(String s);
+public class StringNormalizer {
+
+	public String normalize(String s) {
+		s = StrUtils.normalizeNumbers(s);
+		s = StrUtils.normalizeSpaces(s);
+		return s.toLowerCase();
+	}
 
 }

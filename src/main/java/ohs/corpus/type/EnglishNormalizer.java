@@ -5,23 +5,14 @@ import org.tartarus.snowball.ext.PorterStemmer;
 import ohs.ir.medical.general.NLPUtils;
 import ohs.utils.StrUtils;
 
-public class SimpleStringNormalizer implements StringNormalizer {
-
-	private boolean tokenize = false;
+public class EnglishNormalizer extends StringNormalizer {
 
 	private boolean stem = false;
 
 	private PorterStemmer stemmer = new PorterStemmer();
 
-	public SimpleStringNormalizer(boolean tokenize) {
-		this.tokenize = tokenize;
-	}
-
 	@Override
 	public String normalize(String s) {
-		if (tokenize) {
-			s = StrUtils.join(" ", NLPUtils.tokenize(s));
-		}
 		s = StrUtils.normalizeNumbers(s);
 		s = StrUtils.normalizeSpaces(s);
 		if (stem) {
@@ -33,10 +24,6 @@ public class SimpleStringNormalizer implements StringNormalizer {
 	public void setStem(boolean stem) {
 		this.stem = stem;
 
-	}
-
-	public void setTokenize(boolean tokenzie) {
-		this.tokenize = tokenzie;
 	}
 
 	public String stem(String s) {

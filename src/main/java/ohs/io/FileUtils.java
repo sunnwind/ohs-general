@@ -661,6 +661,17 @@ public class FileUtils {
 		return ret;
 	}
 
+	public static ByteArrayMatrix readByteArrayMatrix(FileChannel a, int size) throws Exception {
+		int row_size = size / ByteArray.MAX_ARRAY_SIZE;
+		int col_size = size % ByteArray.MAX_ARRAY_SIZE;
+
+		ByteArrayMatrix ret = new ByteArrayMatrix(size);
+		for (int i = 0; i < size; i++) {
+			ret.add(readByteArray(a));
+		}
+		return ret;
+	}
+
 	public static ByteArrayMatrix readByteArrayMatrix(ObjectInputStream ois) throws Exception {
 		return ByteArrayUtils.toByteArrayMatrix(readByteArray(ois));
 	}

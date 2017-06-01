@@ -16,7 +16,7 @@ import ohs.corpus.type.DataCompression;
 import ohs.corpus.type.DocumentCollection;
 import ohs.corpus.type.DocumentCollectionCreator;
 import ohs.corpus.type.RawDocumentCollection;
-import ohs.corpus.type.SimpleStringNormalizer;
+import ohs.corpus.type.EnglishNormalizer;
 import ohs.corpus.type.StringNormalizer;
 import ohs.io.ByteArray;
 import ohs.io.ByteArrayMatrix;
@@ -318,7 +318,7 @@ public class NaverDocumentCollectionCreator {
 
 	private int batch_size = 200;
 
-	private StringNormalizer sn = new SimpleStringNormalizer(false);
+	private StringNormalizer sn = new EnglishNormalizer(false);
 
 	private boolean add_unknown_tag = true;
 

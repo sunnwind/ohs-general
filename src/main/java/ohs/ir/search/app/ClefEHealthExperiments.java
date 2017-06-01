@@ -19,8 +19,10 @@ import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import edu.stanford.nlp.util.CoreMap;
 import ohs.corpus.type.DocumentCollection;
 import ohs.corpus.type.DocumentIdMap;
-import ohs.corpus.type.SimpleStringNormalizer;
+import ohs.corpus.type.EnglishNormalizer;
+import ohs.corpus.type.EnglishTokenizer;
 import ohs.corpus.type.StringNormalizer;
+import ohs.corpus.type.StringTokenizer;
 import ohs.eden.keyphrase.mine.PhraseMapper;
 import ohs.io.FileUtils;
 import ohs.io.RandomAccessDenseMatrix;
@@ -130,7 +132,7 @@ public class ClefEHealthExperiments {
 
 		ClefEHealthExperiments e = new ClefEHealthExperiments();
 
-//		e.test();
+		// e.test();
 		// e.getLemmas();
 
 		// e.getRelevanceJudgeDocIds();
@@ -150,11 +152,11 @@ public class ClefEHealthExperiments {
 		// e.runInitSearch();
 		// e.runReranking();
 		// e.runReranking2();
-//		e.runReranking3();
+		// e.runReranking3();
 
 		e.analyze1();
 		// e.analyze2();
-		
+
 		e.formatTrecOutput();
 
 		System.out.println("process ends.");
@@ -958,13 +960,12 @@ public class ClefEHealthExperiments {
 
 		WordSearcher ws = new WordSearcher(dc.getVocab(), E, null);
 
-		StringNormalizer sn = new SimpleStringNormalizer(true);
+		StringTokenizer st = new EnglishTokenizer();
 
 		CounterMap<String, String> cm = Generics.newCounterMap();
 
 		for (BaseQuery bq : bqs) {
-			String Q = sn.normalize(bq.getSearchText());
-			List<String> words = StrUtils.split(Q);
+			List<String> words = st.tokenize(bq.getSearchText());
 
 			for (String word : words) {
 				if (!cm.containsKey(word)) {
@@ -994,14 +995,13 @@ public class ClefEHealthExperiments {
 		List<String> l1 = Generics.newArrayList();
 
 		for (BaseQuery bq : bqs) {
-			String Q = sn.normalize(bq.getSearchText());
+			List<String> words = st.tokenize(bq.getSearchText());
 
 			List<String> l2 = Generics.newArrayList();
 
 			l2.add("QID:\t" + bq.getId());
-			l2.add("Q:\t" + Q);
+			l2.add("Q:\t" + words.toString());
 
-			List<String> words = StrUtils.split(Q);
 			List<Pair<Integer, Integer>> ps = pm.map(words);
 
 			if (ps.size() > 0) {

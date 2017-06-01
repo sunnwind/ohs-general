@@ -12,12 +12,12 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import ohs.eden.keyphrase.cluster.KPPath;
 import ohs.io.ByteArray;
 import ohs.io.ByteArrayMatrix;
 import ohs.io.ByteArrayUtils;
 import ohs.io.ByteBufferWrapper;
 import ohs.io.FileUtils;
-import ohs.ir.medical.general.MIRPath;
 import ohs.ml.neuralnet.com.BatchUtils;
 import ohs.types.generic.Counter;
 import ohs.types.generic.ListList;
@@ -79,18 +79,14 @@ public class DocumentCollectionCreator {
 					for (int loc : target_locs) {
 						String p = vals.get(loc);
 
-						for (String s : p.split("[\n]+")) {
-							if (s.length() == 0) {
-								continue;
-							}
-
-							s = sn.normalize(s);
-
-							if (s.length() == 0) {
-								continue;
-							}
-
-							for (String word : s.split(" ")) {
+						for (String sent : p.split("[\\n]+")) {
+							for (String word : st.tokenize(sent)) {
+								if (word.length() == 0) {
+									continue;
+								}
+								if (word.length() == 0) {
+									continue;
+								}
 								c.incrementCount(word, 1);
 							}
 						}
@@ -185,17 +181,9 @@ public class DocumentCollectionCreator {
 						for (int loc : target_locs) {
 							String p = vals.get(loc);
 
-							for (String s : p.split("[\n]+")) {
-								if (s.length() == 0) {
-									continue;
-								}
-								s = sn.normalize(s);
-								if (s.length() == 0) {
-									continue;
-								}
-
-								IntegerArray sent = vocab.indexesOf(s.split(" "), unk);
-
+							for (String s : p.split("[\\n]+")) {
+								List<String> words = st.tokenize(s);
+								IntegerArray sent = new IntegerArray(vocab.indexesOf(words, unk));
 								sents.add(sent);
 							}
 						}
@@ -280,8 +268,10 @@ public class DocumentCollectionCreator {
 		// scc.create(MIRPath.MESH_COL_LINE_DIR, 0, new int[] { 1 },
 		// MIRPath.MESH_COL_DC_DIR);
 
-		// dcc.setStringNormalizer(new ThreePStringNormalizer());
-		// dcc.create(KPPath.COL_DC_DIR, 0, new int[] { 4, 5, 6, 7 });
+		{
+			dcc.setStringTokenizer(new KoreanCharNGramTokenizer());
+			dcc.create(KPPath.COL_DC_DIR, 0, new int[] { 4, 5 });
+		}
 
 		System.out.println("process ends.");
 	}
@@ -322,7 +312,7 @@ public class DocumentCollectionCreator {
 
 	private int batch_size = 200;
 
-	private StringNormalizer sn = new SimpleStringNormalizer(false);
+	private StringTokenizer st = new EnglishTokenizer();
 
 	private boolean add_unknown_tag = true;
 
@@ -678,8 +668,8 @@ public class DocumentCollectionCreator {
 		this.reuse_vocab = reuse_vocab;
 	}
 
-	public void setStringNormalizer(StringNormalizer sn) {
-		this.sn = sn;
+	public void setStringTokenizer(StringTokenizer et) {
+		this.st = et;
 	}
 
 	private void writeDocs(List<ByteArrayMatrix> docs, ByteBuffer buf, FileChannel fc) {

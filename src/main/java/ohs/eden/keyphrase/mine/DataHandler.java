@@ -14,7 +14,7 @@ import kr.co.shineware.nlp.komoran.core.analyzer.Komoran;
 import kr.co.shineware.util.common.model.Pair;
 import ohs.corpus.type.DocumentCollection;
 import ohs.corpus.type.RawDocumentCollection;
-import ohs.corpus.type.SimpleStringNormalizer;
+import ohs.corpus.type.EnglishNormalizer;
 import ohs.corpus.type.StringNormalizer;
 import ohs.eden.keyphrase.cluster.KPPath;
 import ohs.io.FileUtils;
@@ -78,70 +78,70 @@ public class DataHandler {
 		// dh.getQualityTrainingPhrases();
 		// dh.getMedicalTrainingPhrases();
 
-		dh.test();
+		// dh.test();
 
 		System.out.println("process ends.");
 	}
 
 	public void test() throws Exception {
-		RawDocumentCollection rdc = new RawDocumentCollection(KPPath.COL_DC_DIR);
-
-		TextFileWriter writer = new TextFileWriter(KPPath.DATA_DIR + "kwd_doc.txt");
-		ListList<String> attrs = rdc.getAttrData();
-
-		int doc_cnt1 = 0;
-		int doc_cnt2 = 0;
-		int kwd_cnt1 = 0;
-		int kwd_cnt2 = 0;
-
-		CounterMap<String, String> cm = Generics.newCounterMap();
-
-		for (int i = 0; i < rdc.size(); i++) {
-			HashMap<String, String> m = rdc.getMap(i);
-
-			String kwdStr = m.get("kor_kwds");
-			String title = m.get("kor_title");
-			String abs = m.get("kor_abs");
-			String[] kwds = kwdStr.split(";");
-
-			if (kwds.length == 0 || abs.length() == 0) {
-				continue;
-			}
-			// System.out.printf("%s\t%s\t%s\n", kwdStr, title, abs);
-
-			doc_cnt1++;
-
-			String content = title + "\n" + abs;
-
-			Counter<String> c = Generics.newCounter();
-
-			for (String kwd : kwds) {
-				kwd = kwd.trim();
-				if (kwd.length() == 0) {
-					continue;
-				}
-				kwd_cnt1++;
-				cm.incrementCount("KWD", kwd, 1);
-
-				if (content.contains(kwd)) {
-					kwd_cnt2++;
-					cm.incrementCount("KWD_OCCUR", kwd, 1);
-					c.incrementCount(kwd, 1);
-				}
-			}
-
-			if (c.size() > 0) {
-				doc_cnt2++;
-				writer.write(String.format("%d\t%s\t%s\t%s", i, kwdStr, title, abs));
-				writer.write("\n");
-			}
-		}
-		writer.close();
-
-		System.out.println(doc_cnt1);
-		System.out.println(doc_cnt2);
-		System.out.println(kwd_cnt1);
-		System.out.println(kwd_cnt2);
+		// RawDocumentCollection rdc = new RawDocumentCollection(KPPath.COL_DC_DIR);
+		//
+		// TextFileWriter writer = new TextFileWriter(KPPath.DATA_DIR + "kwd_doc.txt");
+		// ListList<String> attrs = rdc.getAttrData();
+		//
+		// int doc_cnt1 = 0;
+		// int doc_cnt2 = 0;
+		// int kwd_cnt1 = 0;
+		// int kwd_cnt2 = 0;
+		//
+		// CounterMap<String, String> cm = Generics.newCounterMap();
+		//
+		// for (int i = 0; i < rdc.size(); i++) {
+		// HashMap<String, String> m = rdc.getMap(i);
+		//
+		// String kwdStr = m.get("kor_kwds");
+		// String title = m.get("kor_title");
+		// String abs = m.get("kor_abs");
+		// String[] kwds = kwdStr.split(";");
+		//
+		// if (kwds.length == 0 || abs.length() == 0) {
+		// continue;
+		// }
+		// // System.out.printf("%s\t%s\t%s\n", kwdStr, title, abs);
+		//
+		// doc_cnt1++;
+		//
+		// String content = title + "\n" + abs;
+		//
+		// Counter<String> c = Generics.newCounter();
+		//
+		// for (String kwd : kwds) {
+		// kwd = kwd.trim();
+		// if (kwd.length() == 0) {
+		// continue;
+		// }
+		// kwd_cnt1++;
+		// cm.incrementCount("KWD", kwd, 1);
+		//
+		// if (content.contains(kwd)) {
+		// kwd_cnt2++;
+		// cm.incrementCount("KWD_OCCUR", kwd, 1);
+		// c.incrementCount(kwd, 1);
+		// }
+		// }
+		//
+		// if (c.size() > 0) {
+		// doc_cnt2++;
+		// writer.write(String.format("%d\t%s\t%s\t%s", i, kwdStr, title, abs));
+		// writer.write("\n");
+		// }
+		// }
+		// writer.close();
+		//
+		// System.out.println(doc_cnt1);
+		// System.out.println(doc_cnt2);
+		// System.out.println(kwd_cnt1);
+		// System.out.println(kwd_cnt2);
 	}
 
 	public void get3PKeywords() throws Exception {
@@ -339,14 +339,14 @@ public class DataHandler {
 				}
 			}
 
-			SimpleStringNormalizer sn = new SimpleStringNormalizer(true);
+			// EnglishNormalizer sn = new EnglishNormalizer(true);
 
 			Counter<String> c2 = Generics.newCounter(c.size());
 
 			for (Entry<String, Double> e : c.entrySet()) {
 				String kwd = e.getKey();
 				double cnt = e.getValue();
-				kwd = sn.normalize(kwd);
+				// kwd = sn.normalize(kwd);
 				c2.setCount(kwd, cnt);
 			}
 
@@ -547,8 +547,6 @@ public class DataHandler {
 
 		Pattern p = Pattern.compile(reg);
 
-		StringNormalizer sn = new SimpleStringNormalizer(true);
-
 		for (int i = 0; i < ranges.length; i++) {
 			int[] range = ranges[i];
 
@@ -579,7 +577,7 @@ public class DataHandler {
 
 				String t = title;
 
-				t = sn.normalize(t);
+				// t = sn.normalize(t);
 
 				if (t.split(" ").length > 1 && !t.contains("?")) {
 					c1.incrementCount(t, 1);
@@ -587,7 +585,7 @@ public class DataHandler {
 
 				for (String phrs : phrss.split("\\|")) {
 					// phrs = StrUtils.join(" ", NLPUtils.tokenize(title));
-					phrs = sn.normalize(phrs);
+					// phrs = sn.normalize(phrs);
 					if (phrs.split(" ").length > 1 && !phrs.contains("?")) {
 						c2.incrementCount(phrs, 1);
 					}

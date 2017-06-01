@@ -2,7 +2,9 @@ package ohs.ir.search.app;
 
 import java.util.List;
 
-import ohs.corpus.type.SimpleStringNormalizer;
+import ohs.corpus.type.EnglishNormalizer;
+import ohs.corpus.type.EnglishTokenizer;
+import ohs.corpus.type.StringTokenizer;
 import ohs.io.FileUtils;
 import ohs.io.RandomAccessDenseMatrix;
 import ohs.ir.medical.general.MIRPath;
@@ -60,7 +62,7 @@ public class DocumentClassifier {
 			idTodseq.put(parts[0], Integer.parseInt(parts[1]));
 		}
 
-		SimpleStringNormalizer strNormlizer = new SimpleStringNormalizer(true);
+		StringTokenizer st = new EnglishTokenizer();
 
 		for (int u = 0; u < 2; u++) {
 			IntegerArray labels = new IntegerArray();
@@ -80,10 +82,9 @@ public class DocumentClassifier {
 			for (int i = 0; i < bqs.size(); i++) {
 				TrecCdsQuery tcq = (TrecCdsQuery) bqs.get(i);
 
-				String st = StrUtils.join(" ", NLPUtils.tokenize(tcq.getSearchText(false)));
-				st = strNormlizer.normalize(st);
+				String tmp = StrUtils.join(" ", st.tokenize(tcq.getSearchText()));
 
-				SparseVector Q = ds.index(st);
+				SparseVector Q = ds.index(tmp);
 
 				DenseVector e_q = new DenseVector(radm.colSize());
 
@@ -175,7 +176,7 @@ public class DocumentClassifier {
 			idTodseq.put(parts[0], Integer.parseInt(parts[1]));
 		}
 
-		SimpleStringNormalizer strNormlizer = new SimpleStringNormalizer(true);
+		StringTokenizer st = new EnglishTokenizer();
 
 		Indexer<String> labelIndexer = Generics.newIndexer();
 		// labelIndexer.add("None");
@@ -198,8 +199,7 @@ public class DocumentClassifier {
 			for (int i = 0; i < bqs.size(); i++) {
 				TrecCdsQuery tcq = (TrecCdsQuery) bqs.get(i);
 
-				String st = StrUtils.join(" ", NLPUtils.tokenize(tcq.getSearchText(false)));
-				st = strNormlizer.normalize(st);
+				String tmp = StrUtils.join(" ", st.tokenize(tcq.getSearchText(false)));
 
 				Counter<String> docRels = relvData.getCounter(tcq.getId());
 

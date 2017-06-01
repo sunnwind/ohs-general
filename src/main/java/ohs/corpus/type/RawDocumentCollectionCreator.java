@@ -4,20 +4,16 @@ import java.io.File;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
+import ohs.eden.keyphrase.cluster.KPPath;
 import ohs.io.ByteArray;
 import ohs.io.ByteArrayMatrix;
 import ohs.io.ByteArrayUtils;
 import ohs.io.ByteBufferWrapper;
 import ohs.io.FileUtils;
 import ohs.ir.medical.general.MIRPath;
-import ohs.types.common.IntPair;
-import ohs.types.generic.Counter;
-import ohs.types.generic.ListList;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
 import ohs.types.number.LongArray;
 import ohs.types.number.ShortArray;
 import ohs.utils.ByteSize;
@@ -54,6 +50,7 @@ public class RawDocumentCollectionCreator {
 					System.out.printf("[%d, %s, %s]\n", cnt, timer.stop(), inDirName);
 				}
 			}
+			rdc.close();
 			System.out.printf("[%d, %s, %s]\n", cnt, timer.stop(), inDirName);
 		}
 		rdcc.close();
@@ -95,15 +92,38 @@ public class RawDocumentCollectionCreator {
 		// }
 
 		// {
-		// String[] attrs = { "pmcid", "title", "abs", "body", "kwds" };
+		// String[] attrs = { "pmcid", "title", "abs", "body", "kwds", "journal", "pmid", "doi" };
 		// String inDir = MIRPath.TREC_CDS_2016_COL_TOK_DIR;
 		// String outDir = MIRPath.TREC_CDS_2016_COL_DC_DIR;
 		// boolean append = false;
 		// RawDocumentCollectionCreator rdc = new RawDocumentCollectionCreator(outDir, append);
-		// dcc.addAttrs(Generics.newArrayList(attrs));
+		// rdc.addAttrs(Generics.newArrayList(attrs));
 		// createFromTokenizedData(inDir, rdc);
-		// dcc.close();
+		// rdc.close();
 		// }
+
+		// {
+		// String[] attrs = { "pmcid", "journal", "title", "abs", "meshes" };
+		// String inDir = MIRPath.TREC_PM_2017_COL_MEDLINE_TOK_DIR;
+		// String outDir = MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR;
+		// boolean append = false;
+		// RawDocumentCollectionCreator rdc = new RawDocumentCollectionCreator(outDir, append);
+		// rdc.addAttrs(Generics.newArrayList(attrs));
+		// createFromTokenizedData(inDir, rdc);
+		// rdc.close();
+		// }
+		//
+		// {
+		// String[] attrs = { "nctid", "brief_title", "official_title", "content", "kwds", "meshes" };
+		// String inDir = MIRPath.TREC_PM_2017_COL_CLINICAL_TOK_DIR;
+		// String outDir = MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR;
+		// boolean append = false;
+		// RawDocumentCollectionCreator rdc = new RawDocumentCollectionCreator(outDir, append);
+		// rdc.addAttrs(Generics.newArrayList(attrs));
+		// createFromTokenizedData(inDir, rdc);
+		// rdc.close();
+		// }
+
 		//
 		// {
 		// String[] attrs = { "pmcid", "title", "abs", "body", "kwds" };
@@ -208,7 +228,6 @@ public class RawDocumentCollectionCreator {
 		// vals[i] = vals[i].replace(StrUtils.TAB_REP, "\t");
 		// }
 		// rdc.addValues(vals);
-		//
 		// }
 		// }
 		// }
@@ -218,6 +237,8 @@ public class RawDocumentCollectionCreator {
 		{
 			List<String> inDirNames = Generics.newArrayList();
 			inDirNames.add(MIRPath.OHSUMED_COL_DC_DIR);
+			inDirNames.add(MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR);
+			inDirNames.add(MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR);
 			inDirNames.add(MIRPath.TREC_GENO_2007_COL_DC_DIR);
 			inDirNames.add(MIRPath.BIOASQ_COL_DC_DIR);
 			inDirNames.add(MIRPath.TREC_CDS_2016_COL_DC_DIR);
@@ -296,7 +317,16 @@ public class RawDocumentCollectionCreator {
 			// type = attrData.size();
 			// }
 		} else {
-			FileUtils.deleteFilesUnder(dataDir);
+			File dataFile = new File(dataDir, RawDocumentCollection.DATA_NAME);
+			File metaFile = new File(dataDir, RawDocumentCollection.META_NAME);
+
+			if (dataFile.exists()) {
+				dataFile.delete();
+			}
+
+			if (metaFile.exists()) {
+				metaFile.delete();
+			}
 		}
 
 		fc = FileUtils.openFileChannel(docFile, "rw");
@@ -359,6 +389,7 @@ public class RawDocumentCollectionCreator {
 				data.add(DataCompression.encode(starts));
 				data.add(DataCompression.encode(lens));
 				data.add(DataCompression.encode(types));
+
 				long[] info = FileUtils.write(data, buf, fc);
 			}
 

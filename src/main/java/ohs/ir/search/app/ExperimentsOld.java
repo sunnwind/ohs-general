@@ -18,7 +18,7 @@ import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.pipeline.Annotation;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import edu.stanford.nlp.util.CoreMap;
-import ohs.corpus.type.SimpleStringNormalizer;
+import ohs.corpus.type.EnglishNormalizer;
 import ohs.io.FileUtils;
 import ohs.io.RandomAccessDenseMatrix;
 import ohs.io.TextFileReader;
@@ -1671,7 +1671,7 @@ public class ExperimentsOld {
 		List<SparseVector> qData = Generics.newArrayList();
 		List<SparseVector> dData = Generics.newArrayList();
 
-		SimpleStringNormalizer sn = new SimpleStringNormalizer(true);
+		EnglishNormalizer sn = new EnglishNormalizer(true);
 
 		LemmaExpander le = new LemmaExpander(vocab, FileUtils.readStringHashMapFromText(MIRPath.TREC_CDS_2014_DIR + "lemmas.txt"));
 

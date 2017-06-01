@@ -5,7 +5,9 @@ import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import ohs.corpus.type.SimpleStringNormalizer;
+import ohs.corpus.type.EnglishNormalizer;
+import ohs.corpus.type.EnglishTokenizer;
+import ohs.corpus.type.StringTokenizer;
 import ohs.io.FileUtils;
 import ohs.io.TextFileReader;
 import ohs.io.TextFileWriter;
@@ -328,7 +330,7 @@ public class MeSHHandler {
 		String sep = " = ";
 
 		WordFilter filter = new DocumentSearcher(MIRPath.TREC_CDS_2014_COL_INDEX_DIR, MIRPath.STOPWORD_INQUERY_FILE).getWordFilter();
-		SimpleStringNormalizer sn = new SimpleStringNormalizer(true);
+		StringTokenizer st = new EnglishTokenizer();
 
 		{
 			TextFileReader reader = new TextFileReader(MIRPath.MESH_COL_RAW_DESCRIPTOR_FILE);
@@ -390,13 +392,12 @@ public class MeSHHandler {
 				Counter<String> c = Generics.newCounter();
 
 				for (String item : items) {
-					for (String sent : NLPUtils.tokenize(item)) {
-						sent = sn.normalize(sent);
+					for (String sent : st.tokenize(item)) {
 						for (String word : sent.split(" ")) {
 							if (filter.filter(word) || word.length() == 1) {
 								continue;
 							}
-							c.incrementCount(word.toLowerCase(), 1);
+							c.incrementCount(word, 1);
 						}
 					}
 				}
@@ -469,8 +470,7 @@ public class MeSHHandler {
 				Counter<String> c = Generics.newCounter();
 
 				for (String item : items) {
-					for (String sent : NLPUtils.tokenize(item)) {
-						sent = sn.normalize(sent);
+					for (String sent : st.tokenize(item)) {
 						for (String word : sent.split(" ")) {
 							if (filter.filter(word) || word.length() == 1) {
 								continue;

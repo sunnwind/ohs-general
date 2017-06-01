@@ -2,6 +2,7 @@ package ohs.io;
 
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
@@ -272,7 +273,7 @@ public class ByteArray implements RandomAccess, Cloneable, java.io.Serializable,
 	 * The maximum size of array to allocate. Some VMs reserve some header words in an array. Attempts to allocate larger arrays may result
 	 * in OutOfMemoryError: Requested array size exceeds VM limit
 	 */
-	public static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
+	public static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8; 
 
 	private static int hugeCapacity(int minCapacity) {
 		if (minCapacity < 0) // overflow

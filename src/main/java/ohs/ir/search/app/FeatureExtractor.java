@@ -2,7 +2,7 @@ package ohs.ir.search.app;
 
 import java.util.List;
 
-import ohs.corpus.type.SimpleStringNormalizer;
+import ohs.corpus.type.EnglishNormalizer;
 import ohs.io.FileUtils;
 import ohs.io.RandomAccessDenseMatrix;
 import ohs.ir.medical.general.MIRPath;
@@ -34,7 +34,7 @@ public class FeatureExtractor {
 
 		FeatureExtractor featExt = new FeatureExtractor(ds, E);
 
-		SimpleStringNormalizer strNormlizer = new SimpleStringNormalizer(true);
+		EnglishNormalizer strNormlizer = new EnglishNormalizer(true);
 
 		int top_k = 1000;
 
@@ -107,7 +107,7 @@ public class FeatureExtractor {
 
 		FeatureExtractor ext = new FeatureExtractor(ds, E);
 
-		SimpleStringNormalizer strNormlizer = new SimpleStringNormalizer(true);
+		EnglishNormalizer strNormlizer = new EnglishNormalizer(true);
 
 		for (int u = 0; u < 2; u++) {
 			String qFileName = MIRPath.TREC_CDS_2014_QUERY_FILE;

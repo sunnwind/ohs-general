@@ -83,7 +83,7 @@ public class BioAsqDumper extends TextDumper {
 					items.add(item.toString());
 				}
 
-				mesh = StrUtils.join("|", StrUtils.unwrap(items));
+				mesh = StrUtils.join(StrUtils.LINE_REP, StrUtils.unwrap(items));
 			}
 
 			List<String> items = Generics.newArrayList();

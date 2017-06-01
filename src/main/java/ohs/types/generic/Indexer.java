@@ -152,7 +152,7 @@ public class Indexer<E> extends AbstractList<E> implements Serializable {
 		return os;
 	}
 
-	public List<Integer> indexesOf(Collection<Object> objs, int unknown) {
+	public List<Integer> indexesOf(Collection<E> objs, int unknown) {
 		List<Integer> ret = new ArrayList<>(objs.size());
 		for (Object obj : objs) {
 			ret.add(indexOf(obj, unknown));

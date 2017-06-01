@@ -8,7 +8,7 @@ import java.util.regex.Pattern;
 
 import ohs.corpus.search.app.DocumentSearcher;
 import ohs.corpus.type.DocumentCollection;
-import ohs.corpus.type.SimpleStringNormalizer;
+import ohs.corpus.type.EnglishNormalizer;
 import ohs.io.FileUtils;
 import ohs.io.TextFileReader;
 import ohs.io.TextFileWriter;
@@ -353,7 +353,7 @@ public class MeSHHandler {
 		Set<String> stopwords = FileUtils.readStringSetFromText(MIRPath.STOPWORD_INQUERY_FILE);
 		WordFilter filter = new WordFilter(dc.getVocab(), stopwords);
 
-		SimpleStringNormalizer sn = new SimpleStringNormalizer(true);
+		EnglishNormalizer sn = new EnglishNormalizer(true);
 
 		{
 			TextFileReader reader = new TextFileReader(MIRPath.MESH_COL_RAW_DESCRIPTOR_FILE);

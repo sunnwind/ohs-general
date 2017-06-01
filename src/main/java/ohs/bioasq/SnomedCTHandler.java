@@ -6,7 +6,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import ohs.corpus.type.SimpleStringNormalizer;
+import ohs.corpus.type.EnglishNormalizer;
+import ohs.corpus.type.EnglishTokenizer;
+import ohs.corpus.type.StringTokenizer;
 import ohs.io.FileUtils;
 import ohs.io.TextFileReader;
 import ohs.ir.medical.general.MIRPath;
@@ -29,13 +31,11 @@ public class SnomedCTHandler {
 		System.out.println("process begins.");
 
 		SnomedCTHandler h = new SnomedCTHandler();
-		// h.getConcepts();
-		h.getPhrases();
 
 		System.out.println("process ends.");
 	}
 
-	public void getConcepts() throws Exception {
+	public void getSnomedConcepts() throws Exception {
 		String inFile = MIRPath.SNOMED_DIR
 				+ "SnomedCT_USEditionRF2_Production_20170301T120000/Snapshot/Terminology/sct2_Description_Snapshot-en_US1000124_20170301.txt";
 
@@ -169,7 +169,7 @@ public class SnomedCTHandler {
 		FileUtils.writeStringCollectionAsText(outFile, res);
 	}
 
-	public void getPhrases() throws Exception {
+	public void getSnomedPhrases() throws Exception {
 		String inFile = MIRPath.SNOMED_DIR + "cpts.txt";
 		String outFile = MIRPath.SNOMED_DIR + "phrss.txt";
 
@@ -187,7 +187,7 @@ public class SnomedCTHandler {
 
 		Counter<String> c = Generics.newCounter();
 
-		SimpleStringNormalizer sn = new SimpleStringNormalizer(true);
+		StringTokenizer st = new EnglishTokenizer();
 
 		TextFileReader reader = new TextFileReader(inFile);
 
@@ -207,7 +207,7 @@ public class SnomedCTHandler {
 
 			for (int i = 2; i < ps.length; i++) {
 				String cpt = ps[i];
-				String phrs = sn.normalize(cpt);
+				String phrs = StrUtils.join(" ", st.tokenize(cpt));
 				c.incrementCount(phrs, 1);
 			}
 

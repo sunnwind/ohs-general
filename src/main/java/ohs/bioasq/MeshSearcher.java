@@ -2,12 +2,14 @@ package ohs.bioasq;
 
 import java.util.List;
 
-import ohs.corpus.search.app.DocumentSearcher;
-import ohs.corpus.search.app.LemmaExpander;
-import ohs.corpus.type.SimpleStringNormalizer;
+import ohs.corpus.type.EnglishNormalizer;
+import ohs.corpus.type.EnglishTokenizer;
+import ohs.corpus.type.StringTokenizer;
 import ohs.io.FileUtils;
 import ohs.ir.medical.general.MIRPath;
 import ohs.ir.medical.general.NLPUtils;
+import ohs.ir.search.app.DocumentSearcher;
+import ohs.ir.search.app.LemmaExpander;
 import ohs.ir.weight.TermWeighting;
 import ohs.math.VectorUtils;
 import ohs.matrix.SparseMatrix;
@@ -15,7 +17,6 @@ import ohs.matrix.SparseVector;
 import ohs.types.generic.Counter;
 import ohs.types.generic.ListMap;
 import ohs.types.generic.Pair;
-import ohs.types.generic.Triple;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
 import ohs.types.number.IntegerArrayMatrix;
@@ -36,7 +37,7 @@ public class MeshSearcher {
 
 	private DocumentSearcher ds;
 
-	private SimpleStringNormalizer sn;
+	private StringTokenizer st;
 
 	private MeshTree mt;
 
@@ -46,7 +47,7 @@ public class MeshSearcher {
 		ds.setUseIdfMatch(true);
 
 		mt = new MeshTree(MIRPath.BIOASQ_MESH_TREE_SER_FILE);
-		sn = new SimpleStringNormalizer(true);
+		st = new EnglishTokenizer();
 	}
 
 	public void search() throws Exception {
@@ -88,8 +89,7 @@ public class MeshSearcher {
 				String[] ss = new String[] { title, abs };
 
 				for (int k = 0; k < ss.length; k++) {
-					ss[k] = StrUtils.join(" ", NLPUtils.tokenize(ss[k]));
-					ss[k] = sn.normalize(ss[k]);
+					ss[k] = StrUtils.join(" ", st.tokenize(ss[k]));
 
 					for (String word : ss[k].split(" ")) {
 						if (ds.getWordFilter().filter(word)) {
