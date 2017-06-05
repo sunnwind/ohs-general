@@ -21,12 +21,12 @@ public class TaggedTextParser {
 
 			for (int j = 0; j < parts.length; j++) {
 				String part = parts[j];
-				String[] subParts = part.split(MultiToken.DELIM_MULTI_TOKEN.replace("+", "\\+"));
+				String[] subParts = part.split(MultiToken.DELIM.replace("+", "\\+"));
 				Token[] subToks = new Token[subParts.length];
 
 				for (int k = 0; k < subParts.length; k++) {
 					String subPart = subParts[k];
-					String[] two = subPart.split(Token.DELIM_TOKEN);
+					String[] two = subPart.split(Token.DELIM);
 
 					Token tok = new Token();
 

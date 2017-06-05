@@ -52,7 +52,7 @@ public class SejongDataHandler {
 					String[] words = mt.getSub(TokenAttr.WORD);
 					String[] poss = mt.getSub(TokenAttr.POS);
 
-					// cm3.incrementCount(ot, StrUtils.join(Token.DELIM_TOKEN, MultiToken.DELIM_MULTI_TOKEN, words, poss), 1);
+					// cm3.incrementCount(ot, StrUtils.join(Token.DELIM, MultiToken.DELIM, words, poss), 1);
 
 					if (ot.equals(StrUtils.join("", words))) {
 						for (int i = 0; i < words.length; i++) {
@@ -111,11 +111,11 @@ public class SejongDataHandler {
 						}
 
 						if (end == -1) {
-							// String s = StrUtils.join(Token.DELIM_TOKEN, MultiToken.DELIM_MULTI_TOKEN, words, poss);
+							// String s = StrUtils.join(Token.DELIM, MultiToken.DELIM, words, poss);
 							// cm1.incrementCount(ot, s, 2);
 						} else if (end == 0) {
 							// System.out.println(ot);
-							// String s = StrUtils.join(Token.DELIM_TOKEN, MultiToken.DELIM_MULTI_TOKEN, words, poss);
+							// String s = StrUtils.join(Token.DELIM, MultiToken.DELIM, words, poss);
 							// cm1.incrementCount(ot, s, 2);
 						} else {
 							int start = -1;
@@ -136,7 +136,7 @@ public class SejongDataHandler {
 							}
 
 							if (start > -1 && end - start != 0) {
-								String str1 = StrUtils.join(Token.DELIM_TOKEN, MultiToken.DELIM_MULTI_TOKEN, words, poss, start, end + 1);
+								String str1 = StrUtils.join(Token.DELIM, MultiToken.DELIM, words, poss, start, end + 1);
 								String str2 = StrUtils.join("", words, start, end + 1);
 
 								int size = ts.size();
@@ -325,10 +325,10 @@ public class SejongDataHandler {
 								String[] two = StrUtils.split2Two("/", subparts[j]);
 								String word = two[0];
 								String pos = two[1];
-								subparts[j] = word + Token.DELIM_TOKEN + pos;
+								subparts[j] = word + Token.DELIM + pos;
 							}
 
-							parts[2] = StrUtils.join(MultiToken.DELIM_MULTI_TOKEN, subparts);
+							parts[2] = StrUtils.join(MultiToken.DELIM, subparts);
 
 							String input = StrUtils.join("\t", parts, 1, 3);
 							inputs.add(input);

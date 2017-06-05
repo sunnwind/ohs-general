@@ -164,10 +164,10 @@ public class DataHandler {
 						continue;
 					}
 
-					sb.append(String.format("%s%s%s", f, Token.DELIM_TOKEN, s));
+					sb.append(String.format("%s%s%s", f, Token.DELIM, s));
 
 					if (k != l.size() - 1) {
-						sb.append(MultiToken.DELIM_MULTI_TOKEN);
+						sb.append(MultiToken.DELIM);
 					}
 				}
 

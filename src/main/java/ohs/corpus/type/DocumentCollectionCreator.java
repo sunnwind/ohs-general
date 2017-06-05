@@ -80,6 +80,10 @@ public class DocumentCollectionCreator {
 						String p = vals.get(loc);
 
 						for (String sent : p.split("[\\n]+")) {
+							if (sent.length() == 0) {
+								continue;
+							}
+
 							for (String word : st.tokenize(sent)) {
 								if (word.length() == 0) {
 									continue;
@@ -182,6 +186,9 @@ public class DocumentCollectionCreator {
 							String p = vals.get(loc);
 
 							for (String s : p.split("[\\n]+")) {
+								if (s.length() == 0) {
+									continue;
+								}
 								List<String> words = st.tokenize(s);
 								IntegerArray sent = new IntegerArray(vocab.indexesOf(words, unk));
 								sents.add(sent);
@@ -269,8 +276,9 @@ public class DocumentCollectionCreator {
 		// MIRPath.MESH_COL_DC_DIR);
 
 		{
-			dcc.setStringTokenizer(new KoreanCharNGramTokenizer());
-			dcc.create(KPPath.COL_DC_DIR, 0, new int[] { 4, 5 });
+			// dcc.setStringTokenizer(new KoreanCharNGramTokenizer());
+			dcc.setStringTokenizer(new KoreanPosTokenizer());
+			dcc.create(KPPath.COL_DC_DIR, 0, new int[] { 8, 9, 10 });
 		}
 
 		System.out.println("process ends.");

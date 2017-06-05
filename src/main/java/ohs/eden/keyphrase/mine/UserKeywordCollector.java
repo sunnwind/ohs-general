@@ -1,6 +1,7 @@
 package ohs.eden.keyphrase.mine;
 
 import java.io.File;
+import java.nio.IntBuffer;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -23,6 +24,7 @@ import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
 import ohs.types.generic.ListMap;
 import ohs.types.generic.ListMapMap;
+import ohs.types.number.IntegerArray;
 import ohs.utils.Generics;
 import ohs.utils.Generics.ListType;
 import ohs.utils.StrUtils;
@@ -64,6 +66,7 @@ public class UserKeywordCollector {
 		RawDocumentCollection rdc = new RawDocumentCollection(KPPath.COL_DC_DIR);
 
 		Counter<String> c = Generics.newCounter();
+		Set<Integer> dseqs = Generics.newHashSet(rdc.size());
 
 		for (int i = 0; i < rdc.size(); i++) {
 			int progress = BatchUtils.progress(i + 1, rdc.size());
@@ -95,10 +98,21 @@ public class UserKeywordCollector {
 						String[] p = new String[] { korKwd, engKwd };
 						p = StrUtils.wrap(p);
 						c.incrementCount(StrUtils.join("\t", p), 1);
+						dseqs.add(i);
 					}
 				}
 			}
 		}
+
+		IntegerArray tmp = new IntegerArray(dseqs);
+		tmp.sort(false);
+
+		List<String> tmp2 = Generics.newArrayList();
+
+		for (int dseq : tmp) {
+			tmp2.add(dseq + "");
+		}
+
 		FileUtils.writeStringCounterAsText(MIRPath.DATA_DIR + "phrs/3p_kwd.txt", c);
 	}
 
@@ -856,6 +870,7 @@ public class UserKeywordCollector {
 		}
 
 		FileUtils.writeStringCollectionAsText(MIRPath.DATA_DIR + "phrs/phrs_merged.txt", res);
+
 	}
 
 }

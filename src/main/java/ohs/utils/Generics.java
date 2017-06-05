@@ -35,8 +35,7 @@ import ohs.types.generic.Triple;
 /**
  * from Stanford Core NLP
  * 
- * A collection of utilities to make dealing with Java generics less painful and
- * verbose. For example, rather than declaring
+ * A collection of utilities to make dealing with Java generics less painful and verbose. For example, rather than declaring
  *
  * <pre>
  * {@code  Map<String,ClassicCounter<List<String>>> = new HashMap<String,ClassicCounter<List<String>>>()}
@@ -48,12 +47,10 @@ import ohs.types.generic.Triple;
  * {@code Map<String,ClassicCounter<List<String>>> = Generics.newHashMap()}
  * </pre>
  *
- * Java type-inference will almost always just <em>do the right thing</em>
- * (every once in a while, the compiler will get confused before you do, so you
- * might still occasionally have to specify the appropriate types).
+ * Java type-inference will almost always just <em>do the right thing</em> (every once in a while, the compiler will get confused before you
+ * do, so you might still occasionally have to specify the appropriate types).
  *
- * This class is based on the examples in Brian Goetz'text article
- * <a href="http://www.ibm.com/developerworks/library/j-jtp02216.html">Java
+ * This class is based on the examples in Brian Goetz'text article <a href="http://www.ibm.com/developerworks/library/j-jtp02216.html">Java
  * theory and practice: The pseudo-typedef antipattern</a>.
  *
  * @author Ilya Sherman
@@ -138,8 +135,7 @@ public class Generics {
 		return new ConcurrentHashMap<K, V>(initialCapacity);
 	}
 
-	public static <K, V> ConcurrentHashMap<K, V> newConcurrentHashMap(int initialCapacity, float loadFactor,
-			int concurrencyLevel) {
+	public static <K, V> ConcurrentHashMap<K, V> newConcurrentHashMap(int initialCapacity, float loadFactor, int concurrencyLevel) {
 		return new ConcurrentHashMap<K, V>(initialCapacity, loadFactor, concurrencyLevel);
 	}
 

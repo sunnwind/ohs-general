@@ -235,8 +235,8 @@ public class MorphemeAnalyzer {
 			}
 
 			for (int i = 1; i < parts.length; i++) {
-				String[] toks = parts[i].split(MultiToken.DELIM_MULTI_TOKEN.replace("+", "\\+"));
-				set.add(StrUtils.join(MultiToken.DELIM_MULTI_TOKEN, toks, 1, toks.length));
+				String[] toks = parts[i].split(MultiToken.DELIM.replace("+", "\\+"));
+				set.add(StrUtils.join(MultiToken.DELIM, toks, 1, toks.length));
 			}
 		}
 	}

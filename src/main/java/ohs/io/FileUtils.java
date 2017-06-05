@@ -21,6 +21,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.ByteBuffer;
+import java.nio.IntBuffer;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -44,8 +45,8 @@ import org.apache.commons.compress.compressors.CompressorInputStream;
 import org.apache.commons.compress.compressors.CompressorOutputStream;
 import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
-import org.apache.commons.math.stat.descriptive.SynchronizedMultivariateSummaryStatistics;
 
+import ohs.math.ArrayUtils;
 import ohs.types.generic.BidMap;
 import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
@@ -53,7 +54,6 @@ import ohs.types.generic.Indexer;
 import ohs.types.generic.ListMap;
 import ohs.types.generic.SetMap;
 import ohs.types.number.DoubleArray;
-import ohs.types.number.LongArray;
 import ohs.utils.ByteSize;
 import ohs.utils.ByteSize.Type;
 import ohs.utils.Generics;
@@ -388,41 +388,84 @@ public class FileUtils {
 
 		{
 
-			File f = new File("./test.ser");
-			f.delete();
+			ByteBuffer buf = ByteBuffer.allocate(ByteArray.MAX_ARRAY_SIZE);
+			IntBuffer ib = buf.asIntBuffer();
 
-			FileChannel fc = openFileChannel("./test.ser", "rw");
-
-			int size = 100000000;
-
-			ByteArrayMatrix m = new ByteArrayMatrix(2);
-
-			m.add(new ByteArray(new byte[size]));
-			m.add(new ByteArray(new byte[size]));
-
-			long size1 = ByteArrayUtils.sizeOfByteBuffer(m);
-
-			System.out.println(new ByteSize(size1));
-
-			long[] info = write(m, fc);
-
-			fc.close();
-
-			System.out.println(new LongArray(info));
-
-			System.out.println(new ByteSize(info[1]));
-
-			fc = openFileChannel("./test.ser", "rw");
-
-			ByteArrayMatrix m2 = readByteArrayMatrix(fc);
-
-			long size2 = ByteArrayUtils.sizeOfByteBuffer(m2);
-
-			System.out.println(new ByteSize(size2));
-
-			fc.close();
-
+			System.out.println(buf.capacity());
+			System.out.println(ib.capacity());
+			System.out.println(1f * ib.capacity() / buf.capacity());
+			System.out.println();
+			int cursor = 0;
+			try {
+				for (int i = 0; i < ByteArray.MAX_ARRAY_SIZE / 4; i++) {
+					buf.putInt(i);
+					cursor = i;
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				System.out.printf("[%d, %d, %f]\n", ByteArray.MAX_ARRAY_SIZE, cursor, 1f * cursor / ByteArray.MAX_ARRAY_SIZE);
+				long pos = buf.position();
+				System.out.println(new ByteSize(pos));
+				System.out.println();
+			}
 		}
+
+		{
+
+			IntBuffer buf = IntBuffer.allocate(ByteArray.MAX_ARRAY_SIZE);
+			int cursor = 0;
+			try {
+				for (int i = 0; i < ByteArray.MAX_ARRAY_SIZE; i++) {
+					buf.put(i);
+					cursor = i;
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				System.out.printf("[%d, %d, %f]\n", ByteArray.MAX_ARRAY_SIZE, cursor, 1f * cursor / ByteArray.MAX_ARRAY_SIZE);
+				long pos = 1L * buf.position() * Integer.BYTES;
+				System.out.println(new ByteSize(pos));
+				System.out.println();
+			}
+		}
+
+		// {
+		//
+		// File f = new File("./test.ser");
+		// f.delete();
+		//
+		// FileChannel fc = openFileChannel("./test.ser", "rw");
+		//
+		// int size = 100000000;
+		//
+		// ByteArrayMatrix m = new ByteArrayMatrix(2);
+		//
+		// m.add(new ByteArray(new byte[size]));
+		// m.add(new ByteArray(new byte[size]));
+		//
+		// long size1 = ByteArrayUtils.sizeOfByteBuffer(m);
+		//
+		// System.out.println(new ByteSize(size1));
+		//
+		// long[] info = write(m, fc);
+		//
+		// fc.close();
+		//
+		// System.out.println(new LongArray(info));
+		//
+		// System.out.println(new ByteSize(info[1]));
+		//
+		// fc = openFileChannel("./test.ser", "rw");
+		//
+		// ByteArrayMatrix m2 = readByteArrayMatrix(fc);
+		//
+		// long size2 = ByteArrayUtils.sizeOfByteBuffer(m2);
+		//
+		// System.out.println(new ByteSize(size2));
+		//
+		// fc.close();
+		// }
 
 		// String s = "ABCDE";
 		//

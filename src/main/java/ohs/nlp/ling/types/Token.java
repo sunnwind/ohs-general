@@ -2,22 +2,20 @@ package ohs.nlp.ling.types;
 
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.Serializable;
-import java.util.Arrays;
+import java.util.ArrayList;
 
-import ohs.io.FileUtils;
-import ohs.utils.StrUtils;
+public class Token extends ArrayList<String> {
 
-public class Token implements Serializable {
+	public static final String DELIM = " / ";
 
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 4675926604151002510L;
-
-	public static final String DELIM_TOKEN = " / ";
-
-	protected String[] values = new String[0];
+	public static Token newToken(String s) {
+		String[] ps = s.split(DELIM);
+		Token ret = new Token(ps.length);
+		for (int i = 0; i < ps.length; i++) {
+			ret.add(ps[i]);
+		}
+		return ret;
+	}
 
 	protected int start = 0;
 
@@ -25,32 +23,14 @@ public class Token implements Serializable {
 
 	}
 
+	public Token(int size) {
+		super(size);
+	}
+
 	public Token(int start, String word) {
 		this();
 		this.start = start;
-		set(TokenAttr.WORD, word);
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (!super.equals(obj))
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		Token other = (Token) obj;
-		if (!Arrays.equals(values, other.values))
-			return false;
-		return true;
-	}
-
-	public String[] get() {
-		return get(TokenAttr.values());
-	}
-
-	public String get(int ordinal) {
-		return values[ordinal];
+		add(word);
 	}
 
 	public String get(TokenAttr attr) {
@@ -60,7 +40,7 @@ public class Token implements Serializable {
 	public String[] get(TokenAttr[] attrs) {
 		String[] ret = new String[attrs.length];
 		for (int i = 0; i < attrs.length; i++) {
-			ret[i] = values[attrs[i].ordinal()];
+			ret[i] = get(attrs[i].ordinal());
 		}
 		return ret;
 	}
@@ -69,48 +49,16 @@ public class Token implements Serializable {
 		return start;
 	}
 
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = super.hashCode();
-		result = prime * result + Arrays.hashCode(values);
-		return result;
-	}
-
 	public int length() {
 		return get(TokenAttr.WORD).length();
 	}
 
 	public void readObject(ObjectInputStream ois) throws Exception {
 		start = ois.readInt();
-		values = FileUtils.readStringArray(ois);
-	}
-
-	public void set(int i, String value) {
-		if (i >= values.length) {
-			values = Arrays.copyOf(values, i + 1);
-		}
-		values[i] = value;
-	}
-
-	public void set(TokenAttr attr, String value) {
-		set(attr.ordinal(), value);
 	}
 
 	public void setStart(int start) {
 		this.start = start;
-	}
-
-	public int size() {
-		return values.length;
-	}
-
-	public MultiToken toMultiToken() {
-		MultiToken ret = null;
-		if (this instanceof MultiToken) {
-			ret = (MultiToken) this;
-		}
-		return ret;
 	}
 
 	@Override
@@ -120,22 +68,28 @@ public class Token implements Serializable {
 
 	public String toString(boolean print_attr_names) {
 		StringBuffer sb = new StringBuffer();
-		if (print_attr_names) {
-			for (int i = 0; i < values.length; i++) {
-				sb.append(TokenAttr.values()[i]);
-				if (i != values.length) {
-					sb.append("\t");
-				}
+		// if (print_attr_names) {
+		// for (int i = 0; i < size(); i++) {
+		// sb.append(TokenAttr.values()[i]);
+		// if (i != size()) {
+		// sb.append("\t");
+		// }
+		// }
+		// sb.append("\n");
+		// }
+		// sb.append(StrUtils.join("\t", StrUtils.wrap(this)));
+
+		for (int i = 0; i < size(); i++) {
+			sb.append(get(i));
+			if (i != size() - 1) {
+				sb.append(DELIM);
 			}
-			sb.append("\n");
 		}
-		sb.append(StrUtils.join("\t", StrUtils.wrap(values)));
 		return sb.toString();
 	}
 
 	public void writeObject(ObjectOutputStream oos) throws Exception {
 		oos.writeInt(start);
-		FileUtils.writeStringArray(oos, values);
 	}
 
 }

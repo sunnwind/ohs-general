@@ -13,7 +13,7 @@ public class SejongParser {
 		String[] two = s.split("\t");
 
 		String surface = two[0];
-		String[] parts = two[1].split(MultiToken.DELIM_MULTI_TOKEN.replace("+", "\\+"));
+		String[] parts = two[1].split(MultiToken.DELIM.replace("+", "\\+"));
 		Token[] toks = new Token[parts.length];
 		for (int i = 0; i < parts.length; i++) {
 			toks[i] = parseToken(parts[i]);
@@ -65,7 +65,7 @@ public class SejongParser {
 	public static Token parseToken(String s) {
 		String[] values = new String[TokenAttr.size()];
 
-		StrUtils.copy(s.split(Token.DELIM_TOKEN), values);
+		StrUtils.copy(s.split(Token.DELIM), values);
 
 		Token ret = new Token();
 		for (TokenAttr attr : TokenAttr.values()) {
