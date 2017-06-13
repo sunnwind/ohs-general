@@ -11,9 +11,9 @@ import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseVector;
-import ohs.nlp.ling.types.KDocument;
-import ohs.nlp.ling.types.KDocumentCollection;
-import ohs.nlp.ling.types.KSentence;
+import ohs.nlp.ling.types.MDocument;
+import ohs.nlp.ling.types.MDocumentCollection;
+import ohs.nlp.ling.types.MSentence;
 import ohs.nlp.ling.types.MultiToken;
 import ohs.nlp.ling.types.Token;
 import ohs.nlp.ling.types.TokenAttr;
@@ -82,21 +82,21 @@ public class HMMTrainer {
 
 	public static void test02() throws Exception {
 
-		KDocumentCollection coll = new KDocumentCollection();
+		MDocumentCollection coll = new MDocumentCollection();
 
 		SejongReader r = new SejongReader(NLPPath.POS_DATA_FILE);
 		while (r.hasNext()) {
 			if (coll.size() == 1000) {
 				break;
 			}
-			KDocument doc = r.next();
+			MDocument doc = r.next();
 			coll.add(doc);
 
 		}
 		r.close();
 
-		for (KDocument doc : coll) {
-			for (KSentence sent : doc.getSentences()) {
+		for (MDocument doc : coll) {
+			for (MSentence sent : doc.getSentences()) {
 				for (MultiToken mt : sent.toMultiTokens()) {
 					String text = mt.get(TokenAttr.WORD);
 					String text2 = UnicodeUtils.decomposeToJamoStr(text);
@@ -119,13 +119,13 @@ public class HMMTrainer {
 
 		wordIndexer.add("UNK");
 
-		KSentence[] sents = coll.getSentences();
+		MSentence[] sents = coll.getSentences();
 
 		IntegerArrayMatrix wss = new IntegerArrayMatrix(sents.length);
 		IntegerArrayMatrix poss = new IntegerArrayMatrix(sents.length);
 
 		for (int i = 0; i < sents.length; i++) {
-			KSentence sent = sents[i];
+			MSentence sent = sents[i];
 
 			MultiToken[] toks = sent.toMultiTokens();
 			int[] ws = ArrayUtils.range(toks.length);
@@ -151,7 +151,7 @@ public class HMMTrainer {
 		hmm.write(NLPPath.POS_HMM_MODEL_FILE);
 
 		// for (int i = 0; i < col.size(); i++) {
-		// KDocument doc = col.get(i);
+		// MDocument doc = col.get(i);
 		//
 		// for (int j = 0; j < doc.size(); j++) {
 		// for (int k = 0; k < doc.size(); k++) {

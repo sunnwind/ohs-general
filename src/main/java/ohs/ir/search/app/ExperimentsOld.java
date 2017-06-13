@@ -39,7 +39,7 @@ import ohs.ir.search.model.FeedbackBuilder;
 import ohs.ir.search.model.LMScorer;
 import ohs.ir.search.model.MRFScorer;
 import ohs.ir.search.model.TranslationModelScorer;
-import ohs.ir.search.model.VsmScorer;
+import ohs.ir.search.model.VSMScorer;
 import ohs.ir.weight.TermWeighting;
 import ohs.math.ArrayMath;
 import ohs.math.CommonMath;
@@ -1030,13 +1030,13 @@ public class ExperimentsOld {
 		if (FileUtils.exists(docNormFileName)) {
 			docNorms = new DenseVector(docNormFileName);
 		} else {
-			docNorms = VsmScorer.getDocNorms(ds.getVocab(), ds.getDocumentCollection());
+			docNorms = VSMScorer.getDocNorms(ds.getVocab(), ds.getDocumentCollection());
 			docNorms.writeObject(docNormFileName);
 		}
 
 		LMScorer scorer1 = (LMScorer) ds.getScorer();
 		BM25Scorer scorer2 = new BM25Scorer(ds);
-		VsmScorer scorer3 = new VsmScorer(ds);
+		VSMScorer scorer3 = new VSMScorer(ds);
 
 		// ds.setScorer(new BM25Scorer(ds.getVocab(), ds.getDocumentStore(),
 		// ds.getInvertedIndex()));
@@ -2385,11 +2385,11 @@ public class ExperimentsOld {
 		if (FileUtils.exists(docNormFileName)) {
 			docNorms = new DenseVector(docNormFileName);
 		} else {
-			docNorms = VsmScorer.getDocNorms(ds.getVocab(), ds.getDocumentCollection());
+			docNorms = VSMScorer.getDocNorms(ds.getVocab(), ds.getDocumentCollection());
 			docNorms.writeObject(docNormFileName);
 		}
 
-		VsmScorer scorer = new VsmScorer(ds);
+		VSMScorer scorer = new VSMScorer(ds);
 		ds.setScorer(scorer);
 
 		LemmaExpander le = new LemmaExpander(ds.getVocab(), FileUtils.readStringHashMapFromText(MIRPath.TREC_CDS_2014_DIR + "lemmas.txt"));

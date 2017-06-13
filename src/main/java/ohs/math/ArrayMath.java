@@ -21,6 +21,8 @@ import ohs.math.ArrayWokers.OuterProductWorker;
 import ohs.math.ArrayWokers.ProductWorker3;
 import ohs.math.ArrayWokers.RowByColumnProductWorker;
 import ohs.math.ArrayWokers.RowBySingleColumnProductWorker;
+import ohs.matrix.DenseMatrix;
+import ohs.matrix.DenseVector;
 import ohs.types.generic.Counter;
 import ohs.types.number.IntegerArray;
 import ohs.utils.ByteSize;
@@ -1300,12 +1302,22 @@ public class ArrayMath {
 
 		{
 
-			double[][] trans = { { 5, 5 }, { 5, 10 } };
-			double[] cents = new double[trans.length];
+			DenseMatrix T = new DenseMatrix(6, 6);
 
-			normalizeColumns(trans);
+			for (int i = 0; i < T.rowSize(); i++) {
 
-			randomWalk(trans, cents, 10);
+				for (int j = i; j < T.rowSize(); j++) {
+					T.add(i, j, 1);
+				}
+			}
+
+			DenseVector cents = new DenseVector(T.rowSize());
+
+			normalizeColumns(T.values());
+
+			randomWalk(T.values(), cents.values(), 20, 0.0000001, 0.85);
+
+			System.out.println(cents);
 
 			System.exit(0);
 		}
@@ -3148,6 +3160,9 @@ public class ArrayMath {
 	}
 
 	/**
+	 * 
+	 * http://people.revoledu.com/kardi/tutorial/PageRank/Page-Rank-Computation.html
+	 * 
 	 * @param T
 	 *            Column-normalized transition probabilities
 	 * @param cents
@@ -3165,8 +3180,6 @@ public class ArrayMath {
 			add(cents, 1f / cents.length, cents);
 		}
 
-		double tran_prob = 0;
-		double dot_product = 0;
 		double[] old_cents = ArrayUtils.copy(cents);
 		double old_dist = Double.MAX_VALUE;
 		int num_docs = T.length;
@@ -3175,14 +3188,12 @@ public class ArrayMath {
 
 		for (int m = 0; m < max_iter; m++) {
 			for (int i = 0; i < T.length; i++) {
-				dot_product = 0;
+				double cent_sum_from_others = 0;
 				for (int j = 0; j < T[i].length; j++) {
-					tran_prob = damping_factor * T[i][j];
-					// tran_prob = damping_factor * trans_probs[i][j] +
-					// uniform_cent;
-					dot_product += tran_prob * old_cents[j];
+					double tran_prob = T[i][j];
+					cent_sum_from_others += tran_prob * old_cents[j];
 				}
-				cents[i] = dot_product;
+				cents[i] = damping_factor * cent_sum_from_others;
 			}
 
 			double sum = add(cents, uniform_cent, cents);
@@ -3191,17 +3202,73 @@ public class ArrayMath {
 				multiply(cents, 1f / sum, cents);
 			}
 
-			// double sum1 = LA.product(trans_probs, old_cents, cents);
-			// double sum2 = addAfterScale(cents, uniform_cent, 1 -
-			// damping_factor, damping_factor, cents);
+			double dist = euclideanDistance(old_cents, cents);
 
-			// for (int j = 0; j < cents.length; j++) {
-			// cents[j] = damping_factor * uniform_cent + (1 - damping_factor) *
-			// cents[j];
-			// sum += cents[j];
-			// }
+			if (showLog) {
+				System.out.printf("%d: %s - %s = %s\n", m + 1, old_dist, dist, old_dist - dist);
+			}
 
-			// scale(cents, 1f / sum2, cents);
+			if (dist < min_dist) {
+				break;
+			}
+
+			if (dist > old_dist) {
+				ArrayUtils.copy(old_cents, cents);
+				break;
+			}
+			old_dist = dist;
+			ArrayUtils.copy(cents, old_cents);
+		}
+	}
+
+	/**
+	 * 
+	 * http://people.revoledu.com/kardi/tutorial/PageRank/Page-Rank-Computation.html
+	 * 
+	 * @param T
+	 *            Column-normalized transition probabilities
+	 * @param cents
+	 * @param biases
+	 *            topical biases
+	 * @param max_iter
+	 * @param min_dist
+	 * @param damping_factor
+	 */
+	public static void randomWalk(double[][] T, double[] cents, double[] biases, int max_iter, double min_dist, double damping_factor) {
+		if (!ArrayChecker.isProductable(T, cents)) {
+			throw new IllegalArgumentException();
+		}
+
+		if (sum(cents) == 0) {
+			add(cents, 1f / cents.length, cents);
+		}
+
+		double[] old_cents = ArrayUtils.copy(cents);
+		double old_dist = Double.MAX_VALUE;
+		int num_docs = T.length;
+
+		double uniform_cent = (1 - damping_factor) / num_docs;
+
+		for (int m = 0; m < max_iter; m++) {
+			for (int i = 0; i < T.length; i++) {
+				double cent_sum_from_others = dotProduct(T[i], old_cents);
+//				for (int j = 0; j < T[i].length; j++) {
+//					// double tran_prob = T[i][j];
+//					cent_sum_from_others += T[i][j] * old_cents[j];
+//				}
+				cents[i] = damping_factor * cent_sum_from_others;
+			}
+
+			double sum = 0;
+			if (biases == null) {
+				sum = add(cents, uniform_cent, cents);
+			} else {
+				sum = addAfterMultiply(biases, damping_factor, cents, 1, cents);
+			}
+
+			if (sum != 0 && sum != 1) {
+				multiply(cents, 1f / sum, cents);
+			}
 
 			double dist = euclideanDistance(old_cents, cents);
 

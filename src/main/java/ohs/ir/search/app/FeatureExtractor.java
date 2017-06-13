@@ -3,6 +3,7 @@ package ohs.ir.search.app;
 import java.util.List;
 
 import ohs.corpus.type.EnglishNormalizer;
+import ohs.corpus.type.EnglishTokenizer;
 import ohs.io.FileUtils;
 import ohs.io.RandomAccessDenseMatrix;
 import ohs.ir.medical.general.MIRPath;
@@ -34,7 +35,7 @@ public class FeatureExtractor {
 
 		FeatureExtractor featExt = new FeatureExtractor(ds, E);
 
-		EnglishNormalizer strNormlizer = new EnglishNormalizer(true);
+		EnglishTokenizer et = new EnglishTokenizer();
 
 		int top_k = 1000;
 
@@ -66,8 +67,7 @@ public class FeatureExtractor {
 
 				System.out.println(bq);
 
-				String st = StrUtils.join(" ", NLPUtils.tokenize(tcq.getSearchText(false)));
-				st = strNormlizer.normalize(st);
+				String st = StrUtils.join(" ", et.tokenize(bq.getSearchText()));
 
 				SparseVector Q = ds.index(st);
 				SparseVector lm_q = Q.copy();
@@ -107,7 +107,7 @@ public class FeatureExtractor {
 
 		FeatureExtractor ext = new FeatureExtractor(ds, E);
 
-		EnglishNormalizer strNormlizer = new EnglishNormalizer(true);
+		EnglishTokenizer et = new EnglishTokenizer();
 
 		for (int u = 0; u < 2; u++) {
 			String qFileName = MIRPath.TREC_CDS_2014_QUERY_FILE;
@@ -135,8 +135,7 @@ public class FeatureExtractor {
 
 				Counter<String> docRels = relvData.getCounter(tcq.getId());
 
-				String st = StrUtils.join(" ", NLPUtils.tokenize(tcq.getSearchText(false)));
-				st = strNormlizer.normalize(st);
+				String st = StrUtils.join(" ", et.tokenize(bq.getSearchText()));
 
 				SparseVector Q = ds.index(st);
 

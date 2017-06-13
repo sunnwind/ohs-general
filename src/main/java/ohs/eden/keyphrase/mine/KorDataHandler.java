@@ -11,13 +11,14 @@ import ohs.corpus.type.DocumentCollection;
 import ohs.corpus.type.RawDocumentCollection;
 import ohs.eden.keyphrase.cluster.KPPath;
 import ohs.io.FileUtils;
+import ohs.io.RandomAccessDenseMatrix;
 import ohs.matrix.DenseMatrix;
 import ohs.ml.glove.CooccurrenceCounter;
 import ohs.ml.glove.GloveModel;
 import ohs.ml.glove.GloveParam;
 import ohs.ml.glove.GloveTrainer;
 import ohs.ml.neuralnet.com.BatchUtils;
-import ohs.nlp.ling.types.KSentence;
+import ohs.nlp.ling.types.MSentence;
 import ohs.nlp.ling.types.MultiToken;
 import ohs.nlp.ling.types.Token;
 import ohs.nlp.ling.types.TokenAttr;
@@ -106,7 +107,7 @@ public class KorDataHandler {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 		KorDataHandler dh = new KorDataHandler();
-		dh.tagPOS();
+		// dh.tagPOS();
 		// dh.get3PKorKeywords();
 		// dh.trainGlove();
 		// dh.getLabelData();
@@ -118,7 +119,6 @@ public class KorDataHandler {
 		List<String> lines = FileUtils.readLinesFromText(KPPath.KYP_DIR + "ext/label_data.txt");
 
 		Counter<String> c = Generics.newCounter();
-
 		CounterMap<String, String> cm = Generics.newCounterMap();
 
 		for (String line : lines) {
@@ -134,7 +134,7 @@ public class KorDataHandler {
 			String abs = ps.get(2);
 
 			for (String kwd : kwds) {
-				KSentence sent = KSentence.newSentence(kwd);
+				MSentence sent = MSentence.newSentence(kwd);
 
 				String wordPat = getString(sent, TokenAttr.WORD);
 				String posPat = getString(sent, TokenAttr.POS);
@@ -144,11 +144,11 @@ public class KorDataHandler {
 			}
 		}
 
-		// FileUtils.writeStringCounterAsText(KPPath.KYP_DIR + "ext/kwd_pat.txt", c);
-		FileUtils.writeStringCounterMapAsText(KPPath.KYP_DIR + "ext/kwd_pat.txt", cm);
+		FileUtils.writeStringCounterAsText(KPPath.KYP_DIR + "ext/kwd_pat.txt", c);
+		// FileUtils.writeStringCounterMapAsText(KPPath.KYP_DIR + "ext/kwd_pat.txt", cm);
 	}
 
-	public static String getString(KSentence sent, TokenAttr attr) {
+	public static String getString(MSentence sent, TokenAttr attr) {
 		StringBuffer sb = new StringBuffer();
 		for (int i = 0; i < sent.size(); i++) {
 			MultiToken mt = sent.get(i);
@@ -156,12 +156,14 @@ public class KorDataHandler {
 				Token t = mt.get(j);
 				sb.append(t.get(attr));
 				if (j < mt.size() - 1) {
-					sb.append(MultiToken.DELIM);
+					// sb.append(MultiToken.DELIM);
+					sb.append(" ");
 				}
 			}
 
 			if (i < sent.size() - 1) {
-				sb.append(KSentence.DELIM_SENT);
+				// sb.append(MSentence.DELIM_SENT);
+				sb.append(" ");
 			}
 		}
 		return sb.toString();
@@ -196,7 +198,7 @@ public class KorDataHandler {
 					continue;
 				}
 
-				String[] subs = { ps.get(8), korPosTitle, korPosAbs };
+				String[] subs = { ps.get(8), ps.get(9), ps.get(10) };
 				subs = StrUtils.wrap(subs);
 				res.add(StrUtils.join("\t", subs));
 			}
@@ -312,10 +314,10 @@ public class KorDataHandler {
 		String scDir = dir + "dc/";
 		String ccDir = dir + "cocnt/";
 		String outFileName1 = dir + "/emb/glove_model.ser.gz";
-		String outFileName2 = dir + "/emb/glove_embedding.ser.gz";
+		String outFileName2 = dir + "/emb/glove_emb.ser.gz";
 
 		int thread_size = 50;
-		int hidden_size = 200;
+		int hidden_size = 300;
 		int max_iters = 30;
 		int window_size = 10;
 		double learn_rate = 0.001;
@@ -347,6 +349,9 @@ public class KorDataHandler {
 
 		DenseMatrix E = M.getAveragedModel();
 		E.writeObject(outFileName2);
+
+		// DenseMatrix E = new DenseMatrix(KPPath.COL_DIR + "emb/glove_emb.ser.gz");
+		RandomAccessDenseMatrix.build(E, KPPath.COL_DIR + "emb/glove_emb_ra.ser");
 	}
 
 	private String getText(List<List<List<Pair<String, String>>>> result) {

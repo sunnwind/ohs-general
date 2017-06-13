@@ -270,15 +270,6 @@ public class DoubleArray implements RandomAccess, Cloneable, java.io.Serializabl
 	 */
 	private static final double[] DEFAULTCAPACITY_EMPTY_VALUES = {};
 
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + modCount;
-		result = prime * result + size;
-		return result;
-	}
-
 	/**
 	 * The maximum size of array to allocate. Some VMs reserve some header words in an array. Attempts to allocate larger arrays may result
 	 * in OutOfMemoryError: Requested array size exceeds VM limit
@@ -417,6 +408,10 @@ public class DoubleArray implements RandomAccess, Cloneable, java.io.Serializabl
 			vals[size++] = v;
 		}
 		return numNew != 0;
+	}
+
+	public boolean addAll(double[] c) {
+		return addAll(new DoubleArray(c));
 	}
 
 	public boolean addAll(DoubleArray c) {
@@ -633,6 +628,15 @@ public class DoubleArray implements RandomAccess, Cloneable, java.io.Serializabl
 			newCapacity = hugeCapacity(minCapacity);
 		// minCapacity is usually close to size, so this is a win:
 		vals = Arrays.copyOf(vals, newCapacity);
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + modCount;
+		result = prime * result + size;
+		return result;
 	}
 
 	/**

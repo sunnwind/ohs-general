@@ -2,6 +2,7 @@ package ohs.ir.search.model;
 
 import ohs.corpus.type.DocumentCollection;
 import ohs.ir.search.app.DocumentSearcher;
+import ohs.ir.search.index.InvertedIndex;
 import ohs.ir.search.index.Posting;
 import ohs.ir.search.index.PostingList;
 import ohs.ir.weight.TermWeighting;
@@ -13,7 +14,7 @@ import ohs.ml.neuralnet.com.BatchUtils;
 import ohs.types.generic.Vocab;
 import ohs.utils.Timer;
 
-public class VsmScorer extends Scorer {
+public class VSMScorer extends Scorer {
 
 	public static DenseVector getDocNorms(DocumentCollection dc) throws Exception {
 		Timer timer = Timer.newTimer();
@@ -52,8 +53,13 @@ public class VsmScorer extends Scorer {
 
 	private DenseVector docNorms;
 
-	public VsmScorer(DocumentSearcher ds, DenseVector docNorms) {
+	public VSMScorer(DocumentSearcher ds, DenseVector docNorms) {
 		super(ds);
+		this.docNorms = docNorms;
+	}
+
+	public VSMScorer(Vocab vocab, DocumentCollection dc, InvertedIndex ii, DenseVector docNorms) {
+		super(vocab, dc, ii);
 		this.docNorms = docNorms;
 	}
 

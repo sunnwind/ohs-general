@@ -8,6 +8,7 @@ import ohs.io.FileUtils;
 import ohs.ir.medical.general.MIRPath;
 import ohs.tree.trie.hash.Node;
 import ohs.tree.trie.hash.Trie;
+import ohs.types.common.IntPair;
 import ohs.types.generic.Counter;
 import ohs.types.generic.Pair;
 import ohs.types.generic.Vocab;
@@ -62,8 +63,8 @@ public class PhraseMapper<K> {
 		return map(words);
 	}
 
-	public List<Pair<Integer, Integer>> map(List<K> words) {
-		List<Pair<Integer, Integer>> ret = Generics.newArrayList();
+	public List<IntPair> map(List<K> words) {
+		List<IntPair> ret = Generics.newArrayList();
 		int i = 0;
 		while (i < words.size()) {
 			int j = i;
@@ -75,7 +76,7 @@ public class PhraseMapper<K> {
 				if (node.hasChild(key)) {
 					node = node.getChild(key);
 					if (node.getFlag()) {
-						ret.add(Generics.newPair(i, j + 1));
+						ret.add(new IntPair(i, j + 1));
 					}
 				} else {
 					break;
@@ -112,7 +113,7 @@ public class PhraseMapper<K> {
 
 				List<String> words = StrUtils.split(body);
 
-				List<Pair<Integer, Integer>> ps = m.map(words);
+				List<IntPair> ps = m.map(words);
 
 				for (Pair<Integer, Integer> p : ps) {
 					System.out.printf("%s, [%s]\n", p, StrUtils.join(" ", words, p.getFirst(), p.getSecond()));

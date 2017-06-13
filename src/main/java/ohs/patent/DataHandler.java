@@ -17,8 +17,8 @@ import ohs.ir.medical.general.MIRPath;
 import ohs.ml.glove.GloveModel;
 import ohs.ml.word2vec.WordSearcher;
 import ohs.ml.word2vec.WordVectorModel;
-import ohs.nlp.ling.types.KDocument;
-import ohs.nlp.ling.types.KSentence;
+import ohs.nlp.ling.types.MDocument;
+import ohs.nlp.ling.types.MSentence;
 import ohs.nlp.ling.types.MultiToken;
 import ohs.nlp.ling.types.Token;
 import ohs.nlp.ling.types.TokenAttr;
@@ -105,11 +105,11 @@ public class DataHandler {
 			String korAbs = parts[6];
 			String engAbs = parts[7];
 
-			KDocument d1 = TaggedTextParser.parse(korKwdStr + "\\n" + korTitle + "\\n" + korAbs);
+			MDocument d1 = TaggedTextParser.parse(korKwdStr + "\\n" + korTitle + "\\n" + korAbs);
 			List<String> ll = Generics.newArrayList();
 
 			for (int i = 0; i < d1.size(); i++) {
-				KSentence sent = d1.getSentence(i);
+				MSentence sent = d1.getSentence(i);
 
 				String[][] words = sent.getSub(TokenAttr.WORD);
 				String[][] poss = sent.getSub(TokenAttr.POS);

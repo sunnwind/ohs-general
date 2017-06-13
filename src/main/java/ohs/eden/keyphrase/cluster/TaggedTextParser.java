@@ -1,16 +1,16 @@
 package ohs.eden.keyphrase.cluster;
 
-import ohs.nlp.ling.types.KDocument;
-import ohs.nlp.ling.types.KSentence;
+import ohs.nlp.ling.types.MDocument;
+import ohs.nlp.ling.types.MSentence;
 import ohs.nlp.ling.types.MultiToken;
 import ohs.nlp.ling.types.Token;
 import ohs.nlp.ling.types.TokenAttr;
 
 public class TaggedTextParser {
 
-	public static KDocument parse(String s) {
+	public static MDocument parse(String s) {
 		String[] lines = s.split("\\\\n");
-		KSentence[] sents = new KSentence[lines.length];
+		MSentence[] sents = new MSentence[lines.length];
 
 		int num_mts = 0;
 		int num_ts = 0;
@@ -51,10 +51,10 @@ public class TaggedTextParser {
 				toks[j] = mt;
 
 			}
-			sents[i] = new KSentence(toks);
+			sents[i] = new MSentence(toks);
 		}
 
-		KDocument doc = new KDocument(sents);
+		MDocument doc = new MDocument(sents);
 		return doc;
 	}
 

@@ -42,7 +42,7 @@ import ohs.ir.search.model.FeedbackBuilder;
 import ohs.ir.search.model.LMScorer;
 import ohs.ir.search.model.MRFScorer;
 import ohs.ir.search.model.Scorer;
-import ohs.ir.search.model.VsmScorer;
+import ohs.ir.search.model.VSMScorer;
 import ohs.ir.search.model.WeightedMRFScorer;
 import ohs.ir.weight.TermWeighting;
 import ohs.math.ArrayMath;
@@ -51,6 +51,7 @@ import ohs.math.VectorUtils;
 import ohs.matrix.DenseVector;
 import ohs.matrix.SparseMatrix;
 import ohs.matrix.SparseVector;
+import ohs.types.common.IntPair;
 import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
 import ohs.types.generic.ListMap;
@@ -926,10 +927,10 @@ public class ClefEHealthExperiments {
 			if (FileUtils.exists(normFileName)) {
 				docNorms = new DenseVector(normFileName);
 			} else {
-				docNorms = VsmScorer.getDocNorms(ds.getDocumentCollection());
+				docNorms = VSMScorer.getDocNorms(ds.getDocumentCollection());
 				docNorms.writeObject(normFileName);
 			}
-			ds.setScorer(new VsmScorer(ds, docNorms));
+			ds.setScorer(new VSMScorer(ds, docNorms));
 		}
 
 		{
@@ -1002,7 +1003,7 @@ public class ClefEHealthExperiments {
 			l2.add("QID:\t" + bq.getId());
 			l2.add("Q:\t" + words.toString());
 
-			List<Pair<Integer, Integer>> ps = pm.map(words);
+			List<IntPair> ps = pm.map(words);
 
 			if (ps.size() > 0) {
 				for (Pair<Integer, Integer> p : ps) {

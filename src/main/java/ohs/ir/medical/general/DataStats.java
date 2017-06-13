@@ -84,11 +84,11 @@ public class DataStats {
 			values[4][i] = avg_query_len;
 			values[5][i] = num_query_doc_pairs;
 
-			// sb.append("KDocumentCollection\t#Docs\tVoc\tAvg Doc Len\t#Queries\t#Query-Doc Pairs");
+			// sb.append("MDocumentCollection\t#Docs\tVoc\tAvg Doc Len\t#Queries\t#Query-Doc Pairs");
 		}
 
 		StringBuffer sb = new StringBuffer();
-		// sb.append("KDocumentCollection\t#Docs\tVoc\tAvg Doc Len\t#Queries\t#Avg Query Len\t#Query-Doc Pairs");
+		// sb.append("MDocumentCollection\t#Docs\tVoc\tAvg Doc Len\t#Queries\t#Avg Query Len\t#Query-Doc Pairs");
 
 		for (int i = 0; i < collNames.length; i++) {
 			sb.append(String.format("\t%s", collNames[i]));
@@ -189,11 +189,11 @@ public class DataStats {
 			values[4][i] = avg_query_len;
 			values[5][i] = num_query_doc_pairs;
 
-			// sb.append("KDocumentCollection\t#Docs\tVoc\tAvg Doc Len\t#Queries\t#Query-Doc Pairs");
+			// sb.append("MDocumentCollection\t#Docs\tVoc\tAvg Doc Len\t#Queries\t#Query-Doc Pairs");
 		}
 
 		StringBuffer sb = new StringBuffer();
-		// sb.append("KDocumentCollection\t#Docs\tVoc\tAvg Doc Len\t#Queries\t#Avg Query Len\t#Query-Doc Pairs");
+		// sb.append("MDocumentCollection\t#Docs\tVoc\tAvg Doc Len\t#Queries\t#Avg Query Len\t#Query-Doc Pairs");
 
 		for (int i = 0; i < collNames.length; i++) {
 			sb.append(String.format("\t%s", collNames[i]));

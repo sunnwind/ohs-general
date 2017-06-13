@@ -7,8 +7,8 @@ import java.util.Set;
 
 import ohs.io.FileUtils;
 import ohs.io.TextFileReader;
-import ohs.nlp.ling.types.KDocument;
-import ohs.nlp.ling.types.KSentence;
+import ohs.nlp.ling.types.MDocument;
+import ohs.nlp.ling.types.MSentence;
 import ohs.nlp.ling.types.MultiToken;
 import ohs.nlp.ling.types.TokenAttr;
 import ohs.tree.trie.hash.Node;
@@ -33,13 +33,13 @@ public class MorphemeAnalyzer2 {
 		{
 			String document = "프랑스의 세계적인 의상 디자이너 엠마누엘 웅가로가 실내 장식용 직물 디자이너로 나섰다.\n";
 
-			KDocument doc = t.tokenize(document);
+			MDocument doc = t.tokenize(document);
 			a.analyze(doc);
 		}
 
 		// SejongReader r = new SejongReader(NLPPath.POS_DATA_FILE, NLPPath.POS_TAG_SET_FILE);
 		// while (r.hasNext()) {
-		// KDocument doc = r.next();
+		// MDocument doc = r.next();
 		//
 		// StringBuffer sb = new StringBuffer();
 		//
@@ -58,7 +58,7 @@ public class MorphemeAnalyzer2 {
 		// }
 		// }
 		//
-		// KDocument newDoc = t.tokenize(sb.toString());
+		// MDocument newDoc = t.tokenize(sb.toString());
 		// a.analyze(newDoc);
 		//
 		// }
@@ -101,9 +101,9 @@ public class MorphemeAnalyzer2 {
 		}
 	}
 
-	public void analyze(KDocument doc) {
+	public void analyze(MDocument doc) {
 		for (int i = 0; i < doc.size(); i++) {
-			KSentence sent = doc.getSentence(i);
+			MSentence sent = doc.getSentence(i);
 			MultiToken[] mts = sent.toMultiTokens();
 
 			for (int j = 0; j < mts.length; j++) {

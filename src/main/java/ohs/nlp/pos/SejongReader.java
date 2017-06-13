@@ -5,21 +5,21 @@ import java.util.List;
 import java.util.Set;
 
 import ohs.io.TextFileReader;
-import ohs.nlp.ling.types.KDocument;
-import ohs.nlp.ling.types.KSentence;
+import ohs.nlp.ling.types.MDocument;
+import ohs.nlp.ling.types.MSentence;
 import ohs.nlp.ling.types.MultiToken;
 import ohs.nlp.ling.types.Token;
 import ohs.nlp.ling.types.TokenAttr;
 import ohs.utils.Generics;
 
-public class SejongReader implements Iterator<KDocument> {
+public class SejongReader implements Iterator<MDocument> {
 
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 
 		SejongReader r = new SejongReader(NLPPath.POS_DATA_FILE);
 		while (r.hasNext()) {
-			KDocument doc = r.next();
+			MDocument doc = r.next();
 		}
 		r.close();
 
@@ -28,7 +28,7 @@ public class SejongReader implements Iterator<KDocument> {
 
 	private TextFileReader reader;
 
-	private KDocument doc;
+	private MDocument doc;
 
 	private int num_docs;
 
@@ -49,10 +49,10 @@ public class SejongReader implements Iterator<KDocument> {
 		reader.close();
 	}
 
-	private void filter(KDocument doc) {
-		List<KSentence> sents = Generics.newArrayList();
+	private void filter(MDocument doc) {
+		List<MSentence> sents = Generics.newArrayList();
 
-		for (KSentence sent : doc.getSentences()) {
+		for (MSentence sent : doc.getSentences()) {
 			boolean isValid = true;
 			for (Token tok : sent.getTokens()) {
 				MultiToken mt = (MultiToken) tok;
@@ -72,7 +72,7 @@ public class SejongReader implements Iterator<KDocument> {
 				sents.add(sent);
 			}
 		}
-		doc.setSentences(sents.toArray(new KSentence[sents.size()]));
+		doc.setSentences(sents.toArray(new MSentence[sents.size()]));
 
 		SejongParser.enumerateStarts(doc);
 	}
@@ -112,7 +112,7 @@ public class SejongReader implements Iterator<KDocument> {
 	}
 
 	@Override
-	public KDocument next() {
+	public MDocument next() {
 		return doc;
 	}
 

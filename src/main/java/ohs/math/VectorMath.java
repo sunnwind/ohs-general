@@ -1092,12 +1092,12 @@ public class VectorMath {
 		return x;
 	}
 
-	public static void randomWalk(SparseMatrix trans_probs, double[] cents, int max_iter) {
-		randomWalk(trans_probs, cents, max_iter, 0.0000001, 0.85);
+	public static void randomWalk(SparseMatrix trans_probs, DenseVector cents, int max_iter) {
+		randomWalk(trans_probs, cents, null, max_iter, 0.0000001, 0.85);
 	}
 
 	/**
-	 * @param trans_probs
+	 * @param T
 	 *            Column-normalized transition probabilities
 	 * @param cents
 	 * @param max_iter
@@ -1105,34 +1105,32 @@ public class VectorMath {
 	 * @param damping_factor
 	 * @return
 	 */
-	public static void randomWalk(SparseMatrix trans_probs, double[] cents, int max_iter, double min_dist, double damping_factor) {
+	public static void randomWalk(SparseMatrix T, DenseVector cents, DenseVector biases, int max_iter, double min_dist,
+			double damping_factor) {
 
-		double tran_prob = 0;
-		double dot_product = 0;
-		double[] old_cents = ArrayUtils.copy(cents);
+		DenseVector old_cents = cents.copy();
 		double old_dist = Double.MAX_VALUE;
-		int num_docs = trans_probs.rowSize();
-
-		double uniform_cent = (1 - damping_factor) / num_docs;
+		double uniform_cent = (1 - damping_factor) / T.rowSize();
 
 		for (int m = 0; m < max_iter; m++) {
-			for (int i = 0; i < trans_probs.rowSize(); i++) {
-				dot_product = 0;
-				SparseVector sv = trans_probs.rowAt(i);
-				for (int j = 0; j < sv.size(); j++) {
-					tran_prob = damping_factor * sv.valueAt(j);
-					dot_product += tran_prob * old_cents[sv.indexAt(j)];
-				}
-				cents[i] = dot_product;
+			for (int i = 0; i < T.rowSize(); i++) {
+				SparseVector sv = T.rowAt(i);
+				double cent_from_others = dotProduct(sv, old_cents);
+				cents.set(i, damping_factor * cent_from_others);
 			}
 
-			double sum = ArrayMath.add(cents, uniform_cent, cents);
+			double sum = 0;
+			if (biases == null) {
+				sum = add(cents, uniform_cent, cents);
+			} else {
+				sum = addAfterMultiply(biases, damping_factor, cents, 1, cents);
+			}
 
 			if (sum != 1) {
-				ArrayMath.multiply(cents, 1f / sum, cents);
+				cents.multiply(1d / sum);
 			}
 
-			double dist = ArrayMath.euclideanDistance(old_cents, cents);
+			double dist = euclideanDistance(old_cents, cents);
 
 			System.out.printf("%d: %s - %s = %s\n", m + 1, old_dist, dist, old_dist - dist);
 
@@ -1141,11 +1139,12 @@ public class VectorMath {
 			}
 
 			if (dist > old_dist) {
-				ArrayUtils.copy(old_cents, cents);
+				VectorUtils.copy(old_cents, cents);
 				break;
 			}
+
 			old_dist = dist;
-			ArrayUtils.copy(cents, old_cents);
+			VectorUtils.copy(cents, old_cents);
 		}
 	}
 

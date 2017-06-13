@@ -11,8 +11,8 @@ import java.util.zip.ZipInputStream;
 
 import ohs.io.FileUtils;
 import ohs.io.TextFileWriter;
-import ohs.nlp.ling.types.KDocument;
-import ohs.nlp.ling.types.KSentence;
+import ohs.nlp.ling.types.MDocument;
+import ohs.nlp.ling.types.MSentence;
 import ohs.nlp.ling.types.MultiToken;
 import ohs.nlp.ling.types.Token;
 import ohs.nlp.ling.types.TokenAttr;
@@ -44,9 +44,9 @@ public class SejongDataHandler {
 
 		SejongReader reader = new SejongReader(NLPPath.POS_DATA_FILE);
 		while (reader.hasNext()) {
-			KDocument doc = reader.next();
+			MDocument doc = reader.next();
 
-			for (KSentence sent : doc.getSentences()) {
+			for (MSentence sent : doc.getSentences()) {
 				for (MultiToken mt : sent.toMultiTokens()) {
 					String ot = mt.get(TokenAttr.WORD);
 					String[] words = mt.getSub(TokenAttr.WORD);
@@ -209,9 +209,9 @@ public class SejongDataHandler {
 
 		SejongReader reader = new SejongReader(NLPPath.POS_DATA_FILE);
 		while (reader.hasNext()) {
-			KDocument doc = reader.next();
+			MDocument doc = reader.next();
 
-			for (KSentence sent : doc.getSentences()) {
+			for (MSentence sent : doc.getSentences()) {
 				for (Token tok : sent.getTokens()) {
 					MultiToken mt = (MultiToken) tok;
 
@@ -248,9 +248,9 @@ public class SejongDataHandler {
 
 		SejongReader reader = new SejongReader(NLPPath.POS_DATA_FILE);
 		while (reader.hasNext()) {
-			KDocument doc = reader.next();
+			MDocument doc = reader.next();
 
-			for (KSentence sent : doc.getSentences()) {
+			for (MSentence sent : doc.getSentences()) {
 				for (MultiToken mt : sent.toMultiTokens()) {
 
 					if (mt.size() > 0) {

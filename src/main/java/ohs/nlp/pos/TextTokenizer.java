@@ -3,7 +3,7 @@ package ohs.nlp.pos;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import ohs.nlp.ling.types.KDocument;
+import ohs.nlp.ling.types.MDocument;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
 import ohs.utils.UnicodeUtils;
@@ -33,7 +33,7 @@ public class TextTokenizer {
 		return lines;
 	}
 
-	public KDocument tokenize(String text) {
+	public MDocument tokenize(String text) {
 		StringBuffer sb = new StringBuffer();
 
 		for (String line : text.split("[\n]+")) {
@@ -49,7 +49,7 @@ public class TextTokenizer {
 			}
 			sb.append("\n");
 		}
-		return KDocument.newDocument(sb.toString().trim().split("\n"));
+		return MDocument.newDocument(sb.toString().trim().split("\n"));
 	}
 
 	private String tokenizeLine(String line) {

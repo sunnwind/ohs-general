@@ -2,8 +2,8 @@ package ohs.corpus.type;
 
 import java.util.List;
 
-import ohs.nlp.ling.types.KDocument;
-import ohs.nlp.ling.types.KSentence;
+import ohs.nlp.ling.types.MDocument;
+import ohs.nlp.ling.types.MSentence;
 import ohs.nlp.ling.types.MultiToken;
 import ohs.nlp.ling.types.Token;
 import ohs.nlp.ling.types.TokenAttr;
@@ -18,8 +18,8 @@ public class KoreanPosTokenizer extends StringTokenizer {
 	public List<String> tokenize(String s) {
 		List<String> ret = Generics.newArrayList();
 		if (s.length() > 0) {
-			KDocument doc = KDocument.newDocument(s);
-			for (KSentence sent : doc) {
+			MDocument doc = MDocument.newDocument(s);
+			for (MSentence sent : doc) {
 				for (MultiToken mts : sent) {
 					for (Token t : mts) {
 						String word = t.get(TokenAttr.WORD);

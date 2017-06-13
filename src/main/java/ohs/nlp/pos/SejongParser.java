@@ -1,7 +1,7 @@
 package ohs.nlp.pos;
 
-import ohs.nlp.ling.types.KDocument;
-import ohs.nlp.ling.types.KSentence;
+import ohs.nlp.ling.types.MDocument;
+import ohs.nlp.ling.types.MSentence;
 import ohs.nlp.ling.types.MultiToken;
 import ohs.nlp.ling.types.Token;
 import ohs.nlp.ling.types.TokenAttr;
@@ -24,21 +24,21 @@ public class SejongParser {
 		return ret;
 	}
 
-	public static KDocument parseDocument(String s) {
+	public static MDocument parseDocument(String s) {
 		String[] lines = s.split("\n\n");
-		KSentence[] sents = new KSentence[lines.length];
+		MSentence[] sents = new MSentence[lines.length];
 		for (int i = 0; i < sents.length; i++) {
 			sents[i] = parseSentence(lines[i]);
 		}
 
-		KDocument doc = new KDocument(sents);
+		MDocument doc = new MDocument(sents);
 
 		enumerateStarts(doc);
 
 		return doc;
 	}
 
-	public static void enumerateStarts(KDocument doc) {
+	public static void enumerateStarts(MDocument doc) {
 		Token[] mts = doc.toMultiTokens();
 		for (int i = 0, loc = 0; i < mts.length; i++) {
 			MultiToken mt = (MultiToken) mts[i];
@@ -53,13 +53,13 @@ public class SejongParser {
 		}
 	}
 
-	public static KSentence parseSentence(String s) {
+	public static MSentence parseSentence(String s) {
 		String[] lines = s.split("\n");
 		MultiToken[] mts = new MultiToken[lines.length];
 		for (int i = 0; i < lines.length; i++) {
 			mts[i] = parseMultiToken(lines[i]);
 		}
-		return new KSentence(mts);
+		return new MSentence(mts);
 	}
 
 	public static Token parseToken(String s) {

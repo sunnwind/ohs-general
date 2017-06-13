@@ -4,29 +4,31 @@ import java.util.ArrayList;
 import java.util.List;
 
 import ohs.utils.Generics;
+import ohs.utils.StrUtils;
 
-public class KDocument extends ArrayList<KSentence> {
+public class MDocument extends ArrayList<MSentence> {
 
-	public static KDocument newDocument(String s) {
+	public static MDocument newDocument(String s) {
+		s = s.replace(StrUtils.LINE_REP, "\n");
 		String[] ps = s.split("[\\n]+");
-		KDocument ret = new KDocument(ps.length);
+		MDocument ret = new MDocument(ps.length);
 		for (int i = 0; i < ps.length; i++) {
-			ret.add(KSentence.newSentence(ps[i]));
+			ret.add(MSentence.newSentence(ps[i]));
 		}
 		return ret;
 	}
 
-	public KDocument() {
+	public MDocument() {
 
 	}
 
-	public KDocument(int size) {
+	public MDocument(int size) {
 		super(size);
 	}
 
 	public List<List<Token>> getTokens() {
 		List<List<Token>> ret = Generics.newArrayList(size());
-		for (KSentence sent : this) {
+		for (MSentence sent : this) {
 			ret.add(sent.getTokens());
 		}
 		return ret;
@@ -34,7 +36,7 @@ public class KDocument extends ArrayList<KSentence> {
 
 	public int sizeOfMultiTokens() {
 		int ret = 0;
-		for (KSentence sent : this) {
+		for (MSentence sent : this) {
 			ret += sent.size();
 		}
 		return ret = 0;
@@ -42,7 +44,7 @@ public class KDocument extends ArrayList<KSentence> {
 
 	public int sizeOfTokens() {
 		int ret = 0;
-		for (KSentence sent : this) {
+		for (MSentence sent : this) {
 			ret += sent.sizeOfTokens();
 		}
 		return ret = 0;

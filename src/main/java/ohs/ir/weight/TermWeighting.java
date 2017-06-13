@@ -435,6 +435,22 @@ public class TermWeighting {
 		return tf(cnt_w) * idf(num_docs, doc_freq);
 	}
 
+	public static void tfidf(SparseVector cnts, Vocab vocab, SparseVector tfidfs) {
+		for (int i = 0; i < cnts.size(); i++) {
+			int w = cnts.indexAt(i);
+			double cnt = cnts.valueAt(i);
+			double tfidf = tfidf(cnt, vocab.getDocCnt(), vocab.getDocFreq(w));
+			tfidfs.setAt(i, tfidf);
+		}
+		tfidfs.summation();
+	}
+
+	public static SparseVector tfidf(SparseVector cnts, Vocab vocab) {
+		SparseVector ret = cnts.copy();
+		tfidf(cnts, vocab, ret);
+		return ret;
+	}
+
 	/**
 	 * 
 	 * Zhai, C., & Lafferty, J. (2002). Two-stage language models for information retrieval. In Proceedings of the 25th annual international

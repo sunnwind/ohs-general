@@ -1,11 +1,14 @@
 package ohs.ir.search.model;
 
+import ohs.corpus.type.DocumentCollection;
 import ohs.ir.search.app.DocumentSearcher;
+import ohs.ir.search.index.InvertedIndex;
 import ohs.ir.search.index.Posting;
 import ohs.ir.search.index.PostingList;
 import ohs.ir.weight.TermWeighting;
 import ohs.math.ArrayUtils;
 import ohs.matrix.SparseVector;
+import ohs.types.generic.Vocab;
 
 public class BM25Scorer extends Scorer {
 
@@ -23,6 +26,10 @@ public class BM25Scorer extends Scorer {
 
 	public BM25Scorer(DocumentSearcher ds) {
 		super(ds);
+	}
+
+	public BM25Scorer(Vocab vocab, DocumentCollection dc, InvertedIndex ii) {
+		super(vocab, dc, ii);
 	}
 
 	public void score(int w, double cnt_w_in_q, PostingList pl, SparseVector ret) {
