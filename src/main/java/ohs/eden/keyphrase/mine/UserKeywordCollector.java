@@ -13,17 +13,20 @@ import java.util.regex.Pattern;
 
 import ohs.corpus.type.RawDocumentCollection;
 import ohs.corpus.type.EnglishNormalizer;
+import ohs.corpus.type.EnglishTokenizer;
 import ohs.corpus.type.StringNormalizer;
 import ohs.eden.keyphrase.cluster.KPPath;
 import ohs.io.FileUtils;
 import ohs.io.TextFileReader;
 import ohs.io.TextFileWriter;
 import ohs.ir.medical.general.MIRPath;
+import ohs.ir.search.index.WordFilter;
 import ohs.ml.neuralnet.com.BatchUtils;
 import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
 import ohs.types.generic.ListMap;
 import ohs.types.generic.ListMapMap;
+import ohs.types.generic.SetMap;
 import ohs.types.number.IntegerArray;
 import ohs.utils.Generics;
 import ohs.utils.Generics.ListType;
@@ -45,7 +48,7 @@ public class UserKeywordCollector {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 		UserKeywordCollector dh = new UserKeywordCollector();
-		dh.get3PKeywords();
+		// dh.get3PKeywords();
 		// dh.getSnomedConcepts();
 		// dh.getSnomedPhrases();
 		// dh.getMeSHes();
@@ -57,6 +60,8 @@ public class UserKeywordCollector {
 		// dh.getTrecCdsKeywords();
 		// dh.getWikiPhrases();
 		// dh.mergeKeywords();
+		// dh.tokenizeKeywords();
+		dh.filterKeywords();
 		// dh.getMedicalPhrases();
 
 		System.out.println("process ends.");
@@ -870,7 +875,84 @@ public class UserKeywordCollector {
 		}
 
 		FileUtils.writeStringCollectionAsText(MIRPath.DATA_DIR + "phrs/phrs_merged.txt", res);
+	}
 
+	public void tokenizeKeywords() throws Exception {
+		List<String> lines = FileUtils.readLinesFromText(MIRPath.DATA_DIR + "phrs/phrs_merged.txt");
+
+		SetMap<String, String> sm = Generics.newSetMap(lines.size());
+		Counter<String> c1 = Generics.newCounter(lines.size());
+
+		EnglishTokenizer et = new EnglishTokenizer();
+
+		for (String line : lines) {
+			String[] ps = line.split("\t");
+			String phrs = ps[0];
+			int cnt = Integer.parseInt(ps[2]);
+			phrs = StrUtils.join(" ", et.tokenize(phrs));
+			c1.incrementCount(phrs, cnt);
+
+			for (int i = 3; i < ps.length; i++) {
+				String rsc = ps[i];
+				sm.put(phrs, rsc);
+			}
+		}
+
+		Counter<String> c2 = Generics.newCounter();
+
+		for (String phrs : sm.keySet()) {
+			c2.setCount(phrs, sm.get(phrs).size());
+		}
+
+		List<String> res = Generics.newArrayList(sm.size());
+
+		for (String phrs : c2.getSortedKeys()) {
+			List<String> rs = Generics.newArrayList(sm.removeKey(phrs));
+			Collections.sort(rs);
+			res.add(phrs + "\t" + rs.size() + "\t" + (int) c1.getCount(phrs) + "\t" + StrUtils.join("\t", rs));
+		}
+
+		FileUtils.writeStringCollectionAsText(MIRPath.DATA_DIR + "phrs/phrs_merged_2.txt", res);
+	}
+
+	public void filterKeywords() throws Exception {
+		List<String> lines = FileUtils.readLinesFromText(MIRPath.DATA_DIR + "phrs/phrs_merged_2.txt");
+
+		SetMap<String, String> sm = Generics.newSetMap(lines.size());
+		Counter<String> c1 = Generics.newCounter(lines.size());
+
+		for (String line : lines) {
+			String[] ps = line.split("\t");
+			String phrs = ps[0];
+
+			if (phrs.length() < 3) {
+				continue;
+			}
+
+			int cnt = Integer.parseInt(ps[2]);
+			c1.incrementCount(phrs, cnt);
+
+			for (int i = 3; i < ps.length; i++) {
+				String rsc = ps[i];
+				sm.put(phrs, rsc);
+			}
+		}
+
+		Counter<String> c2 = Generics.newCounter();
+
+		for (String phrs : sm.keySet()) {
+			c2.setCount(phrs, sm.get(phrs).size());
+		}
+
+		List<String> res = Generics.newArrayList(sm.size());
+
+		for (String phrs : c2.getSortedKeys()) {
+			List<String> rs = Generics.newArrayList(sm.removeKey(phrs));
+			Collections.sort(rs);
+			res.add(phrs + "\t" + rs.size() + "\t" + (int) c1.getCount(phrs) + "\t" + StrUtils.join("\t", rs));
+		}
+
+		FileUtils.writeStringCollectionAsText(MIRPath.DATA_DIR + "phrs/phrs_filtered.txt", res);
 	}
 
 }

@@ -10,9 +10,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
 
-import org.apache.xalan.xsltc.compiler.sym;
-
-import kr.co.shineware.nlp.komoran.a.a;
 import ohs.io.ByteArray;
 import ohs.io.ByteArrayMatrix;
 import ohs.io.ByteBufferWrapper;
@@ -21,12 +18,12 @@ import ohs.ir.medical.general.MIRPath;
 import ohs.math.ArrayMath;
 import ohs.types.generic.Counter;
 import ohs.types.generic.ListList;
-import ohs.types.generic.Pair;
 import ohs.types.number.IntegerArray;
 import ohs.types.number.IntegerArrayMatrix;
 import ohs.types.number.LongArray;
 import ohs.types.number.ShortArray;
 import ohs.utils.Generics;
+import ohs.utils.StrUtils;
 
 public class RawDocumentCollection {
 
@@ -37,13 +34,32 @@ public class RawDocumentCollection {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 
-		// {
-		// RawDocumentCollection rdc = new
-		// RawDocumentCollection(MIRPath.WIKI_COL_DC_DIR);
-		// System.out.println(rdc.size());
-		// System.out.println(rdc.getAttrValueText(0));
-		// System.out.println(rdc.getAttrValueText(20913));
-		// }
+		{
+			RawDocumentCollection rdc = new RawDocumentCollection(MIRPath.WIKI_COL_DC_DIR);
+			System.out.println(rdc.size());
+			// System.out.println(rdc.getText(0));
+			// System.out.println(rdc.getText(10));
+
+			for (int i = 0; i < rdc.size(); i++) {
+				Map<String, String> m = rdc.getMap(i);
+				String title = m.get("title");
+				String content = m.get("content");
+
+				List<String> sents = StrUtils.split("\n", content);
+
+				if (sents.size() > 1) {
+
+					String sent = sents.get(1);
+
+					if (sent.contains("also known as")) {
+						System.out.println(title);
+						System.out.println(sent);
+					}
+				}
+			}
+
+			rdc.close();
+		}
 		//
 		// {
 		// RawDocumentCollection rdc = new
@@ -80,15 +96,14 @@ public class RawDocumentCollection {
 		// System.out.println(rdc.getAttrValueText(20913));
 		// }
 
-		{
-			RawDocumentCollection rdc = new RawDocumentCollection(MIRPath.DATA_DIR + "merged/col/dc/");
-			ListList<String> atrData = rdc.getAttrData();
-			IntegerArrayMatrix ranges = rdc.getTypeRanges();
-			System.out.println(atrData);
-			System.out.println(ranges);
-			System.out.println();
-
-		}
+		// {
+		// RawDocumentCollection rdc = new RawDocumentCollection(MIRPath.DATA_DIR + "merged/col/dc/");
+		// ListList<String> atrData = rdc.getAttrData();
+		// IntegerArrayMatrix ranges = rdc.getTypeRanges();
+		// System.out.println(atrData);
+		// System.out.println(ranges);
+		// System.out.println();
+		// }
 
 		System.out.println("process ends.");
 	}
