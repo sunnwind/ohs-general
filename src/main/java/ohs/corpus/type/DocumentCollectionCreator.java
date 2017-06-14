@@ -310,6 +310,7 @@ public class DocumentCollectionCreator {
 			target_loc_data[6] = new int[] { 3 };
 
 			dcc.create(MIRPath.DATA_DIR + "merged/col/dc/", docid_locs, target_loc_data);
+
 		}
 
 		System.out.println("process ends.");
@@ -351,7 +352,7 @@ public class DocumentCollectionCreator {
 
 	private int batch_size = 200;
 
-	private StringTokenizer st = new EnglishTokenizer();
+	private StringTokenizer st = new EnglishTokenizer(new EnglishNormalizer(), false);
 
 	private boolean add_unknown_tag = true;
 

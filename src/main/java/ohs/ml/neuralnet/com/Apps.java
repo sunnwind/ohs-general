@@ -47,15 +47,15 @@ public class Apps {
 		param.setBatchSize(10);
 		param.setLearnRate(0.001);
 		param.setRegLambda(0.01);
-		param.setThreadSize(1);
+		param.setThreadSize(3);
 		param.setBpttSize(10);
 
 		// Triple<IntegerArrayMatrix, IntegerArrayMatrix, Vocab> train =
 		// DataReader.readCapitalData(300);
 		Triple<IntegerArrayMatrix, IntegerArrayMatrix, Vocab> data = DataReader.readLines("../../data/ml_data/warpeace_input.txt", 1000);
 
-		IntegerArrayMatrix X = new IntegerArrayMatrix();
-		IntegerArrayMatrix Y = new IntegerArrayMatrix();
+		IntegerArrayMatrix XA = new IntegerArrayMatrix();
+		IntegerArrayMatrix YA = new IntegerArrayMatrix();
 		IntegerArrayMatrix Xt = new IntegerArrayMatrix();
 		IntegerArrayMatrix Yt = new IntegerArrayMatrix();
 		Vocab vocab = data.getThird();
@@ -73,8 +73,8 @@ public class Apps {
 				// tX.add(rX.get(i));
 				// tY.add(rY.get(i));
 				// } else {
-				X.add(rX.get(i));
-				Y.add(rY.get(i));
+				XA.add(rX.get(i));
+				YA.add(rY.get(i));
 				// }
 			}
 
@@ -97,7 +97,7 @@ public class Apps {
 		int l1_size = 100;
 		int l2_size = 20;
 		int output_size = vocab.size();
-		int type = 0;
+		int type = 4;
 
 		System.out.println(vocab.info());
 
@@ -115,8 +115,8 @@ public class Apps {
 			nn.prepare();
 			nn.init();
 
-			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size(), null);
-			trainer.train(X, Y, null, null, 10000);
+			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, XA.size(), null);
+			trainer.train(XA, YA, null, null, 10000);
 			trainer.finish();
 		} else if (type == 1) {
 			nn.add(new EmbeddingLayer(vocab_size, embedding_size, false));
@@ -130,8 +130,8 @@ public class Apps {
 			nn.prepare();
 			nn.init();
 
-			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size(), null);
-			trainer.train(X, Y, null, null, 10000);
+			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, XA.size(), null);
+			trainer.train(XA, YA, null, null, 10000);
 			trainer.finish();
 		} else if (type == 2) {
 			// nn.add(new EmbeddingLayer(vocab_size, embedding_size, true));
@@ -149,8 +149,8 @@ public class Apps {
 			nn.prepare();
 			nn.init();
 
-			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size(), null);
-			trainer.train(X, Y, null, null, 10000);
+			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, XA.size(), null);
+			trainer.train(XA, YA, null, null, 10000);
 			trainer.finish();
 		} else if (type == 3) {
 			nn.add(new EmbeddingLayer(vocab_size, embedding_size, true));
@@ -163,25 +163,25 @@ public class Apps {
 			nn.prepare();
 			nn.init();
 
-			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size(), null);
-			trainer.train(X, Y, null, null, 10000);
+			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, XA.size(), null);
+			trainer.train(XA, YA, null, null, 10000);
 			trainer.finish();
 		} else if (type == 4) {
 			nn.add(new EmbeddingLayer(vocab_size, embedding_size, true));
 			// nn.add(new BatchNormalizationLayer(embedding_size));
 			// nn.add(new GruLayer(embedding_size, l1_size, new Tanh()));
-			nn.add(new RnnLayer(embedding_size, l1_size, param.getBpttSize(), new ReLU()));
-			// nn.add(new BiRnnLayer(embedding_size, l1_size, param.getBpttSize(), new Tanh()));
-			// nn.add(new BidirectionalRecurrentLayer(Type.LSTM, embedding_size, l1_size, param.getBpttSize(), new Tanh()));
-			// nn.add(new BatchNormalizationLayer(l1_size));
+			// nn.add(new RnnLayer(embedding_size, l1_size, param.getBpttSize(), new ReLU()));
+			// nn.add(new LstmLayer(embedding_size, l1_size, new ReLU()));
+			nn.add(new BidirectionalRecurrentLayer(Type.LSTM, embedding_size, l1_size, param.getBpttSize(), new ReLU()));
+
 			// nn.add(new DropoutLayer(l1_size));
 			nn.add(new FullyConnectedLayer(l1_size, output_size));
 			nn.add(new SoftmaxLayer(output_size));
 			nn.prepare();
 			nn.init();
 
-			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size(), null);
-			trainer.train(X, Y, null, null, 10000);
+			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, XA.size(), null);
+			trainer.train(XA, YA, null, null, 10000);
 			trainer.finish();
 		}
 	}

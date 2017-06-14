@@ -3,19 +3,24 @@ package ohs.corpus.type;
 import java.util.List;
 
 import ohs.ir.medical.general.NLPUtils;
+import ohs.utils.StrUtils;
 
 public class EnglishTokenizer extends StringTokenizer {
 
+	private boolean use_lexical_tokenizer = true;
+
 	public EnglishTokenizer() {
-		this(new EnglishNormalizer());
+		this(new EnglishNormalizer(), true);
 	}
 
-	public EnglishTokenizer(EnglishNormalizer en) {
+	public EnglishTokenizer(EnglishNormalizer en, boolean use_lexical_tokenizer) {
 		super(en);
+		this.use_lexical_tokenizer = use_lexical_tokenizer;
 	}
 
 	public List<String> tokenize(String s) {
-		List<String> ret = NLPUtils.tokenize(s);
+		List<String> ret = use_lexical_tokenizer ? NLPUtils.tokenize(s) : StrUtils.split(s);
+
 		for (int i = 0; i < ret.size(); i++) {
 			String tok = ret.get(i);
 			if (sn != null) {

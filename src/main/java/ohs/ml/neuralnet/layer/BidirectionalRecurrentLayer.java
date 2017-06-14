@@ -43,26 +43,6 @@ public class BidirectionalRecurrentLayer extends Layer {
 
 	private int output_size;
 
-	@Override
-	public void writeObject(ObjectOutputStream oos) throws Exception {
-		oos.writeUTF(fwd.getClass().getName());
-		fwd.writeObject(oos);
-		bwd.writeObject(oos);
-	}
-
-	@Override
-	public void readObject(ObjectInputStream ois) throws Exception {
-		String name = ois.readUTF();
-		Class c = Class.forName(name);
-		fwd = (Layer) c.newInstance();
-		bwd = (Layer) c.newInstance();
-
-		fwd.readObject(ois);
-		bwd.readObject(ois);
-		input_size = fwd.getInputSize();
-		output_size = fwd.getOutputSize();
-	}
-
 	public BidirectionalRecurrentLayer(Layer fwd, Layer bwd) {
 		super();
 		this.fwd = fwd;
@@ -129,6 +109,7 @@ public class BidirectionalRecurrentLayer extends Layer {
 			DenseVector o1 = O1.row(i);
 			DenseVector o2 = O2.row(data_size - i - 1);
 			DenseVector o3 = H.row(i);
+			
 			try {
 				VectorMath.add(o1, o2, o3);
 			} catch (Exception e) {
@@ -163,6 +144,19 @@ public class BidirectionalRecurrentLayer extends Layer {
 		bwd.prepare();
 	}
 
+	@Override
+	public void readObject(ObjectInputStream ois) throws Exception {
+		String name = ois.readUTF();
+		Class c = Class.forName(name);
+		fwd = (Layer) c.newInstance();
+		bwd = (Layer) c.newInstance();
+
+		fwd.readObject(ois);
+		bwd.readObject(ois);
+		input_size = fwd.getInputSize();
+		output_size = fwd.getOutputSize();
+	}
+
 	private Object reverse(Object I) {
 		Object ret = null;
 
@@ -181,6 +175,13 @@ public class BidirectionalRecurrentLayer extends Layer {
 			ret = new DenseMatrix(R);
 		}
 		return ret;
+	}
+
+	@Override
+	public void writeObject(ObjectOutputStream oos) throws Exception {
+		oos.writeUTF(fwd.getClass().getName());
+		fwd.writeObject(oos);
+		bwd.writeObject(oos);
 	}
 
 }
