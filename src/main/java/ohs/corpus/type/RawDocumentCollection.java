@@ -34,31 +34,46 @@ public class RawDocumentCollection {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 
+		// {
+		// RawDocumentCollection rdc = new RawDocumentCollection(MIRPath.WIKI_COL_DC_DIR);
+		// System.out.println(rdc.size());
+		// // System.out.println(rdc.getText(0));
+		// // System.out.println(rdc.getText(10));
+		//
+		// for (int i = 0; i < rdc.size(); i++) {
+		// Map<String, String> m = rdc.getMap(i);
+		// String title = m.get("title");
+		// String content = m.get("content");
+		//
+		// List<String> sents = StrUtils.split("\n", content);
+		//
+		// if (sents.size() > 1) {
+		//
+		// String sent = sents.get(1);
+		//
+		// if (sent.contains("also known as")) {
+		// System.out.println(title);
+		// System.out.println(sent);
+		// }
+		// }
+		// }
+		//
+		// rdc.close();
+		// }
+
 		{
-			RawDocumentCollection rdc = new RawDocumentCollection(MIRPath.WIKI_COL_DC_DIR);
-			System.out.println(rdc.size());
-			// System.out.println(rdc.getText(0));
-			// System.out.println(rdc.getText(10));
+			RawDocumentCollection rdc = new RawDocumentCollection(MIRPath.OHSUMED_COL_DC_DIR);
+			System.out.println(rdc.toString());
+		}
 
-			for (int i = 0; i < rdc.size(); i++) {
-				Map<String, String> m = rdc.getMap(i);
-				String title = m.get("title");
-				String content = m.get("content");
+		{
+			RawDocumentCollection rdc = new RawDocumentCollection(MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR);
+			System.out.println(rdc.toString());
+		}
 
-				List<String> sents = StrUtils.split("\n", content);
-
-				if (sents.size() > 1) {
-
-					String sent = sents.get(1);
-
-					if (sent.contains("also known as")) {
-						System.out.println(title);
-						System.out.println(sent);
-					}
-				}
-			}
-
-			rdc.close();
+		{
+			RawDocumentCollection rdc = new RawDocumentCollection(MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR);
+			System.out.println(rdc.toString());
 		}
 		//
 		// {
@@ -118,7 +133,7 @@ public class RawDocumentCollection {
 
 	private LongArray starts;
 
-	private ShortArray types;
+	private IntegerArray sizes;
 
 	private IntegerArray lens;
 
@@ -127,14 +142,14 @@ public class RawDocumentCollection {
 	private boolean use_cache = true;
 
 	private RawDocumentCollection(FileChannel fc, ListList<String> attrData, ListList<Boolean> flagData, LongArray starts,
-			IntegerArray lens, ShortArray types, WeakHashMap<Integer, ArrayList<String>> cache, boolean use_cache) {
+			IntegerArray lens, IntegerArray sizes, WeakHashMap<Integer, ArrayList<String>> cache, boolean use_cache) {
 		super();
 		this.fc = fc;
 		this.attrData = attrData;
 		this.flagData = flagData;
 		this.starts = starts;
 		this.lens = lens;
-		this.types = types;
+		this.sizes = sizes;
 		this.cache = cache;
 		this.use_cache = use_cache;
 	}
@@ -152,7 +167,7 @@ public class RawDocumentCollection {
 				ByteArrayMatrix data = FileUtils.readByteArrayMatrix(fc2);
 				starts = DataCompression.decodeToLongArray(data.get(i++));
 				lens = DataCompression.decodeToIntegerArray(data.get(i++));
-				types = DataCompression.decodeToShortArray(data.get(i++));
+				sizes = DataCompression.decodeToIntegerArray(data.get(i++));
 
 				DataCompression.decodeGaps(starts);
 			}
@@ -193,7 +208,7 @@ public class RawDocumentCollection {
 
 	public RawDocumentCollection copyShallow() throws Exception {
 		return new RawDocumentCollection(FileUtils.openFileChannel(new File(dataDir, DATA_NAME), "r"), attrData, flagData, starts, lens,
-				types, cache, use_cache);
+				sizes, cache, use_cache);
 	}
 
 	public ArrayList<String> get(int dseq) throws Exception {
@@ -215,7 +230,8 @@ public class RawDocumentCollection {
 				data = new ByteBufferWrapper(FileUtils.readByteArray(fc, len)).readByteArrayMatrix();
 			}
 
-			List<Boolean> flags = flagData.get(types.get(dseq), false);
+			int type = getCollectionSeq(dseq);
+			List<Boolean> flags = flagData.get(type, false);
 
 			ret = Generics.newArrayList(data.size());
 
@@ -243,7 +259,7 @@ public class RawDocumentCollection {
 
 	public HashMap<String, String> getMap(int i) throws Exception {
 		HashMap<String, String> ret = Generics.newHashMap();
-		List<String> attrs = attrData.get(types.get(i), false);
+		List<String> attrs = attrData.get(getCollectionSeq(i), false);
 		List<String> vals = get(i);
 		for (int j = 0; j < attrs.size(); j++) {
 			ret.put(attrs.get(j), vals.get(j));
@@ -253,7 +269,7 @@ public class RawDocumentCollection {
 
 	public Map<String, String> getMap(List<String> vals) {
 		HashMap<String, String> ret = Generics.newHashMap();
-		List<String> attrs = attrData.get(types.get(0), false);
+		List<String> attrs = attrData.get(0, false);
 		for (int j = 0; j < attrs.size(); j++) {
 			ret.put(attrs.get(j), vals.get(j));
 		}
@@ -297,12 +313,19 @@ public class RawDocumentCollection {
 
 			for (int k = i; k < j; k++) {
 				ByteArrayMatrix doc = buf.readByteArrayMatrix();
-				List<Boolean> flags = flagData.get(types.get(k), false);
+				int type = getCollectionSeq(k);
+				List<Boolean> flags = flagData.get(type, false);
 				ArrayList<String> vals = Generics.newArrayList(doc.size());
 
 				for (int l = 0; l < doc.size(); l++) {
 					ByteArray sub = doc.get(l);
-					String val = flags.get(l) ? DataCompression.decodeToString(sub) : new String(sub.values());
+					String val = null;
+
+					try {
+						val = flags.get(l) ? DataCompression.decodeToString(sub) : new String(sub.values());
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
 					vals.add(val);
 				}
 				ret.add(vals);
@@ -330,8 +353,12 @@ public class RawDocumentCollection {
 		return getRange(range[0], range[1]);
 	}
 
+	public IntegerArray getSizes() {
+		return sizes;
+	}
+
 	public String getText(int i) throws Exception {
-		List<String> attrs = attrData.get(types.get(i), false);
+		List<String> attrs = attrData.get(getCollectionSeq(i), false);
 		List<String> vals = get(i);
 		StringBuffer sb = new StringBuffer();
 
@@ -344,30 +371,32 @@ public class RawDocumentCollection {
 		return sb.toString();
 	}
 
-	public IntegerArrayMatrix getTypeRanges() {
-		Counter<Integer> typeCnts = Generics.newCounter();
-		for (int i = 0; i < types.size(); i++) {
-			typeCnts.incrementCount((int) types.get(i), 1);
-		}
-
-		List<Integer> keys = Generics.newArrayList(typeCnts.keySet());
-		Collections.sort(keys);
-
-		IntegerArrayMatrix ret = new IntegerArrayMatrix(keys.size());
-
-		int s = 0;
-		for (int i = 0; i < keys.size(); i++) {
-			int type = keys.get(i);
-			int size = (int) typeCnts.getCount(type);
-			int e = s + size + 1;
-			ret.add(new IntegerArray(new int[] { s, e }));
-			s = e;
+	public int getCollectionSeq(int dseq) {
+		int ret = 0;
+		if (sizes.size() > 1) {
+			int tmp = 0;
+			for (int i = 0; i < sizes.size(); i++) {
+				int s = tmp;
+				int e = s + sizes.get(i);
+				if (dseq >= s && dseq < e) {
+					ret = i;
+					break;
+				}
+				tmp = e;
+			}
 		}
 		return ret;
 	}
 
-	public ShortArray getTypes() {
-		return types;
+	public IntegerArrayMatrix getTypeRanges() {
+		IntegerArrayMatrix ret = new IntegerArrayMatrix(sizes.size());
+		int s = 0;
+		for (int i = 0; i < sizes.size(); i++) {
+			int e = s + sizes.get(i);
+			ret.add(new IntegerArray(new int[] { s, e }));
+			s = e;
+		}
+		return ret;
 	}
 
 	public ListList<String> getValues(int[] range) throws Exception {
@@ -380,6 +409,17 @@ public class RawDocumentCollection {
 
 	public int size() {
 		return starts.size();
+	}
+
+	@Override
+	public String toString() {
+		StringBuffer sb = new StringBuffer("==================");
+		sb.append(String.format("\nsize:\t%d", size()));
+		sb.append("\n" + attrData.toString());
+		for (int i = 0; i < sizes.size(); i++) {
+			sb.append(String.format("\n%d:\t%d", i, sizes.get(i)));
+		}
+		return sb.toString();
 	}
 
 }

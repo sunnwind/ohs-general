@@ -786,6 +786,24 @@ public class ArrayMath {
 		return b[b.length - 1];
 	}
 
+	public static int[] cumulate(int[] a) {
+		int[] b = new int[a.length];
+		cumulate(a, b);
+		return b;
+	}
+
+	public static double cumulate(int[] a, int[] b) {
+		if (!ArrayChecker.isEqualSize(a, b)) {
+			throw new IllegalArgumentException();
+		}
+		int sum = 0;
+		for (int i = 0; i < a.length; i++) {
+			sum += a[i];
+			b[i] = sum;
+		}
+		return b[b.length - 1];
+	}
+
 	public static double[] cumulateAfterNormalize(double[] a) {
 		double[] b = new double[a.length];
 		cumulateAfterNormalize(a, b);
@@ -820,6 +838,19 @@ public class ArrayMath {
 		}
 	}
 
+	public static double divide(double[] a, double b, double[] c) {
+		double sum = 0;
+		for (int i = 0; i < a.length; i++) {
+			if (b == 0 || b == 1) {
+
+			} else {
+				c[i] = a[i] / b;
+				sum += c[i];
+			}
+		}
+		return sum;
+	}
+
 	public static double divide(double[] a, double[] b, double[] c) {
 		double sum = 0;
 		double v = 0;
@@ -829,19 +860,6 @@ public class ArrayMath {
 
 			} else {
 				c[i] = a[i] / b[i];
-				sum += c[i];
-			}
-		}
-		return sum;
-	}
-
-	public static double divide(double[] a, double b, double[] c) {
-		double sum = 0;
-		for (int i = 0; i < a.length; i++) {
-			if (b == 0 || b == 1) {
-
-			} else {
-				c[i] = a[i] / b;
 				sum += c[i];
 			}
 		}
@@ -3155,6 +3173,74 @@ public class ArrayMath {
 		return sum;
 	}
 
+	/**
+	 * 
+	 * http://people.revoledu.com/kardi/tutorial/PageRank/Page-Rank-Computation.html
+	 * 
+	 * @param T
+	 *            Column-normalized transition probabilities
+	 * @param cents
+	 * @param biases
+	 *            topical biases
+	 * @param max_iter
+	 * @param min_dist
+	 * @param damping_factor
+	 */
+	public static void randomWalk(double[][] T, double[] cents, double[] biases, int max_iter, double min_dist, double damping_factor) {
+		if (!ArrayChecker.isProductable(T, cents)) {
+			throw new IllegalArgumentException();
+		}
+
+		if (sum(cents) == 0) {
+			add(cents, 1f / cents.length, cents);
+		}
+
+		double[] old_cents = ArrayUtils.copy(cents);
+		double old_dist = Double.MAX_VALUE;
+		int num_docs = T.length;
+
+		double uniform_cent = (1 - damping_factor) / num_docs;
+
+		for (int m = 0; m < max_iter; m++) {
+			for (int i = 0; i < T.length; i++) {
+				double cent_sum_from_others = dotProduct(T[i], old_cents);
+				// for (int j = 0; j < T[i].length; j++) {
+				// // double tran_prob = T[i][j];
+				// cent_sum_from_others += T[i][j] * old_cents[j];
+				// }
+				cents[i] = damping_factor * cent_sum_from_others;
+			}
+
+			double sum = 0;
+			if (biases == null) {
+				sum = add(cents, uniform_cent, cents);
+			} else {
+				sum = addAfterMultiply(biases, damping_factor, cents, 1, cents);
+			}
+
+			if (sum != 0 && sum != 1) {
+				multiply(cents, 1f / sum, cents);
+			}
+
+			double dist = euclideanDistance(old_cents, cents);
+
+			if (showLog) {
+				System.out.printf("%d: %s - %s = %s\n", m + 1, old_dist, dist, old_dist - dist);
+			}
+
+			if (dist < min_dist) {
+				break;
+			}
+
+			if (dist > old_dist) {
+				ArrayUtils.copy(old_cents, cents);
+				break;
+			}
+			old_dist = dist;
+			ArrayUtils.copy(cents, old_cents);
+		}
+	}
+
 	public static void randomWalk(double[][] trans_probs, double[] cents, int max_iter) {
 		randomWalk(trans_probs, cents, max_iter, 0.0000001, 0.85);
 	}
@@ -3197,74 +3283,6 @@ public class ArrayMath {
 			}
 
 			double sum = add(cents, uniform_cent, cents);
-
-			if (sum != 0 && sum != 1) {
-				multiply(cents, 1f / sum, cents);
-			}
-
-			double dist = euclideanDistance(old_cents, cents);
-
-			if (showLog) {
-				System.out.printf("%d: %s - %s = %s\n", m + 1, old_dist, dist, old_dist - dist);
-			}
-
-			if (dist < min_dist) {
-				break;
-			}
-
-			if (dist > old_dist) {
-				ArrayUtils.copy(old_cents, cents);
-				break;
-			}
-			old_dist = dist;
-			ArrayUtils.copy(cents, old_cents);
-		}
-	}
-
-	/**
-	 * 
-	 * http://people.revoledu.com/kardi/tutorial/PageRank/Page-Rank-Computation.html
-	 * 
-	 * @param T
-	 *            Column-normalized transition probabilities
-	 * @param cents
-	 * @param biases
-	 *            topical biases
-	 * @param max_iter
-	 * @param min_dist
-	 * @param damping_factor
-	 */
-	public static void randomWalk(double[][] T, double[] cents, double[] biases, int max_iter, double min_dist, double damping_factor) {
-		if (!ArrayChecker.isProductable(T, cents)) {
-			throw new IllegalArgumentException();
-		}
-
-		if (sum(cents) == 0) {
-			add(cents, 1f / cents.length, cents);
-		}
-
-		double[] old_cents = ArrayUtils.copy(cents);
-		double old_dist = Double.MAX_VALUE;
-		int num_docs = T.length;
-
-		double uniform_cent = (1 - damping_factor) / num_docs;
-
-		for (int m = 0; m < max_iter; m++) {
-			for (int i = 0; i < T.length; i++) {
-				double cent_sum_from_others = dotProduct(T[i], old_cents);
-//				for (int j = 0; j < T[i].length; j++) {
-//					// double tran_prob = T[i][j];
-//					cent_sum_from_others += T[i][j] * old_cents[j];
-//				}
-				cents[i] = damping_factor * cent_sum_from_others;
-			}
-
-			double sum = 0;
-			if (biases == null) {
-				sum = add(cents, uniform_cent, cents);
-			} else {
-				sum = addAfterMultiply(biases, damping_factor, cents, 1, cents);
-			}
 
 			if (sum != 0 && sum != 1) {
 				multiply(cents, 1f / sum, cents);

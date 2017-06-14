@@ -781,14 +781,13 @@ public class StrUtils {
 	}
 
 	public static List<String> split(String delim, String s) {
-		ArrayList<String> ret = new ArrayList<String>();
+		List<String> ret = Generics.newLinkedList();
 		for (String tok : s.split(delim)) {
 			if (tok.length() > 0) {
 				ret.add(tok);
 			}
 		}
-		ret.trimToSize();
-		return ret;
+		return Generics.newArrayList(ret);
 	}
 
 	public static String[][] split(String[] array, int[] indexList) {

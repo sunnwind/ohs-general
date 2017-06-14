@@ -43,7 +43,7 @@ public class NaverCluster {
 
 		{
 			DocumentCollectionCreator dcc = new DocumentCollectionCreator();
-			dcc.setCreateVocabBatchSize(200);
+			dcc.setBatchSize(200);
 			dcc.setCountingThreadSize(10);
 			dcc.setIndexingThreadSize(5);
 

@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import edu.stanford.nlp.math.ArrayMath;
 import ohs.eden.keyphrase.cluster.KPPath;
 import ohs.io.ByteArray;
 import ohs.io.ByteArrayMatrix;
@@ -40,6 +41,9 @@ public class RawDocumentCollectionCreator {
 		for (int i = 0; i < inDirNames.size(); i++) {
 			String inDirName = inDirNames.get(i);
 			RawDocumentCollection rdc = new RawDocumentCollection(inDirName);
+
+			System.out.println(rdc.toString());
+
 			rdcc.addAttrs(rdc.getAttrData().get(0));
 
 			for (int j = 0; j < rdc.size(); j++) {
@@ -51,13 +55,15 @@ public class RawDocumentCollectionCreator {
 				}
 			}
 			rdc.close();
+			rdcc.checkCollectionSize();
+
 			System.out.printf("[%d, %s, %s]\n", cnt, timer.stop(), inDirName);
 		}
 		rdcc.close();
 		System.out.printf("[%d, %s]\n", cnt, timer.stop());
 	}
 
-	public static void createFromTokenizedData(String inDir, RawDocumentCollectionCreator rdc) throws Exception {
+	public static void createFromTokenizedData(String inDir, RawDocumentCollectionCreator rdcc) throws Exception {
 		Timer timer = Timer.newTimer();
 		int doc_cnt = 0;
 
@@ -70,10 +76,13 @@ public class RawDocumentCollectionCreator {
 					ps[i] = ps[i].replace(StrUtils.LINE_REP, "\n");
 					ps[i] = ps[i].replace(StrUtils.TAB_REP, "\t");
 				}
-				rdc.addValues(ps);
+				rdcc.addValues(ps);
 			}
 		}
+		rdcc.checkCollectionSize();
+		rdcc.close();
 		System.out.printf("[%d, %s]\n", doc_cnt, timer.stop());
+
 	}
 
 	public static void main(String[] args) throws Exception {
@@ -88,102 +97,6 @@ public class RawDocumentCollectionCreator {
 		// RawDocumentCollectionCreator rdc = new RawDocumentCollectionCreator(outDir, append);
 		// rdc.addAttrs(Generics.newArrayList(attrs));
 		// createFromTokenizedData(inDir, rdc);
-		// rdc.close();
-		// }
-
-		// {
-		// String[] attrs = { "pmcid", "title", "abs", "body", "kwds", "journal", "pmid", "doi" };
-		// String inDir = MIRPath.TREC_CDS_2016_COL_TOK_DIR;
-		// String outDir = MIRPath.TREC_CDS_2016_COL_DC_DIR;
-		// boolean append = false;
-		// RawDocumentCollectionCreator rdc = new RawDocumentCollectionCreator(outDir, append);
-		// rdc.addAttrs(Generics.newArrayList(attrs));
-		// createFromTokenizedData(inDir, rdc);
-		// rdc.close();
-		// }
-
-		// {
-		// String[] attrs = { "pmcid", "journal", "title", "abs", "meshes" };
-		// String inDir = MIRPath.TREC_PM_2017_COL_MEDLINE_TOK_DIR;
-		// String outDir = MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR;
-		// boolean append = false;
-		// RawDocumentCollectionCreator rdc = new RawDocumentCollectionCreator(outDir, append);
-		// rdc.addAttrs(Generics.newArrayList(attrs));
-		// createFromTokenizedData(inDir, rdc);
-		// rdc.close();
-		// }
-		//
-		// {
-		// String[] attrs = { "nctid", "brief_title", "official_title", "content", "kwds", "meshes" };
-		// String inDir = MIRPath.TREC_PM_2017_COL_CLINICAL_TOK_DIR;
-		// String outDir = MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR;
-		// boolean append = false;
-		// RawDocumentCollectionCreator rdc = new RawDocumentCollectionCreator(outDir, append);
-		// rdc.addAttrs(Generics.newArrayList(attrs));
-		// createFromTokenizedData(inDir, rdc);
-		// rdc.close();
-		// }
-
-		//
-		// {
-		// String[] attrs = { "pmcid", "title", "abs", "body", "kwds" };
-		// String inDir = MIRPath.TREC_CDS_2014_COL_TOK_DIR;
-		// String outDir = MIRPath.TREC_CDS_2014_COL_DC_DIR;
-		// boolean append = false;
-		// RawDocumentCollectionCreator rdc = new RawDocumentCollectionCreator(outDir, append);
-		// rdc.addAttrs(Generics.newArrayList(attrs));
-		// createFromTokenizedData(inDir, rdc);
-		// rdc.close();
-		// }
-
-		// {
-		// String[] attrs = { "id", "url", "title", "content", "phrs" };
-		// String inDir = MIRPath.WIKI_COL_TOK_DIR;
-		// String outDir = MIRPath.WIKI_COL_DC_DIR;
-		// boolean append = false;
-		// RawDocumentCollectionCreator rdc = new
-		// RawDocumentCollectionCreator(outDir, append);
-		// rdc.addAttrs(Generics.newArrayList(attrs));
-		// createFromTokenizedData( inDir, rdc);
-		// dcc.close();
-		// }
-		//
-		// {
-		// String[] attrs = { "pmid", "journal", "year", "mesh", "title", "abs"
-		// };
-		// String inDir = MIRPath.BIOASQ_COL_TOK_DIR;
-		// String outDir = MIRPath.BIOASQ_COL_DC_DIR;
-		// boolean append = false;
-		// RawDocumentCollectionCreator rdc = new
-		// RawDocumentCollectionCreator(outDir, append);
-		// rdc.addAttrs(Generics.newArrayList(attrs));
-		// createFromTokenizedData(inDir, rdc);
-		// dcc.close();
-		// }
-		//
-		// {
-		// String[] attrs = { "id", "content", "uri" };
-		// String inDir = MIRPath.CLUEWEB_COL_TOK_DIR;
-		// String outDir = MIRPath.CLUEWEB_COL_DC_DIR;
-		// boolean append = false;
-		// RawDocumentCollectionCreator rdc = new
-		// RawDocumentCollectionCreator(outDir, append);
-		// rdc.addAttrs(Generics.newArrayList(attrs));
-		// createFromTokenizedData(inDir, rdc);
-		// dcc.close();
-		// }
-
-		//
-		// {
-		// String[] attrs = { "uid", "date", "url", "content" };
-		// String inDir = MIRPath.CLEF_EH_2014_COL_TOK_DIR;
-		// String outDir = MIRPath.CLEF_EH_2014_COL_DC_DIR;
-		// boolean append = false;
-		// RawDocumentCollectionCreator rdc = new
-		// RawDocumentCollectionCreator(outDir, append);
-		// rdc.addAttrs(Generics.newArrayList(attrs));
-		// createFromTokenizedData( inDir, rdc);
-		// dcc.close();
 		// }
 		//
 		// {
@@ -194,9 +107,88 @@ public class RawDocumentCollectionCreator {
 		// RawDocumentCollectionCreator rdc = new RawDocumentCollectionCreator(outDir, append);
 		// rdc.addAttrs(Generics.newArrayList(attrs));
 		// createFromTokenizedData(inDir, rdc);
-		// rdc.close();
 		// }
 
+		// {
+		// String[] attrs = { "pmcid", "title", "abs", "body", "kwds", "journal", "pmid", "doi" };
+		// String inDir = MIRPath.TREC_CDS_2016_COL_TOK_DIR;
+		// String outDir = MIRPath.TREC_CDS_2016_COL_DC_DIR;
+		// boolean append = false;
+		// RawDocumentCollectionCreator rdc = new RawDocumentCollectionCreator(outDir, append);
+		// rdc.addAttrs(Generics.newArrayList(attrs));
+		// createFromTokenizedData(inDir, rdc);
+		// }
+		//
+		// {
+		// String[] attrs = { "pmcid", "journal", "title", "abs", "meshes" };
+		// String inDir = MIRPath.TREC_PM_2017_COL_MEDLINE_TOK_DIR;
+		// String outDir = MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR;
+		// boolean append = false;
+		// RawDocumentCollectionCreator rdc = new RawDocumentCollectionCreator(outDir, append);
+		// rdc.addAttrs(Generics.newArrayList(attrs));
+		// createFromTokenizedData(inDir, rdc);
+		// }
+		//
+		// {
+		// String[] attrs = { "nctid", "brief_title", "official_title", "content", "kwds", "meshes" };
+		// String inDir = MIRPath.TREC_PM_2017_COL_CLINICAL_TOK_DIR;
+		// String outDir = MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR;
+		// boolean append = false;
+		// RawDocumentCollectionCreator rdc = new RawDocumentCollectionCreator(outDir, append);
+		// rdc.addAttrs(Generics.newArrayList(attrs));
+		// createFromTokenizedData(inDir, rdc);
+		// }
+		//
+		// {
+		// String[] attrs = { "pmcid", "title", "abs", "body", "kwds" };
+		// String inDir = MIRPath.TREC_CDS_2014_COL_TOK_DIR;
+		// String outDir = MIRPath.TREC_CDS_2014_COL_DC_DIR;
+		// boolean append = false;
+		// RawDocumentCollectionCreator rdc = new RawDocumentCollectionCreator(outDir, append);
+		// rdc.addAttrs(Generics.newArrayList(attrs));
+		// createFromTokenizedData(inDir, rdc);
+		// }
+		//
+		// {
+		// String[] attrs = { "id", "url", "title", "content", "phrs" };
+		// String inDir = MIRPath.WIKI_COL_TOK_DIR;
+		// String outDir = MIRPath.WIKI_COL_DC_DIR;
+		// boolean append = false;
+		// RawDocumentCollectionCreator rdc = new RawDocumentCollectionCreator(outDir, append);
+		// rdc.addAttrs(Generics.newArrayList(attrs));
+		// createFromTokenizedData(inDir, rdc);
+		// }
+		//
+		// {
+		// String[] attrs = { "pmid", "journal", "year", "mesh", "title", "abs" };
+		// String inDir = MIRPath.BIOASQ_COL_TOK_DIR;
+		// String outDir = MIRPath.BIOASQ_COL_DC_DIR;
+		// boolean append = false;
+		// RawDocumentCollectionCreator rdc = new RawDocumentCollectionCreator(outDir, append);
+		// rdc.addAttrs(Generics.newArrayList(attrs));
+		// createFromTokenizedData(inDir, rdc);
+		// }
+		//
+		// {
+		// String[] attrs = { "id", "content", "uri" };
+		// String inDir = MIRPath.CLUEWEB_COL_TOK_DIR;
+		// String outDir = MIRPath.CLUEWEB_COL_DC_DIR;
+		// boolean append = false;
+		// RawDocumentCollectionCreator rdc = new RawDocumentCollectionCreator(outDir, append);
+		// rdc.addAttrs(Generics.newArrayList(attrs));
+		// createFromTokenizedData(inDir, rdc);
+		// }
+		//
+		// {
+		// String[] attrs = { "uid", "date", "url", "content" };
+		// String inDir = MIRPath.CLEF_EH_2014_COL_TOK_DIR;
+		// String outDir = MIRPath.CLEF_EH_2014_COL_DC_DIR;
+		// boolean append = false;
+		// RawDocumentCollectionCreator rdc = new RawDocumentCollectionCreator(outDir, append);
+		// rdc.addAttrs(Generics.newArrayList(attrs));
+		// createFromTokenizedData(inDir, rdc);
+		// }
+		//
 		// {
 		// String[] attrs = { "docid", "title", "abs", "kwds" };
 		// String inDir = "../../data/medical_ir/scopus/col/tok/";
@@ -204,10 +196,9 @@ public class RawDocumentCollectionCreator {
 		// boolean append = false;
 		// RawDocumentCollectionCreator rdc = new RawDocumentCollectionCreator(outDir, append);
 		// rdc.addAttrs(Generics.newArrayList(attrs));
-		// createFromTokenizedData(inDir,rdc);
-		// dcc.close();
+		// createFromTokenizedData(inDir, rdc);
 		// }
-
+		//
 		// {
 		// String[] attrs = { "type", "cn", "kor_kwds", "eng_kwds", "kor_title", "eng_title", "kor_abs", "eng_abs", "kor_pos_kwds",
 		// "kor_pos_title", "kor_pos_abs" };
@@ -232,18 +223,17 @@ public class RawDocumentCollectionCreator {
 		// }
 		// }
 		// }
-		// rdc.close();
 		// }
 
 		{
 			List<String> inDirNames = Generics.newArrayList();
 			inDirNames.add(MIRPath.OHSUMED_COL_DC_DIR);
-			inDirNames.add(MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR);
-			inDirNames.add(MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR);
+			// inDirNames.add(MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR);
+			// inDirNames.add(MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR);
 			inDirNames.add(MIRPath.TREC_GENO_2007_COL_DC_DIR);
-			inDirNames.add(MIRPath.BIOASQ_COL_DC_DIR);
-			inDirNames.add(MIRPath.TREC_CDS_2016_COL_DC_DIR);
-			inDirNames.add(MIRPath.WIKI_COL_DC_DIR);
+			// inDirNames.add(MIRPath.BIOASQ_COL_DC_DIR);
+			// inDirNames.add(MIRPath.TREC_CDS_2016_COL_DC_DIR);
+			// inDirNames.add(MIRPath.WIKI_COL_DC_DIR);
 			String outDirName = MIRPath.DATA_DIR + "merged/col/dc/";
 
 			create(inDirNames, outDirName);
@@ -256,7 +246,7 @@ public class RawDocumentCollectionCreator {
 
 	private IntegerArray lens;
 
-	private ShortArray types;
+	private IntegerArray sizes;
 
 	private File docFile;
 
@@ -284,8 +274,8 @@ public class RawDocumentCollectionCreator {
 
 	public RawDocumentCollectionCreator(String dataDirName, boolean append) throws Exception {
 		starts = new LongArray(init_col_size);
-		types = new ShortArray(init_col_size);
 		lens = new IntegerArray(init_col_size);
+		sizes = new IntegerArray();
 
 		attrData = Generics.newArrayList();
 		flagData = Generics.newArrayList();
@@ -344,6 +334,14 @@ public class RawDocumentCollectionCreator {
 		flagData.add(flags);
 	}
 
+	public void checkCollectionSize() throws Exception {
+		writeDocs();
+
+		int sum = ArrayMath.sum(sizes.values());
+		int new_size = starts.size() - sum;
+		sizes.add(new_size);
+	}
+
 	public void addValues(List<String> vals) throws Exception {
 		List<String> attrs = attrData.get(type);
 		if (attrs.size() > 0) {
@@ -382,14 +380,14 @@ public class RawDocumentCollectionCreator {
 			{
 				starts.trimToSize();
 				lens.trimToSize();
-				types.trimToSize();
+				sizes.trimToSize();
 
 				DataCompression.encodeGaps(starts);
 
 				ByteArrayMatrix data = new ByteArrayMatrix(3);
 				data.add(DataCompression.encode(starts));
 				data.add(DataCompression.encode(lens));
-				data.add(DataCompression.encode(types));
+				data.add(DataCompression.encode(sizes));
 
 				long[] info = FileUtils.write(data, buf, fc);
 			}
@@ -445,7 +443,6 @@ public class RawDocumentCollectionCreator {
 			long[] info = FileUtils.write(m, buf, fc);
 			starts.add(info[0]);
 			lens.add((int) info[1]);
-			types.add((short) type);
 		}
 		docs.clear();
 	}
