@@ -58,7 +58,6 @@ public class DocumentCollectionCreator {
 			this.doc_cnt = file_cnt;
 			this.wordCnts = wordCnts;
 			this.docFreqs = docFreqs;
-
 			this.timer = timer;
 		}
 
@@ -75,7 +74,7 @@ public class DocumentCollectionCreator {
 
 				for (int i = 0; i < data.size(); i++) {
 					int dseq = range.get(0) + i;
-					int type = rdc.getCollectionSeq(dseq);
+					int type = rdc.getColSeq(dseq);
 					IntegerArray target_locs = target_loc_data.get(type);
 
 					List<String> vals = data.get(i, false);
@@ -182,7 +181,7 @@ public class DocumentCollectionCreator {
 
 					for (int j = 0; j < ps.size(); j++) {
 						int dseq = subrange.get(0) + j;
-						int type = rdc.getCollectionSeq(dseq);
+						int type = rdc.getColSeq(dseq);
 						IntegerArray target_locs = target_loc_data.get(type);
 						List<String> vals = ps.get(j);
 
@@ -264,27 +263,24 @@ public class DocumentCollectionCreator {
 		DocumentCollectionCreator dcc = new DocumentCollectionCreator();
 		dcc.setBatchSize(300);
 		dcc.setCountingThreadSize(10);
-		dcc.setIndexingThreadSize(1);
+		dcc.setIndexingThreadSize(3);
 		// dcc.setReuseVocab(true);
-		// dcc.setEncode(true);
+		dcc.setEncode(true);
 
-		// dcc.create(MIRPath.OHSUMED_COL_DC_DIR, 1, new int[] { 3, 5 });
-		// dcc.create(MIRPath.TREC_CDS_2014_COL_DC_DIR, 0, new int[] { 1, 2, 3 });
-		// dcc.create(MIRPath.TREC_CDS_2016_COL_DC_DIR, 0, new int[] { 1, 2, 3 });
-		// dcc.create("../../data/medical_ir/scopus/col/dc/", 0, new int[] { 1, 2 });
-		// dcc.create(MIRPath.BIOASQ_COL_DC_DIR, 0, new int[] { 4, 5 });
-		// dcc.create(MIRPath.WIKI_COL_DC_DIR, 0, new int[] { 3 });
-		// dcc.create(MIRPath.CLUEWEB_COL_DC_DIR, 0, new int[] { 1 });
-		// dcc.create(MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR, 0, new int[] { 2, 3, 4 });
-		// dcc.create(MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR, 0, new int[] { 1, 2, 3, 4, 5 });
-
-		// dcc.create(MIRPath.CLEF_EH_2014_COL_DC_DIR, 0, new int[] { 3 });
-		// dcc.create(MIRPath.TREC_GENO_2007_COL_DC_DIR, 0, new int[] { 1 });
-		// dcc.create(MIRPath.CLUEWEB_COL_DC_DIR, 0, new int[] { 1 });
+		dcc.create(MIRPath.OHSUMED_COL_DC_DIR, 1, new int[] { 3, 5 });
+		dcc.create(MIRPath.CLEF_EH_2014_COL_DC_DIR, 0, new int[] { 3 });
+		dcc.create(MIRPath.TREC_GENO_2007_COL_DC_DIR, 0, new int[] { 1 });
+		dcc.create(MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR, 0, new int[] { 2, 3, 4 });
+		dcc.create(MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR, 0, new int[] { 1, 2, 3, 4, 5 });
+		dcc.create(MIRPath.TREC_CDS_2014_COL_DC_DIR, 0, new int[] { 1, 2, 3 });
+		dcc.create(MIRPath.TREC_CDS_2016_COL_DC_DIR, 0, new int[] { 1, 2, 3 });
+		dcc.create(MIRPath.BIOASQ_COL_DC_DIR, 0, new int[] { 4, 5 });
+		dcc.create(MIRPath.WIKI_COL_DC_DIR, 0, new int[] { 3 });
+		dcc.create(MIRPath.CLUEWEB_COL_DC_DIR, 0, new int[] { 1 });
+		dcc.create("../../data/medical_ir/scopus/col/dc/", 0, new int[] { 1, 2 });
 
 		// scc.setMinDocFreq(0);
-		// scc.create(MIRPath.MESH_COL_LINE_DIR, 0, new int[] { 1 },
-		// MIRPath.MESH_COL_DC_DIR);
+		// scc.create(MIRPath.MESH_COL_LINE_DIR, 0, new int[] { 1 },MIRPath.MESH_COL_DC_DIR);
 
 		// {
 		// dcc.setStringTokenizer(new KoreanPosTokenizer());

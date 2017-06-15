@@ -230,8 +230,8 @@ public class RawDocumentCollection {
 				data = new ByteBufferWrapper(FileUtils.readByteArray(fc, len)).readByteArrayMatrix();
 			}
 
-			int type = getCollectionSeq(dseq);
-			List<Boolean> flags = flagData.get(type, false);
+			int cseq = getColSeq(dseq);
+			List<Boolean> flags = flagData.get(cseq, false);
 
 			ret = Generics.newArrayList(data.size());
 
@@ -253,13 +253,30 @@ public class RawDocumentCollection {
 		return attrData;
 	}
 
+	public int getColSeq(int dseq) {
+		int ret = 0;
+		if (sizes.size() > 1) {
+			int tmp = 0;
+			for (int i = 0; i < sizes.size(); i++) {
+				int s = tmp;
+				int e = s + sizes.get(i);
+				if (dseq >= s && dseq < e) {
+					ret = i;
+					break;
+				}
+				tmp = e;
+			}
+		}
+		return ret;
+	}
+
 	public FileChannel getFileChannel() {
 		return fc;
 	}
 
 	public HashMap<String, String> getMap(int i) throws Exception {
 		HashMap<String, String> ret = Generics.newHashMap();
-		List<String> attrs = attrData.get(getCollectionSeq(i), false);
+		List<String> attrs = attrData.get(getColSeq(i), false);
 		List<String> vals = get(i);
 		for (int j = 0; j < attrs.size(); j++) {
 			ret.put(attrs.get(j), vals.get(j));
@@ -313,19 +330,13 @@ public class RawDocumentCollection {
 
 			for (int k = i; k < j; k++) {
 				ByteArrayMatrix doc = buf.readByteArrayMatrix();
-				int type = getCollectionSeq(k);
+				int type = getColSeq(k);
 				List<Boolean> flags = flagData.get(type, false);
 				ArrayList<String> vals = Generics.newArrayList(doc.size());
 
 				for (int l = 0; l < doc.size(); l++) {
 					ByteArray sub = doc.get(l);
-					String val = null;
-
-					try {
-						val = flags.get(l) ? DataCompression.decodeToString(sub) : new String(sub.values());
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
+					String val = flags.get(l) ? DataCompression.decodeToString(sub) : new String(sub.values());
 					vals.add(val);
 				}
 				ret.add(vals);
@@ -358,7 +369,7 @@ public class RawDocumentCollection {
 	}
 
 	public String getText(int i) throws Exception {
-		List<String> attrs = attrData.get(getCollectionSeq(i), false);
+		List<String> attrs = attrData.get(getColSeq(i), false);
 		List<String> vals = get(i);
 		StringBuffer sb = new StringBuffer();
 
@@ -369,23 +380,6 @@ public class RawDocumentCollection {
 			}
 		}
 		return sb.toString();
-	}
-
-	public int getCollectionSeq(int dseq) {
-		int ret = 0;
-		if (sizes.size() > 1) {
-			int tmp = 0;
-			for (int i = 0; i < sizes.size(); i++) {
-				int s = tmp;
-				int e = s + sizes.get(i);
-				if (dseq >= s && dseq < e) {
-					ret = i;
-					break;
-				}
-				tmp = e;
-			}
-		}
-		return ret;
 	}
 
 	public IntegerArrayMatrix getTypeRanges() {

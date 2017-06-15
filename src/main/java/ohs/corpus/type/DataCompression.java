@@ -191,7 +191,6 @@ public class DataCompression {
 		}
 
 		String s1 = new String(baos.toByteArray());
-		// s1 = new String(buffer.toByteArray());
 		return s1;
 	}
 
