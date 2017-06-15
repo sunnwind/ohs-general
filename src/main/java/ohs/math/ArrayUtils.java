@@ -30,6 +30,16 @@ public class ArrayUtils {
 		return argMinMaxLength(a)[0];
 	}
 
+	public static long getSingleIndex(long i, long max_i, long j) {
+		return i * max_i + j;
+	}
+
+	public static long[] getTwoIndexes(long k, long max_i) {
+		long i = (k / max_i);
+		long j = (k % max_i);
+		return new long[] { i, j };
+	}
+
 	public static int[] argMinMaxLength(int[][] a) {
 		int max = -Integer.MAX_VALUE;
 		int max_loc = 0;

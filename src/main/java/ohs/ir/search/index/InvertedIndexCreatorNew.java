@@ -3,7 +3,9 @@ package ohs.ir.search.index;
 import java.io.File;
 import java.nio.channels.FileChannel;
 import java.text.DecimalFormat;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -22,7 +24,6 @@ import ohs.math.ArrayUtils;
 import ohs.ml.neuralnet.com.BatchUtils;
 import ohs.types.generic.Counter;
 import ohs.types.generic.ListMap;
-import ohs.types.generic.ListMapMap;
 import ohs.types.generic.Pair;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
@@ -39,7 +40,7 @@ import ohs.utils.Timer;
  * 
  * @author ohs
  */
-public class InvertedIndexCreator {
+public class InvertedIndexCreatorNew {
 
 	public class MergeWorker implements Callable<Integer> {
 
@@ -65,41 +66,24 @@ public class InvertedIndexCreator {
 				FileChannel fc = FileUtils.openFileChannel(inFile, "rw");
 				int cnt = 0;
 
-				ListMapMap<Integer, Integer, Integer> lmm = Generics.newListMapMap();
+				Map<Integer, LongArray> m = Generics.newHashMap();
 
 				while (fc.position() < fc.size()) {
 					ByteArrayMatrix data = FileUtils.readByteArrayMatrix(fc);
-
-					ListMapMap<Integer, Integer, Integer> lmm2 = Generics.newListMapMap(200);
 
 					for (ByteArray sub : data) {
 						ByteBufferWrapper buf = new ByteBufferWrapper(sub);
 
 						int w = buf.readInteger();
-						IntegerArray dseqs = buf.readIntegerArray();
-						IntegerArrayMatrix posData = buf.readIntegerArrayMatrix();
+						LongArray idxs = buf.readLongArray();
 
-						ListMap<Integer, Integer> lm = lmm2.get(w, true);
-
-						for (int k = 0; k < dseqs.size(); k++) {
-							int dseq = dseqs.get(k);
-							IntegerArray poss = posData.get(k);
-							List<Integer> l = lm.get(dseq, true);
-							for (int pos : poss) {
-								l.add(pos);
-							}
+						LongArray all_idxs = m.get(w);
+						if (all_idxs == null) {
+							all_idxs = new LongArray();
+							m.put(w, all_idxs);
 						}
+						all_idxs.addAll(idxs);
 					}
-
-					for (int w : lmm2.keySet()) {
-						ListMap<Integer, Integer> lm = lmm2.get(w);
-						for (int dseq : lm.keySet()) {
-							List<Integer> poss = lm.get(dseq);
-							lmm.get(w, dseq, true).addAll(poss);
-						}
-					}
-					lmm2 = null;
-
 					cnt++;
 				}
 				fc.close();
@@ -111,7 +95,7 @@ public class InvertedIndexCreator {
 
 				fc = FileUtils.openFileChannel(outFile, "rw");
 
-				IntegerArray ws = new IntegerArray(lmm.keySet());
+				IntegerArray ws = new IntegerArray(m.keySet());
 				ws.sort(false);
 
 				cnt = 0;
@@ -121,7 +105,15 @@ public class InvertedIndexCreator {
 				int max_buf_size = FileUtils.DEFAULT_BUF_SIZE;
 
 				for (int w : ws) {
-					ListMap<Integer, Integer> lm = lmm.get(w);
+					ListMap<Integer, Integer> lm = Generics.newListMap(1000);
+
+					for (long idx : m.get(w)) {
+						long[] two = ArrayUtils.getTwoIndexes(idx, len_d_max);
+						int dseq = (int) two[0];
+						int pos = (int) two[1];
+						lm.put(dseq, pos);
+					}
+
 					IntegerArray dseqs = new IntegerArray(lm.keySet());
 					dseqs.sort(false);
 
@@ -144,7 +136,6 @@ public class InvertedIndexCreator {
 					buf_size += PostingList.sizeOfByteBuffer(pl);
 					cnt++;
 				}
-				lmm = null;
 
 				if (pls.size() > 0) {
 					write(pls, fc);
@@ -212,10 +203,11 @@ public class InvertedIndexCreator {
 				IntegerArray range = ranges.get(range_loc);
 
 				List<Pair<String, IntegerArray>> ps = dc.getRange(range.get(0), range.get(1), false);
-				ListMapMap<Integer, Integer, Integer> lmm = Generics.newListMapMap(200);
+
+				ListMap<Integer, Long> lm = Generics.newListMap(100);
 
 				for (int i = 0; i < ps.size(); i++) {
-					int dseq = range.get(0) + i;
+					int dseq = i + range.get(0);
 					Pair<String, IntegerArray> p = ps.get(i);
 					IntegerArray d = p.getSecond();
 					for (int pos = 0; pos < d.size(); pos++) {
@@ -223,7 +215,9 @@ public class InvertedIndexCreator {
 						if (w == DocumentCollection.SENT_END) {
 							continue;
 						}
-						lmm.put(w, dseq, pos);
+
+						long idx = ArrayUtils.getSingleIndex(dseq, len_d_max, pos);
+						lm.put(w, idx);
 					}
 					int dloc = doc_cnt.incrementAndGet();
 					int prog = BatchUtils.progress(dloc, dc.size());
@@ -233,19 +227,18 @@ public class InvertedIndexCreator {
 					}
 				}
 
-				if (lmm.size() > 0) {
-					write(lmm);
+				if (lm.size() > 0) {
+					write(lm);
 				}
-				lmm = null;
 			}
 
 			return null;
 		}
 
-		private void write(ListMapMap<Integer, Integer, Integer> lmm) throws Exception {
+		private void write(ListMap<Integer, Long> lm) throws Exception {
 			ListMap<Integer, Integer> fileToWord = Generics.newListMap(output_file_size);
 
-			for (int w : lmm.keySet()) {
+			for (int w : lm.keySet()) {
 				int file_loc = w % output_file_size;
 				fileToWord.put(file_loc, w);
 			}
@@ -260,24 +253,10 @@ public class InvertedIndexCreator {
 				ByteArrayMatrix m = new ByteArrayMatrix(ws.size());
 
 				for (int w : ws) {
-					ListMap<Integer, Integer> lm = lmm.get(w);
-					IntegerArray dseqs = new IntegerArray(lm.keySet());
-					dseqs.sort(false);
-
-					IntegerArrayMatrix posData = new IntegerArrayMatrix(dseqs.size());
-					int max_poss_len = 0;
-
-					for (int dseq : dseqs) {
-						IntegerArray poss = new IntegerArray(lm.get(dseq));
-						poss.sort(false);
-						posData.add(poss);
-						max_poss_len = Math.max(poss.size(), max_poss_len);
-					}
-
+					List<Long> idxs = lm.get(w);
 					buf.clear();
 					buf.write(w);
-					buf.write(dseqs);
-					buf.write(posData);
+					buf.write(new LongArray(idxs));
 					m.add(buf.toByteArray());
 				}
 
@@ -307,8 +286,7 @@ public class InvertedIndexCreator {
 		// iic.create(MIRPath.BIOASQ_COL_DC_DIR);
 		// iic.create(MIRPath.WIKI_COL_DC_DIR);
 		// iic.create(MIRPath.CLUEWEB_COL_DC_DIR);
-
-		iic.create(MIRPath.DATA_DIR + "merged/col/dc/");
+		// iic.create(MIRPath.DATA_DIR + "merged/col/dc/");
 
 		// FrequentPhraseDetector.main(args);
 
@@ -334,11 +312,17 @@ public class InvertedIndexCreator {
 		System.out.println("process ends.");
 	}
 
+	private long len_d_max = 0;
+
+	private int merge_thread_size = 1;
+
 	private int post_thread_size = 1;
 
 	private int output_file_size = 5000;
 
 	private int batch_size = 500;
+
+	private boolean encode = false;
 
 	private DocumentCollection dc;
 
@@ -346,11 +330,7 @@ public class InvertedIndexCreator {
 
 	private File tmpDir;
 
-	private int merge_thread_size = 1;
-
-	private boolean encode = false;
-
-	public InvertedIndexCreator() {
+	public InvertedIndexCreatorNew() {
 
 	}
 
@@ -360,6 +340,8 @@ public class InvertedIndexCreator {
 		this.dataDir = new File(dataDir);
 		this.tmpDir = new File(dataDir, "tmp");
 		dc = new DocumentCollection(dataDir);
+
+		len_d_max = dc.getMaxDocLength();
 
 		createPostingListFiles();
 		mergePostingListFiles();

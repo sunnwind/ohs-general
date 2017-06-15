@@ -6,6 +6,7 @@ import java.util.List;
 import ohs.corpus.type.DocumentCollection;
 import ohs.ir.search.app.DocumentSearcher;
 import ohs.ir.search.index.InvertedIndex;
+import ohs.ir.search.index.MemoryInvertedIndex;
 import ohs.ir.search.index.PostingList;
 import ohs.math.ArrayUtils;
 import ohs.math.VectorMath;
@@ -23,7 +24,7 @@ public class WeightedMRFScorer extends MRFScorer {
 
 	private List<String> phrss;
 
-	private InvertedIndex pii;
+	private MemoryInvertedIndex pii;
 
 	public WeightedMRFScorer(DocumentSearcher ds, List<String> phrss) {
 		this(ds.getVocab(), ds.getDocumentCollection(), ds.getInvertedIndex(), phrss);
@@ -83,7 +84,7 @@ public class WeightedMRFScorer extends MRFScorer {
 			plm.put(w, pl);
 		}
 
-		pii = new InvertedIndex(plm, phrss.size(), vocab);
+		pii = new MemoryInvertedIndex(plm, phrss.size(), vocab);
 	}
 
 	private double getPhraseWeight(PostingList pl) {

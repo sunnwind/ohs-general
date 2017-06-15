@@ -10,12 +10,9 @@ import ohs.corpus.type.KoreanPosTokenizer;
 import ohs.eden.keyphrase.cluster.KPPath;
 import ohs.io.FileUtils;
 import ohs.io.RandomAccessDenseMatrix;
-import ohs.ir.medical.general.KLDivergenceScorer;
 import ohs.ir.search.index.InvertedIndex;
+import ohs.ir.search.index.MemoryInvertedIndex;
 import ohs.ir.search.index.PostingList;
-import ohs.ir.search.model.BM25Scorer;
-import ohs.ir.search.model.LMScorer;
-import ohs.ir.search.model.VSMScorer;
 import ohs.ir.weight.TermWeighting;
 import ohs.math.ArrayUtils;
 import ohs.math.VectorMath;
@@ -25,7 +22,6 @@ import ohs.matrix.SparseVector;
 import ohs.ml.neuralnet.com.NeuralNet;
 import ohs.ml.neuralnet.com.NeuralNetParams;
 import ohs.ml.neuralnet.com.NeuralNetTrainer;
-import ohs.ml.neuralnet.layer.DropoutLayer;
 import ohs.ml.neuralnet.layer.FullyConnectedLayer;
 import ohs.ml.neuralnet.layer.NonlinearityLayer;
 import ohs.ml.neuralnet.layer.SoftmaxLayer;
@@ -406,7 +402,7 @@ public class KorPhraseClassification {
 			m.put(w, pl);
 		}
 
-		return new InvertedIndex(m, lines.size(), vocab);
+		return new MemoryInvertedIndex(m, lines.size(), vocab);
 	}
 
 	public void trainClassifier() throws Exception {

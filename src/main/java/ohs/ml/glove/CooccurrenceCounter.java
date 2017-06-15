@@ -40,7 +40,7 @@ public class CooccurrenceCounter {
 
 		private List<FileChannel> fcs;
 
-		private int[][] ranges;
+		private IntegerArrayMatrix ranges;
 
 		private AtomicInteger range_cnt;
 
@@ -48,7 +48,7 @@ public class CooccurrenceCounter {
 
 		private ByteBufferWrapper buf = new ByteBufferWrapper(max_buf_size);
 
-		public CountWorker(DocumentCollection dc, List<FileChannel> fcs, int[][] ranges, AtomicInteger range_cnt, Timer timer) {
+		public CountWorker(DocumentCollection dc, List<FileChannel> fcs, IntegerArrayMatrix ranges, AtomicInteger range_cnt, Timer timer) {
 			super();
 			this.dc = dc;
 			this.fcs = fcs;
@@ -72,9 +72,9 @@ public class CooccurrenceCounter {
 			CounterMap<Integer, Integer> cm1 = Generics.newCounterMap();
 			int buf_size = 0;
 
-			while ((range_loc = range_cnt.getAndIncrement()) < ranges.length) {
-				int[] range = ranges[range_loc];
-				List<Pair<String, IntegerArray>> ps = dc.getRange(range);
+			while ((range_loc = range_cnt.getAndIncrement()) < ranges.size()) {
+				IntegerArray range = ranges.get(range_loc);
+				List<Pair<String, IntegerArray>> ps = dc.getRange(range.values());
 
 				for (int i = 0; i < ps.size(); i++) {
 					IntegerArrayMatrix doc = DocumentCollection.toMultiSentences(ps.get(i).getSecond());
@@ -123,10 +123,10 @@ public class CooccurrenceCounter {
 					}
 				}
 
-				int prog = BatchUtils.progress(range_loc + 1, ranges.length);
+				int prog = BatchUtils.progress(range_loc + 1, ranges.size());
 
 				if (prog > 0) {
-					System.out.printf("[%d percent, %d/%d, %s]\n", prog, range_loc + 1, ranges.length, timer.stop());
+					System.out.printf("[%d percent, %d/%d, %s]\n", prog, range_loc + 1, ranges.size(), timer.stop());
 				}
 			}
 
@@ -343,7 +343,7 @@ public class CooccurrenceCounter {
 
 		List<Future<Integer>> fs = Generics.newArrayList();
 
-		int[][] ranges = BatchUtils.getBatchRanges(dc.size(), batch_size);
+		IntegerArrayMatrix ranges = new IntegerArrayMatrix(BatchUtils.getBatchRanges(dc.size(), batch_size));
 
 		AtomicInteger range_cnt = new AtomicInteger();
 

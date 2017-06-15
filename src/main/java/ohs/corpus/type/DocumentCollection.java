@@ -267,6 +267,8 @@ public class DocumentCollection {
 
 	private boolean use_cache = true;
 
+	private int max_cache_size = 10000;
+
 	public DocumentCollection() {
 
 	}
@@ -312,12 +314,6 @@ public class DocumentCollection {
 
 	public DocumentCollection copyShallow() throws Exception {
 		return new DocumentCollection(FileUtils.openFileChannel(new File(dataDir, DATA_NAME), "r"), starts, lens, vocab, cache, use_cache);
-	}
-
-	private int max_cache_size = 10000;
-
-	public void setMaxCacheSize(int max_cache_size) {
-		this.max_cache_size = max_cache_size;
 	}
 
 	public Pair<String, IntegerArray> get(int i) throws Exception {
@@ -584,6 +580,10 @@ public class DocumentCollection {
 		return ret;
 	}
 
+	public Vocab getVocab() {
+		return vocab;
+	}
+
 	// public LongArray getPositions(int i) throws Exception {
 	// long start = starts.get(i);
 	// fc.position(start);
@@ -611,10 +611,6 @@ public class DocumentCollection {
 	// return ret;
 	// }
 
-	public Vocab getVocab() {
-		return vocab;
-	}
-
 	public List<String> getWords(int i) throws Exception {
 		IntegerArray d = get(i).getSecond();
 		List<String> ret = Generics.newArrayList(d.size());
@@ -640,6 +636,10 @@ public class DocumentCollection {
 		sb.append(String.format("avg doc len:\t[%f]\n", len_d_avg));
 		sb.append(String.format("mem:\t%s", getByteSize().toString()));
 		return sb.toString();
+	}
+
+	public void setMaxCacheSize(int max_cache_size) {
+		this.max_cache_size = max_cache_size;
 	}
 
 	public void setUseCache(boolean use_cache) {

@@ -22,6 +22,7 @@ import ohs.io.ByteArrayMatrix;
 import ohs.io.ByteArrayUtils;
 import ohs.io.FileUtils;
 import ohs.ir.medical.general.MIRPath;
+import ohs.math.ArrayUtils;
 import ohs.ml.neuralnet.com.BatchUtils;
 import ohs.types.generic.Counter;
 import ohs.types.generic.ListList;
@@ -235,7 +236,7 @@ public class FrequentPhraseDetector {
 
 				for (int k = 0; k < poss.size(); k++) {
 					long pos = poss.get(k);
-					long[] two = getTwoIndexes(pos);
+					long[] two = ArrayUtils.getTwoIndexes(pos, len_d_max);
 					int dseq = (int) two[0];
 					c.incrementCount(dseq, 1);
 				}
@@ -252,7 +253,7 @@ public class FrequentPhraseDetector {
 
 				for (int k = 0; k < poss.size(); k++) {
 					long pos = poss.get(k);
-					long[] two = getTwoIndexes(pos);
+					long[] two = ArrayUtils.getTwoIndexes(pos, len_d_max);
 					int dseq = (int) two[0];
 					int wloc = (int) two[1];
 					ret.put(dseq, wloc);
@@ -273,8 +274,8 @@ public class FrequentPhraseDetector {
 					int dseq = j + range.get(0);
 					IntegerArray d = ds.get(j).getSecond();
 
-					if (d.size() > max_doc_len) {
-						d = d.subArray(0, max_doc_len);
+					if (d.size() > len_d_max) {
+						d = d.subArray(0, len_d_max);
 					}
 
 					List<Integer> starts = docToLocs.get(dseq);
@@ -301,7 +302,7 @@ public class FrequentPhraseDetector {
 						}
 
 						String phrs = StrUtils.join("_", vocab.getObjects(sub));
-						long pos = getSingleIndex(dseq, start);
+						long pos = ArrayUtils.getSingleIndex(dseq, len_d_max, start);
 						ret.put(phrs, pos);
 					}
 				}
@@ -348,7 +349,7 @@ public class FrequentPhraseDetector {
 			Collections.sort(phrss);
 
 			for (String phrs : phrss) {
-				
+
 				if (filterPhrase(phrs)) {
 					continue;
 				}
@@ -357,7 +358,7 @@ public class FrequentPhraseDetector {
 				Counter<Integer> c = Generics.newCounter();
 
 				for (long pos : poss) {
-					long[] two = getTwoIndexes(pos);
+					long[] two = ArrayUtils.getTwoIndexes(pos, len_d_max);
 					int dseq = (int) two[0];
 					c.incrementCount(dseq, 1);
 				}
@@ -370,7 +371,7 @@ public class FrequentPhraseDetector {
 				}
 
 				for (long pos : poss) {
-					long[] two = getTwoIndexes(pos);
+					long[] two = ArrayUtils.getTwoIndexes(pos, len_d_max);
 					int dseq = (int) two[0];
 					int wloc = (int) two[1];
 					docToLocs.put(dseq, wloc);
@@ -430,7 +431,7 @@ public class FrequentPhraseDetector {
 
 	private Pattern pat2 = Pattern.compile("^[\\p{Punct}\\s]+");
 
-	private int max_doc_len = 100000;
+	private int len_d_max = 100000;
 
 	private int max_buf_size = FileUtils.DEFAULT_BUF_SIZE * 2;
 
@@ -503,9 +504,9 @@ public class FrequentPhraseDetector {
 			for (int dseq = range[0], k = 0; dseq < range[1]; dseq++, k++) {
 				IntegerArray d = ps.get(k).getSecond();
 
-				for (int wloc = 0; wloc < d.size() && wloc < max_doc_len; wloc++) {
+				for (int wloc = 0; wloc < d.size() && wloc < len_d_max; wloc++) {
 					int w = d.get(wloc);
-					long pos = getSingleIndex(dseq, wloc);
+					long pos = ArrayUtils.getSingleIndex(dseq, len_d_max, wloc);
 
 					if (pos < 0 || pos >= Long.MAX_VALUE) {
 						System.out.printf("[%d] is not valid at [%d, %d]\n", pos, dseq, wloc);
@@ -590,16 +591,6 @@ public class FrequentPhraseDetector {
 		fs.clear();
 
 		tpe.shutdown();
-	}
-
-	private long getSingleIndex(long dseq, long wloc) {
-		return dseq * max_doc_len + wloc;
-	}
-
-	private long[] getTwoIndexes(long i) {
-		long dseq = (i / max_doc_len);
-		long wloc = (i % max_doc_len);
-		return new long[] { dseq, wloc };
 	}
 
 	private void mergeIndex() throws Exception {
@@ -727,7 +718,7 @@ public class FrequentPhraseDetector {
 	}
 
 	public void setMaxDocLen(int max_doc_len) {
-		this.max_doc_len = max_doc_len;
+		this.len_d_max = max_doc_len;
 	}
 
 	public void setMaxPhraseLength(int max_phrs_len) {

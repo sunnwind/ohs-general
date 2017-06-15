@@ -143,17 +143,20 @@ public class DocumentCollectionCreator {
 
 		private AtomicInteger doc_cnt;
 
+		private AtomicInteger file_cnt;
+
 		private Timer timer;
 
 		private ByteBufferWrapper buf = new ByteBufferWrapper(FileUtils.DEFAULT_BUF_SIZE);
 
 		public IndexWorker(RawDocumentCollection rdc, Vocab vocab, IntegerArrayMatrix ranges, AtomicInteger range_cnt,
-				AtomicInteger doc_cnt, Timer timer) {
+				AtomicInteger doc_cnt, AtomicInteger file_cnt, Timer timer) {
 			this.rdc = rdc;
 			this.vocab = vocab;
 			this.ranges = ranges;
 			this.range_cnt = range_cnt;
 			this.doc_cnt = doc_cnt;
+			this.file_cnt = file_cnt;
 			this.timer = timer;
 		}
 
@@ -167,58 +170,67 @@ public class DocumentCollectionCreator {
 
 			while ((range_loc = range_cnt.getAndIncrement()) < ranges.size()) {
 				IntegerArray range = ranges.get(range_loc);
+				IntegerArrayMatrix subranges = new IntegerArrayMatrix(BatchUtils.getBatchRanges(range.get(1) - range.get(0), 100));
 
 				File outFile = new File(tmpDir, new DecimalFormat("00000000").format(range_loc) + ".ser");
 				FileChannel fc = FileUtils.openFileChannel(outFile, "rw");
 
-				ListList<String> ps = rdc.getValues(range.values());
+				for (int i = 0; i < subranges.size(); i++) {
+					IntegerArray subrange = subranges.get(i);
 
-				for (int i = 0; i < ps.size(); i++) {
-					int dseq = range.get(0) + i;
-					int type = rdc.getCollectionSeq(dseq);
-					IntegerArray target_locs = target_loc_data.get(type);
-					List<String> vals = ps.get(i);
+					ListList<String> ps = rdc.getValues(subrange.values());
 
-					List<IntegerArray> sents = Generics.newArrayList(100);
+					for (int j = 0; j < ps.size(); j++) {
+						int dseq = subrange.get(0) + j;
+						int type = rdc.getCollectionSeq(dseq);
+						IntegerArray target_locs = target_loc_data.get(type);
+						List<String> vals = ps.get(j);
 
-					for (int loc : target_locs) {
-						String p = vals.get(loc);
+						List<IntegerArray> sents = Generics.newArrayList(100);
 
-						for (String s : p.split("[\\n]+")) {
-							if (s.length() == 0) {
-								continue;
+						for (int loc : target_locs) {
+							String p = vals.get(loc);
+
+							for (String s : p.split("[\\n]+")) {
+								if (s.length() == 0) {
+									continue;
+								}
+								List<String> words = st.tokenize(s);
+								IntegerArray sent = new IntegerArray(vocab.indexesOf(words, unk));
+								sents.add(sent);
 							}
-							List<String> words = st.tokenize(s);
-							IntegerArray sent = new IntegerArray(vocab.indexesOf(words, unk));
-							sents.add(sent);
+						}
+						IntegerArrayMatrix doc = new IntegerArrayMatrix(sents);
+						IntegerArray d = DocumentCollection.toSingleSentence(doc);
+
+						int len_d = doc.sizeOfEntries();
+
+						lens_d.set(dseq, len_d);
+
+						String docid = "";
+
+						if (docid_locs.get(type) != -1) {
+							docid = vals.get(docid_locs.get(type));
+						}
+
+						if (docs.size() >= batch_size) {
+							write(docs, fc);
+						}
+
+						ByteArrayMatrix data = new ByteArrayMatrix(2);
+						data.add(encode ? DataCompression.encode(docid) : new ByteArray(docid.getBytes()));
+						data.add(encode ? DataCompression.encode(d) : ByteArrayUtils.toByteArray(d));
+						docs.add(data);
+
+						int k = doc_cnt.incrementAndGet();
+						int prog = BatchUtils.progress(k, rdc.size());
+						if (prog > 0) {
+							System.out.printf("[%d percent, %d/%d, %s]\n", prog, k, rdc.size(), timer.stop());
 						}
 					}
-					IntegerArrayMatrix doc = new IntegerArrayMatrix(sents);
-					IntegerArray d = DocumentCollection.toSingleSentence(doc);
 
-					int len_d = doc.sizeOfEntries();
-
-					lens_d.set(dseq, len_d);
-
-					String docid = "";
-
-					if (docid_locs.get(type) != -1) {
-						docid = vals.get(docid_locs.get(type));
-					}
-
-					if (docs.size() >= batch_size) {
+					if (docs.size() > 0) {
 						write(docs, fc);
-					}
-
-					ByteArrayMatrix data = new ByteArrayMatrix(2);
-					data.add(encode ? DataCompression.encode(docid) : new ByteArray(docid.getBytes()));
-					data.add(encode ? DataCompression.encode(d) : ByteArrayUtils.toByteArray(d));
-					docs.add(data);
-
-					int k = doc_cnt.incrementAndGet();
-					int prog = BatchUtils.progress(k, rdc.size());
-					if (prog > 0) {
-						System.out.printf("[%d percent, %d/%d, %s]\n", prog, k, rdc.size(), timer.stop());
 					}
 				}
 
@@ -244,16 +256,15 @@ public class DocumentCollectionCreator {
 			}
 			docs.clear();
 		}
-
 	}
 
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 
 		DocumentCollectionCreator dcc = new DocumentCollectionCreator();
-		dcc.setBatchSize(200);
+		dcc.setBatchSize(300);
 		dcc.setCountingThreadSize(10);
-		dcc.setIndexingThreadSize(5);
+		dcc.setIndexingThreadSize(1);
 		// dcc.setReuseVocab(true);
 		// dcc.setEncode(true);
 
@@ -290,20 +301,20 @@ public class DocumentCollectionCreator {
 			// inDirNames.add(MIRPath.TREC_CDS_2016_COL_DC_DIR);
 			// inDirNames.add(MIRPath.WIKI_COL_DC_DIR);
 
-			// int[] docid_locs = { 1, 0, 0, 0, 0, 0, -1 };
-			// int[][] target_loc_data = new int[docid_locs.length][];
-			// target_loc_data[0] = new int[] { 3, 5 };
-			// target_loc_data[1] = new int[] { 2, 3, 4 };
-			// target_loc_data[2] = new int[] { 1, 2, 3, 4, 5 };
-			// target_loc_data[3] = new int[] { 1 };
-			// target_loc_data[4] = new int[] { 4, 5 };
-			// target_loc_data[5] = new int[] { 1, 2, 3 };
-			// target_loc_data[6] = new int[] { 2, 3 };
-
-			int[] docid_locs = { 1, 0 };
+			int[] docid_locs = { 1, 0, 0, 0, 0, 0, -1 };
 			int[][] target_loc_data = new int[docid_locs.length][];
 			target_loc_data[0] = new int[] { 3, 5 };
-			target_loc_data[1] = new int[] { 1 };
+			target_loc_data[1] = new int[] { 2, 3, 4 };
+			target_loc_data[2] = new int[] { 1, 2, 3, 4, 5 };
+			target_loc_data[3] = new int[] { 1 };
+			target_loc_data[4] = new int[] { 4, 5 };
+			target_loc_data[5] = new int[] { 1, 2, 3 };
+			target_loc_data[6] = new int[] { 2, 3 };
+
+			// int[] docid_locs = { 1, 0 };
+			// int[][] target_loc_data = new int[docid_locs.length][];
+			// target_loc_data[0] = new int[] { 3, 5 };
+			// target_loc_data[1] = new int[] { 1 };
 
 			dcc.create(MIRPath.DATA_DIR + "merged/col/dc/", docid_locs, target_loc_data);
 		}
@@ -518,17 +529,17 @@ public class DocumentCollectionCreator {
 			vocab.add(word);
 		}
 
-		int[] doc_freqs = new int[vocab.size()];
-		int[] word_cnts = new int[vocab.size()];
+		IntegerArray doc_freqs = new IntegerArray(new int[vocab.size()]);
+		IntegerArray word_cnts = new IntegerArray(new int[vocab.size()]);
 
 		for (String word : vocab) {
 			int w = vocab.indexOf(word);
-			doc_freqs[w] = (int) docFreqs.getCount(word);
-			word_cnts[w] = (int) wordCnts.getCount(word);
+			doc_freqs.set(w, (int) docFreqs.getCount(word));
+			doc_freqs.set(w, (int) wordCnts.getCount(word));
 		}
 
-		vocab.setWordCnts(new IntegerArray(word_cnts));
-		vocab.setDocFreqs(new IntegerArray(doc_freqs));
+		vocab.setWordCnts(word_cnts);
+		vocab.setDocFreqs(doc_freqs);
 		vocab.setDocCnt(rdc.size());
 
 		System.out.printf("vocab size: %d -> %d\n", vocab_size_old, vocab.size());
@@ -548,10 +559,6 @@ public class DocumentCollectionCreator {
 				int s = dseq;
 				int e = Math.min(dseq + batch_size, last);
 				tmp.add(new IntPair(s, e));
-
-				if (dseq == last - 1) {
-					System.out.println();
-				}
 				dseq = e;
 			}
 		}
@@ -565,6 +572,8 @@ public class DocumentCollectionCreator {
 		return new IntegerArrayMatrix(ret);
 	}
 
+	private int index_batch_size = 10000;
+
 	private void indexDocs(Vocab vocab) throws Exception {
 		System.out.println("index docs.");
 
@@ -575,18 +584,18 @@ public class DocumentCollectionCreator {
 
 		List<Future<Integer>> fs = Generics.newArrayList(indexing_thread_size);
 
-		// int batch_size = 100;
-
-		IntegerArrayMatrix ranges = getRanges(batch_size);
+		IntegerArrayMatrix ranges = getRanges(100000);
 
 		AtomicInteger range_cnt = new AtomicInteger(0);
 
 		AtomicInteger doc_cnt = new AtomicInteger(0);
 
+		AtomicInteger file_cnt = new AtomicInteger(0);
+
 		Timer timer = Timer.newTimer();
 
 		for (int i = 0; i < indexing_thread_size; i++) {
-			fs.add(tpe.submit(new IndexWorker(rdc.copyShallow(), vocab, ranges, range_cnt, doc_cnt, timer)));
+			fs.add(tpe.submit(new IndexWorker(rdc.copyShallow(), vocab, ranges, range_cnt, doc_cnt, file_cnt, timer)));
 		}
 
 		for (int i = 0; i < indexing_thread_size; i++) {
@@ -649,8 +658,25 @@ public class DocumentCollectionCreator {
 
 			FileChannel in = FileUtils.openFileChannel(file.getPath(), "r");
 			while (in.position() < in.size()) {
-				ByteArrayMatrix doc = FileUtils.readByteArrayMatrix(in);
-				docs.add(doc);
+
+				if (docs.size() == 1000) {
+					for (ByteArrayMatrix doc : docs) {
+						long[] info = FileUtils.write(doc, buf, out2);
+
+						starts.add(info[0]);
+						lens.add((int) info[1]);
+
+						int prog = BatchUtils.progress(++doc_cnt, rdc.size());
+
+						if (prog > 0) {
+							System.out.printf("[%d percent, %s]\n", prog, timer.stop());
+						}
+					}
+					docs.clear();
+				} else {
+					ByteArrayMatrix doc = FileUtils.readByteArrayMatrix(in);
+					docs.add(doc);
+				}
 			}
 			in.close();
 			file.delete();
@@ -688,7 +714,6 @@ public class DocumentCollectionCreator {
 		out2.close();
 
 		FileUtils.deleteFilesUnder(tmpDir);
-
 	}
 
 	public void setAddBoundaryTags(boolean add_boundary_tags) {

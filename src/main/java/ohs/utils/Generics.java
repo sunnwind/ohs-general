@@ -277,6 +277,10 @@ public class Generics {
 	public static <K, E, V> ListMapMap<K, E, V> newListMapMap(int size, ListType lt) {
 		return new ListMapMap<K, E, V>(size, lt);
 	}
+	
+	public static <K, E, V> ListMapMap<K, E, V> newListMapMap(int size) {
+		return newListMapMap(size, ListType.ARRAY_LIST);
+	}
 
 	public static <K, E, V> ListMapMap<K, E, V> newListMapMap(ListType lt) {
 		return new ListMapMap<K, E, V>(0, lt);

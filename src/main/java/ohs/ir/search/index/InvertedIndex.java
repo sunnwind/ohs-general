@@ -1,31 +1,16 @@
 package ohs.ir.search.index;
 
-import java.io.File;
-import java.nio.channels.FileChannel;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-import ohs.corpus.type.DataCompression;
-import ohs.io.ByteArray;
-import ohs.io.ByteArrayMatrix;
-import ohs.io.ByteArrayUtils;
-import ohs.io.ByteBufferWrapper;
-import ohs.io.FileUtils;
 import ohs.math.ArrayMath;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
 import ohs.types.number.IntegerArrayMatrix;
-import ohs.types.number.LongArray;
 import ohs.utils.Generics;
-import ohs.utils.Timer;
 
-public class InvertedIndex {
-
-	public static final String DATA_NAME = "posting.ser";
-
-	public static final String META_NAME = "posting_meta.ser";
+public abstract class InvertedIndex {
 
 	public static IntegerArrayMatrix findCollocations(IntegerArray poss_x, IntegerArray poss_y, boolean keep_order, int window_size) {
 		List<IntegerArray> ret = Generics.newArrayList(Math.min(poss_x.size(), poss_y.size()));
@@ -167,194 +152,22 @@ public class InvertedIndex {
 		return new IntegerArray(dseqs_xy);
 	}
 
-	// public static void main(String[] args) throws Exception {
-	// System.out.println("process begins.");
-	//
-	// String[] dirs = { MIRPath.OHSUMED_COL_DC_DIR,
-	// MIRPath.TREC_CDS_2016_COL_DC_DIR };
-	//
-	// for (int i = 0; i < dirs.length; i++) {
-	// System.out.printf("read [%s]\n", dirs[i]);
-	// InvertedIndex ii = new InvertedIndex(dirs[i]);
-	// DocumentCollection dc = new DocumentCollection(dirs[i]);
-	// Vocab vocab = dc.getVocab();
-	//
-	// Counter<Integer> c = Generics.newCounter(vocab.size());
-	//
-	// int s = 0;
-	//
-	// while (s < ii.size()) {
-	// int e = Math.min(ii.size(), s + 100);
-	// List<SPostingList> pls = ii.getPostingLists(s, e);
-	//
-	// for (SPostingList pl : pls) {
-	// int w = pl.getWord();
-	// String word = vocab.getObject(w);
-	// c.setCount(w, pl.size());
-	// }
-	// s = e;
-	// }
-	//
-	// // for (int w = 0; w < ii.size(); w++) {
-	// // SPostingList pl = ii.getPostingList(w);
-	// // String word = vocab.getObject(w);
-	// //
-	// // c.setCount(w, pl.size());
-	// //
-	// // // System.out.printf("word=[%s], %s\n", word, pl);
-	// // }
-	//
-	// IntegerArray ws = new IntegerArray(c.getSortedKeys());
-	//
-	// for (int j = 0; j < ws.size() && j < 50; j++) {
-	// int w = ws.get(j);
-	// String word = vocab.getObject(w);
-	// SPostingList pl = ii.getPostingList(w);
-	// System.out.printf("word=[%s], %s\n", word, pl);
-	// }
-	//
-	// }
-	//
-	// System.out.println("process ends.");
-	// }
+	protected int doc_cnt = 0;
 
-	private Map<Integer, PostingList> cache = Generics.newWeakHashMap();
+	protected boolean print_log = false;
 
-	private File dataDir;
-
-	private FileChannel fc;
-
-	private LongArray starts;
-
-	private IntegerArray lens;
-
-	private int doc_cnt = 0;
-
-	private boolean encode = false;
-
-	private Vocab vocab;
-
-	private Map<Integer, PostingList> plm;
-
-	private boolean use_cache = true;
-
-	private boolean print_log = false;
-
-	private InvertedIndex(FileChannel fc, LongArray starts, IntegerArray lens, int doc_cnt, Map<Integer, PostingList> cache, Vocab vocab,
-			Map<Integer, PostingList> plm, boolean use_cache, boolean print_log) {
-		this.fc = fc;
-		this.starts = starts;
-		this.lens = lens;
-		this.doc_cnt = doc_cnt;
-		this.cache = cache;
-		this.vocab = vocab;
-		this.plm = plm;
-		this.use_cache = use_cache;
-	}
-
-	public InvertedIndex(FileChannel fc, LongArray starts, IntegerArray lens, int doc_cnt, Vocab vocab) {
-		this(fc, starts, lens, doc_cnt, Generics.newWeakHashMap(), vocab, null, true, false);
-	}
-
-	public InvertedIndex(Map<Integer, PostingList> plm, int doc_cnt, Vocab vocab) {
-		this.plm = plm;
-		this.vocab = vocab;
-		this.doc_cnt = doc_cnt;
-	}
-
-	public InvertedIndex(String dataDir) throws Exception {
-		this(dataDir, null);
-	}
-
-	public InvertedIndex(String dataDir, Vocab vocab) throws Exception {
-		this.dataDir = new File(dataDir);
-
-		{
-			FileChannel fc = FileUtils.openFileChannel(new File(dataDir, META_NAME), "r");
-			ByteArrayMatrix data = FileUtils.readByteArrayMatrix(fc);
-			fc.close();
-
-			int i = 0;
-			doc_cnt = ByteArrayUtils.toInteger(data.get(i++));
-			starts = DataCompression.decodeToLongArray(data.get(i++));
-			lens = DataCompression.decodeToIntegerArray(data.get(i++));
-			DataCompression.decodeGaps(starts);
-		}
-
-		fc = FileUtils.openFileChannel(new File(dataDir, DATA_NAME), "r");
-
-		this.vocab = vocab;
-	}
+	protected Vocab vocab;
 
 	public void close() throws Exception {
-		fc.close();
 	}
 
-	public InvertedIndex copyShallow() throws Exception {
-		return new InvertedIndex(FileUtils.openFileChannel(new File(dataDir, DATA_NAME), "r"), starts, lens, doc_cnt, cache, vocab, plm,
-				use_cache, print_log);
-	}
+	abstract public InvertedIndex copyShallow() throws Exception;
 
 	public int getDocCnt() {
 		return doc_cnt;
 	}
 
-	public FileChannel getFileChannel() {
-		return fc;
-	}
-
-	public PostingList getPostingList(int w) throws Exception {
-		Timer timer = Timer.newTimer();
-
-		PostingList ret = null;
-		boolean is_cached = false;
-
-		if (plm == null) {
-			if (w < 0 || w >= starts.size()) {
-				return null;
-			}
-
-			if (use_cache) {
-				synchronized (cache) {
-					ret = cache.get(w);
-				}
-			}
-
-			if (ret == null) {
-				ByteArray data = null;
-
-				synchronized (fc) {
-					long start = starts.get(w);
-					if (start < 0) {
-						return null;
-					}
-					fc.position(start);
-
-					int len = lens.get(w);
-					data = FileUtils.readByteArray(fc, len);
-				}
-
-				// ret = PostingList.readPostingList(fc, encode);
-				ret = PostingList.toPostingList(new ByteBufferWrapper(data).readByteArrayMatrix(), encode);
-
-				if (use_cache) {
-					synchronized (cache) {
-						cache.put(w, ret);
-					}
-				}
-			} else {
-				is_cached = true;
-			}
-		} else {
-			ret = plm.get(w);
-		}
-
-		if (print_log) {
-			String word = vocab == null ? "null" : vocab.getObject(w);
-			System.out.printf("PL: cached=[%s], word=[%s], %s, time=[%s]\n", is_cached, word, is_cached, ret, timer.stop());
-		}
-		return ret;
-	}
+	abstract public PostingList getPostingList(int w) throws Exception;
 
 	/**
 	 * @param Q
@@ -402,73 +215,24 @@ public class InvertedIndex {
 		return ret;
 	}
 
-	public List<PostingList> getPostingLists(Collection<Integer> Q) throws Exception {
-		return getPostingLists(new IntegerArray(Q));
-	}
-
-	public List<PostingList> getPostingLists(int i, int j) throws Exception {
-		int size = j - i;
-
-		List<PostingList> ret = Generics.newArrayList(size);
-
-		if (plm == null) {
-			Map<Integer, PostingList> found = Generics.newHashMap(size);
-			Set<Integer> notFound = Generics.newHashSet(size);
-
-			for (int k = i; k < j; k++) {
-				PostingList p = null;
-
-				if (use_cache) {
-					synchronized (cache) {
-						p = cache.get(k);
-					}
-				}
-
-				if (p == null) {
-					notFound.add(k);
-				} else {
-					found.put(k, p);
-				}
-			}
-
-			if (found.size() == 0) {
-				ByteArray data = null;
-
-				synchronized (fc) {
-					fc.position(starts.get(i));
-					data = FileUtils.readByteArray(fc, ArrayMath.sum(lens.values(), i, j));
-				}
-
-				ByteBufferWrapper buf = new ByteBufferWrapper(data);
-
-				for (int k = i; k < j; k++) {
-					ByteArrayMatrix sub = buf.readByteArrayMatrix();
-					PostingList pl = PostingList.toPostingList(sub, encode);
-					ret.add(pl);
-
-					if (use_cache) {
-						synchronized (cache) {
-							cache.put(k, pl);
-						}
-					}
-				}
-			} else {
-				if (found.size() != size) {
-					for (int k : notFound) {
-						found.put(k, getPostingList(k));
-					}
-				}
-				for (int k = i; k < j; k++) {
-					ret.add(found.get(k));
-				}
-			}
-		} else {
-			for (int k = i; k < j; k++) {
-				ret.add(getPostingList(k));
-			}
+	public PostingList getPostingList(String word) throws Exception {
+		PostingList ret = null;
+		int w = vocab.indexOf(word);
+		if (w != -1) {
+			ret = getPostingList(w);
 		}
 		return ret;
 	}
+
+	public List<PostingList> getPostingLists(Collection<String> Q) throws Exception {
+		List<PostingList> ret = Generics.newArrayList();
+		for (String word : Q) {
+			ret.add(getPostingList(word));
+		}
+		return ret;
+	}
+
+	abstract public List<PostingList> getPostingLists(int i, int j) throws Exception;
 
 	public List<PostingList> getPostingLists(IntegerArray Q) throws Exception {
 		List<PostingList> ret = Generics.newArrayList(Q.size());
@@ -482,16 +246,10 @@ public class InvertedIndex {
 		this.print_log = print_log;
 	}
 
-	public void setUseCache(boolean use_cache) {
-		this.use_cache = use_cache;
-	}
-
 	public void setVocab(Vocab vocab) {
 		this.vocab = vocab;
 	}
 
-	public int size() {
-		return starts.size();
-	}
+	abstract public int size();
 
 }

@@ -15,9 +15,9 @@ import ohs.utils.Generics;
 
 public class PostingList {
 
-	private static IntegerArrayMatrix partition(IntegerArray a, int chunk_size) {
+	public static IntegerArrayMatrix partition(IntegerArray a, int chunk_size) {
 		int window_size = chunk_size / Integer.BYTES;
-		List<IntegerArray> ret = Generics.newLinkedList();
+		List<IntegerArray> ret = Generics.newArrayList(sizeOfPartitions(a, chunk_size));
 		int s = 0;
 		while (s < a.size()) {
 			int e = Math.min(a.size(), s + window_size);
@@ -51,6 +51,18 @@ public class PostingList {
 		return ret;
 	}
 
+	public static int sizeOfPartitions(IntegerArray a, int chunk_size) {
+		int window_size = chunk_size / Integer.BYTES;
+		int s = 0;
+		int ret = 0;
+		while (s < a.size()) {
+			int e = Math.min(a.size(), s + window_size);
+			s = e;
+			ret++;
+		}
+		return ret;
+	}
+
 	public static ByteArrayMatrix toByteArrayMatrix(PostingList pl, boolean encode) throws Exception {
 		int w = pl.getWord();
 		IntegerArray dseqs = pl.getDocSeqs();
@@ -60,7 +72,14 @@ public class PostingList {
 
 		int max_buf_size = FileUtils.DEFAULT_BUF_SIZE;
 
-		List<ByteArray> data = Generics.newLinkedList();
+		List<ByteArray> data = null;
+
+		{
+			int size = 10;
+			size += pl.getPosData().size();
+			size += sizeOfPartitions(pl.getDocSeqs(), max_buf_size) + 1;
+			data = Generics.newArrayList(size);
+		}
 
 		if (encode) {
 			byte encode_dseqs = 0;

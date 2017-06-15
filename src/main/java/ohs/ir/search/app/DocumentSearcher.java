@@ -13,13 +13,12 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import ohs.corpus.type.DocumentCollection;
-import ohs.corpus.type.RawDocumentCollection;
-import ohs.corpus.type.EnglishNormalizer;
 import ohs.corpus.type.EnglishTokenizer;
-import ohs.corpus.type.StringNormalizer;
+import ohs.corpus.type.RawDocumentCollection;
 import ohs.corpus.type.StringTokenizer;
 import ohs.io.FileUtils;
 import ohs.ir.medical.general.MIRPath;
+import ohs.ir.search.index.DiskInvertedIndex;
 import ohs.ir.search.index.InvertedIndex;
 import ohs.ir.search.index.Posting;
 import ohs.ir.search.index.PostingList;
@@ -214,7 +213,7 @@ public class DocumentSearcher {
 
 	private Vocab vocab;
 
-	private InvertedIndex ii;
+	private DiskInvertedIndex ii;
 
 	private DocumentCollection dc;
 
@@ -238,7 +237,7 @@ public class DocumentSearcher {
 
 	private boolean use_cache = false;
 
-	public DocumentSearcher(Scorer scorer, RawDocumentCollection rdc, DocumentCollection dc, InvertedIndex ii, WordFilter wf)
+	public DocumentSearcher(Scorer scorer, RawDocumentCollection rdc, DocumentCollection dc, DiskInvertedIndex ii, WordFilter wf)
 			throws Exception {
 		this.scorer = scorer;
 		this.rdc = rdc;
@@ -256,7 +255,7 @@ public class DocumentSearcher {
 		dc = new DocumentCollection(dataDir);
 		vocab = dc.getVocab();
 
-		ii = new InvertedIndex(dataDir);
+		ii = new DiskInvertedIndex(dataDir);
 		ii.setVocab(vocab);
 
 		scorer = new LMScorer(vocab, dc, ii);

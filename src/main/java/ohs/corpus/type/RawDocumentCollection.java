@@ -61,20 +61,20 @@ public class RawDocumentCollection {
 		// rdc.close();
 		// }
 
-		{
-			RawDocumentCollection rdc = new RawDocumentCollection(MIRPath.OHSUMED_COL_DC_DIR);
-			System.out.println(rdc.toString());
-		}
-
-		{
-			RawDocumentCollection rdc = new RawDocumentCollection(MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR);
-			System.out.println(rdc.toString());
-		}
-
-		{
-			RawDocumentCollection rdc = new RawDocumentCollection(MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR);
-			System.out.println(rdc.toString());
-		}
+		// {
+		// RawDocumentCollection rdc = new RawDocumentCollection(MIRPath.OHSUMED_COL_DC_DIR);
+		// System.out.println(rdc.toString());
+		// }
+		//
+		// {
+		// RawDocumentCollection rdc = new RawDocumentCollection(MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR);
+		// System.out.println(rdc.toString());
+		// }
+		//
+		// {
+		// RawDocumentCollection rdc = new RawDocumentCollection(MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR);
+		// System.out.println(rdc.toString());
+		// }
 		//
 		// {
 		// RawDocumentCollection rdc = new
@@ -111,14 +111,14 @@ public class RawDocumentCollection {
 		// System.out.println(rdc.getAttrValueText(20913));
 		// }
 
-		// {
-		// RawDocumentCollection rdc = new RawDocumentCollection(MIRPath.DATA_DIR + "merged/col/dc/");
-		// ListList<String> atrData = rdc.getAttrData();
-		// IntegerArrayMatrix ranges = rdc.getTypeRanges();
-		// System.out.println(atrData);
-		// System.out.println(ranges);
-		// System.out.println();
-		// }
+		{
+			RawDocumentCollection rdc = new RawDocumentCollection(MIRPath.DATA_DIR + "merged/col/dc/");
+			ListList<String> atrData = rdc.getAttrData();
+			IntegerArrayMatrix ranges = rdc.getTypeRanges();
+			System.out.println(atrData);
+			System.out.println(ranges);
+			System.out.println();
+		}
 
 		System.out.println("process ends.");
 	}

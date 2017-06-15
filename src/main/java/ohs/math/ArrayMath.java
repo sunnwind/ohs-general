@@ -1,5 +1,7 @@
 package ohs.math;
 
+import java.lang.management.ManagementFactory;
+import java.lang.management.OperatingSystemMXBean;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -1317,6 +1319,24 @@ public class ArrayMath {
 
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
+
+		{
+
+			long a = Long.MAX_VALUE;
+			long b = Integer.MAX_VALUE;
+			long c = Integer.MAX_VALUE - 8;
+
+			System.out.println(a / (100000000d * 10000000));
+			System.out.println(c);
+			
+			OperatingSystemMXBean os = ManagementFactory.getOperatingSystemMXBean();
+			
+			System.out.println(System.getProperties());
+			
+			
+
+			System.exit(0);
+		}
 
 		{
 

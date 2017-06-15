@@ -11,6 +11,7 @@ import ohs.types.generic.ListMap;
 import ohs.types.generic.Pair;
 import ohs.types.number.IntegerArray;
 import ohs.utils.Generics;
+import ohs.utils.Timer;
 
 public class BatchUtils {
 
@@ -31,48 +32,6 @@ public class BatchUtils {
 		return Generics.newPair(new DenseMatrix(xx), new DenseVector(yy));
 	}
 
-	public static int[][] getBatchRanges(int[] idxs) {
-		IntegerArray dseqs = new IntegerArray(ArrayUtils.copy(idxs));
-		dseqs.sort(false);
-
-		List<List<Integer>> rs = Generics.newArrayList(dseqs.size());
-
-		int start = dseqs.get(0);
-		int i = 1;
-
-		while (i < dseqs.size()) {
-			int prev = dseqs.get(i - 1);
-			int cur = dseqs.get(i);
-
-			if (cur - prev != 1) {
-				int end = prev + 1;
-				List<Integer> r = Generics.newArrayList(2);
-				r.add(start);
-				r.add(end);
-				rs.add(r);
-				start = cur;
-			}
-			i++;
-		}
-
-		{
-			int end = dseqs.get(dseqs.size() - 1) + 1;
-			List<Integer> r = Generics.newArrayList(2);
-			r.add(start);
-			r.add(end);
-			rs.add(r);
-		}
-		
-		int[][] ret = new int[rs.size()][2];
-
-		for (int j = 0; j < rs.size(); j++) {
-			List<Integer> r = rs.get(j);
-			ret[j][0] = r.get(0);
-			ret[j][1] = r.get(1);
-		}
-		return ret;
-	}
-
 	public static int[][] getBatch(int[][] X, int[] range, int[] data_locs) {
 		int batch_size = range[1] - range[0];
 		int[][] miniX = new int[batch_size][];
@@ -82,16 +41,6 @@ public class BatchUtils {
 			miniX[j] = X[loc];
 		}
 		return miniX;
-	}
-
-	public static int getMaxBatchSize(int[][] ranges) {
-		int ret = 0;
-		for (int i = 0; i < ranges.length; i++) {
-			int[] range = ranges[i];
-			int size = range[1] - range[0];
-			ret = Math.max(ret, size);
-		}
-		return ret;
 	}
 
 	public static int[][] getBatchRanges(int data_size, int batch_size) {
@@ -125,12 +74,64 @@ public class BatchUtils {
 		return batch_ranges;
 	}
 
+	public static int[][] getBatchRanges(int[] idxs) {
+		IntegerArray dseqs = new IntegerArray(ArrayUtils.copy(idxs));
+		dseqs.sort(false);
+
+		List<List<Integer>> rs = Generics.newArrayList(dseqs.size());
+
+		int start = dseqs.get(0);
+		int i = 1;
+
+		while (i < dseqs.size()) {
+			int prev = dseqs.get(i - 1);
+			int cur = dseqs.get(i);
+
+			if (cur - prev != 1) {
+				int end = prev + 1;
+				List<Integer> r = Generics.newArrayList(2);
+				r.add(start);
+				r.add(end);
+				rs.add(r);
+				start = cur;
+			}
+			i++;
+		}
+
+		{
+			int end = dseqs.get(dseqs.size() - 1) + 1;
+			List<Integer> r = Generics.newArrayList(2);
+			r.add(start);
+			r.add(end);
+			rs.add(r);
+		}
+
+		int[][] ret = new int[rs.size()][2];
+
+		for (int j = 0; j < rs.size(); j++) {
+			List<Integer> r = rs.get(j);
+			ret[j][0] = r.get(0);
+			ret[j][1] = r.get(1);
+		}
+		return ret;
+	}
+
 	public static int[] getIndexes(int[] data_locs, int[] range) {
 		int start = range[0];
 		int end = range[1];
 		int[] ret = new int[end - start];
 		for (int i = start, j = 0; i < end; i++, j++) {
 			ret[j] = data_locs[i];
+		}
+		return ret;
+	}
+
+	public static int getMaxBatchSize(int[][] ranges) {
+		int ret = 0;
+		for (int i = 0; i < ranges.length; i++) {
+			int[] range = ranges[i];
+			int size = range[1] - range[0];
+			ret = Math.max(ret, size);
 		}
 		return ret;
 	}
@@ -157,4 +158,12 @@ public class BatchUtils {
 		}
 		return ret;
 	}
+
+	public static void printProgress(long cnt, long max_cnt, Timer timer) {
+		int prog = BatchUtils.progress(cnt, max_cnt);
+		if (prog > 0) {
+			System.out.printf("[%d percent, %d/%d, %s]\n", prog, cnt, max_cnt, timer.stop());
+		}
+	}
+
 }
