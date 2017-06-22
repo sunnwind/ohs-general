@@ -75,7 +75,7 @@ public class DocumentCollection {
 			String[] dirs = { MIRPath.OHSUMED_COL_DC_DIR, MIRPath.TREC_CDS_2014_COL_DC_DIR, MIRPath.TREC_CDS_2016_COL_DC_DIR,
 					MIRPath.WIKI_COL_DC_DIR, MIRPath.BIOASQ_COL_DC_DIR };
 
-			for (int j = 1; j < dirs.length; j++) {
+			for (int j = 0; j < dirs.length && j < 1; j++) {
 				String dir = dirs[j];
 
 				System.out.println(dir);
@@ -84,29 +84,23 @@ public class DocumentCollection {
 				int[][] ranges = BatchUtils.getBatchRanges(dc.size(), 500);
 
 				Timer timer = Timer.newTimer();
+				
+				System.out.println(dc.getText(0));
 
-				for (int i = 0; i < ranges.length; i++) {
-					Timer timer2 = Timer.newTimer();
-					dc.getRange(ranges[i][0], ranges[i][1], true);
-					// System.out.println(timer2.stop());
-				}
-
-				System.out.println(timer.stop());
-
-				dc = new DocumentCollection(dir);
-				timer = Timer.newTimer();
-
-				Timer timer2 = Timer.newTimer();
-
-				for (int i = 0; i < dc.size(); i++) {
-					if ((i + 1) % 10000 == 0 || i == dc.size() - 1) {
-						// System.out.println(timer2.stop());
-						timer2 = Timer.newTimer();
-					}
-					dc.get(i);
-				}
+//				for (int i = 0; i < ranges.length; i++) {
+//					List<Pair<String, IntegerArray>> res = dc.getRange(ranges[i][0], ranges[i][1], false);
+//
+//					for (int k = 0; k < res.size(); k++) {
+//						IntegerArrayMatrix doc = DocumentCollection.toMultiSentences(res.get(k).getSecond());
+//						String s = DocumentCollection.getText(dc.getVocab(), doc);
+//						
+//						System.out.println(s);
+//						System.out.println();
+//					}
+//				}
 
 				System.out.println(timer.stop());
+
 				System.out.println();
 			}
 		}
@@ -332,7 +326,8 @@ public class DocumentCollection {
 				long start = starts.get(i);
 				fc.position(start);
 				int len = lens.get(i);
-				data = new ByteBufferWrapper(FileUtils.readByteArray(fc, len)).readByteArrayMatrix();
+//				data = new ByteBufferWrapper(FileUtils.readByteArray(fc, len)).readByteArrayMatrix();
+				data = FileUtils.readByteArrayMatrix(fc, len);
 			}
 
 			String docid = null;
@@ -516,6 +511,7 @@ public class DocumentCollection {
 			ByteBufferWrapper buf = new ByteBufferWrapper(data);
 
 			for (int k = i; k < j; k++) {
+				buf.readInteger();
 				ByteArrayMatrix sub = buf.readByteArrayMatrix();
 
 				String docid = null;

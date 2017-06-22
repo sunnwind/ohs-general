@@ -260,6 +260,7 @@ public class DataCompression {
 		GZIPOutputStream zos = new GZIPOutputStream(baos);
 		zos.write(buf.array());
 		zos.close();
+		baos.close();
 		return new ByteArray(baos.toByteArray());
 	}
 

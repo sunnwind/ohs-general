@@ -22,6 +22,7 @@ import ohs.matrix.SparseVector;
 import ohs.ml.neuralnet.com.NeuralNet;
 import ohs.ml.neuralnet.com.NeuralNetParams;
 import ohs.ml.neuralnet.com.NeuralNetTrainer;
+import ohs.ml.neuralnet.layer.BatchNormalizationLayer;
 import ohs.ml.neuralnet.layer.FullyConnectedLayer;
 import ohs.ml.neuralnet.layer.NonlinearityLayer;
 import ohs.ml.neuralnet.layer.SoftmaxLayer;
@@ -30,8 +31,6 @@ import ohs.nlp.ling.types.MDocument;
 import ohs.nlp.ling.types.MSentence;
 import ohs.nlp.ling.types.Token;
 import ohs.nlp.ling.types.TokenAttr;
-import ohs.tree.trie.hash.Node;
-import ohs.tree.trie.hash.Trie;
 import ohs.types.generic.Counter;
 import ohs.types.generic.ListMap;
 import ohs.types.generic.ListMapMap;
@@ -155,28 +154,27 @@ public class KorPhraseClassification {
 			docToKwds.add(kwds);
 		}
 
-		Set<String> kwds = Generics.newHashSet();
+		Counter<String> kwdCnts = Generics.newCounter();
 
 		{
-			Set<String> set = Generics.newHashSet();
-
 			for (Set<String> l : docToKwds) {
 				for (String k : l) {
-					set.add(k);
+					kwdCnts.incrementCount(k, 1);
 				}
 			}
-			kwds.addAll(set);
 		}
 
-		Trie<String> ret = new Trie<String>();
-		for (String kwd : kwds) {
-			List<String> words = StrUtils.split(kwd);
-			Node<String> node = ret.insert(words);
-			node.setFlag(true);
-		}
-		ret.trimToSize();
+		kwdCnts.pruneKeysBelowThreshold(5);
 
-		PhraseMapper<String> pm = new PhraseMapper<String>(PhraseMapper.createDict(kwds));
+		// Trie<String> ret = new Trie<String>();
+		// for (String kwd : kwdCnts.keySet()) {
+		// List<String> words = StrUtils.split(kwd);
+		// Node<String> node = ret.insert(words);
+		// node.setFlag(true);
+		// }
+		// ret.trimToSize();
+
+		PhraseMapper<String> pm = new PhraseMapper<String>(PhraseMapper.createDict(kwdCnts.keySet()));
 
 		List<String> outs = Generics.newArrayList(ins.size());
 
@@ -461,8 +459,8 @@ public class KorPhraseClassification {
 		param.setThreadSize(5);
 
 		int feat_size = X.colSize();
-		int l1_size = 200;
-		int l2_size = 50;
+		int l1_size = 100;
+		int l2_size = 10;
 		int output_size = labels.size();
 
 		NeuralNet nn = new NeuralNet();
@@ -486,7 +484,7 @@ public class KorPhraseClassification {
 		IntegerArray posLocs = G.get(1);
 
 		boolean stop = false;
-		int max_iters = 100;
+		int max_iters = 1000;
 
 		for (int i = 0; i < max_iters; i++) {
 			ArrayUtils.shuffle(negLocs.values());
@@ -501,10 +499,7 @@ public class KorPhraseClassification {
 				}
 				j = k;
 
-				for (int loc : posLocs) {
-					locs.add(loc);
-				}
-
+				locs.addAll(posLocs);
 				locs.trimToSize();
 
 				DenseMatrix Xs = X.rowsAsMatrix(locs.values());
@@ -635,18 +630,43 @@ public class KorPhraseClassification {
 					}
 
 					// DenseVector x = new DenseMatrix(new DenseVector[] { ek, ed }).toDenseVector();
-					VectorMath.subtract(ek, ed, ek);
+					// VectorMath.subtract(ek, ed, ek);
 
-					DoubleArray tmp = new DoubleArray(ek.values());
-					// tmp.addAll(ed.values());
+					DoubleArray tmp = new DoubleArray();
+
 					tmp.add(qv1.sum());
 					tmp.add(dv1.sum());
+					tmp.add(qv1.min());
+					tmp.add(dv1.min());
+					tmp.add(qv1.max());
+					tmp.add(dv1.max());
+
 					tmp.add(qv2.sum());
 					tmp.add(dv2.sum());
+					tmp.add(qv2.min());
+					tmp.add(dv2.min());
+					tmp.add(qv2.max());
+					tmp.add(dv2.max());
+
+					tmp.add(qv1.sum() / dv1.sum());
+					tmp.add(qv2.sum() / dv2.sum());
+
+					tmp.add(qv1.min() / dv1.min());
+					tmp.add(qv1.max() / dv1.max());
+					tmp.add(qv2.min() / dv2.min());
+					tmp.add(qv2.max() / dv2.max());
 
 					tmp.add(VectorMath.cosine(ek, ed));
 					tmp.add(VectorMath.cosine(qv1, dv1));
 					tmp.add(VectorMath.cosine(qv2, dv2));
+
+					DenseVector tmp2 = ek.copy();
+
+					VectorMath.addAfterMultiply(ek, 1, ed, -1, tmp2);
+					tmp.addAll(tmp2.values());
+
+					// tmp.addAll(ed.values());
+
 					tmp.trimToSize();
 
 					DenseVector x = new DenseVector(tmp);

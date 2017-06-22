@@ -169,7 +169,7 @@ public class InvertedIndexCreator {
 
 		private void write(List<PostingList> pls, FileChannel fc) throws Exception {
 			for (PostingList pl : pls) {
-				PostingList.writePostingList(pl, fc, false);
+				PostingList.writePostingList(pl, fc);
 			}
 			pls.clear();
 		}
@@ -188,107 +188,82 @@ public class InvertedIndexCreator {
 
 		private DocumentCollection dc;
 
-		private List<FileChannel> fcs;
-
-		private ByteBufferWrapper buf;
-
 		public PostingWorker(DocumentCollection dc, AtomicInteger range_cnt, AtomicInteger doc_cnt, IntegerArrayMatrix ranges,
-				List<FileChannel> fcs, Timer timer) {
+				Timer timer) {
 			super();
 			this.dc = dc;
 			this.range_cnt = range_cnt;
 			this.doc_cnt = doc_cnt;
 			this.ranges = ranges;
-			this.fcs = fcs;
 			this.timer = timer;
-			buf = new ByteBufferWrapper(FileUtils.DEFAULT_BUF_SIZE);
 		}
 
 		@Override
 		public Integer call() throws Exception {
-			int range_loc = 0;
+			int rloc = 0;
 
-			while ((range_loc = range_cnt.getAndIncrement()) < ranges.size()) {
-				IntegerArray range = ranges.get(range_loc);
+			while ((rloc = range_cnt.getAndIncrement()) < ranges.size()) {
+				IntegerArray range = ranges.get(rloc);
+				int batch_size = range.get(1) - range.get(0);
+				IntegerArrayMatrix subranges = new IntegerArrayMatrix(BatchUtils.getBatchRanges(batch_size, 500));
+				String fileName = tmpDir + new DecimalFormat("00000").format(rloc) + ".ser";
+				FileChannel fc = FileUtils.openFileChannel(fileName, "rw");
 
-				List<Pair<String, IntegerArray>> ps = dc.getRange(range.get(0), range.get(1), false);
-				ListMapMap<Integer, Integer, Integer> lmm = Generics.newListMapMap(200);
+				for (int m = 0; m < subranges.size(); m++) {
+					IntegerArray subrange = subranges.get(m);
+					List<Pair<String, IntegerArray>> ps = dc.getRange(subrange.get(0), subrange.get(1), false);
+					ListMapMap<Integer, Integer, Integer> lmm = Generics.newListMapMap(200);
 
-				for (int i = 0; i < ps.size(); i++) {
-					int dseq = range.get(0) + i;
-					Pair<String, IntegerArray> p = ps.get(i);
-					IntegerArray d = p.getSecond();
-					for (int pos = 0; pos < d.size(); pos++) {
-						int w = d.get(pos);
-						if (w == DocumentCollection.SENT_END) {
-							continue;
+					for (int i = 0; i < ps.size(); i++) {
+						int dseq = subrange.get(0) + i;
+						Pair<String, IntegerArray> p = ps.get(i);
+						IntegerArray d = p.getSecond();
+						for (int pos = 0; pos < d.size(); pos++) {
+							int w = d.get(pos);
+							if (w == DocumentCollection.SENT_END) {
+								continue;
+							}
+							lmm.put(w, dseq, pos);
 						}
-						lmm.put(w, dseq, pos);
-					}
-					int dloc = doc_cnt.incrementAndGet();
-					int prog = BatchUtils.progress(dloc, dc.size());
+						int dloc = doc_cnt.incrementAndGet();
+						int prog = BatchUtils.progress(dloc, dc.size());
 
-					if (prog > 0) {
-						System.out.printf("[%d percent, %d/%d, %s]\n", prog, dloc, dc.size(), timer.stop());
+						if (prog > 0) {
+							System.out.printf("[%d percent, %d/%d, %s]\n", prog, dloc, dc.size(), timer.stop());
+						}
+					}
+
+					if (lmm.size() > 0) {
+						write(fc, lmm);
 					}
 				}
-
-				if (lmm.size() > 0) {
-					write(lmm);
-				}
-				lmm = null;
 			}
 
 			return null;
 		}
 
-		private void write(ListMapMap<Integer, Integer, Integer> lmm) throws Exception {
-			ListMap<Integer, Integer> fileToWord = Generics.newListMap(output_file_size);
+		private void write(FileChannel fc, ListMapMap<Integer, Integer, Integer> lmm) throws Exception {
+			IntegerArray ws = new IntegerArray(lmm.keySet());
+			ws.sort(false);
 
-			for (int w : lmm.keySet()) {
-				int file_loc = w % output_file_size;
-				fileToWord.put(file_loc, w);
-			}
+			for (int w : ws) {
+				ListMap<Integer, Integer> lm = lmm.get(w);
+				IntegerArray dseqs = new IntegerArray(lm.keySet());
+				dseqs.sort(false);
 
-			IntegerArray fileLocs = new IntegerArray(fileToWord.keySet());
-			ArrayUtils.shuffle(fileLocs.values());
+				IntegerArrayMatrix posData = new IntegerArrayMatrix(dseqs.size());
+				int max_poss_len = 0;
 
-			for (int file_loc : fileLocs) {
-				IntegerArray ws = new IntegerArray(fileToWord.get(file_loc));
-				ws.sort(false);
-
-				ByteArrayMatrix m = new ByteArrayMatrix(ws.size());
-
-				for (int w : ws) {
-					ListMap<Integer, Integer> lm = lmm.get(w);
-					IntegerArray dseqs = new IntegerArray(lm.keySet());
-					dseqs.sort(false);
-
-					IntegerArrayMatrix posData = new IntegerArrayMatrix(dseqs.size());
-					int max_poss_len = 0;
-
-					for (int dseq : dseqs) {
-						IntegerArray poss = new IntegerArray(lm.get(dseq));
-						poss.sort(false);
-						posData.add(poss);
-						max_poss_len = Math.max(poss.size(), max_poss_len);
-					}
-
-					buf.clear();
-					buf.write(w);
-					buf.write(dseqs);
-					buf.write(posData);
-					m.add(buf.toByteArray());
+				for (int dseq : dseqs) {
+					IntegerArray poss = new IntegerArray(lm.get(dseq));
+					poss.sort(false);
+					posData.add(poss);
+					max_poss_len = Math.max(poss.size(), max_poss_len);
 				}
 
-				FileChannel fc = fcs.get(file_loc);
-
-				synchronized (fc) {
-					FileUtils.write(m, fc);
-				}
+				PostingList pl = new PostingList(w, dseqs, posData);
+				PostingList.writePostingList(pl, fc);
 			}
-
-			fileToWord = null;
 		}
 	}
 
@@ -297,18 +272,17 @@ public class InvertedIndexCreator {
 
 		InvertedIndexCreator iic = new InvertedIndexCreator();
 		iic.setBatchSize(200);
-		iic.setOutputFileSize(5000);
 		iic.setPostingThreadSize(10);
 		iic.setMergingThreadSize(2);
 		iic.setEncode(true);
-		// iic.create(MIRPath.OHSUMED_COL_DC_DIR);
+		iic.create(MIRPath.OHSUMED_COL_DC_DIR);
 		// iic.create(MIRPath.TREC_CDS_2014_COL_DC_DIR);
-		iic.create(MIRPath.TREC_CDS_2016_COL_DC_DIR);
+		// iic.create(MIRPath.TREC_CDS_2016_COL_DC_DIR);
 		// iic.create(MIRPath.BIOASQ_COL_DC_DIR);
 		// iic.create(MIRPath.WIKI_COL_DC_DIR);
 		// iic.create(MIRPath.CLUEWEB_COL_DC_DIR);
 
-		iic.create(MIRPath.DATA_DIR + "merged/col/dc/");
+		// iic.create(MIRPath.DATA_DIR + "merged/col/dc/");
 
 		// FrequentPhraseDetector.main(args);
 
@@ -334,9 +308,7 @@ public class InvertedIndexCreator {
 		System.out.println("process ends.");
 	}
 
-	private int post_thread_size = 1;
-
-	private int output_file_size = 5000;
+	private int posting_thread_size = 1;
 
 	private int batch_size = 500;
 
@@ -375,37 +347,28 @@ public class InvertedIndexCreator {
 
 		tmpDir.mkdirs();
 
-		List<FileChannel> fcs = Generics.newArrayList(output_file_size);
-
-		IntegerArrayMatrix ranges = new IntegerArrayMatrix(BatchUtils.getBatchRanges(dc.size(), batch_size));
+		IntegerArrayMatrix ranges = new IntegerArrayMatrix(BatchUtils.getBatchRanges(dc.size(), 100000));
 
 		AtomicInteger range_cnt = new AtomicInteger(0);
 
 		AtomicInteger doc_cnt = new AtomicInteger(0);
 
-		List<Future<Integer>> fs = Generics.newArrayList(post_thread_size);
+		posting_thread_size = Math.min(ranges.size(), posting_thread_size);
 
-		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(post_thread_size);
+		List<Future<Integer>> fs = Generics.newArrayList(posting_thread_size);
+
+		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(posting_thread_size);
 
 		try {
-			for (int i = 0; i < output_file_size; i++) {
-				File outFile = new File(tmpDir, new DecimalFormat("000000").format(i) + ".ser");
-				FileChannel fc = FileUtils.openFileChannel(outFile, "rw");
-				fcs.add(fc);
-			}
 
-			for (int i = 0; i < post_thread_size; i++) {
-				fs.add(tpe.submit(new PostingWorker(dc.copyShallow(), range_cnt, doc_cnt, ranges, fcs, timer)));
+			for (int i = 0; i < posting_thread_size; i++) {
+				fs.add(tpe.submit(new PostingWorker(dc.copyShallow(), range_cnt, doc_cnt, ranges, timer)));
 			}
-			for (int i = 0; i < post_thread_size; i++) {
+			for (int i = 0; i < posting_thread_size; i++) {
 				fs.get(i).get();
 			}
 		} finally {
 			tpe.shutdown();
-
-			for (FileChannel fc : fcs) {
-				fc.close();
-			}
 		}
 	}
 
@@ -475,8 +438,18 @@ public class InvertedIndexCreator {
 				int file_loc = w % output_file_size;
 
 				FileChannel fc = ins.get(file_loc);
-				PostingList pl = PostingList.readPostingList(fc, false);
-				long[] info = PostingList.writePostingList(pl, out, encode);
+				PostingList pl = PostingList.readPostingList(fc);
+
+				if (pl == null) {
+					continue;
+				}
+
+				if (pl.getWord() != w) {
+					System.out.println();
+					System.out.printf("w=%d, %s\n", w, pl.toString());
+				}
+
+				long[] info = PostingList.writePostingList(pl, out);
 
 				starts.set(w, info[0]);
 				lens.set(w, (int) info[1]);
@@ -529,12 +502,8 @@ public class InvertedIndexCreator {
 		this.merge_thread_size = thread_size;
 	}
 
-	public void setOutputFileSize(int output_file_size) {
-		this.output_file_size = output_file_size;
-	}
-
 	public void setPostingThreadSize(int thread_size) {
-		this.post_thread_size = thread_size;
+		this.posting_thread_size = thread_size;
 	}
 
 }

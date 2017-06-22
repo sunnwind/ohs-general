@@ -13,33 +13,30 @@ import ohs.utils.Generics;
 
 public class ByteBufferWrapper {
 
-	private static final int DEFAULT_CAPACITY = 10000;
-
-	private static final byte[] EMPTY_VALUES = {};
-
-	private static final byte[] DEFAULT_CAPACITY_EMPTY_VALUES = {};
+	private static final int MAX_ARRAY_SIZE = ByteArray.MAX_ARRAY_SIZE;
 
 	private static int hugeCapacity(int minCapacity) {
 		if (minCapacity < 0) // overflow
 			throw new OutOfMemoryError();
-		return (minCapacity > ByteArray.MAX_ARRAY_SIZE) ? Byte.MAX_VALUE : ByteArray.MAX_ARRAY_SIZE;
+		return (minCapacity > MAX_ARRAY_SIZE) ? Integer.MAX_VALUE : MAX_ARRAY_SIZE;
 	}
 
-	private byte[] vals;
-
-	private ByteBuffer buf;
+	private ByteBuffer bb;
 
 	public ByteBufferWrapper() {
-		this(EMPTY_VALUES);
+		this(new ByteArray());
+	}
+
+	public ByteBufferWrapper(ByteBuffer a) {
+		this(a.array());
 	}
 
 	public ByteBufferWrapper(byte[] a) {
-		this.vals = a;
-		buf = ByteBuffer.wrap(a);
+		this(new ByteArray(a));
 	}
 
 	public ByteBufferWrapper(ByteArray a) {
-		this(a.length() == a.size() ? a.values() : a.subArray(0, a.size()).values());
+		bb = ByteBuffer.wrap(a.values());
 	}
 
 	public ByteBufferWrapper(int size) {
@@ -51,65 +48,51 @@ public class ByteBufferWrapper {
 	}
 
 	public int capacity() {
-		return buf.capacity();
+		return bb.capacity();
 	}
 
 	public void clear() {
-		buf.clear();
+		bb.clear();
+
 	}
 
-	public void ensureCapacity(int minCapacity) {
-		int minExpand = (vals != DEFAULT_CAPACITY_EMPTY_VALUES) ? 0 : DEFAULT_CAPACITY;
-
-		if (minCapacity > minExpand) {
-			ensureExplicitCapacity(minCapacity);
-		}
-	}
-
-	private void ensureCapacityInternal(int minCapacity) {
-		if (vals == DEFAULT_CAPACITY_EMPTY_VALUES) {
-			minCapacity = Math.max(DEFAULT_CAPACITY, minCapacity);
-		}
-
-		ensureExplicitCapacity(minCapacity);
-	}
-
-	private void ensureExplicitCapacity(int minCapacity) {
-
-		// overflow-conscious code
-		if (minCapacity - vals.length > 0)
+	private void ensureCapacity(int minCapacity) {
+		byte[] buf = bb.array();
+		if (minCapacity - buf.length > 0)
 			grow(minCapacity);
 	}
 
+	public ByteArray getByteArray() {
+		return new ByteArray(bb.array());
+	}
+
 	public ByteBuffer getByteBuffer() {
-		return buf;
+		return bb;
 	}
 
 	private void grow(int minCapacity) {
-		// overflow-conscious code
+		byte[] buf = bb.array();
 
-		int oldCapacity = vals.length;
-		int newCapacity = oldCapacity + (oldCapacity >> 1);
+		// overflow-conscious code
+		int oldCapacity = buf.length;
+		int newCapacity = oldCapacity << 1;
 		if (newCapacity - minCapacity < 0)
 			newCapacity = minCapacity;
-		if (newCapacity - ByteArray.MAX_ARRAY_SIZE > 0)
+		if (newCapacity - MAX_ARRAY_SIZE > 0)
 			newCapacity = hugeCapacity(minCapacity);
-		// minCapacity is usually close to size, so this is a win:
-		try {
-			vals = Arrays.copyOf(vals, newCapacity);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		buf = Arrays.copyOf(buf, newCapacity);
 
-		wrap();
+		int pos = bb.position();
+		bb = ByteBuffer.wrap(buf);
+		bb.position(pos);
 	}
 
 	public int position() {
-		return buf.position();
+		return bb.position();
 	}
 
 	public void position(int pos) {
-		buf.position(pos);
+		bb.position(pos);
 	}
 
 	public boolean readBoolean() {
@@ -126,18 +109,18 @@ public class ByteBufferWrapper {
 	}
 
 	public byte readByte() {
-		return buf.get();
+		return bb.get();
 	}
 
 	public ByteArray readByteArray() {
-		int size = buf.getInt();
+		int size = bb.getInt();
 		byte[] ret = new byte[size];
-		buf.get(ret);
+		bb.get(ret);
 		return new ByteArray(ret);
 	}
 
 	public ByteArrayMatrix readByteArrayMatrix() {
-		int size = buf.getInt();
+		int size = bb.getInt();
 		ByteArrayMatrix ret = new ByteArrayMatrix(size);
 		for (int i = 0; i < size; i++) {
 			ret.add(readByteArray());
@@ -146,7 +129,7 @@ public class ByteBufferWrapper {
 	}
 
 	public List<IntegerArrayMatrix> readByteArrayMatrixList() {
-		int size = buf.getInt();
+		int size = bb.getInt();
 		List<IntegerArrayMatrix> ret = Generics.newArrayList(size);
 		for (int i = 0; i < size; i++) {
 			ret.add(readIntegerArrayMatrix());
@@ -155,33 +138,33 @@ public class ByteBufferWrapper {
 	}
 
 	public double readDouble() {
-		return buf.getDouble();
+		return bb.getDouble();
 	}
 
 	public DoubleArray readDoubleArray() {
-		int size = buf.getInt();
+		int size = bb.getInt();
 		double[] ret = new double[size];
 		for (int i = 0; i < size; i++) {
-			ret[i] = buf.getDouble();
+			ret[i] = bb.getDouble();
 		}
 		return new DoubleArray(ret);
 	}
 
 	public int readInteger() {
-		return buf.getInt();
+		return bb.getInt();
 	}
 
 	public IntegerArray readIntegerArray() {
-		int size = buf.getInt();
+		int size = bb.getInt();
 		int[] ret = new int[size];
 		for (int i = 0; i < size; i++) {
-			ret[i] = buf.getInt();
+			ret[i] = bb.getInt();
 		}
 		return new IntegerArray(ret);
 	}
 
 	public IntegerArrayMatrix readIntegerArrayMatrix() {
-		int size = buf.getInt();
+		int size = bb.getInt();
 		IntegerArrayMatrix ret = new IntegerArrayMatrix(size);
 		for (int i = 0; i < size; i++) {
 			ret.add(readIntegerArray());
@@ -190,23 +173,23 @@ public class ByteBufferWrapper {
 	}
 
 	public long readLong() {
-		return buf.getLong();
+		return bb.getLong();
 	}
 
 	public LongArray readLongArray() {
-		int size = buf.getInt();
+		int size = bb.getInt();
 		long[] ret = new long[size];
 		for (int i = 0; i < size; i++) {
-			ret[i] = buf.getLong();
+			ret[i] = bb.getLong();
 		}
 		return new LongArray(ret);
 	}
 
 	public ShortArray readShortArray() {
-		int size = buf.getInt();
+		int size = bb.getInt();
 		short[] ret = new short[size];
 		for (int i = 0; i < size; i++) {
-			ret[i] = buf.getShort();
+			ret[i] = bb.getShort();
 		}
 		return new ShortArray(ret);
 	}
@@ -215,18 +198,8 @@ public class ByteBufferWrapper {
 		return new String(readByteArray().values());
 	}
 
-	public ByteArray toByteArray() {
-		return new ByteArray(buf.array()).subArray(0, buf.position());
-	}
-
 	public String toString() {
-		return buf.toString();
-	}
-
-	private void wrap() {
-		int pos_old = buf.position();
-		buf = ByteBuffer.wrap(vals);
-		buf.position(pos_old);
+		return bb.toString();
 	}
 
 	public void write(boolean a) {
@@ -242,25 +215,23 @@ public class ByteBufferWrapper {
 	}
 
 	public void write(byte a) {
-		ensureCapacityInternal(buf.position() + 1);
-		buf.put(a);
+		ensureCapacity(bb.position() + 1);
+		bb.put(a);
 	}
 
 	public void write(ByteArray a) {
-		ensureCapacityInternal(buf.position() + a.size() + Integer.BYTES);
-		buf.putInt(a.size());
-		if (a.size() == a.length()) {
-			buf.put(a.values());
-		} else {
-			for (byte b : a) {
-				buf.put(b);
-			}
+		ensureCapacity(bb.position() + a.size() + Integer.BYTES);
+
+		bb.putInt(a.size());
+		for (byte b : a) {
+			bb.put(b);
 		}
 	}
 
 	public void write(ByteArrayMatrix a) {
-		ensureCapacityInternal(buf.position() + Integer.BYTES);
-		buf.putInt(a.size());
+		int size = (int) ByteArrayUtils.sizeOfByteBuffer(a);
+		ensureCapacity(bb.position() + size);
+		bb.putInt(a.size());
 
 		for (ByteArray b : a) {
 			write(b);
@@ -268,64 +239,65 @@ public class ByteBufferWrapper {
 	}
 
 	public void write(double a) {
-		ensureCapacityInternal(buf.position() + Double.BYTES);
-		buf.putDouble(a);
-	}
-
-	public void write(long a) {
-		ensureCapacityInternal(buf.position() + Long.BYTES);
-		buf.putLong(a);
+		ensureCapacity(bb.position() + Double.BYTES);
+		bb.putDouble(a);
 	}
 
 	public void write(DoubleArray a) {
-		ensureCapacityInternal(buf.position() + a.size() * Double.BYTES + Integer.BYTES);
-		buf.putInt(a.size());
+		ensureCapacity(bb.position() + a.size() * Double.BYTES + Integer.BYTES);
+		bb.putInt(a.size());
 		for (double b : a) {
-			buf.putDouble(b);
+			bb.putDouble(b);
 		}
 	}
 
 	public void write(int a) {
-		ensureCapacityInternal(buf.position() + Integer.BYTES);
-		buf.putInt(a);
+		ensureCapacity(bb.position() + Integer.BYTES);
+		bb.putInt(a);
 	}
 
 	public void write(IntegerArray a) {
-		ensureCapacityInternal(buf.position() + a.size() * Integer.BYTES + Integer.BYTES);
-		buf.putInt(a.size());
+		ensureCapacity(bb.position() + a.size() * Integer.BYTES + Integer.BYTES);
+		bb.putInt(a.size());
 		for (int b : a) {
-			buf.putInt(b);
+			bb.putInt(b);
 		}
 	}
 
 	public void write(IntegerArrayMatrix a) {
-		ensureCapacityInternal(buf.position() + Integer.BYTES);
-		buf.putInt(a.size());
+		int size = ByteArrayUtils.sizeOfByteBuffer(a);
+		ensureCapacity(bb.position() + size);
+		bb.putInt(a.size());
 		for (IntegerArray b : a) {
 			write(b);
 		}
 	}
 
 	public void write(List<IntegerArrayMatrix> a) {
-		ensureCapacityInternal(buf.position() + Integer.BYTES);
-		buf.putInt(a.size());
+		ensureCapacity(bb.position() + Integer.BYTES);
+		bb.putInt(a.size());
 		for (IntegerArrayMatrix b : a) {
 			write(b);
 		}
 	}
 
+	public void write(long a) {
+		ensureCapacity(bb.position() + Long.BYTES);
+		bb.putLong(a);
+	}
+
 	public void write(LongArray a) {
-		ensureCapacityInternal(buf.position() + a.size() * Long.BYTES + Integer.BYTES);
-		buf.putInt(a.size());
+		ensureCapacity(bb.position() + a.size() * Long.BYTES + Integer.BYTES);
+		bb.putInt(a.size());
 		for (long b : a) {
-			buf.putLong(b);
+			bb.putLong(b);
 		}
 	}
 
 	public void write(String a) {
-		ensureCapacityInternal(buf.position() + a.length() + Integer.BYTES);
-		buf.putInt(a.length());
-		buf.put(a.getBytes());
+		ensureCapacity(bb.position() + a.length() + Integer.BYTES);
+		bb.putInt(a.length());
+		bb.put(a.getBytes());
 	}
 
 }

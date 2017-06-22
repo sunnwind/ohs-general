@@ -273,9 +273,9 @@ public class ByteArray implements RandomAccess, Cloneable, java.io.Serializable,
 	 * The maximum size of array to allocate. Some VMs reserve some header words in an array. Attempts to allocate larger arrays may result
 	 * in OutOfMemoryError: Requested array size exceeds VM limit
 	 */
-	public static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8; 
+	public static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
 
-	private static int hugeCapacity(int minCapacity) {
+	protected static int hugeCapacity(int minCapacity) {
 		if (minCapacity < 0) // overflow
 			throw new OutOfMemoryError();
 		return (minCapacity > MAX_ARRAY_SIZE) ? Byte.MAX_VALUE : MAX_ARRAY_SIZE;
@@ -311,6 +311,10 @@ public class ByteArray implements RandomAccess, Cloneable, java.io.Serializable,
 	 */
 	public ByteArray() {
 		this.vals = DEFAULT_CAPACITY_EMPTY_VALUES;
+	}
+
+	public ByteArray(ByteArray a) {
+		this(a.values());
 	}
 
 	public ByteArray(byte[] elementData) {
@@ -505,11 +509,9 @@ public class ByteArray implements RandomAccess, Cloneable, java.io.Serializable,
 	 */
 	public void clear() {
 		modCount++;
-
 		// clear to let GC do its work
 		for (int i = 0; i < size; i++)
 			vals[i] = 0;
-
 		size = 0;
 	}
 
@@ -562,7 +564,7 @@ public class ByteArray implements RandomAccess, Cloneable, java.io.Serializable,
 		}
 	}
 
-	private void ensureCapacityInternal(int minCapacity) {
+	protected void ensureCapacityInternal(int minCapacity) {
 		if (vals == DEFAULT_CAPACITY_EMPTY_VALUES) {
 			minCapacity = Math.max(DEFAULT_CAPACITY, minCapacity);
 		}
@@ -570,7 +572,7 @@ public class ByteArray implements RandomAccess, Cloneable, java.io.Serializable,
 		ensureExplicitCapacity(minCapacity);
 	}
 
-	private void ensureExplicitCapacity(int minCapacity) {
+	protected void ensureExplicitCapacity(int minCapacity) {
 		modCount++;
 
 		// overflow-conscious code
@@ -633,7 +635,7 @@ public class ByteArray implements RandomAccess, Cloneable, java.io.Serializable,
 	 * @param minCapacity
 	 *            the desired minimum capacity
 	 */
-	private void grow(int minCapacity) {
+	protected void grow(int minCapacity) {
 		// overflow-conscious code
 		int oldCapacity = vals.length;
 		int newCapacity = oldCapacity + (oldCapacity >> 1);
@@ -977,6 +979,10 @@ public class ByteArray implements RandomAccess, Cloneable, java.io.Serializable,
 	 */
 	public int size() {
 		return size;
+	}
+
+	public int capacity() {
+		return vals.length;
 	}
 
 	public void sort(boolean descending) {

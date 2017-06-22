@@ -1,6 +1,7 @@
 package ohs.eden.keyphrase.mine;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
@@ -112,6 +113,7 @@ public class KorDataHandler {
 		// dh.trainGlove();
 		// dh.getLabelData();
 		// dh.getKeywordPosPatterns();
+//		dh.test();
 		System.out.println("process ends.");
 	}
 
@@ -146,6 +148,60 @@ public class KorDataHandler {
 
 		FileUtils.writeStringCounterAsText(KPPath.KYP_DIR + "ext/kwd_pat.txt", c);
 		// FileUtils.writeStringCounterMapAsText(KPPath.KYP_DIR + "ext/kwd_pat.txt", cm);
+	}
+
+	public void test() throws Exception {
+		List<String> lines = FileUtils.readLinesFromText(KPPath.KYP_DIR + "ext/label_data.txt");
+
+		Counter<String> c = Generics.newCounter();
+
+		for (String line : lines) {
+			List<String> ps = StrUtils.split("\t", line);
+
+			if (ps.size() != 3) {
+				continue;
+			}
+
+			ps = StrUtils.unwrap(ps);
+			List<String> kwds = StrUtils.split(StrUtils.LINE_REP, ps.get(0));
+			String title = ps.get(1);
+			String abs = ps.get(2);
+
+			for (String kwd : kwds) {
+				MSentence sent = MSentence.newSentence(kwd);
+
+				String wordPat = getString(sent, TokenAttr.WORD);
+				String posPat = getString(sent, TokenAttr.POS);
+
+				c.incrementCount(wordPat, 1);
+			}
+		}
+
+		System.out.println(c.size());
+		System.out.println(c.totalCount());
+
+		System.out.println(1d * c.size() / lines.size());
+		System.out.println(1d * c.totalCount() / lines.size());
+
+		Counter<Integer> c2 = Generics.newCounter();
+
+		for (String wordPat : c.keySet()) {
+			c2.incrementCount(StrUtils.split(wordPat).size(), 1);
+		}
+
+		List<Integer> lens = Generics.newArrayList(c2.keySet());
+		Collections.sort(lens);
+		
+		System.out.println();
+
+		for (int i = 0; i < lens.size(); i++) {
+			int len = lens.get(i);
+			int cnt = (int) c2.getCount(len);
+			System.out.printf("%d\t%d\n", len, cnt);
+		}
+
+//		System.out.println(c2.toStringSortedByValues(true, true, c2.size(), "\t"));
+
 	}
 
 	public static String getString(MSentence sent, TokenAttr attr) {

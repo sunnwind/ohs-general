@@ -61,10 +61,17 @@ public class RawDocumentCollection {
 		// rdc.close();
 		// }
 
-		// {
-		// RawDocumentCollection rdc = new RawDocumentCollection(MIRPath.OHSUMED_COL_DC_DIR);
-		// System.out.println(rdc.toString());
-		// }
+		{
+			RawDocumentCollection rdc = new RawDocumentCollection(MIRPath.OHSUMED_COL_DC_DIR);
+			System.out.println(rdc.toString());
+
+			for (int i = 0; i < 10; i++) {
+				String s = rdc.getText(i);
+
+				System.out.println(s);
+				System.out.println();
+			}
+		}
 		//
 		// {
 		// RawDocumentCollection rdc = new RawDocumentCollection(MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR);
@@ -111,14 +118,14 @@ public class RawDocumentCollection {
 		// System.out.println(rdc.getAttrValueText(20913));
 		// }
 
-		{
-			RawDocumentCollection rdc = new RawDocumentCollection(MIRPath.DATA_DIR + "merged/col/dc/");
-			ListList<String> atrData = rdc.getAttrData();
-			IntegerArrayMatrix ranges = rdc.getTypeRanges();
-			System.out.println(atrData);
-			System.out.println(ranges);
-			System.out.println();
-		}
+		// {
+		// RawDocumentCollection rdc = new RawDocumentCollection(MIRPath.DATA_DIR + "merged/col/dc/");
+		// ListList<String> atrData = rdc.getAttrData();
+		// IntegerArrayMatrix ranges = rdc.getTypeRanges();
+		// System.out.println(atrData);
+		// System.out.println(ranges);
+		// System.out.println();
+		// }
 
 		System.out.println("process ends.");
 	}
@@ -227,7 +234,8 @@ public class RawDocumentCollection {
 				long start = starts.get(dseq);
 				fc.position(start);
 				int len = lens.get(dseq);
-				data = new ByteBufferWrapper(FileUtils.readByteArray(fc, len)).readByteArrayMatrix();
+				// data = new ByteBufferWrapper(FileUtils.readByteArray(fc, len)).readByteArrayMatrix();
+				data = FileUtils.readByteArrayMatrix(fc, len);
 			}
 
 			int cseq = getColSeq(dseq);
@@ -329,6 +337,7 @@ public class RawDocumentCollection {
 			ByteBufferWrapper buf = new ByteBufferWrapper(data);
 
 			for (int k = i; k < j; k++) {
+				int size2 = buf.readInteger();
 				ByteArrayMatrix doc = buf.readByteArrayMatrix();
 				int type = getColSeq(k);
 				List<Boolean> flags = flagData.get(type, false);

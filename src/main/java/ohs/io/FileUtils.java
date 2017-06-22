@@ -4,6 +4,7 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -46,7 +47,6 @@ import org.apache.commons.compress.compressors.CompressorOutputStream;
 import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
 
-import ohs.math.ArrayUtils;
 import ohs.types.generic.BidMap;
 import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
@@ -696,21 +696,20 @@ public class FileUtils {
 	}
 
 	public static ByteArrayMatrix readByteArrayMatrix(FileChannel a) throws Exception {
+		long pos = a.position();
 		int size = readInteger(a);
-		ByteArrayMatrix ret = new ByteArrayMatrix(size);
-		for (int i = 0; i < size; i++) {
-			ret.add(readByteArray(a));
-		}
-		return ret;
-	}
 
-	public static ByteArrayMatrix readByteArrayMatrix(FileChannel a, int size) throws Exception {
-		int row_size = size / ByteArray.MAX_ARRAY_SIZE;
-		int col_size = size % ByteArray.MAX_ARRAY_SIZE;
+		ByteArrayMatrix ret = new ByteArrayMatrix(0);
 
-		ByteArrayMatrix ret = new ByteArrayMatrix(size);
-		for (int i = 0; i < size; i++) {
-			ret.add(readByteArray(a));
+		if (size < ByteArray.MAX_ARRAY_SIZE) {
+			a.position(pos);
+			ByteBufferWrapper buf = new ByteBufferWrapper(readByteArray(a));
+			ret = buf.readByteArrayMatrix();
+		} else {
+			ret = new ByteArrayMatrix(size);
+			for (int i = 0; i < size; i++) {
+				ret.add(readByteArray(a));
+			}
 		}
 		return ret;
 	}
@@ -734,16 +733,7 @@ public class FileUtils {
 
 	public static ByteBuffer readByteBuffer(FileChannel fc, int size) throws Exception {
 		long pos_old = fc.position();
-
-		ByteBuffer buf = null;
-
-		try {
-			buf = ByteBuffer.allocate(size);
-		} catch (Exception e) {
-			System.out.println(size);
-			e.printStackTrace();
-		}
-
+		ByteBuffer buf = ByteBuffer.allocate(size);
 		fc.read(buf);
 		buf.flip();
 
@@ -1185,81 +1175,81 @@ public class FileUtils {
 	}
 
 	public static long[] write(ByteArray a, ByteBufferWrapper b, FileChannel c) throws Exception {
-		int size = (int) ByteArrayUtils.sizeOfByteBuffer(a);
-		long[] info = null;
-
-		if (size > b.capacity()) {
-			long start = c.position();
-			long end = start;
-
-			b.write(a.size());
-
-			int s = 0;
-			long len1 = 0;
-
-			while (s < a.size()) {
-				int e = Math.min(a.size(), s + b.capacity() - b.position());
-				for (int j = s; j < e; j++) {
-					b.write(a.value(j));
-				}
-				long[] tmp = write(b.getByteBuffer(), c);
-				len1 += tmp[1];
-				s = e;
-			}
-
-			end = c.position();
-
-			long len2 = end - start;
-
-			info = new long[] { start, end - start };
-		} else {
-			b.write(a);
-			info = write(b.getByteBuffer(), c);
-		}
-
+		b.clear();
+		b.write(a);
+		long[] info = write(b.getByteBuffer(), c);
 		return info;
 	}
 
 	public static long[] write(ByteArray a, FileChannel b) throws Exception {
-		int size = (int) ByteArrayUtils.sizeOfByteBuffer(a);
-		ByteBufferWrapper c = new ByteBufferWrapper(Math.min(size, DEFAULT_BUF_SIZE));
+		ByteBufferWrapper c = new ByteBufferWrapper(ByteArrayUtils.sizeOfByteBuffer(a));
 		return write(a, c, b);
 	}
 
-	public static long[] write(ByteArrayMatrix a, ByteBufferWrapper b, FileChannel c) throws Exception {
+	public static ByteArrayMatrix readByteArrayMatrix(FileChannel a, int size) throws Exception {
+		ByteArrayMatrix ret = null;
+		if (size < ByteArray.MAX_ARRAY_SIZE) {
+			ByteBufferWrapper b = new ByteBufferWrapper(readByteArray(a, size));
+			int size2 = b.readInteger() + Integer.BYTES;
+			if (size2 != size) {
+				System.out.printf("%d != %d\n", size, size2);
+			}
+			ret = b.readByteArrayMatrix();
+		} else {
+			int size2 = readInteger(a);
+			int rows = readInteger(a);
+			ret = new ByteArrayMatrix(rows);
+			for (int i = 0; i < rows; i++) {
+				ret.add(readByteArray(a));
+			}
+		}
+
+		return ret;
+	}
+
+	public static long[] write(ByteArrayMatrix a, FileChannel b) throws Exception {
 		long[] info = null;
 		long size = ByteArrayUtils.sizeOfByteBuffer(a);
 
-		if (size > b.capacity()) {
-			long start = c.position();
+		if (size < ByteArray.MAX_ARRAY_SIZE) {
+			ByteBufferWrapper c = new ByteBufferWrapper(size);
+			c.write(a);
+			info = write(c.getByteArray(), b);
+		} else {
+			long start = b.position();
 			long end = start;
 
 			long len1 = 0;
 			long len2 = 0;
+			long max_size = 0;
 
-			b.write(a.size());
+			for (ByteArray c : a) {
+				max_size = ByteArrayUtils.sizeOfByteBuffer(c);
+			}
+
+			ByteBufferWrapper c = new ByteBufferWrapper(max_size + Integer.BYTES);
+			c.write((int) size);
+			c.write(a.size());
 
 			for (ByteArray d : a) {
-				long[] tmp = write(d, b, c);
+				c.write(d);
+				long[] tmp = write(c.getByteBuffer(), b);
 				len1 += tmp[1];
 			}
 
-			end = c.position();
+			end = b.position();
 			len2 = end - start;
 
 			info = new long[] { start, len2 };
-		} else {
-			b.write(a);
-			info = write(b.getByteBuffer(), c);
 		}
 		return info;
 	}
 
-	public static long[] write(ByteArrayMatrix a, FileChannel b) throws Exception {
-		long size = ByteArrayUtils.sizeOfByteBuffer(a);
-		ByteBufferWrapper buf = new ByteBufferWrapper((int) Math.min(size, DEFAULT_BUF_SIZE));
-		return write(a, buf, b);
-	}
+	// public static long[] write(ByteArrayMatrix a, FileChannel b) throws Exception {
+	// long size = ByteArrayUtils.sizeOfByteBuffer(a);
+	// ByteBufferWrapper buf = new ByteBufferWrapper((int) Math.min(size, DEFAULT_BUF_SIZE));
+	// return write(a, buf, b);
+	// }
 
 	public static long[] write(ByteBuffer a, FileChannel b) throws Exception {
 		long pos_old = b.position();

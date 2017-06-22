@@ -42,20 +42,20 @@ public class ByteArrayUtils {
 		System.out.println("process ends.");
 	}
 
-	public static long sizeOfByteBuffer(byte[] a) {
+	public static int sizeOfByteBuffer(byte[] a) {
 		return sizeOfByteBuffer(new ByteArray(a));
 	}
 
-	public static long sizeOfByteBuffer(byte[][] a) {
+	public static int sizeOfByteBuffer(byte[][] a) {
 		return sizeOfByteBuffer(new ByteArrayMatrix(a));
 	}
 
-	public static long sizeOfByteBuffer(ByteArray a) {
+	public static int sizeOfByteBuffer(ByteArray a) {
 		return Integer.BYTES + Byte.BYTES * a.size();
 	}
 
-	public static long sizeOfByteBuffer(ByteArrayMatrix a) {
-		long ret = Integer.BYTES;
+	public static int sizeOfByteBuffer(ByteArrayMatrix a) {
+		int ret = Integer.BYTES;
 		for (ByteArray b : a) {
 			ret += sizeOfByteBuffer(b);
 		}
@@ -220,7 +220,7 @@ public class ByteArrayUtils {
 		List<ByteArray> ret = Generics.newLinkedList();
 
 		buf.write(a.size());
-		ret.add(buf.toByteArray());
+		ret.add(buf.getByteArray());
 		buf.clear();
 
 		int s = 0;
@@ -233,7 +233,7 @@ public class ByteArrayUtils {
 				buf.write(a.value(i));
 			}
 			s = e;
-			ret.add(buf.toByteArray());
+			ret.add(buf.getByteArray());
 			buf.clear();
 		}
 		return new ByteArrayMatrix(ret);
@@ -250,7 +250,7 @@ public class ByteArrayUtils {
 		List<ByteArray> ret = Generics.newLinkedList();
 
 		buf.write(a.size());
-		ret.add(buf.toByteArray());
+		ret.add(buf.getByteArray());
 		buf.clear();
 
 		int s = 0;
@@ -263,7 +263,7 @@ public class ByteArrayUtils {
 				buf.write(a.value(i));
 			}
 			s = e;
-			ret.add(buf.toByteArray());
+			ret.add(buf.getByteArray());
 			buf.clear();
 		}
 		return new ByteArrayMatrix(ret);

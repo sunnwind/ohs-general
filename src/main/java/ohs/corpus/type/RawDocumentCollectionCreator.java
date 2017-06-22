@@ -87,6 +87,8 @@ public class RawDocumentCollectionCreator {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 
+		boolean encode = false;
+
 		{
 			String[] attrs = { "sequential identifier", "MEDLINE identifier", "Human-assigned MeSH terms (MH)", "Title (TI)",
 					"Publication type (PT)", "Abstract (AB)", "Author (AU)", "Source (SO)" };
@@ -95,9 +97,11 @@ public class RawDocumentCollectionCreator {
 			boolean append = false;
 
 			RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
-			rdcc.setEncode(true);
+			rdcc.setEncode(encode);
 			rdcc.addAttrs(Generics.newArrayList(attrs));
 			createFromTokenizedData(inDir, rdcc);
+
+			// System.exit(0);
 		}
 
 		{
@@ -107,7 +111,7 @@ public class RawDocumentCollectionCreator {
 			boolean append = false;
 
 			RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
-			rdcc.setEncode(true);
+			rdcc.setEncode(encode);
 			rdcc.addAttrs(Generics.newArrayList(attrs));
 			createFromTokenizedData(inDir, rdcc);
 		}
@@ -118,7 +122,7 @@ public class RawDocumentCollectionCreator {
 			String outDir = MIRPath.TREC_CDS_2016_COL_DC_DIR;
 			boolean append = false;
 			RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
-			rdcc.setEncode(true);
+			rdcc.setEncode(encode);
 			rdcc.addAttrs(Generics.newArrayList(attrs));
 			createFromTokenizedData(inDir, rdcc);
 		}
@@ -129,7 +133,7 @@ public class RawDocumentCollectionCreator {
 			String outDir = MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR;
 			boolean append = false;
 			RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
-			rdcc.setEncode(true);
+			rdcc.setEncode(encode);
 			rdcc.addAttrs(Generics.newArrayList(attrs));
 			createFromTokenizedData(inDir, rdcc);
 		}
@@ -140,7 +144,7 @@ public class RawDocumentCollectionCreator {
 			String outDir = MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR;
 			boolean append = false;
 			RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
-			rdcc.setEncode(true);
+			rdcc.setEncode(encode);
 			rdcc.addAttrs(Generics.newArrayList(attrs));
 			createFromTokenizedData(inDir, rdcc);
 		}
@@ -151,7 +155,7 @@ public class RawDocumentCollectionCreator {
 			String outDir = MIRPath.TREC_CDS_2014_COL_DC_DIR;
 			boolean append = false;
 			RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
-			rdcc.setEncode(true);
+			rdcc.setEncode(encode);
 			rdcc.addAttrs(Generics.newArrayList(attrs));
 			createFromTokenizedData(inDir, rdcc);
 		}
@@ -162,7 +166,7 @@ public class RawDocumentCollectionCreator {
 			String outDir = MIRPath.WIKI_COL_DC_DIR;
 			boolean append = false;
 			RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
-			rdcc.setEncode(true);
+			rdcc.setEncode(encode);
 			rdcc.addAttrs(Generics.newArrayList(attrs));
 			createFromTokenizedData(inDir, rdcc);
 		}
@@ -173,7 +177,7 @@ public class RawDocumentCollectionCreator {
 			String outDir = MIRPath.BIOASQ_COL_DC_DIR;
 			boolean append = false;
 			RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
-			rdcc.setEncode(true);
+			rdcc.setEncode(encode);
 			rdcc.addAttrs(Generics.newArrayList(attrs));
 			createFromTokenizedData(inDir, rdcc);
 		}
@@ -184,7 +188,7 @@ public class RawDocumentCollectionCreator {
 			String outDir = MIRPath.CLUEWEB_COL_DC_DIR;
 			boolean append = false;
 			RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
-			rdcc.setEncode(true);
+			rdcc.setEncode(encode);
 			rdcc.addAttrs(Generics.newArrayList(attrs));
 			createFromTokenizedData(inDir, rdcc);
 		}
@@ -195,7 +199,7 @@ public class RawDocumentCollectionCreator {
 			String outDir = MIRPath.CLEF_EH_2014_COL_DC_DIR;
 			boolean append = false;
 			RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
-			rdcc.setEncode(true);
+			rdcc.setEncode(encode);
 			rdcc.addAttrs(Generics.newArrayList(attrs));
 			createFromTokenizedData(inDir, rdcc);
 		}
@@ -206,7 +210,7 @@ public class RawDocumentCollectionCreator {
 			String outDir = "../../data/medical_ir/scopus/col/dc/";
 			boolean append = false;
 			RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
-			rdcc.setEncode(true);
+			rdcc.setEncode(encode);
 			rdcc.addAttrs(Generics.newArrayList(attrs));
 			createFromTokenizedData(inDir, rdcc);
 		}
@@ -218,7 +222,7 @@ public class RawDocumentCollectionCreator {
 			String outDir = KPPath.COL_DC_DIR;
 			boolean append = false;
 			RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
-			rdcc.setEncode(true);
+			rdcc.setEncode(encode);
 			rdcc.addAttrs(Generics.newArrayList(attrs));
 
 			Timer timer = Timer.newTimer();
@@ -250,7 +254,7 @@ public class RawDocumentCollectionCreator {
 			String outDirName = MIRPath.DATA_DIR + "merged/col/dc/";
 
 			RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDirName, false);
-			rdcc.setEncode(true);
+			rdcc.setEncode(encode);
 
 			create(inDirNames, rdcc);
 		}
@@ -287,8 +291,6 @@ public class RawDocumentCollectionCreator {
 	private int batch_size = 200;
 
 	private List<ByteArrayMatrix> docs = Generics.newArrayList();
-
-	private ByteBufferWrapper buf = new ByteBufferWrapper(new ByteSize(64, Type.MEGA).getBytes());
 
 	private int init_col_size = 1000000;
 
@@ -409,7 +411,7 @@ public class RawDocumentCollectionCreator {
 				data.add(DataCompression.encode(lens));
 				data.add(DataCompression.encode(sizes));
 
-				long[] info = FileUtils.write(data, buf, fc);
+				long[] info = FileUtils.write(data, fc);
 			}
 
 			{
@@ -418,11 +420,12 @@ public class RawDocumentCollectionCreator {
 					List<String> attrs = attrData.get(i);
 					data.add(DataCompression.encode(attrs));
 				}
-				long[] info = FileUtils.write(data, buf, fc);
+				long[] info = FileUtils.write(data, fc);
 			}
 
 			{
-				byte[][] data = new byte[flagData.size()][];
+				ByteArrayMatrix data = new ByteArrayMatrix(flagData.size());
+
 				for (int i = 0; i < flagData.size(); i++) {
 					boolean[] flags = new boolean[flagData.get(i).size()];
 					int j = 0;
@@ -433,9 +436,12 @@ public class RawDocumentCollectionCreator {
 					ByteBufferWrapper buf = new ByteBufferWrapper();
 					buf.write(flags);
 
-					data[i] = buf.toByteArray().values();
+					byte[] aa = buf.getByteBuffer().array();
+
+					ByteArray ba = buf.getByteArray();
+					data.add(ba);
 				}
-				long[] info = FileUtils.write(new ByteArrayMatrix(data), buf, fc);
+				long[] info = FileUtils.write(data, fc);
 			}
 
 			fc.close();
@@ -460,7 +466,7 @@ public class RawDocumentCollectionCreator {
 
 	private void writeDocs() throws Exception {
 		for (ByteArrayMatrix m : docs) {
-			long[] info = FileUtils.write(m, buf, fc);
+			long[] info = FileUtils.write(m, fc);
 			starts.add(info[0]);
 			lens.add((int) info[1]);
 		}

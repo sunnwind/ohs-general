@@ -1,7 +1,6 @@
 package ohs.corpus.type;
 
 import java.io.File;
-import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.text.DecimalFormat;
 import java.util.List;
@@ -12,6 +11,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import ohs.eden.keyphrase.cluster.KPPath;
 import ohs.io.ByteArray;
 import ohs.io.ByteArrayMatrix;
 import ohs.io.ByteArrayUtils;
@@ -68,7 +68,7 @@ public class DocumentCollectionCreator {
 			while ((range_loc = range_cnt.getAndIncrement()) < ranges.size()) {
 				IntegerArray range = ranges.get(range_loc);
 
-				ListList<String> data = rdc.getValues(range.values());
+ 				ListList<String> data = rdc.getValues(range.values());
 				Counter<String> cnts = Generics.newCounter();
 				Counter<String> freqs = Generics.newCounter();
 
@@ -251,7 +251,7 @@ public class DocumentCollectionCreator {
 
 		private void write(List<ByteArrayMatrix> docs, FileChannel fc) throws Exception {
 			for (ByteArrayMatrix doc : docs) {
-				FileUtils.write(doc, buf, fc);
+				FileUtils.write(doc, fc);
 			}
 			docs.clear();
 		}
@@ -265,7 +265,7 @@ public class DocumentCollectionCreator {
 		dcc.setCountingThreadSize(10);
 		dcc.setIndexingThreadSize(3);
 		// dcc.setReuseVocab(true);
-		dcc.setEncode(true);
+		dcc.setEncode(false);
 
 		dcc.create(MIRPath.OHSUMED_COL_DC_DIR, 1, new int[] { 3, 5 });
 		dcc.create(MIRPath.CLEF_EH_2014_COL_DC_DIR, 0, new int[] { 3 });
@@ -282,10 +282,10 @@ public class DocumentCollectionCreator {
 		// scc.setMinDocFreq(0);
 		// scc.create(MIRPath.MESH_COL_LINE_DIR, 0, new int[] { 1 },MIRPath.MESH_COL_DC_DIR);
 
-		// {
-		// dcc.setStringTokenizer(new KoreanPosTokenizer());
-		// dcc.create(KPPath.COL_DC_DIR, 0, new int[] { 8, 9, 10 });
-		// }
+		{
+			dcc.setStringTokenizer(new KoreanPosTokenizer());
+			dcc.create(KPPath.COL_DC_DIR, 0, new int[] { 8, 9, 10 });
+		}
 
 		{
 
@@ -312,7 +312,7 @@ public class DocumentCollectionCreator {
 			// target_loc_data[0] = new int[] { 3, 5 };
 			// target_loc_data[1] = new int[] { 1 };
 
-			dcc.create(MIRPath.DATA_DIR + "merged/col/dc/", docid_locs, target_loc_data);
+			// dcc.create(MIRPath.DATA_DIR + "merged/col/dc/", docid_locs, target_loc_data);
 		}
 
 		System.out.println("process ends.");
@@ -647,8 +647,6 @@ public class DocumentCollectionCreator {
 		LongArray starts = new LongArray(rdc.size());
 		IntegerArray lens = new IntegerArray(rdc.size());
 
-		ByteBufferWrapper buf = new ByteBufferWrapper(max_buf_size);
-
 		for (File file : FileUtils.getFilesUnder(tmpDir)) {
 			List<ByteArrayMatrix> docs = Generics.newArrayList(batch_size);
 
@@ -657,7 +655,7 @@ public class DocumentCollectionCreator {
 
 				if (docs.size() == 1000) {
 					for (ByteArrayMatrix doc : docs) {
-						long[] info = FileUtils.write(doc, buf, out2);
+						long[] info = FileUtils.write(doc, out2);
 
 						starts.add(info[0]);
 						lens.add((int) info[1]);
@@ -678,7 +676,7 @@ public class DocumentCollectionCreator {
 			file.delete();
 
 			for (ByteArrayMatrix doc : docs) {
-				long[] info = FileUtils.write(doc, buf, out2);
+				long[] info = FileUtils.write(doc, out2);
 
 				starts.add(info[0]);
 				lens.add((int) info[1]);
@@ -704,7 +702,7 @@ public class DocumentCollectionCreator {
 		data.add(ByteArrayUtils.toByteArray(len_d_avg));
 		data.add(new ByteArray(new byte[] { (byte) (encode ? 1 : 0) }));
 
-		FileUtils.write(data, buf, out1);
+		FileUtils.write(data, out1);
 
 		out1.close();
 		out2.close();
