@@ -120,11 +120,23 @@ public class DiskInvertedIndex extends InvertedIndex {
 				fc.position(start);
 
 				int len = lens.get(w);
-				data = FileUtils.readByteArray(fc, len);
+
+				ret = PostingList.readPostingList(fc);
+
+				IntegerArray dseqs = ret.getDocSeqs();
+
+				for (int i = 0; i < dseqs.size(); i++) {
+					int dseq = dseqs.get(i);
+					if (dseq < 0 || dseq >= doc_cnt) {
+						System.out.println();
+					}
+				}
+
+				// data = FileUtils.readByteArray(fc, len);
 			}
 
-			// ret = PostingList.readPostingList(fc, encode);
-			ret = PostingList.toPostingList(new ByteBufferWrapper(data).readByteArrayMatrix(), encode);
+			// ret = PostingList.readPostingList(fc);
+			// ret = PostingList.toPostingList(new ByteBufferWrapper(data).readByteArrayMatrix(), encode);
 
 			if (use_cache) {
 				synchronized (cache) {
@@ -178,7 +190,7 @@ public class DiskInvertedIndex extends InvertedIndex {
 
 			for (int k = i; k < j; k++) {
 				ByteArrayMatrix sub = buf.readByteArrayMatrix();
-				PostingList pl = PostingList.toPostingList(sub, encode);
+				PostingList pl = PostingList.toPostingList(sub);
 				ret.add(pl);
 
 				if (use_cache) {

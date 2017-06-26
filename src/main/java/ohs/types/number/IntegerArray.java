@@ -330,11 +330,6 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 		size = vals.length;
 	}
 
-	public IntegerArray(IntegerArray a) {
-		this();
-		addAll(a);
-	}
-
 	/**
 	 * Constructs an empty list with the specified initial capacity.
 	 *
@@ -357,6 +352,11 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 	public IntegerArray(int[] elementData) {
 		this.vals = elementData;
 		size = elementData.length;
+	}
+
+	public IntegerArray(IntegerArray a) {
+		this();
+		addAll(a);
 	}
 
 	public IntegerArray(ObjectInputStream ois) throws Exception {
@@ -577,6 +577,8 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 		if (getClass() != obj.getClass())
 			return false;
 		IntegerArray other = (IntegerArray) obj;
+		if (size != other.size)
+			return false;
 		if (!Arrays.equals(vals, other.vals))
 			return false;
 		return true;
@@ -645,6 +647,15 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 			newCapacity = hugeCapacity(minCapacity);
 		// minCapacity is usually close to size, so this is a win:
 		vals = Arrays.copyOf(vals, newCapacity);
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + size;
+		result = prime * result + Arrays.hashCode(vals);
+		return result;
 	}
 
 	// Positional Access Operations

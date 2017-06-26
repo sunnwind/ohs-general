@@ -26,10 +26,6 @@ public class DoubleArrayMatrix extends ArrayList<DoubleArray> {
 		}
 	}
 
-	public DoubleArrayMatrix subMatrix(int i, int j) {
-		return new DoubleArrayMatrix(subList(i, j));
-	}
-
 	public DoubleArrayMatrix(int size) {
 		super(size);
 	}
@@ -87,6 +83,10 @@ public class DoubleArrayMatrix extends ArrayList<DoubleArray> {
 			ret += a.size();
 		}
 		return ret;
+	}
+
+	public DoubleArrayMatrix subMatrix(int i, int j) {
+		return new DoubleArrayMatrix(subList(i, j));
 	}
 
 	public String toString() {

@@ -108,12 +108,12 @@ public class DocumentSearcher {
 
 	public static void test1() throws Exception {
 		// DocumentSearcher ds = new DocumentSearcher(MIRPath.CLUEWEB_COL_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
-		DocumentSearcher ds = new DocumentSearcher(MIRPath.TREC_CDS_2016_COL_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
-		// DocumentSearcher ds = new DocumentSearcher(MIRPath.OHSUMED_COL_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
+		// DocumentSearcher ds = new DocumentSearcher(MIRPath.TREC_CDS_2016_COL_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
+		DocumentSearcher ds = new DocumentSearcher(MIRPath.OHSUMED_COL_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
 
 		ds.setScorer(new MRFScorer(ds));
 
-		String Qstr = "lung cancer treatment";
+		String Qstr = "cancer treatment";
 		// String Qstr = "( )";
 		SparseVector Q = ds.index(Qstr);
 
@@ -130,7 +130,7 @@ public class DocumentSearcher {
 			Pair<String, IntegerArrayMatrix> p = ds.getDocumentCollection().getSents(dseq);
 			String did = p.getFirst();
 			IntegerArrayMatrix doc = p.getSecond();
-			SparseVector dv = ds.getDocumentCollection().getDocVector(i);
+			SparseVector dv = ds.getDocumentCollection().getDocVector(dseq);
 			Counter<Integer> c = Generics.newCounter();
 
 			for (int w : Q.indexes()) {

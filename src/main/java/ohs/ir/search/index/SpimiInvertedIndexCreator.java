@@ -39,7 +39,7 @@ import ohs.utils.Timer;
  * 
  * @author ohs
  */
-public class InvertedIndexCreator {
+public class SpimiInvertedIndexCreator {
 
 	public class PostingWorker implements Callable<Integer> {
 
@@ -141,7 +141,7 @@ public class InvertedIndexCreator {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 
-		InvertedIndexCreator iic = new InvertedIndexCreator();
+		SpimiInvertedIndexCreator iic = new SpimiInvertedIndexCreator();
 		iic.setBatchSize(200);
 		iic.setPostingThreadSize(1);
 		iic.create(MIRPath.OHSUMED_COL_DC_DIR);
@@ -193,7 +193,7 @@ public class InvertedIndexCreator {
 
 	private File tmpDir;
 
-	public InvertedIndexCreator() {
+	public SpimiInvertedIndexCreator() {
 
 	}
 

@@ -566,6 +566,22 @@ public class ShortArray implements RandomAccess, Cloneable, java.io.Serializable
 			grow(minCapacity);
 	}
 
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		ShortArray other = (ShortArray) obj;
+		if (size != other.size)
+			return false;
+		if (!Arrays.equals(vals, other.vals))
+			return false;
+		return true;
+	}
+
 	/*
 	 * Private remove method that skips bounds checking and does not return the value removed.
 	 */
@@ -613,8 +629,6 @@ public class ShortArray implements RandomAccess, Cloneable, java.io.Serializable
 		return ret;
 	}
 
-	// Positional Access Operations
-
 	/**
 	 * Increases the capacity to ensure that it can hold at least the number of elements specified by the minimum capacity argument.
 	 *
@@ -631,6 +645,17 @@ public class ShortArray implements RandomAccess, Cloneable, java.io.Serializable
 			newCapacity = hugeCapacity(minCapacity);
 		// minCapacity is usually close to size, so this is a win:
 		vals = Arrays.copyOf(vals, newCapacity);
+	}
+
+	// Positional Access Operations
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + size;
+		result = prime * result + Arrays.hashCode(vals);
+		return result;
 	}
 
 	/**

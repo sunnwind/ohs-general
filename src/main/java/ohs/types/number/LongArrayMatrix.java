@@ -19,16 +19,12 @@ public class LongArrayMatrix extends ArrayList<LongArray> {
 		super();
 	}
 
-	public LongArrayMatrix(int size) {
-		super(size);
-	}
-
 	public LongArrayMatrix(Collection<LongArray> a) {
 		addAll(a);
 	}
 
-	public LongArrayMatrix subMatrix(int i, int j) {
-		return new LongArrayMatrix(subList(i, j));
+	public LongArrayMatrix(int size) {
+		super(size);
 	}
 
 	public LongArrayMatrix(long[][] a) {
@@ -107,6 +103,10 @@ public class LongArrayMatrix extends ArrayList<LongArray> {
 			ret += a.size();
 		}
 		return ret;
+	}
+
+	public LongArrayMatrix subMatrix(int i, int j) {
+		return new LongArrayMatrix(subList(i, j));
 	}
 
 	public String toString() {

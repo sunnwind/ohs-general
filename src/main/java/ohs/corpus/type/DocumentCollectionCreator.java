@@ -68,7 +68,7 @@ public class DocumentCollectionCreator {
 			while ((range_loc = range_cnt.getAndIncrement()) < ranges.size()) {
 				IntegerArray range = ranges.get(range_loc);
 
- 				ListList<String> data = rdc.getValues(range.values());
+				ListList<String> data = rdc.getValues(range.values());
 				Counter<String> cnts = Generics.newCounter();
 				Counter<String> freqs = Generics.newCounter();
 
@@ -176,6 +176,8 @@ public class DocumentCollectionCreator {
 
 				for (int i = 0; i < subranges.size(); i++) {
 					IntegerArray subrange = subranges.get(i);
+					subrange.set(0, range.get(0) + subrange.get(0));
+					subrange.set(1, range.get(0) + subrange.get(1));
 
 					ListList<String> ps = rdc.getValues(subrange.values());
 
@@ -312,7 +314,7 @@ public class DocumentCollectionCreator {
 			// target_loc_data[0] = new int[] { 3, 5 };
 			// target_loc_data[1] = new int[] { 1 };
 
-			// dcc.create(MIRPath.DATA_DIR + "merged/col/dc/", docid_locs, target_loc_data);
+			dcc.create(MIRPath.DATA_DIR + "merged/col/dc/", docid_locs, target_loc_data);
 		}
 
 		System.out.println("process ends.");
@@ -531,7 +533,7 @@ public class DocumentCollectionCreator {
 		for (String word : vocab) {
 			int w = vocab.indexOf(word);
 			doc_freqs.set(w, (int) docFreqs.getCount(word));
-			doc_freqs.set(w, (int) wordCnts.getCount(word));
+			word_cnts.set(w, (int) wordCnts.getCount(word));
 		}
 
 		vocab.setWordCnts(word_cnts);

@@ -205,14 +205,12 @@ public class DocumentIdMapCreator {
 
 		DataCompression.encodeGaps(starts);
 
-		ByteBufferWrapper buf = new ByteBufferWrapper(0);
-
 		ByteArrayMatrix data = new ByteArrayMatrix();
 		data.add(DataCompression.encode(starts));
 		data.add(DataCompression.encode(lens));
 		data.add(new ByteArray(new byte[] { (byte) (encode ? 1 : 0) }));
 
-		FileUtils.write(data, buf, out2);
+		FileUtils.write(data, out2);
 
 		out1.close();
 		out2.close();

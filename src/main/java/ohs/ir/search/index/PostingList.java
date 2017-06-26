@@ -18,12 +18,23 @@ public class PostingList {
 	public static void decode(ByteArray a, IntegerArray b) throws Exception {
 		IndexCompression.gammaDecode(a.values(), b.values());
 		IndexCompression.gapDecode(b.values());
-		ArrayMath.add(b.values(), -1, b.values());
+//		if (b.size() > 1) {
+			ArrayMath.add(b.values(), -1, b.values());
+//		}
 	}
 
 	public static ByteArray encode(IntegerArray a) throws Exception {
-		ArrayMath.add(a.values(), 1, a.values());
+//		if (a.size() > 1) {
+			ArrayMath.add(a.values(), 1, a.values());
+//		}
 		IndexCompression.gapEncode(a.values());
+		
+		for(int v : a) {
+			if(v < 0) {
+				System.err.println();
+			}
+		}
+		
 		return new ByteArray(IndexCompression.gammaEncodedOutputStream(a.values(), a.size()).toByteArray());
 	}
 
@@ -35,20 +46,14 @@ public class PostingList {
 		return ret;
 	}
 
-	public static List<PostingList> readPostingLists(FileChannel fc) throws Exception {
-		List<PostingList> ret = Generics.newLinkedList();
-		if (fc.position() < fc.size()) {
-			ret.add(toPostingList(FileUtils.readByteArrayMatrix(fc)));
-		}
-		return ret;
-	}
+	public static void checkEncoding(IntegerArray a) throws Exception {
+		ByteArray bs = encode(a.clone());
+		IntegerArray b = new IntegerArray(new int[a.size()]);
+		decode(bs, b);
 
-	public static int sizeOfByteBuffer(PostingList pl) {
-		int ret = Integer.BYTES;
-		ret += Integer.BYTES * pl.getDocSeqs().size() * 2;
-		ret += Integer.BYTES * pl.getPosData().sizeOfEntries();
-		ret += Integer.BYTES * pl.getPosData().size();
-		return ret;
+		if (!a.equals(b)) {
+			System.out.println();
+		}
 	}
 
 	public static ByteArrayMatrix toByteArrayMatrix(PostingList pl) throws Exception {
@@ -56,7 +61,9 @@ public class PostingList {
 		IntegerArray dseqs = pl.getDocSeqs().clone();
 		IntegerArrayMatrix posData = pl.getPosData();
 
-		ByteArrayMatrix ret = new ByteArrayMatrix(pl.getPosData().size() * 2 + 1);
+		checkEncoding(dseqs);
+
+		ByteArrayMatrix ret = new ByteArrayMatrix(pl.getPosData().size() * 2 + 3);
 		ret.add(ByteArrayUtils.toByteArray(w));
 		ret.add(ByteArrayUtils.toByteArray(dseqs.size()));
 		ret.add(encode(dseqs));
@@ -91,7 +98,35 @@ public class PostingList {
 	}
 
 	public static long[] writePostingList(PostingList pl, FileChannel fc) throws Exception {
-		return FileUtils.write(toByteArrayMatrix(pl), fc);
+		long[] ret = FileUtils.write(toByteArrayMatrix(pl), fc);
+
+		boolean check = true;
+
+		if (check) {
+//			fc.position(ret[0]);
+//			PostingList pl2 = readPostingList(fc);
+//
+//			pl.getDocSeqs().trimToSize();
+//			pl.getPosData().trimToSize();
+//
+//			if (!pl.equals(pl2)) {
+//				System.out.println();
+//			}
+			
+			IntegerArray dseqs = pl.getDocSeqs();
+			
+			for(int i = 1 ;i < dseqs.size();i++) {
+				int idx1 = dseqs.get(i-1);
+				int idx2 = dseqs.get(i);
+				
+				if(idx1 >= idx2) {
+					System.out.println();
+				}
+			}
+			
+		}
+
+		return ret;
 	}
 
 	private int w;
@@ -122,6 +157,30 @@ public class PostingList {
 			cnts.add(poss.size());
 			total_cnt += poss.size();
 		}
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		PostingList other = (PostingList) obj;
+		if (dseqs == null) {
+			if (other.dseqs != null)
+				return false;
+		} else if (!dseqs.equals(other.dseqs))
+			return false;
+		if (posData == null) {
+			if (other.posData != null)
+				return false;
+		} else if (!posData.equals(other.posData))
+			return false;
+		if (w != other.w)
+			return false;
+		return true;
 	}
 
 	public int getCount() {
@@ -156,6 +215,16 @@ public class PostingList {
 		return w;
 	}
 
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((dseqs == null) ? 0 : dseqs.hashCode());
+		result = prime * result + ((posData == null) ? 0 : posData.hashCode());
+		result = prime * result + w;
+		return result;
+	}
+
 	public void setEndPosData(IntegerArrayMatrix starts) {
 		this.endPosData = starts;
 	}
@@ -173,7 +242,6 @@ public class PostingList {
 	}
 
 	public String toString() {
-
 		long bytes = ByteArrayUtils.sizeOfByteBuffer(dseqs) * 2 + ByteArrayUtils.sizeOfByteBuffer(posData);
 		ByteSize bs = new ByteSize(bytes);
 		StringBuffer sb = new StringBuffer();

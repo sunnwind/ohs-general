@@ -832,8 +832,6 @@ public class IndexCompression {
 			startIndex = numberEndIndex[1];
 			postingList[i] = numberEndIndex[0];
 		}
-
-		gapDecode(postingList);
 	}
 
 	public static void test() throws IOException {

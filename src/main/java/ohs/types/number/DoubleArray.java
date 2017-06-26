@@ -564,6 +564,22 @@ public class DoubleArray implements RandomAccess, Cloneable, java.io.Serializabl
 			grow(minCapacity);
 	}
 
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		DoubleArray other = (DoubleArray) obj;
+		if (size != other.size)
+			return false;
+		if (!Arrays.equals(vals, other.vals))
+			return false;
+		return true;
+	}
+
 	/*
 	 * Private remove method that skips bounds checking and does not return the value removed.
 	 */
@@ -634,8 +650,8 @@ public class DoubleArray implements RandomAccess, Cloneable, java.io.Serializabl
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + modCount;
 		result = prime * result + size;
+		result = prime * result + Arrays.hashCode(vals);
 		return result;
 	}
 
