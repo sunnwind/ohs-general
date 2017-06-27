@@ -10,7 +10,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import edu.stanford.nlp.io.EncodingPrintWriter.out;
 import ohs.corpus.type.DataCompression;
 import ohs.corpus.type.DocumentCollection;
 import ohs.io.ByteArray;
@@ -40,7 +39,7 @@ import ohs.utils.Timer;
  * 
  * @author ohs
  */
-public class TermBlockInvertedIndexCreator {
+public class TermBlockInvertedIndexCreatorOld {
 
 	public class MergeWorker implements Callable<Integer> {
 
@@ -176,16 +175,16 @@ public class TermBlockInvertedIndexCreator {
 
 		private DocumentCollection dc;
 
-		private List<File> outFiles;
+		private List<FileChannel> fcs;
 
 		public PostingWorker(DocumentCollection dc, AtomicInteger range_cnt, AtomicInteger doc_cnt, IntegerArrayMatrix ranges,
-				List<File> outFiles, Timer timer) {
+				List<FileChannel> fcs, Timer timer) {
 			super();
 			this.dc = dc;
 			this.range_cnt = range_cnt;
 			this.doc_cnt = doc_cnt;
 			this.ranges = ranges;
-			this.outFiles = outFiles;
+			this.fcs = fcs;
 			this.timer = timer;
 		}
 
@@ -266,13 +265,9 @@ public class TermBlockInvertedIndexCreator {
 					m.add(buf.getByteArray());
 				}
 
-				File outFile = outFiles.get(file_loc);
-
-				synchronized (outFile) {
-					FileChannel fc = FileUtils.openFileChannel(outFile, "rw");
-					fc.position(fc.size());
+				FileChannel fc = fcs.get(file_loc);
+				synchronized (fc) {
 					FileUtils.write(m, fc);
-					fc.close();
 				}
 			}
 			fileToWord = null;
@@ -282,21 +277,21 @@ public class TermBlockInvertedIndexCreator {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 
-		TermBlockInvertedIndexCreator iic = new TermBlockInvertedIndexCreator();
-		iic.setBatchSize(1000);
-		iic.setOutputFileSize(10000);
+		TermBlockInvertedIndexCreatorOld iic = new TermBlockInvertedIndexCreatorOld();
+		iic.setBatchSize(200);
+		iic.setOutputFileSize(5000);
 		iic.setPostingThreadSize(10);
 		iic.setMergingThreadSize(2);
 		iic.create(MIRPath.OHSUMED_COL_DC_DIR);
-		// iic.create(MIRPath.TREC_GENO_2007_COL_DC_DIR);
-		// iic.create(MIRPath.TREC_CDS_2014_COL_DC_DIR);
-		// iic.create(MIRPath.TREC_CDS_2016_COL_DC_DIR);
-		// iic.create(MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR);
-		// iic.create(MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR);
-		// iic.create(MIRPath.BIOASQ_COL_DC_DIR);
-		// iic.create(MIRPath.WIKI_COL_DC_DIR);
-		// iic.create(MIRPath.DATA_DIR + "merged/col/dc/");
-		// iic.create(MIRPath.CLUEWEB_COL_DC_DIR);
+		iic.create(MIRPath.TREC_GENO_2007_COL_DC_DIR);
+		iic.create(MIRPath.TREC_CDS_2014_COL_DC_DIR);
+		iic.create(MIRPath.TREC_CDS_2016_COL_DC_DIR);
+		iic.create(MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR);
+		iic.create(MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR);
+		iic.create(MIRPath.BIOASQ_COL_DC_DIR);
+		iic.create(MIRPath.WIKI_COL_DC_DIR);
+		iic.create(MIRPath.DATA_DIR + "merged/col/dc/");
+		iic.create(MIRPath.CLUEWEB_COL_DC_DIR);
 
 		// FrequentPhraseDetector.main(args);
 
@@ -323,7 +318,7 @@ public class TermBlockInvertedIndexCreator {
 
 	private File tmpDir;
 
-	public TermBlockInvertedIndexCreator() {
+	public TermBlockInvertedIndexCreatorOld() {
 
 	}
 
@@ -338,6 +333,8 @@ public class TermBlockInvertedIndexCreator {
 		mergePostingListFiles();
 		mergePostingLists();
 	}
+	
+	private List<File> outFiles;
 
 	private void createPostingListFiles() throws Exception {
 		System.out.println("create posting list files.");
@@ -347,6 +344,8 @@ public class TermBlockInvertedIndexCreator {
 		FileUtils.deleteFilesUnder(tmpDir);
 
 		tmpDir.mkdirs();
+
+		List<FileChannel> fcs = Generics.newArrayList(output_file_size);
 
 		IntegerArrayMatrix ranges = new IntegerArrayMatrix(BatchUtils.getBatchRanges(dc.size(), batch_size));
 
@@ -358,22 +357,25 @@ public class TermBlockInvertedIndexCreator {
 
 		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(posting_thread_size);
 
-		List<File> outFiles = Generics.newArrayList(output_file_size);
-
 		try {
 			for (int i = 0; i < output_file_size; i++) {
 				File outFile = new File(tmpDir, new DecimalFormat("000000").format(i) + ".ser");
-				outFiles.add(outFile);
+				FileChannel fc = FileUtils.openFileChannel(outFile, "rw");
+				fcs.add(fc);
 			}
 
 			for (int i = 0; i < posting_thread_size; i++) {
-				fs.add(tpe.submit(new PostingWorker(dc.copyShallow(), range_cnt, doc_cnt, ranges, outFiles, timer)));
+				fs.add(tpe.submit(new PostingWorker(dc.copyShallow(), range_cnt, doc_cnt, ranges, fcs, timer)));
 			}
 			for (int i = 0; i < posting_thread_size; i++) {
 				fs.get(i).get();
 			}
 		} finally {
 			tpe.shutdown();
+
+			for (FileChannel fc : fcs) {
+				fc.close();
+			}
 		}
 	}
 
