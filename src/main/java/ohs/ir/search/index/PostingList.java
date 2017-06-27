@@ -99,33 +99,6 @@ public class PostingList {
 
 	public static long[] writePostingList(PostingList pl, FileChannel fc) throws Exception {
 		long[] ret = FileUtils.write(toByteArrayMatrix(pl), fc);
-
-		boolean check = true;
-
-		if (check) {
-//			fc.position(ret[0]);
-//			PostingList pl2 = readPostingList(fc);
-//
-//			pl.getDocSeqs().trimToSize();
-//			pl.getPosData().trimToSize();
-//
-//			if (!pl.equals(pl2)) {
-//				System.out.println();
-//			}
-			
-			IntegerArray dseqs = pl.getDocSeqs();
-			
-			for(int i = 1 ;i < dseqs.size();i++) {
-				int idx1 = dseqs.get(i-1);
-				int idx2 = dseqs.get(i);
-				
-				if(idx1 >= idx2) {
-					System.out.println();
-				}
-			}
-			
-		}
-
 		return ret;
 	}
 

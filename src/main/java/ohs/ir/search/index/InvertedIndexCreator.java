@@ -15,7 +15,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import ohs.corpus.type.DataCompression;
 import ohs.corpus.type.DocumentCollection;
-import ohs.io.ByteArray;
 import ohs.io.ByteArrayMatrix;
 import ohs.io.ByteArrayUtils;
 import ohs.io.FileUtils;
@@ -70,7 +69,7 @@ public class InvertedIndexCreator {
 			while ((rloc = range_cnt.getAndIncrement()) < ranges.size()) {
 				IntegerArray range = ranges.get(rloc);
 				int batch_size = range.get(1) - range.get(0);
-				IntegerArrayMatrix subranges = new IntegerArrayMatrix(BatchUtils.getBatchRanges(batch_size, num_docs_in_file));
+				IntegerArrayMatrix subranges = new IntegerArrayMatrix(BatchUtils.getBatchRanges(batch_size, batch_size));
 				File outDir = new File(tmpDir, new DecimalFormat(DIGIT_PATTERN).format(range.get(0) / num_files_in_dir));
 
 				for (int m = 0; m < subranges.size(); m++) {
@@ -142,14 +141,17 @@ public class InvertedIndexCreator {
 		System.out.println("process begins.");
 
 		InvertedIndexCreator iic = new InvertedIndexCreator();
-		iic.setBatchSize(200);
-		iic.setPostingThreadSize(1);
+		iic.setBatchSize(2000);
+		iic.setPostingThreadSize(5);
 		iic.create(MIRPath.OHSUMED_COL_DC_DIR);
-		// iic.create(MIRPath.TREC_CDS_2014_COL_DC_DIR);
-		// iic.create(MIRPath.TREC_CDS_2016_COL_DC_DIR);
-		// iic.create(MIRPath.BIOASQ_COL_DC_DIR);
-		// iic.create(MIRPath.WIKI_COL_DC_DIR);
-		// iic.create(MIRPath.CLUEWEB_COL_DC_DIR);
+		iic.create(MIRPath.TREC_GENO_2007_COL_DC_DIR);
+		iic.create(MIRPath.TREC_CDS_2014_COL_DC_DIR);
+		iic.create(MIRPath.TREC_CDS_2016_COL_DC_DIR);
+		iic.create(MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR);
+		iic.create(MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR);
+		iic.create(MIRPath.BIOASQ_COL_DC_DIR);
+		iic.create(MIRPath.WIKI_COL_DC_DIR);
+		iic.create(MIRPath.CLUEWEB_COL_DC_DIR);
 
 		// iic.create(MIRPath.DATA_DIR + "merged/col/dc/");
 
@@ -179,13 +181,11 @@ public class InvertedIndexCreator {
 
 	private int num_files_in_dir = 100000;
 
-	private int num_docs_in_file = 1000;
+	private int batch_size = 1000;
 
 	private int posting_thread_size = 1;
 
 	private String DIGIT_PATTERN = "0000000";
-
-	private int batch_size = 500;
 
 	private DocumentCollection dc;
 
@@ -204,45 +204,10 @@ public class InvertedIndexCreator {
 		this.tmpDir = new File(dataDir, "tmp");
 		dc = new DocumentCollection(dataDir);
 
-		IntegerArray wordCnts = dc.getVocab().getCounts();
-		IntegerArray docFreqs = dc.getVocab().getDocFreqs();
-
-//		createPostingListFiles();
+		createPostingListFiles();
 		mergePostingLists();
 		//
 		// test();
-	}
-
-	public void test() throws Exception {
-
-		FileChannel fc = FileUtils.openFileChannel(new File(dataDir, DiskInvertedIndex.DATA_NAME), "r");
-
-		PostingList pl = null;
-		int cnt = 0;
-
-		while ((pl = PostingList.readPostingList(fc)) != null) {
-			if (++cnt > 100) {
-				break;
-			}
-
-			IntegerArray dseqs = pl.getDocSeqs();
-
-			System.out.println(pl.toString());
-			System.out.println(dc.getVocab().getDocFreq(pl.getWord()));
-			System.out.println();
-
-			// for (int i = 0; i < dseqs.size() && i < 100; i++) {
-			// int dseq = dseqs.get(i);
-			// System.out.println(i + ", " + pl.toString());
-
-			// if (dseq < 0 || dseq >= dc.size()) {
-			// System.out.println(pl.toString());
-			// System.out.println();
-			// }
-			// }
-		}
-
-		fc.close();
 	}
 
 	private void createPostingListFiles() throws Exception {
@@ -278,33 +243,6 @@ public class InvertedIndexCreator {
 		}
 	}
 
-	public void check(IntegerArray a) {
-		for (int i = 1; i < a.size(); i++) {
-			int idx1 = a.get(i - 1);
-			int idx2 = a.get(i);
-
-			if (idx1 >= idx2) {
-				System.out.println();
-			}
-		}
-	}
-
-	public static void sort(PostingList pl) {
-		Map<Integer, IntegerArray> m = Generics.newHashMap(pl.size());
-		for (int i = 0; i < pl.size(); i++) {
-			int dseq = pl.getDocSeqs().get(i);
-			IntegerArray poss = pl.getPosData().get(i);
-			m.put(dseq, poss);
-		}
-
-		pl.getDocSeqs().sort(false);
-
-		for (int i = 0; i < pl.size(); i++) {
-			int dseq = pl.getDocSeqs().get(i);
-			pl.getPosData().set(i, m.get(dseq));
-		}
-	}
-
 	private void mergePostingLists() throws Exception {
 		System.out.println("merge posting lists.");
 
@@ -335,7 +273,7 @@ public class InvertedIndexCreator {
 		while (files.size() != 1) {
 			File inFile1 = files.removeFirst();
 			File inFile2 = files.removeFirst();
-			File outDir = new File(tmpDir, String.format("m_%s", new DecimalFormat(DIGIT_PATTERN).format(file_cnt / num_docs_in_file)));
+			File outDir = new File(tmpDir, String.format("m_%s", new DecimalFormat(DIGIT_PATTERN).format(file_cnt / batch_size)));
 			File outFile = new File(outDir, new DecimalFormat(DIGIT_PATTERN).format(file_cnt) + ".ser");
 			file_cnt++;
 
@@ -361,23 +299,15 @@ public class InvertedIndexCreator {
 
 				if (pl1 == null || pl2 != null && pl1.getWord() > pl2.getWord()) {
 					w = pl2.getWord();
-					check(pl2.getDocSeqs());
-
 					info = PostingList.writePostingList(pl2, out);
 					pl2 = PostingList.readPostingList(in2);
 				} else if (pl2 == null || pl1.getWord() < pl2.getWord()) {
 					w = pl1.getWord();
-					check(pl1.getDocSeqs());
-
 					info = PostingList.writePostingList(pl1, out);
 					pl1 = PostingList.readPostingList(in1);
 				} else {
 					merge_cnt++;
 					w = pl1.getWord();
-
-					check(pl1.getDocSeqs());
-					check(pl2.getDocSeqs());
-
 					PostingList head = pl1;
 					PostingList tail = pl2;
 
@@ -406,11 +336,7 @@ public class InvertedIndexCreator {
 						head.getPosData().set(i, m.get(dseq));
 					}
 
-					check(head.getDocSeqs());
-
 					head = new PostingList(head.getWord(), head.getDocSeqs(), head.getPosData());
-					// tmp1.getDocSeqs().trimToSize();
-					// tmp1.getPosData().trimToSize();
 
 					info = PostingList.writePostingList(head, out);
 
@@ -471,6 +397,8 @@ public class InvertedIndexCreator {
 			FileUtils.write(data, fc);
 			fc.close();
 		}
+
+		FileUtils.deleteFilesUnder(tmpDir);
 	}
 
 	public void setBatchSize(int batch_size) {
@@ -479,6 +407,38 @@ public class InvertedIndexCreator {
 
 	public void setPostingThreadSize(int thread_size) {
 		this.posting_thread_size = thread_size;
+	}
+
+	public void test() throws Exception {
+
+		FileChannel fc = FileUtils.openFileChannel(new File(dataDir, DiskInvertedIndex.DATA_NAME), "r");
+
+		PostingList pl = null;
+		int cnt = 0;
+
+		while ((pl = PostingList.readPostingList(fc)) != null) {
+			if (++cnt > 100) {
+				break;
+			}
+
+			IntegerArray dseqs = pl.getDocSeqs();
+
+			System.out.println(pl.toString());
+			System.out.println(dc.getVocab().getDocFreq(pl.getWord()));
+			System.out.println();
+
+			// for (int i = 0; i < dseqs.size() && i < 100; i++) {
+			// int dseq = dseqs.get(i);
+			// System.out.println(i + ", " + pl.toString());
+
+			// if (dseq < 0 || dseq >= dc.size()) {
+			// System.out.println(pl.toString());
+			// System.out.println();
+			// }
+			// }
+		}
+
+		fc.close();
 	}
 
 }

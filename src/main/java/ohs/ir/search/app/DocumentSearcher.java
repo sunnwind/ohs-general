@@ -113,7 +113,7 @@ public class DocumentSearcher {
 
 		ds.setScorer(new MRFScorer(ds));
 
-		String Qstr = "cancer treatment";
+		String Qstr = "lung cancer treatment";
 		// String Qstr = "( )";
 		SparseVector Q = ds.index(Qstr);
 
