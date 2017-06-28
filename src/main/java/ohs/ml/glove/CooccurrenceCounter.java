@@ -27,8 +27,6 @@ import ohs.types.generic.Vocab;
 import ohs.types.number.DoubleArray;
 import ohs.types.number.IntegerArray;
 import ohs.types.number.IntegerArrayMatrix;
-import ohs.utils.ByteSize;
-import ohs.utils.ByteSize.Type;
 import ohs.utils.Generics;
 import ohs.utils.Timer;
 
@@ -45,8 +43,6 @@ public class CooccurrenceCounter {
 		private AtomicInteger range_cnt;
 
 		private Timer timer;
-
-		private ByteBufferWrapper buf = new ByteBufferWrapper(max_buf_size);
 
 		public CountWorker(DocumentCollection dc, List<FileChannel> fcs, IntegerArrayMatrix ranges, AtomicInteger range_cnt, Timer timer) {
 			super();
@@ -104,23 +100,13 @@ public class CooccurrenceCounter {
 						}
 					}
 
-					int size = cm2.size();
-					for (Entry<Integer, Counter<Integer>> e : cm2.getEntrySet()) {
-						size += Integer.BYTES;
-						size += e.getValue().size() * (Integer.BYTES + Double.BYTES);
-					}
-					buf_size += size;
-
 					cm1.incrementAll(cm2);
 
-					if (buf_size >= max_buf_size) {
-						write(cm1);
-						if (symmetric) {
-							write(cm1.invert());
-						}
-						cm1.clear();
-						buf_size = 0;
+					write(cm1);
+					if (symmetric) {
+						write(cm1.invert());
 					}
+					cm1.clear();
 				}
 
 				int prog = BatchUtils.progress(range_loc + 1, ranges.size());
@@ -159,9 +145,7 @@ public class CooccurrenceCounter {
 				}
 
 				int buf_size = ByteArrayUtils.sizeOfByteBuffer(idxs) + ByteArrayUtils.sizeOfByteBuffer(vals) + Integer.BYTES * 2;
-				buf.ensureCapacity(buf_size);
-
-				buf.clear();
+				ByteBufferWrapper buf = new ByteBufferWrapper(buf_size);
 				buf.write(buf_size - Integer.BYTES);
 				buf.write(w1);
 				buf.write(idxs);
@@ -272,8 +256,6 @@ public class CooccurrenceCounter {
 
 		System.out.println("process ends.");
 	}
-
-	private int max_buf_size = (int) new ByteSize(32, Type.MEGA).getBytes();
 
 	private int window_size = 10;
 

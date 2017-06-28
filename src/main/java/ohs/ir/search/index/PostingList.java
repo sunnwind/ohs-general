@@ -15,6 +15,16 @@ import ohs.utils.Generics;
 
 public class PostingList {
 
+	public static void checkEncoding(IntegerArray a) throws Exception {
+		ByteArray bs = encode(a.clone());
+		IntegerArray b = new IntegerArray(new int[a.size()]);
+		decode(bs, b);
+
+		if (!a.equals(b)) {
+			System.out.println();
+		}
+	}
+
 	public static void decode(ByteArray a, IntegerArray b) throws Exception {
 		IndexCompression.gammaDecode(a.values(), b.values());
 		IndexCompression.gapDecode(b.values());
@@ -44,16 +54,6 @@ public class PostingList {
 			ret = toPostingList(FileUtils.readByteArrayMatrix(fc));
 		}
 		return ret;
-	}
-
-	public static void checkEncoding(IntegerArray a) throws Exception {
-		ByteArray bs = encode(a.clone());
-		IntegerArray b = new IntegerArray(new int[a.size()]);
-		decode(bs, b);
-
-		if (!a.equals(b)) {
-			System.out.println();
-		}
 	}
 
 	public static ByteArrayMatrix toByteArrayMatrix(PostingList pl) throws Exception {

@@ -177,6 +177,22 @@ public class SpimiInvertedIndexCreator {
 		System.out.println("process ends.");
 	}
 
+	public static void sort(PostingList pl) {
+		Map<Integer, IntegerArray> m = Generics.newHashMap(pl.size());
+		for (int i = 0; i < pl.size(); i++) {
+			int dseq = pl.getDocSeqs().get(i);
+			IntegerArray poss = pl.getPosData().get(i);
+			m.put(dseq, poss);
+		}
+
+		pl.getDocSeqs().sort(false);
+
+		for (int i = 0; i < pl.size(); i++) {
+			int dseq = pl.getDocSeqs().get(i);
+			pl.getPosData().set(i, m.get(dseq));
+		}
+	}
+
 	private int num_files_in_dir = 100000;
 
 	private int num_docs_in_file = 1000;
@@ -197,6 +213,17 @@ public class SpimiInvertedIndexCreator {
 
 	}
 
+	public void check(IntegerArray a) {
+		for (int i = 1; i < a.size(); i++) {
+			int idx1 = a.get(i - 1);
+			int idx2 = a.get(i);
+
+			if (idx1 >= idx2) {
+				System.out.println();
+			}
+		}
+	}
+
 	public void create(String dataDir) throws Exception {
 		System.out.printf("create inverted index at [%s]\n", dataDir);
 
@@ -211,38 +238,6 @@ public class SpimiInvertedIndexCreator {
 		mergePostingLists();
 		//
 		// test();
-	}
-
-	public void test() throws Exception {
-
-		FileChannel fc = FileUtils.openFileChannel(new File(dataDir, DiskInvertedIndex.DATA_NAME), "r");
-
-		PostingList pl = null;
-		int cnt = 0;
-
-		while ((pl = PostingList.readPostingList(fc)) != null) {
-			if (++cnt > 100) {
-				break;
-			}
-
-			IntegerArray dseqs = pl.getDocSeqs();
-
-			System.out.println(pl.toString());
-			System.out.println(dc.getVocab().getDocFreq(pl.getWord()));
-			System.out.println();
-
-			// for (int i = 0; i < dseqs.size() && i < 100; i++) {
-			// int dseq = dseqs.get(i);
-			// System.out.println(i + ", " + pl.toString());
-
-			// if (dseq < 0 || dseq >= dc.size()) {
-			// System.out.println(pl.toString());
-			// System.out.println();
-			// }
-			// }
-		}
-
-		fc.close();
 	}
 
 	private void createPostingListFiles() throws Exception {
@@ -275,33 +270,6 @@ public class SpimiInvertedIndexCreator {
 			}
 		} finally {
 			tpe.shutdown();
-		}
-	}
-
-	public void check(IntegerArray a) {
-		for (int i = 1; i < a.size(); i++) {
-			int idx1 = a.get(i - 1);
-			int idx2 = a.get(i);
-
-			if (idx1 >= idx2) {
-				System.out.println();
-			}
-		}
-	}
-
-	public static void sort(PostingList pl) {
-		Map<Integer, IntegerArray> m = Generics.newHashMap(pl.size());
-		for (int i = 0; i < pl.size(); i++) {
-			int dseq = pl.getDocSeqs().get(i);
-			IntegerArray poss = pl.getPosData().get(i);
-			m.put(dseq, poss);
-		}
-
-		pl.getDocSeqs().sort(false);
-
-		for (int i = 0; i < pl.size(); i++) {
-			int dseq = pl.getDocSeqs().get(i);
-			pl.getPosData().set(i, m.get(dseq));
 		}
 	}
 
@@ -479,6 +447,38 @@ public class SpimiInvertedIndexCreator {
 
 	public void setPostingThreadSize(int thread_size) {
 		this.posting_thread_size = thread_size;
+	}
+
+	public void test() throws Exception {
+
+		FileChannel fc = FileUtils.openFileChannel(new File(dataDir, DiskInvertedIndex.DATA_NAME), "r");
+
+		PostingList pl = null;
+		int cnt = 0;
+
+		while ((pl = PostingList.readPostingList(fc)) != null) {
+			if (++cnt > 100) {
+				break;
+			}
+
+			IntegerArray dseqs = pl.getDocSeqs();
+
+			System.out.println(pl.toString());
+			System.out.println(dc.getVocab().getDocFreq(pl.getWord()));
+			System.out.println();
+
+			// for (int i = 0; i < dseqs.size() && i < 100; i++) {
+			// int dseq = dseqs.get(i);
+			// System.out.println(i + ", " + pl.toString());
+
+			// if (dseq < 0 || dseq >= dc.size()) {
+			// System.out.println(pl.toString());
+			// System.out.println();
+			// }
+			// }
+		}
+
+		fc.close();
 	}
 
 }

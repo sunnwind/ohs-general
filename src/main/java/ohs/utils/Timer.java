@@ -5,8 +5,6 @@ package ohs.utils;
  */
 public class Timer {
 
-	public static final long[] norms = { 1000, 1000 * 60, 1000 * 60 * 60, 1000 * 60 * 60 * 24 };
-
 	public static Timer newTimer() {
 		Timer ret = new Timer();
 		ret.start();
@@ -16,8 +14,6 @@ public class Timer {
 	private long start, end, ms;
 
 	private int n;
-
-	private long[] ts = new long[4];
 
 	public Timer() {
 
@@ -33,58 +29,23 @@ public class Timer {
 		end = System.currentTimeMillis();
 		ms += end - start;
 		n++;
-		computeTimes();
 		return this;
-	}
-
-	public void computeTimes() {
-		int i = 0;
-		long s = (ms / norms[i++]) % 60;
-		long m = (ms / norms[i++]) % 60;
-		long h = (ms / norms[i++]) % 24;
-		long d = (ms / norms[i++]);
-
-		i = 0;
-		ts[i++] = s;
-		ts[i++] = m;
-		ts[i++] = h;
-		ts[i++] = d;
-	}
-
-	public long getDays() {
-		return ts[3];
 	}
 
 	public long getEnd() {
 		return end;
 	}
 
-	public long getHours() {
-		return ts[2];
-	}
-
-	public long getMilliseconds() {
+	public long getMs() {
 		return ms;
 	}
 
-	public long getMinute() {
-		return ts[1];
-	}
-
-	public long getSeconds() {
-		return ts[0];
+	public int getN() {
+		return n;
 	}
 
 	public long getStart() {
 		return start;
-	}
-
-	public int getStoppedCnt() {
-		return n;
-	}
-
-	public long[] getTimes() {
-		return ts;
 	}
 
 	public void reset() {
@@ -100,20 +61,30 @@ public class Timer {
 		end = System.currentTimeMillis();
 		ms = end - start;
 		n = 1;
-		computeTimes();
 		return this;
 	}
 
 	@Override
 	public String toString() {
+		long msCopy = ms;
+		long m = msCopy / 60000;
+		msCopy %= 60000;
+		long h = m / 60;
+		m %= 60;
+		long d = h / 24;
+		h %= 24;
+		long y = d / 365;
+		d %= 365;
+		long s = msCopy / 1000;
+
 		StringBuilder sb = new StringBuilder();
 
-		int i = 0;
-		long s = ts[i++];
-		long m = ts[i++];
-		long h = ts[i++];
-		long d = ts[i++];
-
+		if (y > 0) {
+			sb.append(y);
+			sb.append('y');
+			sb.append(d);
+			sb.append('d');
+		}
 		if (d > 0) {
 			sb.append(d);
 			sb.append('d');
@@ -129,11 +100,16 @@ public class Timer {
 			sb.append('m');
 			sb.append(s);
 			sb.append('s');
+		} else if (s > 9) {
+			sb.append(s);
+			sb.append('s');
+		} else if (s > 0) {
+			sb.append((ms / 100) / 10.0);
+			sb.append('s');
 		} else {
 			sb.append(ms / 1000.0);
 			sb.append('s');
 		}
-
 		return sb.toString();
 	}
 

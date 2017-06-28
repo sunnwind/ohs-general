@@ -4,13 +4,13 @@ import java.io.File;
 import java.nio.channels.FileChannel;
 import java.text.DecimalFormat;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import edu.stanford.nlp.io.EncodingPrintWriter.out;
 import ohs.corpus.type.DataCompression;
 import ohs.corpus.type.DocumentCollection;
 import ohs.io.ByteArray;
@@ -61,15 +61,15 @@ public class TermBlockInvertedIndexCreator {
 			int file_loc = 0;
 
 			while ((file_loc = file_cnt.getAndIncrement()) < files.size()) {
-				File inFile = files.get(file_loc);
+				File file = files.get(file_loc);
 
-				FileChannel fc = FileUtils.openFileChannel(inFile, "rw");
+				FileChannel in = FileUtils.openFileChannel(file, "rw");
 				int cnt = 0;
 
 				ListMapMap<Integer, Integer, Integer> lmm = Generics.newListMapMap();
 
-				while (fc.position() < fc.size()) {
-					ByteArrayMatrix data = FileUtils.readByteArrayMatrix(fc);
+				while (in.position() < in.size()) {
+					ByteArrayMatrix data = FileUtils.readByteArrayMatrix(in);
 
 					ListMapMap<Integer, Integer, Integer> lmm2 = Generics.newListMapMap(200);
 
@@ -103,14 +103,10 @@ public class TermBlockInvertedIndexCreator {
 
 					cnt++;
 				}
-				fc.close();
+				in.close();
 				// inFile.delete();
 
 				// System.out.printf("[read, %s, %d, %s]\n", inFile.getName(), cnt, timer.stop());
-
-				File outFile = new File(inFile.getParentFile(), "m_" + inFile.getName());
-
-				fc = FileUtils.openFileChannel(outFile, "rw");
 
 				IntegerArray ws = new IntegerArray(lmm.keySet());
 				ws.sort(false);
@@ -131,19 +127,23 @@ public class TermBlockInvertedIndexCreator {
 						poss.sort(false);
 						posData.add(poss);
 					}
+					lm = null;
 
 					PostingList pl = new PostingList(w, dseqs, posData);
 					pls.add(pl);
 				}
 				lmm = null;
 
-				write(pls, fc);
+				File outFile = new File(file.getParentFile(), "m_" + file.getName());
+				FileChannel out = FileUtils.openFileChannel(outFile, "rw");
 
+				for (PostingList pl : pls) {
+					PostingList.writePostingList(pl, out);
+				}
+				out.close();
 				pls = null;
 
 				// System.out.printf("[write, %s, %d, %s]\n", inFile.getName(), cnt, timer.stop());
-
-				fc.close();
 
 				int prog = BatchUtils.progress(file_loc + 1, files.size());
 
@@ -154,14 +154,6 @@ public class TermBlockInvertedIndexCreator {
 
 			return null;
 		}
-
-		private void write(List<PostingList> pls, FileChannel fc) throws Exception {
-			for (PostingList pl : pls) {
-				PostingList.writePostingList(pl, fc);
-			}
-			pls.clear();
-		}
-
 	}
 
 	public class PostingWorker implements Callable<Integer> {
@@ -269,10 +261,10 @@ public class TermBlockInvertedIndexCreator {
 				File outFile = outFiles.get(file_loc);
 
 				synchronized (outFile) {
-					FileChannel fc = FileUtils.openFileChannel(outFile, "rw");
-					fc.position(fc.size());
-					FileUtils.write(m, fc);
-					fc.close();
+					FileChannel out = FileUtils.openFileChannel(outFile, "rw");
+					out.position(out.size());
+					FileUtils.write(m, out);
+					out.close();
 				}
 			}
 			fileToWord = null;
@@ -283,28 +275,24 @@ public class TermBlockInvertedIndexCreator {
 		System.out.println("process begins.");
 
 		TermBlockInvertedIndexCreator iic = new TermBlockInvertedIndexCreator();
-		iic.setBatchSize(1000);
+		iic.setBatchSize(4000);
 		iic.setOutputFileSize(10000);
-		iic.setPostingThreadSize(10);
+		iic.setPostingThreadSize(5);
 		iic.setMergingThreadSize(2);
-		iic.create(MIRPath.OHSUMED_COL_DC_DIR);
+		// iic.create(MIRPath.OHSUMED_COL_DC_DIR);
+		// iic.create(MIRPath.CLEF_EH_2014_COL_DC_DIR);
 		// iic.create(MIRPath.TREC_GENO_2007_COL_DC_DIR);
 		// iic.create(MIRPath.TREC_CDS_2014_COL_DC_DIR);
-		// iic.create(MIRPath.TREC_CDS_2016_COL_DC_DIR);
-		// iic.create(MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR);
-		// iic.create(MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR);
+		iic.create(MIRPath.TREC_CDS_2016_COL_DC_DIR);
+		iic.create(MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR);
+		iic.create(MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR);
 		// iic.create(MIRPath.BIOASQ_COL_DC_DIR);
 		// iic.create(MIRPath.WIKI_COL_DC_DIR);
+		// iic.create("../../data/medical_ir/scopus/col/dc/");
 		// iic.create(MIRPath.DATA_DIR + "merged/col/dc/");
 		// iic.create(MIRPath.CLUEWEB_COL_DC_DIR);
 
 		// FrequentPhraseDetector.main(args);
-
-		// iic.create(MIRPath.TREC_CDS_2014_COL_DC_DIR);
-		// iic.create(MIRPath.CLEF_EH_2014_COL_DC_DIR);
-		// iic.create(MIRPath.TREC_GENO_2007_COL_DC_DIR);
-		// iic.create(MIRPath.MESH_COL_DC_DIR);
-		//
 
 		System.out.println("process ends.");
 	}
@@ -425,13 +413,15 @@ public class TermBlockInvertedIndexCreator {
 				lens.add(0);
 			}
 
-			List<FileChannel> ins = Generics.newArrayList(output_file_size);
+			List<File> files = Generics.newArrayList(output_file_size);
 
 			for (File file : FileUtils.getFilesUnder(tmpDir)) {
 				if (file.getName().startsWith("m_")) {
-					ins.add(FileUtils.openFileChannel(file, "r"));
+					files.add(file);
 				}
 			}
+
+			LongArray poss = new LongArray(new long[files.size()]);
 
 			File postingFile = new File(dataDir, DiskInvertedIndex.DATA_NAME);
 			postingFile.delete();
@@ -440,8 +430,10 @@ public class TermBlockInvertedIndexCreator {
 
 			for (int w = 0; w < vocab.size(); w++) {
 				int file_loc = w % output_file_size;
+				File file = files.get(file_loc);
+				FileChannel fc = FileUtils.openFileChannel(file, "r");
+				fc.position(poss.get(file_loc));
 
-				FileChannel fc = ins.get(file_loc);
 				PostingList pl = PostingList.readPostingList(fc);
 
 				if (w != pl.getWord()) {
@@ -453,6 +445,9 @@ public class TermBlockInvertedIndexCreator {
 
 				starts.set(w, info[0]);
 				lens.set(w, (int) info[1]);
+				poss.set(file_loc, fc.position());
+
+				fc.close();
 
 				int prog = BatchUtils.progress(w + 1, vocab.size());
 
@@ -461,10 +456,6 @@ public class TermBlockInvertedIndexCreator {
 				}
 			}
 			out.close();
-
-			for (FileChannel in : ins) {
-				in.close();
-			}
 
 			FileUtils.deleteFilesUnder(tmpDir);
 		}

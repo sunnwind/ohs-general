@@ -89,131 +89,131 @@ public class RawDocumentCollectionCreator {
 
 		boolean encode = false;
 
-		{
-			String[] attrs = { "sequential identifier", "MEDLINE identifier", "Human-assigned MeSH terms (MH)", "Title (TI)",
-					"Publication type (PT)", "Abstract (AB)", "Author (AU)", "Source (SO)" };
-			String inDir = MIRPath.OHSUMED_COL_TOK_DIR;
-			String outDir = MIRPath.OHSUMED_COL_DC_DIR;
-			boolean append = false;
-
-			RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
-			rdcc.setEncode(encode);
-			rdcc.addAttrs(Generics.newArrayList(attrs));
-			createFromTokenizedData(inDir, rdcc);
-
-			// System.exit(0);
-		}
-
-		{
-			String[] attrs = { "docid", "content" };
-			String inDir = MIRPath.TREC_GENO_2007_COL_TOK_DIR;
-			String outDir = MIRPath.TREC_GENO_2007_COL_DC_DIR;
-			boolean append = false;
-
-			RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
-			rdcc.setEncode(encode);
-			rdcc.addAttrs(Generics.newArrayList(attrs));
-			createFromTokenizedData(inDir, rdcc);
-		}
-
-		{
-			String[] attrs = { "pmcid", "title", "abs", "body", "kwds", "journal", "pmid", "doi" };
-			String inDir = MIRPath.TREC_CDS_2016_COL_TOK_DIR;
-			String outDir = MIRPath.TREC_CDS_2016_COL_DC_DIR;
-			boolean append = false;
-			RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
-			rdcc.setEncode(encode);
-			rdcc.addAttrs(Generics.newArrayList(attrs));
-			createFromTokenizedData(inDir, rdcc);
-		}
-
-		{
-			String[] attrs = { "pmcid", "journal", "title", "abs", "meshes" };
-			String inDir = MIRPath.TREC_PM_2017_COL_MEDLINE_TOK_DIR;
-			String outDir = MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR;
-			boolean append = false;
-			RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
-			rdcc.setEncode(encode);
-			rdcc.addAttrs(Generics.newArrayList(attrs));
-			createFromTokenizedData(inDir, rdcc);
-		}
-
-		{
-			String[] attrs = { "nctid", "brief_title", "official_title", "content", "kwds", "meshes" };
-			String inDir = MIRPath.TREC_PM_2017_COL_CLINICAL_TOK_DIR;
-			String outDir = MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR;
-			boolean append = false;
-			RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
-			rdcc.setEncode(encode);
-			rdcc.addAttrs(Generics.newArrayList(attrs));
-			createFromTokenizedData(inDir, rdcc);
-		}
-
-		{
-			String[] attrs = { "pmcid", "title", "abs", "body", "kwds" };
-			String inDir = MIRPath.TREC_CDS_2014_COL_TOK_DIR;
-			String outDir = MIRPath.TREC_CDS_2014_COL_DC_DIR;
-			boolean append = false;
-			RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
-			rdcc.setEncode(encode);
-			rdcc.addAttrs(Generics.newArrayList(attrs));
-			createFromTokenizedData(inDir, rdcc);
-		}
-
-		{
-			String[] attrs = { "id", "url", "title", "content", "phrs" };
-			String inDir = MIRPath.WIKI_COL_TOK_DIR;
-			String outDir = MIRPath.WIKI_COL_DC_DIR;
-			boolean append = false;
-			RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
-			rdcc.setEncode(encode);
-			rdcc.addAttrs(Generics.newArrayList(attrs));
-			createFromTokenizedData(inDir, rdcc);
-		}
-
-		{
-			String[] attrs = { "pmid", "journal", "year", "mesh", "title", "abs" };
-			String inDir = MIRPath.BIOASQ_COL_TOK_DIR;
-			String outDir = MIRPath.BIOASQ_COL_DC_DIR;
-			boolean append = false;
-			RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
-			rdcc.setEncode(encode);
-			rdcc.addAttrs(Generics.newArrayList(attrs));
-			createFromTokenizedData(inDir, rdcc);
-		}
-
-		{
-			String[] attrs = { "id", "content", "uri" };
-			String inDir = MIRPath.CLUEWEB_COL_TOK_DIR;
-			String outDir = MIRPath.CLUEWEB_COL_DC_DIR;
-			boolean append = false;
-			RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
-			rdcc.setEncode(encode);
-			rdcc.addAttrs(Generics.newArrayList(attrs));
-			createFromTokenizedData(inDir, rdcc);
-		}
-
-		{
-			String[] attrs = { "uid", "date", "url", "content" };
-			String inDir = MIRPath.CLEF_EH_2014_COL_TOK_DIR;
-			String outDir = MIRPath.CLEF_EH_2014_COL_DC_DIR;
-			boolean append = false;
-			RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
-			rdcc.setEncode(encode);
-			rdcc.addAttrs(Generics.newArrayList(attrs));
-			createFromTokenizedData(inDir, rdcc);
-		}
-
-		{
-			String[] attrs = { "docid", "title", "abs", "kwds" };
-			String inDir = "../../data/medical_ir/scopus/col/tok/";
-			String outDir = "../../data/medical_ir/scopus/col/dc/";
-			boolean append = false;
-			RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
-			rdcc.setEncode(encode);
-			rdcc.addAttrs(Generics.newArrayList(attrs));
-			createFromTokenizedData(inDir, rdcc);
-		}
+		// {
+		// String[] attrs = { "sequential identifier", "MEDLINE identifier", "Human-assigned MeSH terms (MH)", "Title (TI)",
+		// "Publication type (PT)", "Abstract (AB)", "Author (AU)", "Source (SO)" };
+		// String inDir = MIRPath.OHSUMED_COL_TOK_DIR;
+		// String outDir = MIRPath.OHSUMED_COL_DC_DIR;
+		// boolean append = false;
+		//
+		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
+		// rdcc.setEncode(encode);
+		// rdcc.addAttrs(Generics.newArrayList(attrs));
+		// createFromTokenizedData(inDir, rdcc);
+		//
+		// // System.exit(0);
+		// }
+		//
+		// {
+		// String[] attrs = { "docid", "content" };
+		// String inDir = MIRPath.TREC_GENO_2007_COL_TOK_DIR;
+		// String outDir = MIRPath.TREC_GENO_2007_COL_DC_DIR;
+		// boolean append = false;
+		//
+		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
+		// rdcc.setEncode(encode);
+		// rdcc.addAttrs(Generics.newArrayList(attrs));
+		// createFromTokenizedData(inDir, rdcc);
+		// }
+		//
+		// {
+		// String[] attrs = { "pmcid", "title", "abs", "body", "kwds", "journal", "pmid", "doi" };
+		// String inDir = MIRPath.TREC_CDS_2016_COL_TOK_DIR;
+		// String outDir = MIRPath.TREC_CDS_2016_COL_DC_DIR;
+		// boolean append = false;
+		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
+		// rdcc.setEncode(encode);
+		// rdcc.addAttrs(Generics.newArrayList(attrs));
+		// createFromTokenizedData(inDir, rdcc);
+		// }
+		//
+		// {
+		// String[] attrs = { "pmcid", "journal", "title", "abs", "meshes" };
+		// String inDir = MIRPath.TREC_PM_2017_COL_MEDLINE_TOK_DIR;
+		// String outDir = MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR;
+		// boolean append = false;
+		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
+		// rdcc.setEncode(encode);
+		// rdcc.addAttrs(Generics.newArrayList(attrs));
+		// createFromTokenizedData(inDir, rdcc);
+		// }
+		//
+		// {
+		// String[] attrs = { "nctid", "brief_title", "official_title", "content", "kwds", "meshes" };
+		// String inDir = MIRPath.TREC_PM_2017_COL_CLINICAL_TOK_DIR;
+		// String outDir = MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR;
+		// boolean append = false;
+		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
+		// rdcc.setEncode(encode);
+		// rdcc.addAttrs(Generics.newArrayList(attrs));
+		// createFromTokenizedData(inDir, rdcc);
+		// }
+		//
+		// {
+		// String[] attrs = { "pmcid", "title", "abs", "body", "kwds" };
+		// String inDir = MIRPath.TREC_CDS_2014_COL_TOK_DIR;
+		// String outDir = MIRPath.TREC_CDS_2014_COL_DC_DIR;
+		// boolean append = false;
+		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
+		// rdcc.setEncode(encode);
+		// rdcc.addAttrs(Generics.newArrayList(attrs));
+		// createFromTokenizedData(inDir, rdcc);
+		// }
+		//
+		// {
+		// String[] attrs = { "id", "url", "title", "content", "phrs" };
+		// String inDir = MIRPath.WIKI_COL_TOK_DIR;
+		// String outDir = MIRPath.WIKI_COL_DC_DIR;
+		// boolean append = false;
+		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
+		// rdcc.setEncode(encode);
+		// rdcc.addAttrs(Generics.newArrayList(attrs));
+		// createFromTokenizedData(inDir, rdcc);
+		// }
+		//
+		// {
+		// String[] attrs = { "pmid", "journal", "year", "mesh", "title", "abs" };
+		// String inDir = MIRPath.BIOASQ_COL_TOK_DIR;
+		// String outDir = MIRPath.BIOASQ_COL_DC_DIR;
+		// boolean append = false;
+		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
+		// rdcc.setEncode(encode);
+		// rdcc.addAttrs(Generics.newArrayList(attrs));
+		// createFromTokenizedData(inDir, rdcc);
+		// }
+		//
+		// {
+		// String[] attrs = { "id", "content", "uri" };
+		// String inDir = MIRPath.CLUEWEB_COL_TOK_DIR;
+		// String outDir = MIRPath.CLUEWEB_COL_DC_DIR;
+		// boolean append = false;
+		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
+		// rdcc.setEncode(encode);
+		// rdcc.addAttrs(Generics.newArrayList(attrs));
+		// createFromTokenizedData(inDir, rdcc);
+		// }
+		//
+		// {
+		// String[] attrs = { "uid", "date", "url", "content" };
+		// String inDir = MIRPath.CLEF_EH_2014_COL_TOK_DIR;
+		// String outDir = MIRPath.CLEF_EH_2014_COL_DC_DIR;
+		// boolean append = false;
+		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
+		// rdcc.setEncode(encode);
+		// rdcc.addAttrs(Generics.newArrayList(attrs));
+		// createFromTokenizedData(inDir, rdcc);
+		// }
+		//
+		// {
+		// String[] attrs = { "docid", "title", "abs", "kwds" };
+		// String inDir = "../../data/medical_ir/scopus/col/tok/";
+		// String outDir = "../../data/medical_ir/scopus/col/dc/";
+		// boolean append = false;
+		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
+		// rdcc.setEncode(encode);
+		// rdcc.addAttrs(Generics.newArrayList(attrs));
+		// createFromTokenizedData(inDir, rdcc);
+		// }
 
 		{
 			String[] attrs = { "type", "cn", "kor_kwds", "eng_kwds", "kor_title", "eng_title", "kor_abs", "eng_abs", "kor_pos_kwds",
@@ -240,28 +240,31 @@ public class RawDocumentCollectionCreator {
 					}
 				}
 			}
+
+			rdcc.checkCollectionSize();
+			rdcc.close();
 		}
 
-		{
-			List<String> inDirNames = Generics.newArrayList();
-			inDirNames.add(MIRPath.OHSUMED_COL_DC_DIR);
-			inDirNames.add(MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR);
-			inDirNames.add(MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR);
-			inDirNames.add(MIRPath.TREC_GENO_2007_COL_DC_DIR);
-			inDirNames.add(MIRPath.BIOASQ_COL_DC_DIR);
-			inDirNames.add(MIRPath.TREC_CDS_2016_COL_DC_DIR);
-			inDirNames.add(MIRPath.WIKI_COL_DC_DIR);
-			String outDirName = MIRPath.DATA_DIR + "merged/col/dc/";
-
-			RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDirName, false);
-			rdcc.setEncode(encode);
-
-			create(inDirNames, rdcc);
-		}
-
-		{
-			DocumentCollectionCreator.main(args);
-		}
+		// {
+		// List<String> inDirNames = Generics.newArrayList();
+		// inDirNames.add(MIRPath.OHSUMED_COL_DC_DIR);
+		// inDirNames.add(MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR);
+		// inDirNames.add(MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR);
+		// inDirNames.add(MIRPath.TREC_GENO_2007_COL_DC_DIR);
+		// inDirNames.add(MIRPath.BIOASQ_COL_DC_DIR);
+		// inDirNames.add(MIRPath.TREC_CDS_2016_COL_DC_DIR);
+		// inDirNames.add(MIRPath.WIKI_COL_DC_DIR);
+		// String outDirName = MIRPath.DATA_DIR + "merged/col/dc/";
+		//
+		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDirName, false);
+		// rdcc.setEncode(encode);
+		//
+		// create(inDirNames, rdcc);
+		// }
+		//
+		// {
+		// DocumentCollectionCreator.main(args);
+		// }
 
 		System.out.println("process ends.");
 	}
@@ -278,7 +281,7 @@ public class RawDocumentCollectionCreator {
 
 	private File dataDir;
 
-	private FileChannel fc;
+	private FileChannel out1;
 
 	private List<List<String>> attrData;
 
@@ -342,7 +345,7 @@ public class RawDocumentCollectionCreator {
 			}
 		}
 
-		fc = FileUtils.openFileChannel(docFile, "rw");
+		out1 = FileUtils.openFileChannel(docFile, "rw");
 	}
 
 	public void addAttrs(List<String> attrs) {
@@ -395,10 +398,10 @@ public class RawDocumentCollectionCreator {
 	public void close() throws Exception {
 		writeDocs();
 
-		fc.close();
+		out1.close();
 
 		{
-			FileChannel fc = FileUtils.openFileChannel(metaFile, "rw");
+			FileChannel out2 = FileUtils.openFileChannel(metaFile, "rw");
 			{
 				starts.trimToSize();
 				lens.trimToSize();
@@ -411,7 +414,7 @@ public class RawDocumentCollectionCreator {
 				data.add(DataCompression.encode(lens));
 				data.add(DataCompression.encode(sizes));
 
-				long[] info = FileUtils.write(data, fc);
+				long[] info = FileUtils.write(data, out2);
 			}
 
 			{
@@ -420,7 +423,7 @@ public class RawDocumentCollectionCreator {
 					List<String> attrs = attrData.get(i);
 					data.add(DataCompression.encode(attrs));
 				}
-				long[] info = FileUtils.write(data, fc);
+				long[] info = FileUtils.write(data, out2);
 			}
 
 			{
@@ -441,10 +444,10 @@ public class RawDocumentCollectionCreator {
 					ByteArray ba = buf.getByteArray();
 					data.add(ba);
 				}
-				long[] info = FileUtils.write(data, fc);
+				long[] info = FileUtils.write(data, out2);
 			}
 
-			fc.close();
+			out2.close();
 		}
 	}
 
@@ -466,7 +469,7 @@ public class RawDocumentCollectionCreator {
 
 	private void writeDocs() throws Exception {
 		for (ByteArrayMatrix m : docs) {
-			long[] info = FileUtils.write(m, fc);
+			long[] info = FileUtils.write(m, out1);
 			starts.add(info[0]);
 			lens.add((int) info[1]);
 		}
