@@ -36,7 +36,7 @@ public class CooccurrenceCounter {
 
 		private DocumentCollection dc;
 
-		private List<FileChannel> fcs;
+		private List<File> outFiles;
 
 		private IntegerArrayMatrix ranges;
 
@@ -44,10 +44,10 @@ public class CooccurrenceCounter {
 
 		private Timer timer;
 
-		public CountWorker(DocumentCollection dc, List<FileChannel> fcs, IntegerArrayMatrix ranges, AtomicInteger range_cnt, Timer timer) {
+		public CountWorker(DocumentCollection dc, List<File> outFiles, IntegerArrayMatrix ranges, AtomicInteger range_cnt, Timer timer) {
 			super();
 			this.dc = dc;
-			this.fcs = fcs;
+			this.outFiles = outFiles;
 			this.ranges = ranges;
 			this.range_cnt = range_cnt;
 			this.timer = timer;
@@ -152,10 +152,13 @@ public class CooccurrenceCounter {
 				buf.write(vals);
 
 				int loc = w1 % output_file_size;
-				FileChannel fc = fcs.get(loc);
+				File outFile = outFiles.get(loc);
 
-				synchronized (fc) {
-					FileUtils.write(buf.getByteBuffer(), fc);
+				synchronized (outFile) {
+					FileChannel out = FileUtils.openFileChannel(outFile, "rw");
+					out.position(out.size());
+					FileUtils.write(buf.getByteBuffer(), out);
+					out.close();
 				}
 			}
 		}
@@ -250,7 +253,8 @@ public class CooccurrenceCounter {
 			cc.setCountThreadSize(1);
 			cc.setMergeThreadSize(1);
 			cc.setSymmetric(true);
-			cc.setOutputFileSize(100);
+			cc.setBatchSize(2000);
+			cc.setOutputFileSize(10000);
 			cc.count();
 		}
 
@@ -321,7 +325,7 @@ public class CooccurrenceCounter {
 
 		FileUtils.deleteFilesUnder(outDir);
 
-		List<FileChannel> fcs = Generics.newArrayList(output_file_size);
+		List<File> outFiles = Generics.newArrayList(output_file_size);
 
 		List<Future<Integer>> fs = Generics.newArrayList();
 
@@ -333,12 +337,11 @@ public class CooccurrenceCounter {
 
 		try {
 			for (int i = 0; i < output_file_size; i++) {
-				DecimalFormat df = new DecimalFormat("00000");
-				fcs.add(FileUtils.openFileChannel(new File(outDir, String.format("%s.ser", df.format(i))), "rw"));
+				outFiles.add(new File(outDir, String.format("%s.ser", new DecimalFormat("000000").format(i))));
 			}
 
 			for (int i = 0; i < count_thread_size; i++) {
-				fs.add(tpe.submit(new CountWorker(dc.copyShallow(), fcs, ranges, range_cnt, timer)));
+				fs.add(tpe.submit(new CountWorker(dc.copyShallow(), outFiles, ranges, range_cnt, timer)));
 			}
 
 			for (int j = 0; j < fs.size(); j++) {
@@ -347,10 +350,6 @@ public class CooccurrenceCounter {
 
 		} finally {
 			tpe.shutdown();
-
-			for (FileChannel fc : fcs) {
-				fc.close();
-			}
 		}
 	}
 

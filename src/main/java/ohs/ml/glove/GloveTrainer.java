@@ -8,6 +8,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import ohs.corpus.type.DocumentCollection;
+import ohs.eden.keyphrase.cluster.KPPath;
 import ohs.io.FileUtils;
 import ohs.ir.medical.general.MIRPath;
 import ohs.math.ArrayMath;
@@ -210,11 +211,11 @@ public class GloveTrainer {
 		// MIRPath.TREC_CDS_2014_COL_DIR, MIRPath.TREC_CDS_2016_COL_DIR,
 		// MIRPath.WIKI_COL_DIR, MIRPath.BIOASQ_COL_DIR };
 
-		String[] dataDirs = { MIRPath.OHSUMED_COL_DC_DIR, MIRPath.TREC_CDS_2014_COL_DC_DIR, MIRPath.WIKI_COL_DC_DIR,
+		String[] dataDirs = { KPPath.COL_DC_DIR, MIRPath.OHSUMED_COL_DC_DIR, MIRPath.TREC_CDS_2014_COL_DC_DIR, MIRPath.WIKI_COL_DC_DIR,
 				MIRPath.BIOASQ_COL_DC_DIR };
 		int thread_size = 10;
 		int hidden_size = 200;
-		int max_iters = 20;
+		int max_iters = 100;
 		int window_size = 10;
 		int batch_size = 100;
 		double learn_rate = 0.001;
@@ -232,18 +233,18 @@ public class GloveTrainer {
 			}
 
 			File dataDir = new File(dataDirs[u]);
-			File modelFileName = new File(dataDir.getParentFile().getParentFile(), "emb/glove.ser.gz");
+			File outFile = new File(dataDir.getParentFile().getParentFile(), "emb/glove.ser.gz");
 
 			DocumentCollection dc = null;
 
 			if (count) {
 				CooccurrenceCounter cc = new CooccurrenceCounter(dataDir.getPath(), null);
 				cc.setWindowSize(window_size);
-				cc.setCountThreadSize(thread_size);
+				cc.setCountThreadSize(5);
 				cc.setSymmetric(true);
-				cc.setOutputFileSize(batch_size);
+				cc.setOutputFileSize(10000);
+				cc.setBatchSize(5000);
 				cc.count();
-
 				dc = cc.getDocumentCollection();
 			} else {
 				dc = new DocumentCollection(dataDir.getPath());
@@ -257,7 +258,7 @@ public class GloveTrainer {
 
 			GloveTrainer trainer = new GloveTrainer();
 			GloveModel M = trainer.train(param, vocab, new File(dataDir, "cocnt").getPath(), max_iters, read_all_files, use_adam);
-			M.getAveragedModel().writeObject(modelFileName.getPath());
+			M.getAveragedModel().writeObject(outFile.getPath());
 		}
 
 		System.out.println("process ends.");

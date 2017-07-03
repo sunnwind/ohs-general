@@ -3,8 +3,8 @@ package ohs.ir.search.index;
 import java.io.File;
 import java.nio.channels.FileChannel;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -84,21 +84,15 @@ public class TermBlockInvertedIndexCreator {
 
 						for (int k = 0; k < dseqs.size(); k++) {
 							int dseq = dseqs.get(k);
-							IntegerArray poss = posData.get(k);
-							List<Integer> l = lm.get(dseq, true);
-							for (int pos : poss) {
-								l.add(pos);
+							List<Integer> poss = Generics.newArrayList(posData.get(k).size());
+							for (int pos : posData.get(k)) {
+								poss.add(pos);
 							}
-						}
-					}
 
-					for (int w : lmm2.keySet()) {
-						ListMap<Integer, Integer> lm = lmm2.get(w);
-						for (int dseq : lm.keySet()) {
-							List<Integer> poss = lm.get(dseq);
-							lmm.get(w, dseq, true).addAll(poss);
+							lm.get(dseq, true).addAll(poss);
 						}
 					}
+					lmm.put(lmm2);
 					lmm2 = null;
 
 					cnt++;
@@ -283,9 +277,9 @@ public class TermBlockInvertedIndexCreator {
 		// iic.create(MIRPath.CLEF_EH_2014_COL_DC_DIR);
 		// iic.create(MIRPath.TREC_GENO_2007_COL_DC_DIR);
 		// iic.create(MIRPath.TREC_CDS_2014_COL_DC_DIR);
-		iic.create(MIRPath.TREC_CDS_2016_COL_DC_DIR);
-		iic.create(MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR);
-		iic.create(MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR);
+		// iic.create(MIRPath.TREC_CDS_2016_COL_DC_DIR);
+		// iic.create(MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR);
+		// iic.create(MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR);
 		// iic.create(MIRPath.BIOASQ_COL_DC_DIR);
 		// iic.create(MIRPath.WIKI_COL_DC_DIR);
 		// iic.create("../../data/medical_ir/scopus/col/dc/");
@@ -310,6 +304,8 @@ public class TermBlockInvertedIndexCreator {
 	private File dataDir;
 
 	private File tmpDir;
+
+	private String DIGIT_PATTERN = "0000000";
 
 	public TermBlockInvertedIndexCreator() {
 
@@ -350,7 +346,7 @@ public class TermBlockInvertedIndexCreator {
 
 		try {
 			for (int i = 0; i < output_file_size; i++) {
-				File outFile = new File(tmpDir, new DecimalFormat("000000").format(i) + ".ser");
+				File outFile = new File(tmpDir, new DecimalFormat(DIGIT_PATTERN).format(i) + ".ser");
 				outFiles.add(outFile);
 			}
 

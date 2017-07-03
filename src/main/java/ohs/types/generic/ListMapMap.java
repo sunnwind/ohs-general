@@ -99,6 +99,17 @@ public class ListMapMap<K, V, F> implements Serializable {
 		ensure(key1, key2).addAll(values);
 	}
 
+	public void put(ListMapMap<K, V, F> lmm) {
+		for (K k : lmm.keySet()) {
+			ListMap<V, F> lm = lmm.get(k);
+			get(k, true).put(lm);
+		}
+	}
+
+	public ListMap<V, F> remove(K key1) {
+		return ents.remove(key1);
+	}
+
 	public int size() {
 		return ents.size();
 	}

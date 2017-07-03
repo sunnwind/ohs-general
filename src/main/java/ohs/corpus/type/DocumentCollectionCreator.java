@@ -269,17 +269,17 @@ public class DocumentCollectionCreator {
 		// dcc.setReuseVocab(true);
 		dcc.setEncode(false);
 
-//		dcc.create(MIRPath.OHSUMED_COL_DC_DIR, 1, new int[] { 3, 5 });
-//		dcc.create(MIRPath.CLEF_EH_2014_COL_DC_DIR, 0, new int[] { 3 });
-//		dcc.create(MIRPath.TREC_GENO_2007_COL_DC_DIR, 0, new int[] { 1 });
-//		dcc.create(MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR, 0, new int[] { 2, 3, 4 });
-//		dcc.create(MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR, 0, new int[] { 1, 2, 3, 4, 5 });
-//		dcc.create(MIRPath.TREC_CDS_2014_COL_DC_DIR, 0, new int[] { 1, 2, 3 });
-//		dcc.create(MIRPath.TREC_CDS_2016_COL_DC_DIR, 0, new int[] { 1, 2, 3 });
-//		dcc.create(MIRPath.BIOASQ_COL_DC_DIR, 0, new int[] { 4, 5 });
-//		dcc.create(MIRPath.WIKI_COL_DC_DIR, 0, new int[] { 3 });
-//		dcc.create("../../data/medical_ir/scopus/col/dc/", 0, new int[] { 1, 2 });
-//		dcc.create(MIRPath.CLUEWEB_COL_DC_DIR, 0, new int[] { 1 });
+		// dcc.create(MIRPath.OHSUMED_COL_DC_DIR, 1, new int[] { 3, 5 });
+		// dcc.create(MIRPath.CLEF_EH_2014_COL_DC_DIR, 0, new int[] { 3 });
+		// dcc.create(MIRPath.TREC_GENO_2007_COL_DC_DIR, 0, new int[] { 1 });
+		// dcc.create(MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR, 0, new int[] { 2, 3, 4 });
+		// dcc.create(MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR, 0, new int[] { 1, 2, 3, 4, 5 });
+		// dcc.create(MIRPath.TREC_CDS_2014_COL_DC_DIR, 0, new int[] { 1, 2, 3 });
+		// dcc.create(MIRPath.TREC_CDS_2016_COL_DC_DIR, 0, new int[] { 1, 2, 3 });
+		// dcc.create(MIRPath.BIOASQ_COL_DC_DIR, 0, new int[] { 4, 5 });
+		// dcc.create(MIRPath.WIKI_COL_DC_DIR, 0, new int[] { 3 });
+		// dcc.create("../../data/medical_ir/scopus/col/dc/", 0, new int[] { 1, 2 });
+		// dcc.create(MIRPath.CLUEWEB_COL_DC_DIR, 0, new int[] { 1 });
 
 		// scc.setMinDocFreq(0);
 		// scc.create(MIRPath.MESH_COL_LINE_DIR, 0, new int[] { 1 },MIRPath.MESH_COL_DC_DIR);
@@ -309,7 +309,7 @@ public class DocumentCollectionCreator {
 			// target_loc_data[0] = new int[] { 3, 5 };
 			// target_loc_data[1] = new int[] { 1 };
 
-//			dcc.create(MIRPath.DATA_DIR + "merged/col/dc/", docid_locs, target_loc_data);
+			// dcc.create(MIRPath.DATA_DIR + "merged/col/dc/", docid_locs, target_loc_data);
 		}
 
 		{
@@ -664,7 +664,7 @@ public class DocumentCollectionCreator {
 						int prog = BatchUtils.progress(++doc_cnt, rdc.size());
 
 						if (prog > 0) {
-							System.out.printf("[%d percent, %s]\n", prog, timer.stop());
+							System.out.printf("[%d percent, %d/%d, %s]\n", prog, doc_cnt, rdc.size(), timer.stop());
 						}
 					}
 					docs.clear();
@@ -685,7 +685,7 @@ public class DocumentCollectionCreator {
 				int prog = BatchUtils.progress(++doc_cnt, rdc.size());
 
 				if (prog > 0) {
-					System.out.printf("[%d percent, %s]\n", prog, timer.stop());
+					System.out.printf("[%d percent, %d/%d, %s]\n", prog, doc_cnt, rdc.size(), timer.stop());
 				}
 			}
 		}

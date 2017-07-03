@@ -107,6 +107,13 @@ public class ListMap<K, V> implements Serializable {
 		ensure(key).add(value);
 	}
 
+	public void put(ListMap<K, V> lm) {
+		for (K k : lm.keySet()) {
+			List<V> l = lm.get(k);
+			get(k, true).addAll(l);
+		}
+	}
+
 	public List<V> remove(K key) {
 		return ents.remove(key);
 	}
