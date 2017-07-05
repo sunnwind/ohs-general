@@ -11,6 +11,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+
+import ohs.utils.Generics;
+
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
@@ -401,6 +404,17 @@ public class Counter<E> implements Serializable {
 		for (final E e : toRemove) {
 			removeKey(e);
 		}
+	}
+
+	public Counter<E> subCounter(Set<E> toSelect) {
+		Counter<E> ret = new Counter<>(toSelect.size());
+		for (final E e : toSelect) {
+			double val = getCount(e);
+			if (val != 0) {
+				ret.setCount(e, val);
+			}
+		}
+		return ret;
 	}
 
 	public void pruneExcept(final Set<E> toKeep) {

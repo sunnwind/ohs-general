@@ -80,6 +80,8 @@ public interface Matrix extends Serializable {
 
 	public Vector sumRows();
 
+	public Matrix transpose();
+
 	public void unwrapValues();
 
 	public double value(int i, int j);

@@ -45,29 +45,6 @@ public class DocumentCollection {
 
 	public static final int SENT_END = -1;
 
-	public static SparseVector getDocVector(IntegerArray d) {
-		Counter<Integer> c = Generics.newCounter(d.size());
-		for (int w : d) {
-			if (w == SENT_END) {
-				continue;
-			}
-			c.incrementCount(w, 1);
-		}
-		return new SparseVector(c);
-	}
-
-	public static String getText(Vocab vocab, IntegerArrayMatrix doc) {
-		StringBuffer sb = new StringBuffer();
-		for (int i = 0; i < doc.size(); i++) {
-			IntegerArray sent = doc.get(i);
-			sb.append(StrUtils.join(" ", vocab.getObjects(sent.values())));
-			if (i != doc.size() - 1) {
-				sb.append("\n");
-			}
-		}
-		return sb.toString();
-	}
-
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 
@@ -84,20 +61,20 @@ public class DocumentCollection {
 				int[][] ranges = BatchUtils.getBatchRanges(dc.size(), 500);
 
 				Timer timer = Timer.newTimer();
-				
+
 				System.out.println(dc.getText(0));
 
-//				for (int i = 0; i < ranges.length; i++) {
-//					List<Pair<String, IntegerArray>> res = dc.getRange(ranges[i][0], ranges[i][1], false);
-//
-//					for (int k = 0; k < res.size(); k++) {
-//						IntegerArrayMatrix doc = DocumentCollection.toMultiSentences(res.get(k).getSecond());
-//						String s = DocumentCollection.getText(dc.getVocab(), doc);
-//						
-//						System.out.println(s);
-//						System.out.println();
-//					}
-//				}
+				// for (int i = 0; i < ranges.length; i++) {
+				// List<Pair<String, IntegerArray>> res = dc.getRange(ranges[i][0], ranges[i][1], false);
+				//
+				// for (int k = 0; k < res.size(); k++) {
+				// IntegerArrayMatrix doc = DocumentCollection.toMultiSentences(res.get(k).getSecond());
+				// String s = DocumentCollection.getText(dc.getVocab(), doc);
+				//
+				// System.out.println(s);
+				// System.out.println();
+				// }
+				// }
 
 				System.out.println(timer.stop());
 
@@ -191,6 +168,27 @@ public class DocumentCollection {
 		return vocab;
 	}
 
+	public static SparseVector toDocVector(IntegerArray d) {
+		Counter<Integer> c = Generics.newCounter(d.size());
+		for (int w : d) {
+			if (w == SENT_END) {
+				continue;
+			}
+			c.incrementCount(w, 1);
+		}
+		return new SparseVector(c);
+	}
+
+	public static SparseVector toDocVector(IntegerArrayMatrix d) {
+		Counter<Integer> c = Generics.newCounter(d.size());
+		for (IntegerArray s : d) {
+			for (int w : s) {
+				c.incrementCount(w, 1);
+			}
+		}
+		return new SparseVector(c);
+	}
+
 	public static IntegerArrayMatrix toMultiSentences(IntegerArray d) {
 		List<Integer> cnts = Generics.newArrayList(d.size());
 		int w_cnt = 0;
@@ -222,19 +220,31 @@ public class DocumentCollection {
 		return ret;
 	}
 
-	public static IntegerArray toSingleSentence(IntegerArrayMatrix doc) {
-		IntegerArray ret = new IntegerArray(doc.sizeOfEntries() + doc.size());
-		for (int i = 0; i < doc.size(); i++) {
-			IntegerArray sent = doc.get(i);
+	public static IntegerArray toSingleSentence(IntegerArrayMatrix d) {
+		IntegerArray ret = new IntegerArray(d.sizeOfEntries() + d.size());
+		for (int i = 0; i < d.size(); i++) {
+			IntegerArray sent = d.get(i);
 			for (int w : sent) {
 				ret.add(w);
 			}
-			if (i != doc.size() - 1) {
+			if (i != d.size() - 1) {
 				ret.add(SENT_END);
 			}
 		}
 		ret.trimToSize();
 		return ret;
+	}
+
+	public static String toText(Vocab vocab, IntegerArrayMatrix doc) {
+		StringBuffer sb = new StringBuffer();
+		for (int i = 0; i < doc.size(); i++) {
+			IntegerArray sent = doc.get(i);
+			sb.append(StrUtils.join(" ", vocab.getObjects(sent.values())));
+			if (i != doc.size() - 1) {
+				sb.append("\n");
+			}
+		}
+		return sb.toString();
 	};
 
 	private Map<Integer, Pair<String, IntegerArray>> cache = Generics.newWeakHashMap();
@@ -326,7 +336,7 @@ public class DocumentCollection {
 				long start = starts.get(i);
 				fc.position(start);
 				int len = lens.get(i);
-//				data = new ByteBufferWrapper(FileUtils.readByteArray(fc, len)).readByteArrayMatrix();
+				// data = new ByteBufferWrapper(FileUtils.readByteArray(fc, len)).readByteArrayMatrix();
 				data = FileUtils.readByteArrayMatrix(fc, len);
 			}
 
@@ -397,7 +407,7 @@ public class DocumentCollection {
 	}
 
 	public SparseVector getDocVector(int i) throws Exception {
-		return getDocVector(get(i).getSecond());
+		return toDocVector(get(i).getSecond());
 	}
 
 	public SparseMatrix getDocVectorRange(int i, int j) throws Exception {
@@ -409,7 +419,7 @@ public class DocumentCollection {
 		for (Pair<String, IntegerArray> p : ps) {
 			IntegerArray d = p.getSecond();
 			idxs.add(k++);
-			dvs.add(getDocVector(d));
+			dvs.add(toDocVector(d));
 		}
 		return new SparseMatrix(idxs, dvs);
 	}
@@ -471,6 +481,7 @@ public class DocumentCollection {
 				ByteBufferWrapper buf = new ByteBufferWrapper(data);
 
 				for (int k = i; k < j; k++) {
+					int tmp = buf.readInteger();
 					ByteArrayMatrix sub = buf.readByteArrayMatrix();
 
 					String docid = null;

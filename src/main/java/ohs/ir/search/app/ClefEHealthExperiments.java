@@ -106,7 +106,18 @@ public class ClefEHealthExperiments {
 			idxDir = MIRPath.CLUEWEB_COL_DC_DIR;
 			queryFileName = MIRPath.CLEF_EH_2016_QUERY_FILE;
 			relFileName = MIRPath.CLEF_EH_2016_REL_JUDGE_FILE;
+		} else if ((COR_TYPE == 5)) {
+			dataDir = MIRPath.TREC_PM_2017_DIR;
+			idxDir = MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR;
+			queryFileName = MIRPath.TREC_PM_2017_QUERY_FILE;
+			relFileName = null;
+		} else if ((COR_TYPE == 6)) {
+			dataDir = MIRPath.TREC_PM_2017_DIR;
+			idxDir = MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR;
+			queryFileName = MIRPath.TREC_PM_2017_QUERY_FILE;
+			relFileName = null;
 		}
+
 		resDir = dataDir + "res/";
 	}
 
@@ -990,7 +1001,7 @@ public class ClefEHealthExperiments {
 					phrss.add(phrs);
 				}
 			}
-			pm = new PhraseMapper<String>(PhraseMapper.createDict(phrss));
+			pm = new PhraseMapper<String>(PhraseMapper.createTrie(phrss));
 		}
 
 		List<String> l1 = Generics.newArrayList();

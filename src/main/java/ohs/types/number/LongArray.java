@@ -2,6 +2,7 @@ package ohs.types.number;
 
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
@@ -20,6 +21,7 @@ import java.util.function.UnaryOperator;
 import ohs.io.FileUtils;
 import ohs.math.ArrayUtils;
 import ohs.utils.ByteSize;
+import ohs.utils.Generics;
 
 public class LongArray implements RandomAccess, Cloneable, java.io.Serializable, Iterable<Long> {
 	/** Index-based split-by-two, lazily initialized Spliterator */
@@ -640,8 +642,6 @@ public class LongArray implements RandomAccess, Cloneable, java.io.Serializable,
 		vals = Arrays.copyOf(vals, newCapacity);
 	}
 
-	// Positional Access Operations
-
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -650,6 +650,8 @@ public class LongArray implements RandomAccess, Cloneable, java.io.Serializable,
 		result = prime * result + Arrays.hashCode(vals);
 		return result;
 	}
+
+	// Positional Access Operations
 
 	/**
 	 * Returns the index of the first occurrence of the specified element in this list, or -1 if this list does not contain the element.
@@ -1097,6 +1099,14 @@ public class LongArray implements RandomAccess, Cloneable, java.io.Serializable,
 		// return a;
 
 		return null;
+	}
+
+	public ArrayList<Long> toArrayList() {
+		ArrayList<Long> ret = Generics.newArrayList(size());
+		for (int i = 0; i < size(); i++) {
+			ret.add(get(i));
+		}
+		return ret;
 	}
 
 	public String toString() {

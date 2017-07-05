@@ -1,7 +1,14 @@
 package ohs.math;
 
+import java.sql.BatchUpdateException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import ohs.matrix.SparseMatrix;
+import ohs.matrix.SparseVector;
+import ohs.ml.neuralnet.com.BatchUtils;
+import ohs.types.generic.Counter;
+import ohs.types.generic.CounterMap;
 
 public class ArrayWokers {
 	public static class AddAfterMultiplyWorker1 implements Callable<Double> {
@@ -134,6 +141,64 @@ public class ArrayWokers {
 				for (int i = 0; i < a_rows; i++) {
 					c[i][j] = ArrayMath.dotProduct(a[i], b[j]);
 					sum += c[i][j];
+				}
+			}
+			return sum;
+		}
+	}
+
+	public static class EqualColumnProductWorker2 implements Callable<Double> {
+		private SparseMatrix a;
+
+		private SparseMatrix b;
+
+		private CounterMap<Integer, Integer> c;
+
+		private AtomicInteger row_cnt;
+
+		private boolean symmetric;
+
+		public EqualColumnProductWorker2(SparseMatrix a, SparseMatrix b, CounterMap<Integer, Integer> c, AtomicInteger loc,
+				boolean symmetric) {
+			this.a = a;
+			this.b = b;
+			this.c = c;
+			this.row_cnt = loc;
+			this.symmetric = symmetric;
+		}
+
+		@Override
+		public Double call() throws Exception {
+			int m = 0;
+			double sum = 0;
+
+			while ((m = row_cnt.getAndIncrement()) < a.rowSize()) {
+				int i = a.indexAt(m);
+				SparseVector sv1 = a.rowAt(m);
+
+				Counter<Integer> cc = null;
+
+				synchronized (c) {
+					cc = c.getCounter(i);
+				}
+
+				if (symmetric) {
+
+				} else {
+					for (int n = 0; n < b.rowSize(); n++) {
+						int j = b.indexAt(n);
+						SparseVector sv2 = b.rowAt(n);
+						double dot = VectorMath.dotProduct(sv1, sv2);
+						if (dot != 0) {
+							cc.setCount(j, dot);
+						}
+					}
+				}
+
+				int prog = BatchUtils.progress(m, a.rowSize());
+
+				if (prog > 0) {
+					System.out.printf("[%d percent, %d/%d]\n", prog, m, a.rowSize());
 				}
 			}
 			return sum;

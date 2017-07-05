@@ -15,6 +15,8 @@ import ohs.matrix.SparseMatrix;
 import ohs.matrix.SparseVector;
 import ohs.ml.neuralnet.com.BatchUtils;
 import ohs.types.generic.Vocab;
+import ohs.types.number.IntegerArray;
+import ohs.types.number.IntegerArrayMatrix;
 import ohs.utils.Generics;
 import ohs.utils.Timer;
 
@@ -33,7 +35,7 @@ public class DocumentPriorEstimator {
 
 		private AtomicInteger range_cnt;
 
-		private int[][] rs;
+		private IntegerArrayMatrix ranges;
 
 		private DocumentCollection dc;
 
@@ -41,9 +43,9 @@ public class DocumentPriorEstimator {
 
 		private DenseVector priors;
 
-		public Worker(DocumentCollection dc, int[][] ranges, AtomicInteger range_cnt, DenseVector priors, Timer timer) {
+		public Worker(DocumentCollection dc, IntegerArrayMatrix ranges, AtomicInteger range_cnt, DenseVector priors, Timer timer) {
 			this.dc = dc;
-			this.rs = ranges;
+			this.ranges = ranges;
 			this.range_cnt = range_cnt;
 			this.priors = priors;
 			this.timer = timer;
@@ -53,18 +55,18 @@ public class DocumentPriorEstimator {
 		public Integer call() throws Exception {
 			int loc = 0;
 
-			while ((loc = range_cnt.getAndIncrement()) < rs.length) {
-				int[] r = rs[loc];
-				DenseVector subPriors = estimate(r[0], r[1]);
+			while ((loc = range_cnt.getAndIncrement()) < ranges.size()) {
+				IntegerArray range = ranges.get(loc);
+				DenseVector subPriors = estimate(range.get(0), range.get(1));
 
 				for (int i = 0; i < subPriors.size(); i++) {
-					int dseq = i + r[0];
+					int dseq = i + range.get(0);
 					priors.set(dseq, subPriors.value(i));
 				}
 
-				int prog = BatchUtils.progress(loc, rs.length);
+				int prog = BatchUtils.progress(loc, ranges.size());
 				if (prog > 0) {
-					System.out.printf("[%d percent, %d/%d, %d/%d, %s]\n", prog, loc, rs.length, r[1], dc.size(), timer.stop());
+					System.out.printf("[%d percent, %d/%d, %d/%d, %s]\n", prog, loc, ranges.size(), range.get(1), dc.size(), timer.stop());
 				}
 			}
 			return null;
@@ -119,14 +121,14 @@ public class DocumentPriorEstimator {
 			dss.add(dc.copyShallow());
 		}
 
-		int[][] rs = BatchUtils.getBatchRanges(dc.size(), batch_size);
+		IntegerArrayMatrix ranges = new IntegerArrayMatrix(BatchUtils.getBatchRanges(dc.size(), batch_size));
 
 		AtomicInteger range_cnt = new AtomicInteger(0);
 
 		DenseVector priors = new DenseVector(dc.size());
 
 		for (int i = 0; i < thread_size; i++) {
-			fs.add(tpe.submit(new Worker(dss.get(i), rs, range_cnt, priors, timer)));
+			fs.add(tpe.submit(new Worker(dss.get(i), ranges, range_cnt, priors, timer)));
 		}
 
 		for (int i = 0; i < thread_size; i++) {

@@ -2,6 +2,7 @@ package ohs.types.number;
 
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
@@ -20,6 +21,7 @@ import java.util.function.UnaryOperator;
 
 import ohs.io.FileUtils;
 import ohs.utils.ByteSize;
+import ohs.utils.Generics;
 
 public class DoubleArray implements RandomAccess, Cloneable, java.io.Serializable, Iterable<Double> {
 	/** Index-based split-by-two, lazily initialized Spliterator */
@@ -696,8 +698,6 @@ public class DoubleArray implements RandomAccess, Cloneable, java.io.Serializabl
 		return new Itr();
 	}
 
-	// Positional Access Operations
-
 	/**
 	 * Returns the index of the last occurrence of the specified element in this list, or -1 if this list does not contain the element. More
 	 * formally, returns the highest index <tt>i</tt> such that <tt>(o==null&nbsp;?&nbsp;get(i)==null&nbsp;:&nbsp;o.equals(get(i)))</tt>, or
@@ -709,6 +709,8 @@ public class DoubleArray implements RandomAccess, Cloneable, java.io.Serializabl
 				return i;
 		return -1;
 	}
+
+	// Positional Access Operations
 
 	/**
 	 * Returns a list iterator over the elements in this list (in proper sequence).
@@ -1122,6 +1124,14 @@ public class DoubleArray implements RandomAccess, Cloneable, java.io.Serializabl
 		// return a;
 
 		return null;
+	}
+
+	public ArrayList<Double> toArrayList() {
+		ArrayList<Double> ret = Generics.newArrayList(size());
+		for (int i = 0; i < size(); i++) {
+			ret.add(get(i));
+		}
+		return ret;
 	}
 
 	public String toString() {

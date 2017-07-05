@@ -2,19 +2,15 @@ package ohs.ir.medical.query;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.StringReader;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 import ohs.io.FileUtils;
 import ohs.io.TextFileReader;
@@ -38,10 +34,10 @@ public class QueryReader {
 
 	public static void main(String[] args) throws Exception {
 
-		{
-			List<BaseQuery> bqs = readClefEHealthQueries(MIRPath.CLEF_EH_2016_QUERY_FILE, null);
-			System.out.println(bqs.size());
-		}
+		// {
+		// List<BaseQuery> bqs = readClefEHealthQueries(MIRPath.CLEF_EH_2016_QUERY_FILE, null);
+		// System.out.println(bqs.size());
+		// }
 
 		// {
 		// List<BaseQuery> bqs = readTrecGenomicsQueries(MIRPath.TREC_GENO_2007_QUERY_FILE);
@@ -52,7 +48,8 @@ public class QueryReader {
 		// }
 
 		{
-
+			List<BaseQuery> bqs = readTrecPmQueries(MIRPath.TREC_PM_2017_QUERY_FILE);
+			System.out.println(bqs.size());
 		}
 
 	}
@@ -62,15 +59,9 @@ public class QueryReader {
 	}
 
 	public static List<BaseQuery> readClefEHealthQueries(String queryFileName, String dischargeDirName) throws Exception {
-		List<BaseQuery> ret = Generics.newLinkedList();
+		List<BaseQuery> ret = Generics.newArrayList();
 
-		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-		DocumentBuilder parser = dbf.newDocumentBuilder();
-
-		Document xmlDoc = parser.parse(new InputSource(new StringReader(FileUtils.readFromText(queryFileName).replace("&", "and"))));
-
-		Element docElem = xmlDoc.getDocumentElement();
-		NodeList nodeList = null;
+		Document doc = Jsoup.parse(FileUtils.readFromText(queryFileName));
 
 		int year = 2013;
 
@@ -82,28 +73,29 @@ public class QueryReader {
 			year = 2016;
 		}
 
+		Elements elems = null;
+
 		if (year == 2016) {
-			nodeList = docElem.getElementsByTagName("query");
+			elems = doc.getElementsByTag("query");
 
-			String[] nodeNames = { "id", "title" };
+			String[] tags = { "id", "title" };
 
-			for (int i = 0; i < nodeList.getLength(); i++) {
-				Element queryElem = (Element) nodeList.item(i);
+			for (int i = 0; i < elems.size(); i++) {
+				Element elem = elems.get(i);
+				String[] vals = new String[tags.length];
 
-				String[] values = new String[nodeNames.length];
-
-				for (int j = 0; j < nodeNames.length; j++) {
-					NodeList nodes = queryElem.getElementsByTagName(nodeNames[j]);
-					if (nodes.getLength() > 0) {
-						values[j] = nodes.item(0).getTextContent();
+				for (int j = 0; j < tags.length; j++) {
+					String s = elem.getElementsByTag(tags[j]).get(0).text();
+					if (s.length() > 0) {
+						vals[j] = s;
 					}
 				}
 
-				String id = values[0];
+				String id = vals[0];
 				String dischargeFileName = "";
 				String discharge = "";
 				String title = "";
-				String description = values[1];
+				String description = vals[1];
 				String profile = "";
 				String narrative = "";
 
@@ -111,27 +103,27 @@ public class QueryReader {
 				ret.add(cq);
 			}
 		} else if (year == 2015) {
-			nodeList = docElem.getElementsByTagName("top");
+			elems = doc.getElementsByTag("top");
 
-			String[] nodeNames = { "num", "query" };
+			String[] tags = { "num", "query" };
 
-			for (int i = 0; i < nodeList.getLength(); i++) {
-				Element queryElem = (Element) nodeList.item(i);
+			for (int i = 0; i < elems.size(); i++) {
+				Element elem = elems.get(i);
 
-				String[] values = new String[nodeNames.length];
+				String[] vals = new String[tags.length];
 
-				for (int j = 0; j < nodeNames.length; j++) {
-					NodeList nodes = queryElem.getElementsByTagName(nodeNames[j]);
-					if (nodes.getLength() > 0) {
-						values[j] = nodes.item(0).getTextContent();
+				for (int j = 0; j < tags.length; j++) {
+					String s = elem.getElementsByTag(tags[j]).get(0).text();
+					if (s.length() > 0) {
+						vals[j] = s;
 					}
 				}
 
-				String id = values[0];
+				String id = vals[0];
 				String dischargeFileName = "";
 				String discharge = "";
 				String title = "";
-				String description = values[1];
+				String description = vals[1];
 				String profile = "";
 				String narrative = "";
 
@@ -140,9 +132,9 @@ public class QueryReader {
 			}
 		} else {
 			if (year == 2013) {
-				nodeList = docElem.getElementsByTagName("query");
+				elems = doc.getElementsByTag("query");
 			} else if (year == 2014) {
-				nodeList = docElem.getElementsByTagName("topic");
+				elems = doc.getElementsByTag("topic");
 			}
 
 			Map<String, File> dischargeFileMap = new TreeMap<String, File>();
@@ -154,23 +146,20 @@ public class QueryReader {
 				}
 			}
 
-			String[] nodeNames = { "id", "discharge_summary", "title", "desc", "profile", "narr" };
+			String[] tags = { "id", "discharge_summary", "title", "desc", "profile", "narr" };
 
-			for (int i = 0; i < nodeList.getLength(); i++) {
-				Element queryElem = (Element) nodeList.item(i);
-
-				String[] values = new String[nodeNames.length];
-
-				values[0] = queryElem.getAttribute(nodeNames[0]);
-				for (int j = 0; j < nodeNames.length; j++) {
-					NodeList nodes = queryElem.getElementsByTagName(nodeNames[j]);
-					if (nodes.getLength() > 0) {
-						values[j] = nodes.item(0).getTextContent();
+			for (int i = 0; i < elems.size(); i++) {
+				Element elem = elems.get(i);
+				String[] vals = new String[tags.length];
+				for (int j = 0; j < tags.length; j++) {
+					String s = elem.getElementsByTag(tags[j]).get(0).text();
+					if (s.length() > 0) {
+						vals[j] = s;
 					}
 				}
 
-				String id = values[0];
-				String dischargeFileName = values[1].trim();
+				String id = vals[0];
+				String dischargeFileName = vals[1].trim();
 
 				File dischargeFile = dischargeFileMap.get(dischargeFileName);
 				String discharge = "";
@@ -181,10 +170,10 @@ public class QueryReader {
 					new FileNotFoundException(dischargeFileName);
 				}
 
-				String title = values[2];
-				String description = values[3];
-				String profile = values[4];
-				String narrative = values[5];
+				String title = vals[2];
+				String description = vals[3];
+				String profile = vals[4];
+				String narrative = vals[5];
 
 				ClefEHealthQuery cq = new ClefEHealthQuery(id, discharge, title, description, profile, narrative);
 				ret.add(cq);
@@ -205,7 +194,7 @@ public class QueryReader {
 		 * .W Information request
 		 */
 
-		List<BaseQuery> ret = Generics.newLinkedList();
+		List<BaseQuery> ret = Generics.newArrayList();
 		Map<String, String> map = Generics.newHashMap();
 		TextFileReader reader = new TextFileReader(fileName);
 
@@ -259,49 +248,39 @@ public class QueryReader {
 			ret = readOhsumedQueries(fileName);
 		} else if (fileName.contains("trec_genomics")) {
 			ret = readTrecGenomicsQueries(fileName);
+		} else if (fileName.contains("trec_pm")) {
+			ret = readTrecPmQueries(fileName);
 		}
 		return ret;
 	}
 
 	public static List<BaseQuery> readTrecCdsQueries(String fileName) throws Exception {
-		List<BaseQuery> ret = Generics.newLinkedList();
+		List<BaseQuery> ret = Generics.newArrayList();
 
-		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-		DocumentBuilder parser = dbf.newDocumentBuilder();
+		Document doc = Jsoup.parse(FileUtils.readFromText(fileName));
+		Elements elems = doc.getElementsByTag("topic");
 
-		Document xmlDoc = parser.parse(new InputSource(new StringReader(FileUtils.readFromText(fileName))));
+		for (int i = 0; i < elems.size(); i++) {
+			Element elem2 = elems.get(i);
+			String id = elem2.attr("number");
+			String type = elem2.attr("type");
+			String note = "";
+			String desc = "";
+			String summary = "";
+			String diagnosis = "";
 
-		Element docElem = xmlDoc.getDocumentElement();
-		NodeList nodeList = docElem.getElementsByTagName("topic");
+			desc = elem2.getElementsByTag("description").get(0).text();
+			summary = elem2.getElementsByTag("summary").get(0).text();
 
-		String[] nodeNames = { "description", "summary", "diagnosis" };
+			if (fileName.contains("tred_cds/2015")) {
 
-		for (int i = 0; i < nodeList.getLength(); i++) {
-			Element topicElem = (Element) nodeList.item(i);
-
-			String id = topicElem.getAttribute("number");
-			String type = topicElem.getAttribute("type");
-
-			String[] values = new String[nodeNames.length];
-
-			// values[0] = topicElem.getAttribute(nodeNames[0]);
-			for (int j = 0; j < nodeNames.length; j++) {
-				NodeList nodes = topicElem.getElementsByTagName(nodeNames[j]);
-				if (nodes != null && nodes.getLength() > 0) {
-					values[j] = nodes.item(0).getTextContent();
-				}
+			} else if (fileName.contains("topic-2015-B.xml")) {
+				diagnosis = elem2.getElementsByTag("diagnosis").get(0).text();
+			} else if (fileName.contains("topics2016.xml")) {
+				note = diagnosis = elem2.getElementsByTag("note").get(0).text();
 			}
 
-			String description = values[0];
-			String summary = values[1];
-			String dignosis = values[2];
-
-			description = description.replace("&quot;", "\"");
-
-			// id = new DecimalFormat("00").format(Integer.parseInt(id));
-
-			TrecCdsQuery query = new TrecCdsQuery(id, description, summary, type, dignosis);
-			ret.add(query);
+			ret.add(new TrecCdsQuery(id, type, note, desc, summary, diagnosis));
 		}
 
 		System.out.printf("read [%d] queries at [%s]\n", ret.size(), fileName);
@@ -309,7 +288,7 @@ public class QueryReader {
 	}
 
 	public static List<BaseQuery> readTrecGenomicsQueries(String queryFileName) throws Exception {
-		List<BaseQuery> ret = Generics.newLinkedList();
+		List<BaseQuery> ret = Generics.newArrayList();
 		List<String> lines = FileUtils.readLinesFromText(queryFileName);
 
 		for (int i = 0; i < lines.size(); i++) {
@@ -321,6 +300,33 @@ public class QueryReader {
 			ret.add(q);
 		}
 		System.out.printf("read [%d] queries at [%s]\n", ret.size(), queryFileName);
+		return ret;
+	}
+
+	public static List<BaseQuery> readTrecPmQueries(String fileName) throws Exception {
+		List<BaseQuery> ret = Generics.newArrayList();
+
+		Document doc = Jsoup.parse(FileUtils.readFromText(fileName));
+
+		Elements elems = doc.getElementsByTag("topic");
+
+		for (int i = 0; i < elems.size(); i++) {
+			Element elem2 = elems.get(i);
+			String id = elem2.attr("number");
+			String disease = elem2.getElementsByTag("disease").get(0).text();
+			String gene = elem2.getElementsByTag("gene").get(0).text();
+			String demographic = elem2.getElementsByTag("demographic").get(0).text();
+			String other = elem2.getElementsByTag("other").get(0).text();
+
+			if (other.equals("None")) {
+				other = "";
+			}
+
+			TrecPmQuery q = new TrecPmQuery(id, disease, gene, demographic, other);
+			ret.add(q);
+		}
+
+		System.out.printf("read [%d] queries at [%s]\n", ret.size(), fileName);
 		return ret;
 	}
 }

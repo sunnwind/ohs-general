@@ -1,6 +1,7 @@
 package ohs.ml.glove;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.text.DecimalFormat;
 import java.util.List;
@@ -18,6 +19,7 @@ import ohs.io.ByteArrayUtils;
 import ohs.io.ByteBufferWrapper;
 import ohs.io.FileUtils;
 import ohs.ir.medical.general.MIRPath;
+import ohs.matrix.DenseVector;
 import ohs.matrix.SparseMatrix;
 import ohs.ml.neuralnet.com.BatchUtils;
 import ohs.types.generic.Counter;
@@ -38,16 +40,20 @@ public class CooccurrenceCounter {
 
 		private List<File> outFiles;
 
+		private DenseVector outSizes;
+
 		private IntegerArrayMatrix ranges;
 
 		private AtomicInteger range_cnt;
 
 		private Timer timer;
 
-		public CountWorker(DocumentCollection dc, List<File> outFiles, IntegerArrayMatrix ranges, AtomicInteger range_cnt, Timer timer) {
+		public CountWorker(DocumentCollection dc, List<File> outFiles, DenseVector outSizes, IntegerArrayMatrix ranges,
+				AtomicInteger range_cnt, Timer timer) {
 			super();
 			this.dc = dc;
 			this.outFiles = outFiles;
+			this.outSizes = outSizes;
 			this.ranges = ranges;
 			this.range_cnt = range_cnt;
 			this.timer = timer;
@@ -58,6 +64,11 @@ public class CooccurrenceCounter {
 			if (toPrune.size() > 0 && toPrune.contains(w)) {
 				ret = false;
 			}
+
+			if (dc.getVocab().getCount(w) < min_word_cnt) {
+				ret = false;
+			}
+
 			return ret;
 		}
 
@@ -65,12 +76,12 @@ public class CooccurrenceCounter {
 		public Integer call() throws Exception {
 			int range_loc = 0;
 
-			CounterMap<Integer, Integer> cm1 = Generics.newCounterMap();
 			int buf_size = 0;
 
 			while ((range_loc = range_cnt.getAndIncrement()) < ranges.size()) {
 				IntegerArray range = ranges.get(range_loc);
 				List<Pair<String, IntegerArray>> ps = dc.getRange(range.values());
+				CounterMap<Integer, Integer> cm1 = Generics.newCounterMap();
 
 				for (int i = 0; i < ps.size(); i++) {
 					IntegerArrayMatrix doc = DocumentCollection.toMultiSentences(ps.get(i).getSecond());
@@ -93,42 +104,60 @@ public class CooccurrenceCounter {
 								if (!accept(w_left)) {
 									continue;
 								}
+
 								double dist = (j - k);
 								double cocnt = 1f / dist;
 								cm2.incrementCount(w_center, w_left, cocnt);
 							}
 						}
 					}
-
 					cm1.incrementAll(cm2);
-
-					write(cm1);
-					if (symmetric) {
-						write(cm1.invert());
-					}
-					cm1.clear();
 				}
 
-				int prog = BatchUtils.progress(range_loc + 1, ranges.size());
-
-				if (prog > 0) {
-					System.out.printf("[%d percent, %d/%d, %s]\n", prog, range_loc + 1, ranges.size(), timer.stop());
-				}
-			}
-
-			if (cm1.size() > 0) {
 				write(cm1);
 				if (symmetric) {
 					write(cm1.invert());
 				}
-				cm1.clear();
+				cm1 = null;
+
+				int prog = BatchUtils.progress(range_loc, ranges.size());
+
+				if (prog > 0) {
+					System.out.printf("[%d percent, %d/%d, %s]\n", prog, range_loc, ranges.size(), timer.stop());
+				}
 			}
+
 			return 0;
 		}
 
 		@Override
 		protected void finalize() throws Throwable {
 			dc.close();
+		}
+
+		private void merge(File file) throws Exception {
+			CounterMap<Integer, Integer> cm = Generics.newCounterMap(dc.getVocab().size());
+
+			FileChannel fc = FileUtils.openFileChannel(file.getPath(), "rw");
+
+			while (fc.position() < fc.size()) {
+				ByteArray data = FileUtils.readByteArray(fc);
+				ByteBufferWrapper buf = new ByteBufferWrapper(data);
+				long pos = fc.position();
+
+				int w1 = buf.readInteger();
+				IntegerArray idxs = buf.readIntegerArray();
+				DoubleArray vals = buf.readDoubleArray();
+
+				Counter<Integer> c = cm.getCounter(w1);
+
+				for (int i = 0; i < idxs.size(); i++) {
+					c.incrementCount(idxs.get(i), vals.get(i));
+				}
+			}
+			fc.close();
+			file.delete();
+			write(cm);
 		}
 
 		private void write(CounterMap<Integer, Integer> cm) throws Exception {
@@ -159,6 +188,7 @@ public class CooccurrenceCounter {
 					out.position(out.size());
 					FileUtils.write(buf.getByteBuffer(), out);
 					out.close();
+					outSizes.add(loc, buf_size);
 				}
 			}
 		}
@@ -202,32 +232,6 @@ public class CooccurrenceCounter {
 				fc.close();
 				file.delete();
 				new SparseMatrix(cm).writeObject(file.getPath());
-
-				// ByteArrayMatrix data = new ByteArrayMatrix(cm.size());
-				// IntegerArray ws1 = new IntegerArray(cm.keySet());
-				// ws1.sort(false);
-				//
-				// data.add(ByteArrayUtils.toByteArray(ws1));
-				//
-				// for (int w1 : ws1) {
-				// Counter<Integer> c = cm.getCounter(w1);
-				//
-				// IntegerArray ws2 = new IntegerArray(c.keySet());
-				// ws2.sort(false);
-				//
-				// DoubleArray vals = new DoubleArray(c.size());
-				//
-				// for (int w2 : ws2) {
-				// vals.add(c.getCount(w2));
-				// }
-				//
-				// data.add(ByteArrayUtils.toByteArray(ws2));
-				// data.add(ByteArrayUtils.toByteArray(vals));
-				// }
-
-				// fc = FileUtils.openFileChannel(file.getPath(), "rw");
-				// FileUtils.write(data, fc);
-				// fc.close();
 			}
 			return 0;
 		}
@@ -248,13 +252,14 @@ public class CooccurrenceCounter {
 
 		for (int i = 0; i < dataDirs.length; i++) {
 			String dataDir = dataDirs[i];
-			CooccurrenceCounter cc = new CooccurrenceCounter(dataDir, null);
+			CooccurrenceCounter cc = new CooccurrenceCounter(dataDir, "G:/data/tmp_cocnt/", null);
 			cc.setWindowSize(10);
-			cc.setCountThreadSize(1);
+			cc.setCountThreadSize(2);
 			cc.setMergeThreadSize(1);
+			cc.setMinWordCount(10);
 			cc.setSymmetric(true);
-			cc.setBatchSize(2000);
-			cc.setOutputFileSize(10000);
+			cc.setBatchSize(10000);
+			cc.setOutputFileSize(2000);
 			cc.count();
 		}
 
@@ -271,22 +276,20 @@ public class CooccurrenceCounter {
 
 	private int batch_size = 200;
 
+	private int min_word_cnt = 0;
+
 	private boolean symmetric = false;
 
 	private Set<Integer> toPrune;
 
 	private DocumentCollection dc;
 
-	private File dataDir;
-
 	private File outDir;
 
-	public CooccurrenceCounter(String dataDir, Set<String> stopwords) throws Exception {
-		this.dataDir = new File(dataDir);
-
-		outDir = new File(dataDir, NAME);
-
+	public CooccurrenceCounter(String dataDir, String outDir, Set<String> stopwords) throws Exception {
 		dc = new DocumentCollection(dataDir);
+
+		this.outDir = new File(outDir);
 
 		toPrune = Generics.newHashSet();
 
@@ -333,6 +336,8 @@ public class CooccurrenceCounter {
 
 		AtomicInteger range_cnt = new AtomicInteger();
 
+		DenseVector outSizes = new DenseVector(output_file_size);
+
 		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(count_thread_size);
 
 		try {
@@ -341,7 +346,7 @@ public class CooccurrenceCounter {
 			}
 
 			for (int i = 0; i < count_thread_size; i++) {
-				fs.add(tpe.submit(new CountWorker(dc.copyShallow(), outFiles, ranges, range_cnt, timer)));
+				fs.add(tpe.submit(new CountWorker(dc.copyShallow(), outFiles, outSizes, ranges, range_cnt, timer)));
 			}
 
 			for (int j = 0; j < fs.size(); j++) {
@@ -389,6 +394,10 @@ public class CooccurrenceCounter {
 
 	public void setMergeThreadSize(int thread_size) {
 		this.merge_thread_size = thread_size;
+	}
+
+	public void setMinWordCount(int min_cnt) {
+		this.min_word_cnt = min_cnt;
 	}
 
 	public void setOutputFileSize(int output_file_size) {

@@ -105,6 +105,14 @@ public class ShortArrayMatrix extends ArrayList<ShortArray> {
 		return ret;
 	}
 
+	public ShortArray toShortArray() {
+		ShortArray ret = new ShortArray(sizeOfEntries());
+		for (ShortArray a : this) {
+			ret.addAll(a);
+		}
+		return ret;
+	}
+
 	public String toString() {
 		return toString(30);
 	}

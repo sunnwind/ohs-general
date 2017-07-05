@@ -29,11 +29,11 @@ public class WordFilter {
 
 	private Set<Integer> buildStopwords(Set<String> stopwords) {
 		Set<Integer> ret = Generics.newHashSet(stopwords.size());
-		
+
 		if (stopwords != null) {
-			for(String word : stopwords){
+			for (String word : stopwords) {
 				int w = vocab.indexOf(word);
-				if(w != -1){
+				if (w != -1) {
 					ret.add(w);
 				}
 			}

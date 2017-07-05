@@ -174,7 +174,7 @@ public class KorPhraseClassification {
 		// }
 		// ret.trimToSize();
 
-		PhraseMapper<String> pm = new PhraseMapper<String>(PhraseMapper.createDict(kwdCnts.keySet()));
+		PhraseMapper<String> pm = new PhraseMapper<String>(PhraseMapper.createTrie(kwdCnts.keySet()));
 
 		List<String> outs = Generics.newArrayList(ins.size());
 

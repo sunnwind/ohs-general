@@ -211,16 +211,16 @@ public class GloveTrainer {
 		// MIRPath.TREC_CDS_2014_COL_DIR, MIRPath.TREC_CDS_2016_COL_DIR,
 		// MIRPath.WIKI_COL_DIR, MIRPath.BIOASQ_COL_DIR };
 
-		String[] dataDirs = { KPPath.COL_DC_DIR, MIRPath.OHSUMED_COL_DC_DIR, MIRPath.TREC_CDS_2014_COL_DC_DIR, MIRPath.WIKI_COL_DC_DIR,
-				MIRPath.BIOASQ_COL_DC_DIR };
-		int thread_size = 10;
+		String[] dataDirs = { KPPath.COL_DC_DIR, MIRPath.DATA_DIR + "merged/col/dc", MIRPath.OHSUMED_COL_DC_DIR,
+				MIRPath.TREC_CDS_2016_COL_DC_DIR, MIRPath.WIKI_COL_DC_DIR, MIRPath.BIOASQ_COL_DC_DIR };
+		int thread_size = 15;
 		int hidden_size = 200;
 		int max_iters = 100;
 		int window_size = 10;
 		int batch_size = 100;
 		double learn_rate = 0.001;
 		boolean use_adam = true;
-		boolean read_all_files = true;
+		boolean read_all_files = false;
 		boolean count = false;
 
 		// if (use_adam) {
@@ -233,17 +233,19 @@ public class GloveTrainer {
 			}
 
 			File dataDir = new File(dataDirs[u]);
+			File cocntDir = new File("/data1/ohs/tmp_cocnt/");
 			File outFile = new File(dataDir.getParentFile().getParentFile(), "emb/glove.ser.gz");
 
 			DocumentCollection dc = null;
 
 			if (count) {
-				CooccurrenceCounter cc = new CooccurrenceCounter(dataDir.getPath(), null);
+				CooccurrenceCounter cc = new CooccurrenceCounter(dataDir.getPath(), cocntDir.getPath(), null);
 				cc.setWindowSize(window_size);
 				cc.setCountThreadSize(5);
 				cc.setSymmetric(true);
-				cc.setOutputFileSize(10000);
-				cc.setBatchSize(5000);
+				cc.setOutputFileSize(4000);
+				cc.setBatchSize(10000);
+				cc.setMinWordCount(10);
 				cc.count();
 				dc = cc.getDocumentCollection();
 			} else {
@@ -257,8 +259,10 @@ public class GloveTrainer {
 			param.setLearnRate(learn_rate);
 
 			GloveTrainer trainer = new GloveTrainer();
-			GloveModel M = trainer.train(param, vocab, new File(dataDir, "cocnt").getPath(), max_iters, read_all_files, use_adam);
+			GloveModel M = trainer.train(param, vocab, cocntDir.getPath(), max_iters, read_all_files, use_adam);
 			M.getAveragedModel().writeObject(outFile.getPath());
+
+			FileUtils.deleteFilesUnder(cocntDir);
 		}
 
 		System.out.println("process ends.");

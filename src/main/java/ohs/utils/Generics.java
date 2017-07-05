@@ -220,6 +220,10 @@ public class Generics {
 		return new Indexer<T>(size);
 	}
 
+	public static <T> Indexer<T> newIndexer(Collection<? extends T> a) {
+		return new Indexer<T>(a);
+	}
+
 	public static <E> LinkedList<E> newLinkedList() {
 		return new LinkedList<E>();
 	}
@@ -277,7 +281,7 @@ public class Generics {
 	public static <K, E, V> ListMapMap<K, E, V> newListMapMap(int size, ListType lt) {
 		return new ListMapMap<K, E, V>(size, lt);
 	}
-	
+
 	public static <K, E, V> ListMapMap<K, E, V> newListMapMap(int size) {
 		return newListMapMap(size, ListType.ARRAY_LIST);
 	}

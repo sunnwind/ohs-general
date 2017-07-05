@@ -17,7 +17,7 @@ import ohs.utils.StrUtils;
 
 public class PhraseMapper<K> {
 
-	public static Trie<String> createDict(Collection<String> phrss) {
+	public static Trie<String> createTrie(Collection<String> phrss) {
 		Trie<String> ret = new Trie<String>();
 		for (String phrs : phrss) {
 			List<String> words = StrUtils.split(phrs);
@@ -28,7 +28,7 @@ public class PhraseMapper<K> {
 		return ret;
 	}
 
-	public static Trie<Integer> createDict(Collection<String> phrss, Vocab vocab) {
+	public static Trie<Integer> createTrie(Collection<String> phrss, Vocab vocab) {
 		Trie<Integer> ret = new Trie<Integer>();
 		for (String phrs : phrss) {
 			List<String> words = StrUtils.split(phrs);
@@ -98,7 +98,7 @@ public class PhraseMapper<K> {
 	public void test1() throws Exception {
 		Counter<String> c = FileUtils.readStringCounterFromText("../../data/medical_ir/trec_cds/2014/phrs/kwds.txt.gz");
 
-		Trie<String> dict = PhraseMapper.createDict(c.keySet());
+		Trie<String> dict = PhraseMapper.createTrie(c.keySet());
 		PhraseMapper<String> m = new PhraseMapper<String>(dict);
 
 		{

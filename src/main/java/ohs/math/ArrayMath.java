@@ -240,7 +240,7 @@ public class ArrayMath {
 		return sum;
 	}
 
-	public static double addAfterMultiplyByThreads(double[][] a, double ac, double[][] b, double bc, double[][] c, int num_threads) {
+	public static double addAfterMultiplyByThreads(double[][] a, double ac, double[][] b, double bc, double[][] c, int thread_size) {
 		if (ArrayChecker.isEqualSize(a, b) && ArrayChecker.isEqualSize(b, c)) {
 
 		} else {
@@ -249,20 +249,20 @@ public class ArrayMath {
 
 		int a_rows = a.length;
 
-		if (num_threads == 0) {
-			num_threads = THREAD_SIZE;
+		if (thread_size == 0) {
+			thread_size = THREAD_SIZE;
 		}
 
-		if (num_threads > a_rows) {
-			num_threads = a_rows;
+		if (thread_size > a_rows) {
+			thread_size = a_rows;
 		}
 
-		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(num_threads);
+		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
 
 		List<Future<Double>> fs = Generics.newArrayList();
 		AtomicInteger shared_i = new AtomicInteger(0);
 
-		for (int i = 0; i < num_threads; i++) {
+		for (int i = 0; i < thread_size; i++) {
 			fs.add(tpe.submit(new AddAfterMultiplyWorker1(a, ac, b, bc, c, shared_i)));
 		}
 
@@ -285,7 +285,7 @@ public class ArrayMath {
 		return sum;
 	}
 
-	public static double addAfterMultiplyByThreads(double[][] a, double[] ac, double[][] b, double[] bc, double[][] c, int num_threads) {
+	public static double addAfterMultiplyByThreads(double[][] a, double[] ac, double[][] b, double[] bc, double[][] c, int thread_size) {
 		if (ArrayChecker.isEqual(a, b) && ArrayChecker.isEqual(b, c)) {
 
 		} else {
@@ -294,20 +294,20 @@ public class ArrayMath {
 
 		int a_rows = a.length;
 
-		if (num_threads == 0) {
-			num_threads = THREAD_SIZE;
+		if (thread_size == 0) {
+			thread_size = THREAD_SIZE;
 		}
 
-		if (num_threads > a_rows) {
-			num_threads = a_rows;
+		if (thread_size > a_rows) {
+			thread_size = a_rows;
 		}
 
-		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(num_threads);
+		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
 
 		List<Future<Double>> fs = Generics.newArrayList();
 		AtomicInteger shared_i = new AtomicInteger(0);
 
-		for (int i = 0; i < num_threads; i++) {
+		for (int i = 0; i < thread_size; i++) {
 			fs.add(tpe.submit(new AddAfterMultiplyWorker2(a, ac, b, bc, c, shared_i)));
 		}
 
@@ -331,7 +331,7 @@ public class ArrayMath {
 	}
 
 	public static double addAfterMultiplyByThreads(double[][] a, double[][] ac, double[][] b, double[][] bc, double[][] c,
-			int num_threads) {
+			int thread_size) {
 		if (ArrayChecker.isEqualSize(a, b, c)) {
 
 		} else {
@@ -340,20 +340,20 @@ public class ArrayMath {
 
 		int a_rows = a.length;
 
-		if (num_threads == 0) {
-			num_threads = THREAD_SIZE;
+		if (thread_size == 0) {
+			thread_size = THREAD_SIZE;
 		}
 
-		if (num_threads > a_rows) {
-			num_threads = a_rows;
+		if (thread_size > a_rows) {
+			thread_size = a_rows;
 		}
 
-		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(num_threads);
+		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
 
 		List<Future<Double>> fs = Generics.newArrayList();
 		AtomicInteger shared_i = new AtomicInteger(0);
 
-		for (int i = 0; i < num_threads; i++) {
+		for (int i = 0; i < thread_size; i++) {
 			fs.add(tpe.submit(new AddAfterMultiplyWorker3(a, ac, b, bc, c, shared_i)));
 		}
 
@@ -405,26 +405,26 @@ public class ArrayMath {
 	 *            M x K
 	 * @return
 	 */
-	public static double addAfterOuterProductByThreads(double[] a, double[] b, double[][] c, int num_threads) {
+	public static double addAfterOuterProductByThreads(double[] a, double[] b, double[][] c, int thread_size) {
 		// if (!ArrayChecker.isProductable(a, b, c)) {
 		// throw new IllegalArgumentException();
 		// }
 		int b_size = b.length;
 
-		if (num_threads == 0) {
-			num_threads = THREAD_SIZE;
+		if (thread_size == 0) {
+			thread_size = THREAD_SIZE;
 		}
 
-		if (num_threads > b_size) {
-			num_threads = b_size;
+		if (thread_size > b_size) {
+			thread_size = b_size;
 		}
 
-		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(num_threads);
+		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
 
 		AtomicInteger shared_j = new AtomicInteger(0);
 		List<Future<Double>> fs = Generics.newArrayList();
 
-		for (int i = 0; i < num_threads; i++) {
+		for (int i = 0; i < thread_size; i++) {
 			fs.add(tpe.submit(new OuterProductWorker(a, b, c, shared_j)));
 		}
 
@@ -1328,12 +1328,10 @@ public class ArrayMath {
 
 			System.out.println(a / (100000000d * 10000000));
 			System.out.println(c);
-			
+
 			OperatingSystemMXBean os = ManagementFactory.getOperatingSystemMXBean();
-			
+
 			System.out.println(System.getProperties());
-			
-			
 
 			System.exit(0);
 		}
@@ -2724,17 +2722,17 @@ public class ArrayMath {
 	 *            K x M
 	 * @param c
 	 *            1 x M
-	 * @param num_threads
+	 * @param thread_size
 	 * @return
 	 */
-	public static double productByThreads(double[] a, double[][] b, double[] c, int num_threads) {
+	public static double productByThreads(double[] a, double[][] b, double[] c, int thread_size) {
 		double[][] aa = new double[1][];
 		aa[0] = a;
 
 		double[][] cc = new double[1][];
 		cc[0] = c;
 
-		return productByThreads(aa, b, cc, num_threads);
+		return productByThreads(aa, b, cc, thread_size);
 	}
 
 	/**
@@ -2746,25 +2744,25 @@ public class ArrayMath {
 	 *            M x 1
 	 * @return
 	 */
-	public static double productByThreads(double[][] a, double[] b, double[] c, int num_threads) {
+	public static double productByThreads(double[][] a, double[] b, double[] c, int thread_size) {
 		if (!ArrayChecker.isProductable(a, b, c)) {
 			throw new IllegalArgumentException();
 		}
 
-		if (num_threads == 0) {
-			num_threads = THREAD_SIZE;
+		if (thread_size == 0) {
+			thread_size = THREAD_SIZE;
 		}
 
-		if (num_threads > a.length) {
-			num_threads = a.length;
+		if (thread_size > a.length) {
+			thread_size = a.length;
 		}
 
-		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(num_threads);
+		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
 
 		List<Future<Double>> fs = Generics.newArrayList();
 		AtomicInteger shared_i = new AtomicInteger(0);
 
-		for (int i = 0; i < num_threads; i++) {
+		for (int i = 0; i < thread_size; i++) {
 			fs.add(tpe.submit(new RowBySingleColumnProductWorker(a, b, c, shared_i)));
 		}
 
@@ -2796,26 +2794,26 @@ public class ArrayMath {
 	 *            M x K
 	 * @return
 	 */
-	public static double productByThreads(double[][] a, double[][] b, double[][] c, int num_threads) {
+	public static double productByThreads(double[][] a, double[][] b, double[][] c, int thread_size) {
 		if (!ArrayChecker.isProductable(a, b, c)) {
 			throw new IllegalArgumentException();
 		}
 		int b_cols = b[0].length;
 
-		if (num_threads == 0) {
-			num_threads = THREAD_SIZE;
+		if (thread_size == 0) {
+			thread_size = THREAD_SIZE;
 		}
 
-		if (num_threads > b_cols) {
-			num_threads = b_cols;
+		if (thread_size > b_cols) {
+			thread_size = b_cols;
 		}
 
-		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(num_threads);
+		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
 
 		AtomicInteger shared_j = new AtomicInteger(0);
 		List<Future<Double>> fs = Generics.newArrayList();
 
-		for (int i = 0; i < num_threads; i++) {
+		for (int i = 0; i < thread_size; i++) {
 			fs.add(tpe.submit(new RowByColumnProductWorker(a, b, c, shared_j)));
 		}
 
@@ -2838,25 +2836,25 @@ public class ArrayMath {
 		return sum;
 	}
 
-	public static double productByThreads(int[] ai, double[] av, double[][] b, double[] c, int num_threads) {
-		return productByThreads(matrix(ai), matrix(av), b, matrix(c), num_threads);
+	public static double productByThreads(int[] ai, double[] av, double[][] b, double[] c, int thread_size) {
+		return productByThreads(matrix(ai), matrix(av), b, matrix(c), thread_size);
 	}
 
-	public static double productByThreads(int[][] ai, double[][] av, double[][] b, double[][] c, int num_threads) {
+	public static double productByThreads(int[][] ai, double[][] av, double[][] b, double[][] c, int thread_size) {
 		// if (!ArrayChecker.isProductable(a, b, c)) {
 		// throw new IllegalArgumentException();
 		// }
 		int b_cols = b[0].length;
 
-		if (num_threads == 0) {
-			num_threads = THREAD_SIZE;
+		if (thread_size == 0) {
+			thread_size = THREAD_SIZE;
 		}
 
-		if (num_threads > b_cols) {
-			num_threads = b_cols;
+		if (thread_size > b_cols) {
+			thread_size = b_cols;
 		}
 
-		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(num_threads);
+		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
 
 		List<Future<Double>> fs = Generics.newArrayList(b_cols);
 		double sum = 0;
@@ -2931,7 +2929,7 @@ public class ArrayMath {
 	 *            M x N
 	 * @return
 	 */
-	public static double productColumnsByThreads(double[][] a, double[][] b, double[][] c, int num_threads) {
+	public static double productColumnsByThreads(double[][] a, double[][] b, double[][] c, int thread_size) {
 		int a_rows = a.length;
 		int a_cols = a[0].length;
 		int b_rows = b.length;
@@ -2945,19 +2943,19 @@ public class ArrayMath {
 			throw new IllegalArgumentException();
 		}
 
-		if (num_threads == 0) {
-			num_threads = THREAD_SIZE;
+		if (thread_size == 0) {
+			thread_size = THREAD_SIZE;
 		}
 
-		if (num_threads > b_rows) {
-			num_threads = b_rows;
+		if (thread_size > b_rows) {
+			thread_size = b_rows;
 		}
 
-		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(num_threads);
+		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
 		List<Future<Double>> fs = Generics.newArrayList();
 		AtomicInteger shared_j = new AtomicInteger(0);
 
-		for (int i = 0; i < num_threads; i++) {
+		for (int i = 0; i < thread_size; i++) {
 			fs.add(tpe.submit(new EqualColumnProductWorker(a, b, c, shared_j)));
 		}
 
@@ -3064,7 +3062,7 @@ public class ArrayMath {
 	 *            M x N
 	 * @return
 	 */
-	public static double productRowsByThreads(double[][] a, double[][] b, double[][] c, int num_threads) {
+	public static double productRowsByThreads(double[][] a, double[][] b, double[][] c, int thread_size) {
 		int a_rows = a.length;
 		int a_cols = a[0].length;
 		int b_rows = b.length;
@@ -3078,19 +3076,19 @@ public class ArrayMath {
 			throw new IllegalArgumentException();
 		}
 
-		if (num_threads == 0) {
-			num_threads = THREAD_SIZE;
+		if (thread_size == 0) {
+			thread_size = THREAD_SIZE;
 		}
 
-		if (num_threads > b_cols) {
-			num_threads = b_cols;
+		if (thread_size > b_cols) {
+			thread_size = b_cols;
 		}
 
-		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(num_threads);
+		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
 		List<Future<Double>> fs = Generics.newArrayList();
 		AtomicInteger shared_j = new AtomicInteger(0);
 
-		for (int i = 0; i < num_threads; i++) {
+		for (int i = 0; i < thread_size; i++) {
 			fs.add(tpe.submit(new EqualRowProductWorker(a, b, c, shared_j)));
 		}
 
@@ -3193,6 +3191,10 @@ public class ArrayMath {
 		return sum;
 	}
 
+	public static void randomWalk(double[][] T, double[] cents, double[] biases, int max_iter) {
+		randomWalk(T, cents, biases, max_iter, 0.0000001, 0.85);
+	}
+
 	/**
 	 * 
 	 * http://people.revoledu.com/kardi/tutorial/PageRank/Page-Rank-Computation.html
@@ -3261,8 +3263,8 @@ public class ArrayMath {
 		}
 	}
 
-	public static void randomWalk(double[][] trans_probs, double[] cents, int max_iter) {
-		randomWalk(trans_probs, cents, max_iter, 0.0000001, 0.85);
+	public static void randomWalk(double[][] T, double[] cents, int max_iter) {
+		randomWalk(T, cents, max_iter, 0.0000001, 0.85);
 	}
 
 	/**
@@ -3278,53 +3280,7 @@ public class ArrayMath {
 	 * @return
 	 */
 	public static void randomWalk(double[][] T, double[] cents, int max_iter, double min_dist, double damping_factor) {
-		if (!ArrayChecker.isProductable(T, cents)) {
-			throw new IllegalArgumentException();
-		}
-
-		if (sum(cents) == 0) {
-			add(cents, 1f / cents.length, cents);
-		}
-
-		double[] old_cents = ArrayUtils.copy(cents);
-		double old_dist = Double.MAX_VALUE;
-		int num_docs = T.length;
-
-		double uniform_cent = (1 - damping_factor) / num_docs;
-
-		for (int m = 0; m < max_iter; m++) {
-			for (int i = 0; i < T.length; i++) {
-				double cent_sum_from_others = 0;
-				for (int j = 0; j < T[i].length; j++) {
-					double tran_prob = T[i][j];
-					cent_sum_from_others += tran_prob * old_cents[j];
-				}
-				cents[i] = damping_factor * cent_sum_from_others;
-			}
-
-			double sum = add(cents, uniform_cent, cents);
-
-			if (sum != 0 && sum != 1) {
-				multiply(cents, 1f / sum, cents);
-			}
-
-			double dist = euclideanDistance(old_cents, cents);
-
-			if (showLog) {
-				System.out.printf("%d: %s - %s = %s\n", m + 1, old_dist, dist, old_dist - dist);
-			}
-
-			if (dist < min_dist) {
-				break;
-			}
-
-			if (dist > old_dist) {
-				ArrayUtils.copy(old_cents, cents);
-				break;
-			}
-			old_dist = dist;
-			ArrayUtils.copy(cents, old_cents);
-		}
+		randomWalk(T, cents, null, max_iter, min_dist, damping_factor);
 	}
 
 	public static double reLU(double[] a, double[] b) {

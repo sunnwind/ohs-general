@@ -11,6 +11,7 @@ import java.util.Map;
 import ohs.io.FileUtils;
 import ohs.math.ArrayMath;
 import ohs.math.ArrayUtils;
+import ohs.math.VectorUtils;
 import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
 import ohs.utils.ByteSize;
@@ -181,11 +182,13 @@ public class SparseMatrix extends ArrayList<SparseVector> implements Matrix {
 	@Override
 	public int colSize() {
 		int col_size = 0;
+		int size = 0;
 		for (SparseVector row : this) {
 			col_size = Math.max(col_size, ArrayMath.max(row.indexes()));
+			size += row.size();
 		}
 
-		if (col_size > 0) {
+		if (size > 0) {
 			col_size += 1;
 		}
 		return col_size;
@@ -637,6 +640,11 @@ public class SparseMatrix extends ArrayList<SparseVector> implements Matrix {
 		ObjectOutputStream oos = FileUtils.openObjectOutputStream(fileName);
 		writeObject(oos);
 		oos.close();
+	}
+
+	@Override
+	public SparseMatrix transpose() {
+		return new SparseMatrix(VectorUtils.toCounterMap(this).invert());
 	}
 
 }

@@ -107,12 +107,13 @@ public class DocumentSearcher {
 	}
 
 	public static void test1() throws Exception {
-		 DocumentSearcher ds = new DocumentSearcher(MIRPath.CLUEWEB_COL_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
+		// DocumentSearcher ds = new DocumentSearcher(MIRPath.CLUEWEB_COL_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
 		// DocumentSearcher ds = new DocumentSearcher(MIRPath.TREC_CDS_2016_COL_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
 		// DocumentSearcher ds = new DocumentSearcher(MIRPath.OHSUMED_COL_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
-//		DocumentSearcher ds = new DocumentSearcher(MIRPath.TREC_GENO_2007_COL_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
-//		DocumentSearcher ds = new DocumentSearcher(MIRPath.WIKI_COL_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
+		// DocumentSearcher ds = new DocumentSearcher(MIRPath.TREC_GENO_2007_COL_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
+		// DocumentSearcher ds = new DocumentSearcher(MIRPath.WIKI_COL_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
 //		DocumentSearcher ds = new DocumentSearcher(MIRPath.DATA_DIR + "merged/col/dc/", MIRPath.STOPWORD_INQUERY_FILE);
+		DocumentSearcher ds = new DocumentSearcher(MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
 
 		ds.setScorer(new MRFScorer(ds));
 
@@ -142,7 +143,7 @@ public class DocumentSearcher {
 
 			IntegerArrayMatrix subdoc = doc.subMatrix(0, Math.min(doc.size(), 5));
 
-			String text = DocumentCollection.getText(ds.getVocab(), subdoc);
+			String text = DocumentCollection.toText(ds.getVocab(), subdoc);
 
 			System.out.println("======== Document ======");
 			System.out.printf("docid: %s, dseq: %d, score: %f\n", did, dseq, score);
@@ -305,7 +306,7 @@ public class DocumentSearcher {
 		sb.append(String.format("\ndocseq:\t%d", docseq));
 		sb.append(String.format("\ndocid:\t%s", p.getFirst()));
 		if (Q == null) {
-			sb.append("\n" + DocumentCollection.getText(vocab, doc));
+			sb.append("\n" + DocumentCollection.toText(vocab, doc));
 		} else {
 			for (int i = 0; i < doc.size(); i++) {
 				IntegerArray sent = doc.get(i);

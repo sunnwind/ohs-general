@@ -109,6 +109,14 @@ public class IntegerArrayMatrix extends ArrayList<IntegerArray> {
 		return new IntegerArrayMatrix(subList(i, j));
 	}
 
+	public IntegerArray toIntegerArray() {
+		IntegerArray ret = new IntegerArray(sizeOfEntries());
+		for (IntegerArray a : this) {
+			ret.addAll(a);
+		}
+		return ret;
+	}
+
 	public String toString() {
 		return toString(30);
 	}

@@ -482,7 +482,7 @@ public class DataHandler {
 				for (String sent : sents) {
 					List<String> words = StrUtils.split(sent);
 
-					Trie<String> dict = PhraseMapper.createDict(kwdSet);
+					Trie<String> dict = PhraseMapper.createTrie(kwdSet);
 					PhraseMapper m = new PhraseMapper(dict);
 
 					List<ohs.types.generic.Pair<Integer, Integer>> res = m.map(words);
@@ -837,7 +837,7 @@ public class DataHandler {
 		Vocab vocab = dc.getVocab();
 
 		if (!FileUtils.exists(ccDir)) {
-			CooccurrenceCounter cc = new CooccurrenceCounter(scDir, null);
+			CooccurrenceCounter cc = new CooccurrenceCounter(scDir, ccDir, null);
 			cc.setWindowSize(window_size);
 			cc.setCountThreadSize(thread_size);
 			cc.setSymmetric(true);

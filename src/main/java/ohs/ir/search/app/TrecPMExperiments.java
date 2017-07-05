@@ -64,72 +64,38 @@ import ohs.utils.Timer;
 
 public class TrecPMExperiments {
 
-	public static int COR_TYPE = 4;
+	public static int COR_TYPE = 0;
 
-	public static int TASK_YEAR = 2015;
-
-	public static String dataDir = MIRPath.TREC_CDS_2014_DIR;
+	public static String dataDir = MIRPath.TREC_PM_2017_DIR;
 
 	public static String resDir = dataDir + "res/";
 
-	public static String idxDir = MIRPath.TREC_CDS_2014_COL_INDEX_DIR;
+	public static String idxDir = MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR;
 
-	public static String queryFileName = MIRPath.TREC_CDS_2014_QUERY_FILE;
+	public static String queryFileName = MIRPath.TREC_PM_2017_QUERY_FILE;
 
-	public static String relFileName = MIRPath.TREC_CDS_2014_REL_JUDGE_FILE;
+	public static String relFileName = "";
 
 	public static String stopwordFileName = MIRPath.STOPWORD_INQUERY_FILE;
 
 	static {
 		if (COR_TYPE == 0) {
-			dataDir = MIRPath.OHSUMED_DIR;
-			idxDir = MIRPath.OHSUMED_COL_DC_DIR;
-			queryFileName = MIRPath.OHSUMED_QUERY_FILE;
-			relFileName = MIRPath.OHSUMED_RELEVANCE_JUDGE_FILE;
-		} else if (COR_TYPE == 1) {
-			dataDir = MIRPath.TREC_CDS_2014_DIR;
-			idxDir = MIRPath.TREC_CDS_2014_COL_DC_DIR;
-			queryFileName = MIRPath.TREC_CDS_2014_QUERY_FILE;
-			relFileName = MIRPath.TREC_CDS_2014_REL_JUDGE_FILE;
-		} else if (COR_TYPE == 2) {
-			dataDir = MIRPath.TREC_CDS_2015_DIR;
-			idxDir = MIRPath.TREC_CDS_2014_COL_DC_DIR;
-			queryFileName = MIRPath.TREC_CDS_2015_QUERY_A_FILE;
-			relFileName = MIRPath.TREC_CDS_2015_REL_JUDGE_FILE;
-		} else if (COR_TYPE == 3) {
 			dataDir = MIRPath.TREC_CDS_2016_DIR;
 			idxDir = MIRPath.TREC_CDS_2016_COL_DC_DIR;
 			queryFileName = MIRPath.TREC_CDS_2016_QUERY_FILE;
 			relFileName = MIRPath.TREC_CDS_2016_REL_JUDGE_FILE;
-		} else if (COR_TYPE == 4) {
-			dataDir = MIRPath.CLEF_EH_2017_DIR;
-			idxDir = MIRPath.CLUEWEB_COL_DC_DIR;
-			queryFileName = MIRPath.CLEF_EH_2016_QUERY_FILE;
-			relFileName = MIRPath.CLEF_EH_2016_REL_JUDGE_FILE;
+		} else if (COR_TYPE == 1) {
+			dataDir = MIRPath.TREC_PM_2017_DIR;
+			idxDir = MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR;
+			queryFileName = MIRPath.TREC_PM_2017_QUERY_FILE;
+			relFileName = "";
+		} else if (COR_TYPE == 1) {
+			dataDir = MIRPath.TREC_PM_2017_DIR;
+			idxDir = MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR;
+			queryFileName = MIRPath.TREC_PM_2017_QUERY_FILE;
+			relFileName = "";
 		}
 		resDir = dataDir + "res/";
-	}
-
-	public void test() {
-		String[] daraDirs = { MIRPath.BIOASQ_COL_DC_DIR, MIRPath.TREC_CDS_2016_COL_DC_DIR };
-	}
-
-	public static ListMap<String, Integer> getRelevantRanks(CounterMap<String, String> resData, CounterMap<String, String> relvData) {
-		ListMap<String, Integer> ret = Generics.newListMap();
-		for (String qid : resData.keySet()) {
-			List<String> docids = resData.getCounter(qid).getSortedKeys();
-			Counter<String> docRels = relvData.getCounter(qid);
-			List<Integer> relRanks = Generics.newArrayList();
-
-			for (int i = 0; i < docids.size(); i++) {
-				String docid = docids.get(i);
-				if (docRels.getCount(docid) > 0) {
-					relRanks.add(i + 1);
-				}
-			}
-			ret.put(qid, relRanks);
-		}
-		return ret;
 	}
 
 	public static void main(String[] args) throws Exception {
@@ -153,7 +119,7 @@ public class TrecPMExperiments {
 		// e.buildMedicalFeedbackQueries();
 		// e.getSimMatrix();
 
-		// e.runInitSearch();
+		e.runInitSearch();
 		// e.runReranking();
 		// e.runReranking2();
 		// e.runReranking3();
@@ -161,7 +127,7 @@ public class TrecPMExperiments {
 		// e.analyze1();
 		// e.analyze2();
 
-		e.formatTrecOutput();
+		// e.formatTrecOutput();
 
 		System.out.println("process ends.");
 	}
@@ -453,16 +419,6 @@ public class TrecPMExperiments {
 		return ret;
 	}
 
-	public void getIDFDocPriors() throws Exception {
-		DocumentSearcher ds = new DocumentSearcher(idxDir, stopwordFileName);
-
-		DocumentPriorEstimator dpe = new DocumentPriorEstimator(ds.getDocumentCollection(), ds.getWordFilter());
-		dpe.setType(Type.IDF);
-		dpe.setThreadSize(10);
-		DenseVector docPriors = dpe.estimate();
-		docPriors.writeObject(dataDir + "doc_prior_idf.ser.gz");
-	}
-
 	public void getLemmas() throws Exception {
 		DocumentSearcher ds = new DocumentSearcher(idxDir, stopwordFileName);
 
@@ -517,118 +473,6 @@ public class TrecPMExperiments {
 		FileUtils.writeStringMapAsText(dataDir + "lemma.txt", m);
 	}
 
-	public void getLengthDocPriors() throws Exception {
-		DocumentSearcher ds = new DocumentSearcher(idxDir, stopwordFileName);
-
-		DocumentPriorEstimator dpe = new DocumentPriorEstimator(ds.getDocumentCollection(), ds.getWordFilter());
-		dpe.setType(Type.LEN);
-		dpe.setThreadSize(10);
-		DenseVector docPriors = dpe.estimate();
-		docPriors.writeObject(dataDir + "doc_prior_len.ser.gz");
-	}
-
-	public void getMedicalDocPriors() throws Exception {
-		DocumentSearcher ds = new DocumentSearcher(idxDir, stopwordFileName);
-
-		Counter<String> phrsCnts = getPhrases();
-
-		Counter<Integer> c = Generics.newCounter();
-
-		for (String phrs : phrsCnts.keySet()) {
-			SparseVector Q = ds.index(phrs);
-			if (Q.size() > 0) {
-				for (int w : Q.indexes()) {
-					c.incrementCount(w, 1);
-				}
-			}
-		}
-
-		SparseVector Q = new SparseVector(c);
-
-		DocumentPriorEstimator dpe = new DocumentPriorEstimator(ds.getDocumentCollection(), ds.getWordFilter());
-		dpe.setType(Type.QDLM);
-		dpe.setQuery(Q);
-		dpe.setThreadSize(10);
-		DenseVector docPriors = dpe.estimate();
-
-		docPriors.writeObject(dataDir + "doc_prior_medical.ser.gz");
-	}
-
-	public Counter<String> getPhrases() throws Exception {
-		Counter<String> phrsCnts = Generics.newCounter();
-
-		{
-			List<String> lines = FileUtils.readLinesFromText("../../data/medical_ir/phrs/phrs.txt");
-			phrsCnts = Generics.newCounter(lines.size());
-
-			for (String line : lines) {
-				String[] ps = line.split("\t");
-				String phrs = ps[0];
-				int src_cnt = Integer.parseInt(ps[1]);
-
-				Set<String> srcs = Generics.newHashSet();
-
-				for (int i = 2; i < ps.length; i++) {
-					String src = ps[i];
-					srcs.add(src);
-				}
-
-				boolean is_in_mesh = false;
-				boolean is_in_snomed = false;
-				boolean is_in_cds = false;
-				boolean is_in_wiki = false;
-				boolean is_in_scopus = false;
-
-				if (srcs.contains("mes")) {
-					is_in_mesh = true;
-				}
-
-				if (srcs.contains("sno")) {
-					is_in_snomed = true;
-				}
-
-				if (srcs.contains("cds")) {
-					is_in_cds = true;
-				}
-
-				if (srcs.contains("wkt")) {
-					is_in_wiki = true;
-				}
-
-				if (srcs.contains("sco")) {
-					is_in_scopus = true;
-				}
-
-				if (is_in_mesh && is_in_snomed && is_in_wiki) {
-					phrsCnts.setCount(phrs, src_cnt);
-				}
-			}
-		}
-		return phrsCnts;
-	}
-
-	public void getQualityDocPriors() throws Exception {
-		DocumentSearcher ds = new DocumentSearcher(idxDir, stopwordFileName);
-
-		DocumentPriorEstimator dpe = new DocumentPriorEstimator(ds.getDocumentCollection(), ds.getWordFilter());
-		dpe.setType(Type.CDD);
-		dpe.setThreadSize(10);
-		DenseVector docPriors = dpe.estimate();
-
-		docPriors.writeObject(dataDir + "doc_prior_quality.ser.gz");
-	}
-
-	public void getQualityDocPriors2() throws Exception {
-		DocumentSearcher ds = new DocumentSearcher(idxDir, stopwordFileName);
-
-		DocumentPriorEstimator dpe = new DocumentPriorEstimator(ds.getDocumentCollection(), ds.getWordFilter());
-		dpe.setType(Type.DLM);
-		dpe.setThreadSize(10);
-		DenseVector docPriors = dpe.estimate();
-
-		docPriors.writeObject(dataDir + "doc_prior_quality-2.ser.gz");
-	}
-
 	public void getRelevanceJudgeDocIds() throws Exception {
 		List<BaseQuery> bqs = QueryReader.readQueries(queryFileName);
 		CounterMap<String, String> relvData = RelevanceReader.readRelevances(relFileName);
@@ -669,90 +513,6 @@ public class TrecPMExperiments {
 
 		FileUtils.writeStringCollectionAsText(dataDir + "relv_did_dseq.txt", lines);
 
-	}
-
-	public void getSimMatrix() throws Exception {
-		DocumentSearcher ds = new DocumentSearcher(idxDir, stopwordFileName);
-		ds.setUseCache(false);
-
-		WordSearcher ws = new WordSearcher(DocumentCollection.readVocab(MIRPath.TREC_CDS_2016_COL_DC_DIR + "vocab.ser"),
-				new RandomAccessDenseMatrix(MIRPath.TREC_CDS_2016_DIR + "emb/glove_ra.ser", true), null);
-
-		Set<Integer> wordSet = Generics.newHashSet();
-		Counter<String> phrsCnts = getPhrases();
-		for (String phrs : phrsCnts.keySet()) {
-			SparseVector Q = ds.index(phrs);
-			if (Q.size() > 0) {
-				for (int w : Q.indexes()) {
-					wordSet.add(w);
-				}
-			}
-		}
-
-		CounterMap<String, String> cm = Generics.newCounterMap();
-
-		List<String> words = ds.getVocab().getObjects(wordSet);
-
-		for (int i = 0; i < words.size(); i++) {
-			String word1 = words.get(i);
-			DenseVector e1 = ws.getVector(word1);
-
-			if (e1 == null) {
-				continue;
-			}
-
-			for (int j = i + 1; j < words.size(); j++) {
-				String word2 = words.get(j);
-				DenseVector e2 = ws.getVector(word2);
-				if (e2 == null) {
-					continue;
-				}
-				double cosine = VectorMath.cosine(e1, e2);
-				cm.setCount(word1, word2, cosine);
-			}
-		}
-
-		SparseMatrix sm = VectorUtils.toSparseMatrix(cm, ds.getVocab(), ds.getVocab(), false);
-		sm.writeObject(dataDir + "word_sims.ser.gz");
-
-	}
-
-	public void getStems() throws Exception {
-		DocumentSearcher ds = new DocumentSearcher(idxDir, stopwordFileName);
-
-		Vocab vocab = ds.getVocab();
-
-		PorterStemmer stemmer = new PorterStemmer();
-
-		Map<String, String> m = Generics.newHashMap();
-
-		for (int w = 3; w < vocab.size(); w++) {
-			if (ds.getWordFilter().filter(w)) {
-				continue;
-			}
-
-			String word = vocab.get(w);
-			stemmer.setCurrent(word);
-			if (stemmer.stem()) {
-				String stem = stemmer.getCurrent().trim();
-				if (!word.equals(stem) && stem.length() > 0) {
-					m.put(word, stem);
-				}
-			}
-		}
-
-		FileUtils.writeStringMapAsText(MIRPath.TREC_CDS_2014_DIR + "stems.txt", m);
-	}
-
-	public void getStopwordPriors() throws Exception {
-		DocumentSearcher ds = new DocumentSearcher(idxDir, stopwordFileName);
-
-		DocumentPriorEstimator dpe = new DocumentPriorEstimator(ds.getDocumentCollection(), ds.getWordFilter());
-		dpe.setType(Type.STOP_RATIO);
-		dpe.setThreadSize(10);
-		DenseVector docPriors = dpe.estimate();
-
-		docPriors.writeObject(dataDir + "doc_prior_stop-ratio.ser.gz");
 	}
 
 	public void runAnalysis() throws Exception {
@@ -827,9 +587,7 @@ public class TrecPMExperiments {
 		DocumentSearcher ds = new DocumentSearcher(idxDir, stopwordFileName);
 		ds.setTopK(top_k);
 
-		DenseVector qualityPriors = new DenseVector(dataDir + "doc_prior_quality-2.ser.gz");
-
-		Map<String, Integer> docIdMap = getDocumentIdMap();
+		// Map<String, Integer> docIdMap = getDocumentIdMap();
 
 		for (int i = 0; i < bqs.size(); i++) {
 			BaseQuery bq = bqs.get(i);
@@ -850,71 +608,12 @@ public class TrecPMExperiments {
 			}
 		}
 
-		if (use_relevance_feedback) {
-			Scorer scorer = ds.getScorer();
-			FeedbackBuilder fb = new FeedbackBuilder(ds.getDocumentCollection(), ds.getInvertedIndex(), ds.getWordFilter());
-			for (int i = 0; i < bqs.size(); i++) {
-				BaseQuery bq = bqs.get(i);
-				SparseVector Q = qData.get(i);
-				Counter<String> c = relvData.getCounter(bq.getId());
-
-				SparseVector relvs = new SparseVector(c.size());
-				Set<Integer> toKeep = Generics.newHashSet();
-				Set<Integer> toRemove = Generics.newHashSet();
-				{
-					int j = 0;
-					for (Entry<String, Double> e : c.entrySet()) {
-						String did = e.getKey();
-						double relv = e.getValue();
-						int dseq = docIdMap.get(did);
-						if (dseq < 0) {
-							continue;
-						}
-						relvs.addAt(j++, dseq, relv);
-
-						if (relv > 0) {
-							toKeep.add(dseq);
-						} else {
-							toRemove.add(dseq);
-						}
-					}
-				}
-
-				relvs.pruneExcept(toKeep);
-				relvs.sortIndexes();
-
-				SparseVector lm_q = Q.copy();
-				lm_q.normalize();
-
-				SparseVector scores = scorer.scoreFromCollection(Q, relvs);
-				scorer.postprocess(scores);
-
-				for (int j = 0; j < scores.size(); j++) {
-					int dseq = scores.indexAt(j);
-					double score = scores.valueAt(j);
-					double relv = relvs.value(dseq);
-					// System.out.printf("[%s, %d, %d, %f, %f]\n", bq.getId(), j + 1, dseq, score, relv);
-					double score2 = score + relv;
-					scores.setAt(j, score2);
-				}
-				scores.summation();
-				scores.sortValues();
-
-				fb.setFbDocSize(scores.size());
-				fb.setFbWordSize(Integer.MAX_VALUE);
-
-				SparseVector lm_fb = fb.buildRM1(scores, 0, qualityPriors);
-				SparseVector lm_q2 = fb.updateQueryModel(lm_q, lm_fb);
-				qData.set(i, lm_q2);
-			}
-		}
-
 		String modelName = "mrf";
 
 		if (modelName.equals("mrf")) {
 			ds.setScorer(new MRFScorer(ds));
 			MRFScorer scorer = (MRFScorer) ds.getScorer();
-			scorer.setDocumentPriors(qualityPriors);
+			// scorer.setDocumentPriors(qualityPriors);
 			scorer.setPhraseSize(2);
 		} else if (modelName.equals("wmrf")) {
 			// Counter<String> phrsDocFreqs = FileUtils.readStringCounterFromText("../../data/medical_ir/phrs/phrs_freq.txt");
@@ -946,13 +645,15 @@ public class TrecPMExperiments {
 		// FileUtils.deleteFilesUnder(resDir);
 
 		Performance p = PerformanceEvaluator.evalute(srData, relvData);
-
 		p.writeObject(resDir + String.format("%s_%s.ser.gz", "p", modelName));
+		System.out.println(p);
+		
+		
 		FileUtils.writeStringCounterMap(resDir + String.format("%s_%s.ser.gz", "sr", modelName), srData);
 		new SparseMatrix(qData).writeObject(resDir + String.format("%s_%s.ser.gz", "q", modelName));
 		new SparseMatrix(dData).writeObject(resDir + String.format("%s_%s.ser.gz", "d", modelName));
 
-		System.out.println(p);
+		
 	}
 
 	public void runPhraseMapping() throws Exception {
@@ -993,7 +694,7 @@ public class TrecPMExperiments {
 					phrss.add(phrs);
 				}
 			}
-			pm = new PhraseMapper<String>(PhraseMapper.createDict(phrss));
+			pm = new PhraseMapper<String>(PhraseMapper.createTrie(phrss));
 		}
 
 		List<String> l1 = Generics.newArrayList();
@@ -1085,48 +786,6 @@ public class TrecPMExperiments {
 				scorer.postprocess(scores2);
 
 				scores2 = VectorMath.addAfterMultiply(new SparseVector[] { scores, scores2 }, new double[] { 0.5, 0.5 });
-				scorer.postprocess(scores2);
-
-				dData.set(i, scores2);
-				qData.set(i, Q);
-
-				System.out.printf("No:\t%d\n", i);
-				System.out.println(VectorUtils.toCounter(Q, ds.getVocab()));
-				System.out.println(timer.stop() + "\n");
-			}
-		}
-
-		if (use_qbg) {
-			LMScorer scorer = (LMScorer) ds.getScorer();
-
-			DenseVector lm_qbg = new DenseVector(ds.getVocab().size());
-			Counter<String> phrsCnts = getPhrases();
-			for (String phrs : phrsCnts.keySet()) {
-				SparseVector Q = ds.index(phrs);
-				if (Q.size() > 0) {
-					for (int w : Q.indexes()) {
-						lm_qbg.add(w, ds.getVocab().getCount(w));
-					}
-				}
-			}
-			lm_qbg.normalize();
-			// scorer.setQueryBackgroundModel(lm_qbg);
-			// scorer.setJmMixture(0.1);
-
-			for (int i = 0; i < qData.rowSize(); i++) {
-				Timer timer = Timer.newTimer();
-
-				SparseVector Q = qData.rowAt(i);
-
-				// {
-				// Counter<String> c1 = VectorUtils.toCounter(Q, ds.getVocab());
-				// Counter<String> c2 = qmb.build1(c1);
-				// Q = VectorUtils.toSparseVector(c2, ds.getVocab());
-				// }
-
-				SparseVector scores = dData.rowAt(i);
-				scores = scores.subVector(top_n);
-				SparseVector scores2 = scorer.scoreFromCollection(Q, scores);
 				scorer.postprocess(scores2);
 
 				dData.set(i, scores2);
@@ -1279,42 +938,6 @@ public class TrecPMExperiments {
 		DenseVector e_med = new DenseVector(ws.getEmbeddingMatrix().colSize());
 		double idf_med = 0;
 
-		{
-			Set<Integer> wordSet = Generics.newHashSet();
-			Counter<String> phrsCnts = getPhrases();
-			for (String phrs : phrsCnts.keySet()) {
-				SparseVector Q = ds.index(phrs);
-				if (Q.size() > 0) {
-					for (int w : Q.indexes()) {
-						wordSet.add(w);
-					}
-				}
-			}
-
-			Vocab vocab = ds.getVocab();
-
-			List<String> words = vocab.getObjects(wordSet);
-			int cnt = 0;
-			for (String word : words) {
-				int w = vocab.indexOf(word);
-
-				if (w == -1) {
-					continue;
-				}
-
-				DenseVector e = ws.getVector(word);
-
-				if (e == null) {
-					continue;
-				}
-				VectorMath.add(e, e_med);
-				idf_med += TermWeighting.idf(vocab.getDocCnt(), vocab.getDocFreq(w));
-				cnt++;
-			}
-			e_med.multiply(1f / cnt);
-			idf_med /= cnt;
-		}
-
 		int top_n = 4000;
 
 		FeedbackBuilder fb = new FeedbackBuilder(ds.getDocumentCollection(), ds.getInvertedIndex(), ds.getWordFilter());
@@ -1462,6 +1085,10 @@ public class TrecPMExperiments {
 		new SparseMatrix(dData).writeObject(dFileName);
 
 		System.out.println(p2);
+	}
+
+	public void test() {
+		String[] daraDirs = { MIRPath.BIOASQ_COL_DC_DIR, MIRPath.TREC_CDS_2016_COL_DC_DIR };
 	}
 
 }

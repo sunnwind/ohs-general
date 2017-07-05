@@ -2,12 +2,14 @@ package ohs.types.number;
 
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
+import java.util.List;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -19,6 +21,7 @@ import java.util.function.UnaryOperator;
 
 import ohs.io.FileUtils;
 import ohs.utils.ByteSize;
+import ohs.utils.Generics;
 
 public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializable, Iterable<Integer> {
 	/** Index-based split-by-two, lazily initialized Spliterator */
@@ -658,8 +661,6 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 		return result;
 	}
 
-	// Positional Access Operations
-
 	/**
 	 * Returns the index of the first occurrence of the specified element in this list, or -1 if this list does not contain the element.
 	 * More formally, returns the lowest index <tt>i</tt> such that
@@ -671,6 +672,8 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 				return i;
 		return -1;
 	}
+
+	// Positional Access Operations
 
 	public String info() {
 		StringBuffer sb = new StringBuffer();
@@ -1122,6 +1125,14 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 		// return a;
 
 		return null;
+	}
+
+	public ArrayList<Integer> toArrayList() {
+		ArrayList<Integer> ret = Generics.newArrayList(size());
+		for (int i = 0; i < size(); i++) {
+			ret.add(get(i));
+		}
+		return ret;
 	}
 
 	public String toString() {

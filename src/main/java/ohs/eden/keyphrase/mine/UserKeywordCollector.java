@@ -62,6 +62,7 @@ public class UserKeywordCollector {
 		// dh.mergeKeywords();
 		// dh.tokenizeKeywords();
 		dh.filterKeywords();
+		dh.sortKeywords();
 		// dh.getMedicalPhrases();
 
 		System.out.println("process ends.");
@@ -915,7 +916,7 @@ public class UserKeywordCollector {
 		FileUtils.writeStringCollectionAsText(MIRPath.DATA_DIR + "phrs/phrs_merged_2.txt", res);
 	}
 
-	public void filterKeywords() throws Exception {
+	public void getMedicalPhrases() throws Exception {
 		List<String> lines = FileUtils.readLinesFromText(MIRPath.DATA_DIR + "phrs/phrs_merged_2.txt");
 
 		SetMap<String, String> sm = Generics.newSetMap(lines.size());
@@ -932,27 +933,162 @@ public class UserKeywordCollector {
 			int cnt = Integer.parseInt(ps[2]);
 			c1.incrementCount(phrs, cnt);
 
+			boolean wiki = false;
+			boolean mesh = false;
+			boolean cds = false;
+			boolean pm = false;
+			boolean snomed = false;
+			boolean scopus = false;
+
+			Set<String> rscs = Generics.newHashSet();
+
 			for (int i = 3; i < ps.length; i++) {
 				String rsc = ps[i];
-				sm.put(phrs, rsc);
+				if (rsc.equals("cds")) {
+					cds = true;
+				} else if (rsc.equals("mes")) {
+					mesh = true;
+				} else if (rsc.equals("pm")) {
+					pm = true;
+				} else if (rsc.equals("sco")) {
+					scopus = true;
+				} else if (rsc.equals("wkt")) {
+					wiki = true;
+				} else if (rsc.equals("sno")) {
+					snomed = true;
+				}
+				rscs.add(rsc);
+			}
+
+			if (rscs.size() > 4) {
+				sm.put(phrs, rscs);
 			}
 		}
 
-		Counter<String> c2 = Generics.newCounter();
+		List<String> res = Generics.newArrayList(sm.keySet());
+		Collections.sort(res);
 
-		for (String phrs : sm.keySet()) {
-			c2.setCount(phrs, sm.get(phrs).size());
-		}
-
-		List<String> res = Generics.newArrayList(sm.size());
-
-		for (String phrs : c2.getSortedKeys()) {
+		for (int i = 0; i < res.size(); i++) {
+			String phrs = res.get(i);
 			List<String> rs = Generics.newArrayList(sm.removeKey(phrs));
 			Collections.sort(rs);
-			res.add(phrs + "\t" + rs.size() + "\t" + (int) c1.getCount(phrs) + "\t" + StrUtils.join("\t", rs));
+			res.set(i, phrs + "\t" + rs.size() + "\t" + (int) c1.getCount(phrs) + "\t" + StrUtils.join("\t", rs));
+		}
+
+		FileUtils.writeStringCollectionAsText(MIRPath.DATA_DIR + "phrs/phrs_medical.txt", res);
+	}
+
+	public void filterKeywords() throws Exception {
+		List<String> lines = FileUtils.readLinesFromText(MIRPath.DATA_DIR + "phrs/phrs_merged_2.txt");
+
+		SetMap<String, String> sm = Generics.newSetMap(lines.size());
+		Counter<String> c1 = Generics.newCounter(lines.size());
+
+		for (String line : lines) {
+			String[] ps = line.split("\t");
+			String phrs = ps[0];
+
+			if (phrs.length() < 3) {
+				continue;
+			}
+
+			if (phrs.startsWith("\"") || phrs.startsWith("!")) {
+				continue;
+			}
+
+			int cnt = Integer.parseInt(ps[2]);
+			c1.incrementCount(phrs, cnt);
+
+			boolean wiki = false;
+			boolean mesh = false;
+			boolean cds = false;
+			boolean pm = false;
+			boolean snomed = false;
+			boolean scopus = false;
+
+			Set<String> rscs = Generics.newHashSet();
+
+			for (int i = 3; i < ps.length; i++) {
+				String rsc = ps[i];
+				if (rsc.equals("cds")) {
+					cds = true;
+				} else if (rsc.equals("mes")) {
+					mesh = true;
+				} else if (rsc.equals("pm")) {
+					pm = true;
+				} else if (rsc.equals("sco")) {
+					scopus = true;
+				} else if (rsc.equals("wkt")) {
+					wiki = true;
+				} else if (rsc.equals("sno")) {
+					snomed = true;
+				}
+				rscs.add(rsc);
+			}
+
+			if (rscs.size() < 4) {
+				continue;
+			}
+
+			// if (rscs.contains("wkt")) {
+			// if (rscs.size() < 2) {
+			// continue;
+			// }
+			// } else {
+			// if (rscs.size() < 3) {
+			// continue;
+			// }
+			// }
+
+			sm.put(phrs, rscs);
+		}
+
+		Set<String> clueWords = Generics.newHashSet();
+		clueWords.add("cancer");
+		clueWords.add("cancers");
+		clueWords.add("disease");
+		clueWords.add("diseases");
+		clueWords.add("carcinoma");
+		clueWords.add("disorder");
+		clueWords.add("disorders");
+
+		List<String> res = Generics.newArrayList(sm.keySet());
+		Collections.sort(res);
+
+		for (int i = 0; i < res.size(); i++) {
+			String phrs = res.get(i);
+
+			boolean is_medical = false;
+
+			for (String word : phrs.split(" ")) {
+
+				if (clueWords.contains(word)) {
+					is_medical = true;
+					break;
+				}
+			}
+
+			List<String> rs = Generics.newArrayList(sm.removeKey(phrs));
+			Collections.sort(rs);
+			res.set(i, phrs + "\t" + rs.size() + "\t" + (int) c1.getCount(phrs) + "\t" + StrUtils.join("\t", rs));
 		}
 
 		FileUtils.writeStringCollectionAsText(MIRPath.DATA_DIR + "phrs/phrs_filtered.txt", res);
+	}
+
+	public void sortKeywords() throws Exception {
+		List<String> lines = FileUtils.readLinesFromText(MIRPath.DATA_DIR + "phrs/phrs_filtered.txt");
+		List<String> phrss = Generics.newArrayList(lines.size());
+
+		for (String line : lines) {
+			String[] ps = line.split("\t");
+			String phrs = ps[0];
+			phrss.add(phrs);
+		}
+
+		Collections.sort(phrss);
+
+		FileUtils.writeStringCollectionAsText(MIRPath.DATA_DIR + "phrs/phrs_sorted.txt", phrss);
 	}
 
 }

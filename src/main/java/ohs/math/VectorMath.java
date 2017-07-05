@@ -4,7 +4,13 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import ohs.math.ArrayWokers.EqualColumnProductWorker2;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseVector;
 import ohs.matrix.Matrix;
@@ -13,6 +19,7 @@ import ohs.matrix.SparseVector;
 import ohs.matrix.Vector;
 import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
+import ohs.types.generic.ListMap;
 import ohs.utils.Generics;
 import ohs.utils.Timer;
 
@@ -935,6 +942,73 @@ public class VectorMath {
 		return rowSums.sum();
 	}
 
+	public static SparseMatrix product(SparseMatrix a, SparseMatrix b) {
+		SparseMatrix sm1 = a;
+		SparseMatrix sm2 = b.transpose();
+
+		ListMap<Integer, Integer> lm = Generics.newListMap(b.colSize());
+
+		for (int n = 0; n < sm2.rowSize(); n++) {
+			int j = sm2.indexAt(n);
+			SparseVector sv2 = sm2.rowAt(n);
+			for (int k : sv2.indexes()) {
+				lm.put(k, n);
+			}
+		}
+
+		CounterMap<Integer, Integer> c = Generics.newCounterMap(a.rowSize());
+
+		Set<Integer> ns = Generics.newHashSet();
+
+		for (int m = 0; m < sm1.rowSize(); m++) {
+			int i = sm1.indexAt(m);
+			SparseVector sv1 = sm1.rowAt(m);
+			ns.clear();
+
+			for (int k : sv1.indexes()) {
+				List<Integer> tmp = lm.get(k, false);
+
+				if (tmp != null) {
+					ns.addAll(tmp);
+				}
+			}
+
+			for (int n : ns) {
+				int j = sm2.indexAt(n);
+				SparseVector sv2 = sm2.rowAt(n);
+				double dot = dotProduct(sv1, sv2);
+				c.setCount(i, j, dot);
+			}
+		}
+
+		return new SparseMatrix(c);
+	}
+
+	public static SparseMatrix productByThreads(SparseMatrix a, SparseMatrix b, int thread_size) throws Exception {
+		SparseMatrix sm1 = a;
+		SparseMatrix sm2 = b.transpose();
+
+		CounterMap<Integer, Integer> c = Generics.newCounterMap(a.rowSize());
+
+		AtomicInteger loc = new AtomicInteger(0);
+		List<Future<Double>> fs = Generics.newArrayList(thread_size);
+		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
+
+		for (int i = 0; i < thread_size; i++) {
+			fs.add(tpe.submit(new EqualColumnProductWorker2(sm1, sm2, c, loc, false)));
+		}
+
+		double sum = 0;
+
+		for (int k = 0; k < fs.size(); k++) {
+			sum += fs.get(k).get().doubleValue();
+		}
+
+		tpe.shutdown();
+
+		return new SparseMatrix(c);
+	}
+
 	/**
 	 * @param a
 	 *            M x K
@@ -1092,8 +1166,8 @@ public class VectorMath {
 		return x;
 	}
 
-	public static void randomWalk(SparseMatrix trans_probs, DenseVector cents, int max_iter) {
-		randomWalk(trans_probs, cents, null, max_iter, 0.0000001, 0.85);
+	public static void randomWalk(SparseMatrix T, DenseVector cents, int max_iter) {
+		randomWalk(T, cents, null, max_iter, 0.0000001, 0.85);
 	}
 
 	/**

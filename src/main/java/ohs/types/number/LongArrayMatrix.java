@@ -26,7 +26,7 @@ public class LongArrayMatrix extends ArrayList<LongArray> {
 	public LongArrayMatrix(int size) {
 		super(size);
 	}
-
+	
 	public LongArrayMatrix(long[][] a) {
 		ensureCapacity(a.length);
 		for (int i = 0; i < a.length; i++) {
@@ -107,6 +107,14 @@ public class LongArrayMatrix extends ArrayList<LongArray> {
 
 	public LongArrayMatrix subMatrix(int i, int j) {
 		return new LongArrayMatrix(subList(i, j));
+	}
+
+	public LongArray toLongArray() {
+		LongArray ret = new LongArray(sizeOfEntries());
+		for (LongArray a : this) {
+			ret.addAll(a);
+		}
+		return ret;
 	}
 
 	public String toString() {

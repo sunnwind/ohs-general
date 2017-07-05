@@ -35,21 +35,6 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 
 	}
 
-	public DenseVector toDenseVector() {
-		int size = 0;
-		for (DenseVector dv : this) {
-			size += dv.size();
-		}
-		DenseVector ret = new DenseVector(size);
-		int j = 0;
-		for (DenseVector dv : this) {
-			for (int i = 0; i < dv.size(); i++) {
-				ret.add(j++, dv.value(i));
-			}
-		}
-		return ret;
-	}
-
 	public DenseMatrix(DenseVector[] rows) {
 		ensureCapacity(rows.length);
 		for (DenseVector row : rows) {
@@ -388,6 +373,21 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 		set(j, a);
 	}
 
+	public DenseVector toDenseVector() {
+		int size = 0;
+		for (DenseVector dv : this) {
+			size += dv.size();
+		}
+		DenseVector ret = new DenseVector(size);
+		int j = 0;
+		for (DenseVector dv : this) {
+			for (int i = 0; i < dv.size(); i++) {
+				ret.add(j++, dv.value(i));
+			}
+		}
+		return ret;
+	}
+
 	public String toString() {
 		return toString(20, 20);
 	}
@@ -410,6 +410,11 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 		}
 
 		return sb.toString().trim();
+	}
+
+	@Override
+	public DenseMatrix transpose() {
+		return new DenseMatrix(ArrayMath.transpose(vals));
 	}
 
 	public void unwrapValues() {

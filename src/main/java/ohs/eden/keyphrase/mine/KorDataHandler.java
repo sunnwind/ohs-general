@@ -387,7 +387,7 @@ public class KorDataHandler {
 		Vocab vocab = dc.getVocab();
 
 		if (!FileUtils.exists(ccDir)) {
-			CooccurrenceCounter cc = new CooccurrenceCounter(scDir, null);
+			CooccurrenceCounter cc = new CooccurrenceCounter(scDir, ccDir, null);
 			cc.setWindowSize(window_size);
 			cc.setCountThreadSize(thread_size);
 			cc.setSymmetric(true);

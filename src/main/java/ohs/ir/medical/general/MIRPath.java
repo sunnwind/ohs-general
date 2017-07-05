@@ -314,7 +314,7 @@ public class MIRPath {
 
 	public static final String TREC_PM_2017_QUERY_DIR = TREC_PM_2017_DIR + "query/";
 
-	public static final String TREC_PM_2017_QUERY_FILE = TREC_PM_2017_QUERY_DIR + "2017topics.txt";
+	public static final String TREC_PM_2017_QUERY_FILE = TREC_PM_2017_QUERY_DIR + "topics2017.xml";
 
 	public static final String TREC_PM_2017_RELEVANCE_JUDGE_FILE = TREC_PM_2017_QUERY_DIR + "trecgen2017.all.judgments.tsv.txt";
 

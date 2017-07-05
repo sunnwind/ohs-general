@@ -89,6 +89,14 @@ public class DoubleArrayMatrix extends ArrayList<DoubleArray> {
 		return new DoubleArrayMatrix(subList(i, j));
 	}
 
+	public DoubleArray toDoubleArray() {
+		DoubleArray ret = new DoubleArray(sizeOfEntries());
+		for (DoubleArray a : this) {
+			ret.addAll(a);
+		}
+		return ret;
+	}
+
 	public String toString() {
 		return toString(20);
 	}

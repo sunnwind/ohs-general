@@ -24,26 +24,29 @@ public class TrecCdsQuery implements BaseQuery {
 
 	private String id;
 
+	private String type;
+
+	private String note;
+
 	private String description;
 
 	private String summary;
 
-	private String type;
+	private String diagnosis;
 
 	private Query luceneQuery;
 
 	private SparseVector queryModel;
 
-	private String diagnosis;
-
 	private List<Integer> words;
 
-	public TrecCdsQuery(String id, String description, String summary, String type, String diagnosis) {
+	public TrecCdsQuery(String id, String type, String note, String description, String summary, String diagnosis) {
 		super();
 		this.id = id;
+		this.type = type;
+		this.note = note;
 		this.description = description;
 		this.summary = summary;
-		this.type = type;
 		this.diagnosis = diagnosis;
 	}
 
@@ -145,6 +148,7 @@ public class TrecCdsQuery implements BaseQuery {
 		StringBuffer sb = new StringBuffer();
 		sb.append(String.format("qid:\t%s\n", id));
 		sb.append(String.format("type:\t%s\n", type));
+		sb.append(String.format("note:\t%s\n", note));
 		sb.append(String.format("description:\t%s\n", description));
 		sb.append(String.format("summary:\t%s\n", summary));
 		sb.append(String.format("diagnosis:\t%s", diagnosis));
