@@ -235,7 +235,7 @@ public class Word2VecTrainer {
 			DenseVector yh = tmp_v;
 			yh.setAll(0);
 
-			VectorMath.productColumns(x.toDenseMatrix(), M.getWyh(), yh.toDenseMatrix(), false);
+			VectorMath.productRows(x.toDenseMatrix(), M.getWyh(), yh.toDenseMatrix(), false);
 			VectorMath.softmax(yh, yh);
 
 			double cost = Math.log(yh.value(target_w));

@@ -343,11 +343,11 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 
 	@Override
 	public DenseVector sumColumns() {
-		DenseVector ret = new DenseVector(rowSize());
+		DenseVector ret = new DenseVector(colSize());
 		for (int i = 0; i < rowSize(); i++) {
-			DenseVector vector = row(i);
-			for (int j = 0; j < vector.size(); j++) {
-				ret.add(j, vector.value(j));
+			DenseVector row = row(i);
+			for (int j = 0; j < row.size(); j++) {
+				ret.add(j, row.value(j));
 			}
 		}
 		return ret;

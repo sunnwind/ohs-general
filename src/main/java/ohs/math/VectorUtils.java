@@ -308,6 +308,36 @@ public class VectorUtils {
 		return ret;
 	}
 
+	public static CounterMap<String, String> toCounterMap(DenseMatrix m, Indexer<String> rowIndexer,
+			Indexer<String> columnIndexer) {
+		CounterMap<String, String> ret = new CounterMap<String, String>();
+
+		for (int i = 0; i < rowIndexer.size(); i++) {
+			String key1 = null;
+			if (rowIndexer == null) {
+				key1 = i + "";
+			} else {
+				key1 = rowIndexer.getObject(i);
+			}
+
+			for (int j = 0; j < columnIndexer.size(); j++) {
+				String key2 = null;
+
+				if (columnIndexer == null) {
+					key2 = j + "";
+				} else {
+					key2 = columnIndexer.getObject(j);
+				}
+
+				double val = m.value(i, j);
+				if (val != 0) {
+					ret.incrementCount(key1, key2, val);
+				}
+			}
+		}
+		return ret;
+	}
+
 	public static CounterMap<Integer, Integer> toCounterMap(SparseMatrix sm) {
 		CounterMap<Integer, Integer> ret = Generics.newCounterMap();
 		for (int i = 0; i < sm.rowSize(); i++) {
@@ -316,7 +346,8 @@ public class VectorUtils {
 		return ret;
 	}
 
-	public static CounterMap<String, String> toCounterMap(SparseMatrix sm, Indexer<String> rowIndexer, Indexer<String> colIndexer) {
+	public static CounterMap<String, String> toCounterMap(SparseMatrix sm, Indexer<String> rowIndexer,
+			Indexer<String> colIndexer) {
 		CounterMap<String, String> ret = new CounterMap<String, String>();
 		for (int i = 0; i < sm.rowSize(); i++) {
 			int row_id = sm.indexAt(i);
@@ -364,8 +395,8 @@ public class VectorUtils {
 		return new SparseMatrix(cm);
 	}
 
-	public static SparseMatrix toSparseMatrix(CounterMap<String, String> cm, Indexer<String> rowIndexer, Indexer<String> colIndexer,
-			boolean add_if_unseen) {
+	public static SparseMatrix toSparseMatrix(CounterMap<String, String> cm, Indexer<String> rowIndexer,
+			Indexer<String> colIndexer, boolean add_if_unseen) {
 
 		List<Integer> rowIdxs = Generics.newArrayList(cm.size());
 		List<SparseVector> rows = Generics.newArrayList(cm.size());
@@ -390,6 +421,35 @@ public class VectorUtils {
 
 		SparseMatrix ret = new SparseMatrix(rowIdxs, rows);
 		ret.sortRowIndexes();
+		return ret;
+	}
+
+	public static DenseMatrix toDenseMatrix(CounterMap<String, String> cm, Indexer<String> rowIndexer,
+			Indexer<String> colIndexer, boolean add_if_unseen) {
+
+		DenseMatrix ret = new DenseMatrix(rowIndexer.size(), colIndexer.size());
+
+		for (String rowKey : cm.keySet()) {
+			int i = -1;
+
+			if (add_if_unseen) {
+				i = rowIndexer.getIndex(rowKey);
+			} else {
+				i = rowIndexer.indexOf(rowKey);
+			}
+
+			SparseVector row = toSparseVector(cm.getCounter(rowKey), colIndexer, add_if_unseen);
+
+			if (i < 0 || row.size() == 0) {
+				continue;
+			}
+
+			for (int k = 0; k < row.size(); k++) {
+				int j = row.indexAt(k);
+				double v = row.valueAt(k);
+				ret.add(i, j, v);
+			}
+		}
 		return ret;
 	}
 

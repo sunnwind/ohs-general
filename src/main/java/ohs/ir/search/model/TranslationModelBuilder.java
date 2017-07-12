@@ -34,7 +34,8 @@ public class TranslationModelBuilder {
 
 	private int window_size = 3;
 
-	public TranslationModelBuilder(Vocab vocab, DocumentCollection ldc, WordSearcher ws, WordFilter filter) throws Exception {
+	public TranslationModelBuilder(Vocab vocab, DocumentCollection ldc, WordSearcher ws, WordFilter filter)
+			throws Exception {
 		this.vocab = vocab;
 		this.dc = ldc;
 		this.filter = filter;
@@ -58,13 +59,13 @@ public class TranslationModelBuilder {
 		return translateModel(T, lm_d);
 	}
 
-	public SparseMatrix buildTranslatedModels(int[] docseqs) throws Exception {
-		List<Integer> idxs = Generics.newArrayList(docseqs.length);
-		List<SparseVector> rows = Generics.newArrayList(docseqs.length);
-		for (int i = 0; i < docseqs.length; i++) {
-			int docseq = docseqs[i];
-			SparseVector lm_d = buildTranslatedModel(docseq);
-			idxs.add(docseq);
+	public SparseMatrix buildTranslatedModels(int[] dseqs) throws Exception {
+		List<Integer> idxs = Generics.newArrayList(dseqs.length);
+		List<SparseVector> rows = Generics.newArrayList(dseqs.length);
+		for (int i = 0; i < dseqs.length; i++) {
+			int dseq = dseqs[i];
+			SparseVector lm_d = buildTranslatedModel(dseq);
+			idxs.add(dseq);
 			rows.add(lm_d);
 		}
 		return new SparseMatrix(idxs, rows);
@@ -74,22 +75,22 @@ public class TranslationModelBuilder {
 		List<Integer> idxs = Generics.newArrayList(dvs.size());
 		List<SparseVector> rows = Generics.newArrayList(dvs.size());
 		for (int i = 0; i < dvs.size(); i++) {
-			int docseq = dvs.indexAt(i);
-			SparseVector lm_d = buildTranslatedModel(dc.getSents(docseq).getSecond(), dvs.rowAt(i));
-			idxs.add(docseq);
+			int dseq = dvs.indexAt(i);
+			SparseVector lm_d = buildTranslatedModel(dc.getSents(dseq).getSecond(), dvs.rowAt(i));
+			idxs.add(dseq);
 			rows.add(lm_d);
 		}
 		return new SparseMatrix(idxs, rows);
 	}
 
-	public CounterMap<Integer, Integer> getProximities(int docseq) throws Exception {
-		return getProximities(dc.getSents(docseq).getSecond());
+	public CounterMap<Integer, Integer> getProximities(int dseq) throws Exception {
+		return getProximities(dc.getSents(dseq).getSecond());
 	}
 
-	public CounterMap<Integer, Integer> getProximities(int[] docseqs) throws Exception {
+	public CounterMap<Integer, Integer> getProximities(int[] dseqs) throws Exception {
 		CounterMap<Integer, Integer> ret = Generics.newCounterMap();
-		for (int docseq : docseqs) {
-			ret.incrementAll(getProximities(docseq));
+		for (int dseq : dseqs) {
+			ret.incrementAll(getProximities(dseq));
 		}
 		return ret;
 	}
@@ -124,7 +125,8 @@ public class TranslationModelBuilder {
 		return cm;
 	}
 
-	public CounterMap<Integer, Integer> getSemanticProximities(CounterMap<Integer, Integer> proxs, SparseVector dv) throws Exception {
+	public CounterMap<Integer, Integer> getSemanticProximities(CounterMap<Integer, Integer> proxs, SparseVector dv)
+			throws Exception {
 		CounterMap<Integer, Integer> cm = Generics.newCounterMap();
 		for (int i = 0; i < dv.size(); i++) {
 			int w1 = dv.indexAt(i);
@@ -185,8 +187,8 @@ public class TranslationModelBuilder {
 		return T;
 	}
 
-	public SparseMatrix getTranslationModel(int docseq) throws Exception {
-		return getTranslationModel(getProximities(docseq), dc.getDocVector(docseq));
+	public SparseMatrix getTranslationModel(int dseq) throws Exception {
+		return getTranslationModel(getProximities(dseq), dc.getDocVector(dseq));
 	}
 
 	public SparseMatrix getTranslationModel2(CounterMap<Integer, Integer> cm, SparseVector dv) throws Exception {

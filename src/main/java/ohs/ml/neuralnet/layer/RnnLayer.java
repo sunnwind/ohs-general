@@ -149,7 +149,7 @@ public class RnnLayer extends Layer {
 
 			VectorMath.multiply(dh, dh_raw, dh_raw);
 
-			VectorMath.productColumns(dh_raw.toDenseMatrix(), Whh, dh_prev.toDenseMatrix(), false);
+			VectorMath.productRows(dh_raw.toDenseMatrix(), Whh, dh_prev.toDenseMatrix(), false);
 
 			VectorUtils.copy(dh_raw, tmp);
 
@@ -167,7 +167,7 @@ public class RnnLayer extends Layer {
 					VectorMath.outerProduct(x, tmp, dWxh, true);
 
 					DenseVector dx = dX.row(tt);
-					VectorMath.productColumns(tmp.toDenseMatrix(), Wxh, dx.toDenseMatrix(), false);
+					VectorMath.productRows(tmp.toDenseMatrix(), Wxh, dx.toDenseMatrix(), false);
 				}
 
 				DenseVector h_prev = tt == 0 ? h0_prev : H.row(tt - 1);
@@ -176,7 +176,7 @@ public class RnnLayer extends Layer {
 
 				VectorMath.add(tmp, db);
 
-				VectorMath.productColumns(tmp.toDenseMatrix(), Whh, tmp.toDenseMatrix(), false);
+				VectorMath.productRows(tmp.toDenseMatrix(), Whh, tmp.toDenseMatrix(), false);
 
 				DenseVector da = tt == 0 ? dh_prev : dA.row(tt - 1);
 

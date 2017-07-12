@@ -77,7 +77,7 @@ public class FullyConnectedLayer extends Layer {
 				tmp_dX = new DenseMatrix(data_size, input_size);
 			}
 			dX = tmp_dX.rowsAsMatrix(data_size);
-			VectorMath.productColumns(dY, W, dX, false);
+			VectorMath.productRows(dY, W, dX, false);
 		} else {
 			IntegerArray X = (IntegerArray) fwd_I;
 			for (int i = 0; i < X.size(); i++) {

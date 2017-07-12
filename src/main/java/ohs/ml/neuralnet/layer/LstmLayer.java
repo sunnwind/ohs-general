@@ -187,12 +187,12 @@ public class LstmLayer extends Layer {
 			VectorUtils.copyRows(new DenseMatrix(new DenseVector[] { di, df, doo, dg }), da);
 
 			DenseVector dx = dX.row(t);
-			VectorMath.productColumns(da.toDenseMatrix(), Wxh, dx.toDenseMatrix(), false);
+			VectorMath.productRows(da.toDenseMatrix(), Wxh, dx.toDenseMatrix(), false);
 
 			DenseVector x = X.row(t);
 			VectorMath.outerProduct(x, da, dWxh, true);
 
-			VectorMath.productColumns(da.toDenseMatrix(), Whh, dh_prev.toDenseMatrix(), false);
+			VectorMath.productRows(da.toDenseMatrix(), Whh, dh_prev.toDenseMatrix(), false);
 
 			DenseVector h_prev = t == 0 ? h0_prev : H.row(t - 1);
 

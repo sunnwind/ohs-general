@@ -1471,7 +1471,7 @@ public class ArrayMath {
 			random(0, 1, b);
 
 			Timer timer = Timer.newTimer();
-			double sum1 = ArrayMath.productRows(a, b, c1, false);
+			double sum1 = ArrayMath.productColumns(a, b, c1, false);
 
 			System.out.println(sum1);
 			System.out.println(timer.stop());
@@ -1479,7 +1479,7 @@ public class ArrayMath {
 
 			timer = Timer.newTimer();
 
-			double sum2 = productRowsByThreads(a, b, c2, 10);
+			double sum2 = productColumnsByThreads(a, b, c2, 10);
 
 			System.out.println(sum2);
 			System.out.println(timer.stop());
@@ -1506,7 +1506,7 @@ public class ArrayMath {
 			random(0, 1, b);
 
 			Timer timer = Timer.newTimer();
-			double sum1 = ArrayMath.productColumns(a, b, c1, false);
+			double sum1 = ArrayMath.productRows(a, b, c1, false);
 
 			System.out.println(sum1);
 			System.out.println(timer.stop());
@@ -1514,7 +1514,7 @@ public class ArrayMath {
 
 			timer = Timer.newTimer();
 
-			double sum2 = productColumnsByThreads(a, b, c2, 10);
+			double sum2 = productRowsByThreads(a, b, c2, 10);
 
 			System.out.println(sum2);
 			System.out.println(timer.stop());
@@ -1598,7 +1598,7 @@ public class ArrayMath {
 
 			Timer timer = Timer.newTimer();
 			//
-			double sum1 = ArrayMath.productColumns(a, b, c1, false);
+			double sum1 = ArrayMath.productRows(a, b, c1, false);
 
 			System.out.println("Product");
 			System.out.println(sum1);
@@ -1607,7 +1607,7 @@ public class ArrayMath {
 
 			timer = Timer.newTimer();
 
-			double sum2 = productColumnsByThreads(a, b, c1, 5);
+			double sum2 = productRowsByThreads(a, b, c1, 5);
 
 			System.out.println(sum2);
 			System.out.println(timer.stop());
@@ -1630,7 +1630,7 @@ public class ArrayMath {
 
 			Timer timer = Timer.newTimer();
 			//
-			double sum1 = ArrayMath.productRows(a, b, c1, false);
+			double sum1 = ArrayMath.productColumns(a, b, c1, false);
 
 			System.out.println("Product");
 			System.out.println(sum1);
@@ -1639,7 +1639,7 @@ public class ArrayMath {
 
 			timer = Timer.newTimer();
 
-			double sum2 = productRowsByThreads(a, b, c1, 5);
+			double sum2 = productColumnsByThreads(a, b, c1, 5);
 
 			System.out.println(sum2);
 			System.out.println(timer.stop());
@@ -1738,7 +1738,7 @@ public class ArrayMath {
 			double[][] c2 = ArrayUtils.copy(c1);
 			double[][] c3 = ArrayUtils.copy(c1);
 
-			productRows(transpose(a), b, c2, false);
+			productColumns(transpose(a), b, c2, false);
 
 			System.out.println(ArrayUtils.toString(c1));
 			System.out.println();
@@ -2370,7 +2370,12 @@ public class ArrayMath {
 	}
 
 	public static double normalize(double[] a, double[] b) {
-		return multiply(a, 1f / sum(a), b);
+		double ret = 0;
+		double sum = sum(a);
+		if (sum != 0) {
+			ret = multiply(a, 1f / sum(a), b);
+		}
+		return ret;
 	}
 
 	public static double normalizeByL2Norm(double[] a, double[] b) {
@@ -2882,104 +2887,6 @@ public class ArrayMath {
 
 	/**
 	 * @param a
-	 *            M x K
-	 * @param b
-	 *            N x K
-	 * @param c
-	 *            M x N
-	 * @return
-	 */
-	public static double productColumns(double[][] a, double[][] b, double[][] c, boolean add) {
-		int a_rows = a.length;
-		int a_cols = a[0].length;
-		int b_rows = b.length;
-		int b_cols = b[0].length;
-		int c_rows = c.length;
-		int c_cols = c[0].length;
-
-		if (a_rows == c_rows && b_rows == c_cols && a_cols == b_cols) {
-
-		} else {
-			throw new IllegalArgumentException();
-		}
-
-		double sum = 0;
-		double dot = 0;
-
-		for (int i = 0; i < a_rows; i++) {
-			for (int j = 0; j < b_rows; j++) {
-				dot = dotProduct(a[i], b[j]);
-				if (add) {
-					c[i][j] += dot;
-				} else {
-					c[i][j] = dot;
-				}
-				sum += c[i][j];
-			}
-		}
-		return sum;
-	}
-
-	/**
-	 * @param a
-	 *            M x K
-	 * @param b
-	 *            N x K
-	 * @param c
-	 *            M x N
-	 * @return
-	 */
-	public static double productColumnsByThreads(double[][] a, double[][] b, double[][] c, int thread_size) {
-		int a_rows = a.length;
-		int a_cols = a[0].length;
-		int b_rows = b.length;
-		int b_cols = b[0].length;
-		int c_rows = c.length;
-		int c_cols = c[0].length;
-
-		if (a_rows == c_rows && b_rows == c_cols && a_cols == b_cols) {
-
-		} else {
-			throw new IllegalArgumentException();
-		}
-
-		if (thread_size == 0) {
-			thread_size = THREAD_SIZE;
-		}
-
-		if (thread_size > b_rows) {
-			thread_size = b_rows;
-		}
-
-		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
-		List<Future<Double>> fs = Generics.newArrayList();
-		AtomicInteger shared_j = new AtomicInteger(0);
-
-		for (int i = 0; i < thread_size; i++) {
-			fs.add(tpe.submit(new EqualColumnProductWorker(a, b, c, shared_j)));
-		}
-
-		double sum = 0;
-
-		try {
-			for (int k = 0; k < fs.size(); k++) {
-				sum += fs.get(k).get().doubleValue();
-			}
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		} catch (ExecutionException e) {
-			e.printStackTrace();
-		} finally {
-			fs.clear();
-		}
-
-		tpe.shutdown();
-
-		return sum;
-	}
-
-	/**
-	 * @param a
 	 *            K x M
 	 * @param b
 	 *            K x 1
@@ -2987,7 +2894,7 @@ public class ArrayMath {
 	 *            M x 1
 	 * @return
 	 */
-	public static double productRows(double[][] a, double[] b, double[] c) {
+	public static double productColumns(double[][] a, double[] b, double[] c) {
 		double dot = 0;
 		double sum = 0;
 		int a_rows = a.length;
@@ -3014,7 +2921,7 @@ public class ArrayMath {
 	 * @param add
 	 * @return
 	 */
-	public static double productRows(double[][] a, double[][] b, double[][] c, boolean add) {
+	public static double productColumns(double[][] a, double[][] b, double[][] c, boolean add) {
 		int a_rows = a.length;
 		int a_cols = a[0].length;
 		int b_rows = b.length;
@@ -3062,7 +2969,7 @@ public class ArrayMath {
 	 *            M x N
 	 * @return
 	 */
-	public static double productRowsByThreads(double[][] a, double[][] b, double[][] c, int thread_size) {
+	public static double productColumnsByThreads(double[][] a, double[][] b, double[][] c, int thread_size) {
 		int a_rows = a.length;
 		int a_cols = a[0].length;
 		int b_rows = b.length;
@@ -3105,6 +3012,104 @@ public class ArrayMath {
 		} finally {
 			fs.clear();
 		}
+		tpe.shutdown();
+
+		return sum;
+	}
+
+	/**
+	 * @param a
+	 *            M x K
+	 * @param b
+	 *            N x K
+	 * @param c
+	 *            M x N
+	 * @return
+	 */
+	public static double productRows(double[][] a, double[][] b, double[][] c, boolean add) {
+		int a_rows = a.length;
+		int a_cols = a[0].length;
+		int b_rows = b.length;
+		int b_cols = b[0].length;
+		int c_rows = c.length;
+		int c_cols = c[0].length;
+
+		if (a_rows == c_rows && b_rows == c_cols && a_cols == b_cols) {
+
+		} else {
+			throw new IllegalArgumentException();
+		}
+
+		double sum = 0;
+		double dot = 0;
+
+		for (int i = 0; i < a_rows; i++) {
+			for (int j = 0; j < b_rows; j++) {
+				dot = dotProduct(a[i], b[j]);
+				if (add) {
+					c[i][j] += dot;
+				} else {
+					c[i][j] = dot;
+				}
+				sum += c[i][j];
+			}
+		}
+		return sum;
+	}
+
+	/**
+	 * @param a
+	 *            M x K
+	 * @param b
+	 *            N x K
+	 * @param c
+	 *            M x N
+	 * @return
+	 */
+	public static double productRowsByThreads(double[][] a, double[][] b, double[][] c, int thread_size) {
+		int a_rows = a.length;
+		int a_cols = a[0].length;
+		int b_rows = b.length;
+		int b_cols = b[0].length;
+		int c_rows = c.length;
+		int c_cols = c[0].length;
+
+		if (a_rows == c_rows && b_rows == c_cols && a_cols == b_cols) {
+
+		} else {
+			throw new IllegalArgumentException();
+		}
+
+		if (thread_size == 0) {
+			thread_size = THREAD_SIZE;
+		}
+
+		if (thread_size > b_rows) {
+			thread_size = b_rows;
+		}
+
+		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
+		List<Future<Double>> fs = Generics.newArrayList();
+		AtomicInteger shared_j = new AtomicInteger(0);
+
+		for (int i = 0; i < thread_size; i++) {
+			fs.add(tpe.submit(new EqualColumnProductWorker(a, b, c, shared_j)));
+		}
+
+		double sum = 0;
+
+		try {
+			for (int k = 0; k < fs.size(); k++) {
+				sum += fs.get(k).get().doubleValue();
+			}
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		} catch (ExecutionException e) {
+			e.printStackTrace();
+		} finally {
+			fs.clear();
+		}
+
 		tpe.shutdown();
 
 		return sum;

@@ -43,43 +43,6 @@ public class VectorMath {
 		return sum;
 	}
 
-	public static SparseVector multiply(SparseVector a, SparseVector b) {
-		Counter<Integer> c = Generics.newCounter(Math.min(a.size(), b.size()));
-
-		// SparseVector small = a;
-		// SparseVector large = b;
-		//
-		// if (a.size() > b.size()) {
-		// small = b;
-		// large = a;
-		// }
-
-		int ai = 0;
-		int bi = 0;
-		double av = 0;
-		double bv = 0;
-		int i = 0, j = 0;
-
-		while (i < a.size() && j < b.size()) {
-			ai = a.indexAt(i);
-			bi = b.indexAt(j);
-			av = a.valueAt(i);
-			bv = b.valueAt(j);
-
-			if (ai == bi) {
-				c.setCount(ai, (av * bv));
-
-				i++;
-				j++;
-			} else if (ai > bi) {
-				j++;
-			} else if (ai < bi) {
-				i++;
-			}
-		}
-		return new SparseVector(c);
-	}
-
 	public static double add(DenseMatrix a, DenseMatrix b, DenseMatrix c) {
 		double sum = 0;
 		for (int i = 0; i < a.rowSize(); i++) {
@@ -680,6 +643,43 @@ public class VectorMath {
 		return sum;
 	}
 
+	public static SparseVector multiply(SparseVector a, SparseVector b) {
+		Counter<Integer> c = Generics.newCounter(Math.min(a.size(), b.size()));
+
+		// SparseVector small = a;
+		// SparseVector large = b;
+		//
+		// if (a.size() > b.size()) {
+		// small = b;
+		// large = a;
+		// }
+
+		int ai = 0;
+		int bi = 0;
+		double av = 0;
+		double bv = 0;
+		int i = 0, j = 0;
+
+		while (i < a.size() && j < b.size()) {
+			ai = a.indexAt(i);
+			bi = b.indexAt(j);
+			av = a.valueAt(i);
+			bv = b.valueAt(j);
+
+			if (ai == bi) {
+				c.setCount(ai, (av * bv));
+
+				i++;
+				j++;
+			} else if (ai > bi) {
+				j++;
+			} else if (ai < bi) {
+				i++;
+			}
+		}
+		return new SparseVector(c);
+	}
+
 	public static double multiplyAfterAdd(DenseMatrix a, double ac, DenseMatrix b, double bc, DenseMatrix c, DenseMatrix d) {
 		double sum = 0;
 		for (int i = 0; i < a.rowSize(); i++) {
@@ -984,31 +984,6 @@ public class VectorMath {
 		return new SparseMatrix(c);
 	}
 
-	public static SparseMatrix productByThreads(SparseMatrix a, SparseMatrix b, int thread_size) throws Exception {
-		SparseMatrix sm1 = a;
-		SparseMatrix sm2 = b.transpose();
-
-		CounterMap<Integer, Integer> c = Generics.newCounterMap(a.rowSize());
-
-		AtomicInteger loc = new AtomicInteger(0);
-		List<Future<Double>> fs = Generics.newArrayList(thread_size);
-		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
-
-		for (int i = 0; i < thread_size; i++) {
-			fs.add(tpe.submit(new EqualColumnProductWorker2(sm1, sm2, c, loc, false)));
-		}
-
-		double sum = 0;
-
-		for (int k = 0; k < fs.size(); k++) {
-			sum += fs.get(k).get().doubleValue();
-		}
-
-		tpe.shutdown();
-
-		return new SparseMatrix(c);
-	}
-
 	/**
 	 * @param a
 	 *            M x K
@@ -1070,6 +1045,31 @@ public class VectorMath {
 		return sum;
 	}
 
+	public static SparseMatrix productByThreads(SparseMatrix a, SparseMatrix b, int thread_size) throws Exception {
+		SparseMatrix sm1 = a;
+		SparseMatrix sm2 = b.transpose();
+
+		CounterMap<Integer, Integer> c = Generics.newCounterMap(a.rowSize());
+
+		AtomicInteger loc = new AtomicInteger(0);
+		List<Future<Double>> fs = Generics.newArrayList(thread_size);
+		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
+
+		for (int i = 0; i < thread_size; i++) {
+			fs.add(tpe.submit(new EqualColumnProductWorker2(sm1, sm2, c, loc, false)));
+		}
+
+		double sum = 0;
+
+		for (int k = 0; k < fs.size(); k++) {
+			sum += fs.get(k).get().doubleValue();
+		}
+
+		tpe.shutdown();
+
+		return new SparseMatrix(c);
+	}
+
 	public static double productByThreads(SparseVector a, DenseMatrix b, DenseVector c, int num_threads) {
 		double sum = ArrayMath.productByThreads(a.indexes(), a.values(), b.values(), c.values(), num_threads);
 		c.setSum(sum);
@@ -1078,9 +1078,9 @@ public class VectorMath {
 
 	/**
 	 * @param a
-	 *            M x K
+	 *            K x M
 	 * @param b
-	 *            N x K
+	 *            K x N
 	 * @param c
 	 *            M x N
 	 * @return
@@ -1094,26 +1094,12 @@ public class VectorMath {
 	 * @param a
 	 *            K x M
 	 * @param b
-	 *            K x N
-	 * @param c
-	 *            M x N
-	 * @return
-	 */
-	public static double productRows(DenseMatrix a, DenseMatrix b, DenseMatrix c, boolean add) {
-		ArrayMath.productRows(a.values(), b.values(), c.values(), add);
-		return c.sumRows().sum();
-	}
-
-	/**
-	 * @param a
-	 *            K x M
-	 * @param b
 	 *            K x 1
 	 * @param c
 	 *            M x 1
 	 */
-	public static double productRows(DenseMatrix a, DenseVector b, DenseVector c) {
-		double sum = ArrayMath.productRows(a.values(), b.values(), c.values());
+	public static double productColumns(DenseMatrix a, DenseVector b, DenseVector c) {
+		double sum = ArrayMath.productColumns(a.values(), b.values(), c.values());
 		c.setSum(sum);
 		return sum;
 	}
@@ -1127,7 +1113,21 @@ public class VectorMath {
 	 *            M x N
 	 * @return
 	 */
-	public static double productRows(SparseMatrix a, DenseMatrix b, DenseMatrix c, boolean add) {
+	public static double productColumns(SparseMatrix a, DenseMatrix b, DenseMatrix c, boolean add) {
+		ArrayMath.productColumns(a.values(), b.values(), c.values(), add);
+		return c.sumRows().sum();
+	}
+
+	/**
+	 * @param a
+	 *            M x K
+	 * @param b
+	 *            N x K
+	 * @param c
+	 *            M x N
+	 * @return
+	 */
+	public static double productRows(DenseMatrix a, DenseMatrix b, DenseMatrix c, boolean add) {
 		ArrayMath.productRows(a.values(), b.values(), c.values(), add);
 		return c.sumRows().sum();
 	}
@@ -1164,10 +1164,6 @@ public class VectorMath {
 		DenseMatrix x = new DenseMatrix(row_size, col_size);
 		random(min, max, x);
 		return x;
-	}
-
-	public static void randomWalk(SparseMatrix T, DenseVector cents, int max_iter) {
-		randomWalk(T, cents, null, max_iter, 0.0000001, 0.85);
 	}
 
 	/**
@@ -1220,6 +1216,10 @@ public class VectorMath {
 			old_dist = dist;
 			VectorUtils.copy(cents, old_cents);
 		}
+	}
+
+	public static void randomWalk(SparseMatrix T, DenseVector cents, int max_iter) {
+		randomWalk(T, cents, null, max_iter, 0.0000001, 0.85);
 	}
 
 	public static SparseVector rank(Vector a) {
@@ -1465,12 +1465,6 @@ public class VectorMath {
 		return sum;
 	}
 
-	public static DenseMatrix transpose(DenseMatrix a) {
-		DenseMatrix b = new DenseMatrix(a.colSize(), a.rowSize());
-		transpos(a, b);
-		return b;
-	}
-
 	public static void transpos(DenseMatrix a, DenseMatrix b) {
 		for (int i = 0; i < a.rowSize(); i++) {
 			for (int j = 0; j < a.colSize(); j++) {
@@ -1481,6 +1475,12 @@ public class VectorMath {
 		for (int i = 0; i < b.rowSize(); i++) {
 			b.row(i).summation();
 		}
+	}
+
+	public static DenseMatrix transpose(DenseMatrix a) {
+		DenseMatrix b = new DenseMatrix(a.colSize(), a.rowSize());
+		transpos(a, b);
+		return b;
 	}
 
 	public static double unitVector(DenseMatrix a, DenseMatrix b) {

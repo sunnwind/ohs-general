@@ -133,7 +133,7 @@ public class ConvLayer extends Layer {
 		 */
 
 		DenseMatrix C = new DenseMatrix(W.rowSize(), Xc.rowSize());
-		VectorMath.productColumns(W, Xc, C, false);
+		VectorMath.productRows(W, Xc, C, false);
 
 		for (int i = 0; i < C.rowSize(); i++) {
 			DenseVector c = C.row(i);

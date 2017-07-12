@@ -143,7 +143,7 @@ public class Vocab extends Indexer<String> {
 	}
 
 	public double getProb(int w) {
-		return 1f * word_cnts.get(w) / tok_cnt;
+		return 1d * word_cnts.get(w) / tok_cnt;
 	}
 
 	public double getProb(String word) {
