@@ -34,10 +34,10 @@ public class KeywordLoader {
 
 			Set<Integer> confirmed = Generics.newHashSet();
 
-			String confirmFileName = KPPath.KYP_DIR + "cids_confirmed.ser.gz";
+			String confirmFileName = KPPath.KP_DIR + "cids_confirmed.ser.gz";
 
 			if (FileUtils.exists(confirmFileName)) {
-				for (int cid : FileUtils.readIntegers(KPPath.KYP_DIR + "cids_confirmed.ser.gz")) {
+				for (int cid : FileUtils.readIntegers(KPPath.KP_DIR + "cids_confirmed.ser.gz")) {
 					confirmed.add(cid);
 				}
 			}

@@ -18,19 +18,19 @@ import ohs.utils.Generics;
 
 public class TranslationModelScorer extends Scorer {
 
-	private Vocab vocab;
-
 	private DocumentCollection dc;
 
 	private TranslationModelBuilder dmb;
 
-	private double mixture_jm = 0.5;
+	private SparseMatrix E;
 
-	private double prior_dir = 2000;
+	private double mixture_jm = 0.5;
 
 	private double mixture_trsm_sem = 0;
 
-	private SparseMatrix E;
+	private double prior_dir = 2000;
+
+	private Vocab vocab;
 
 	public TranslationModelScorer(Vocab vocab, DocumentCollection dc, InvertedIndex ii, WordSearcher ws, WordFilter wf) throws Exception {
 		super(vocab, dc, ii);

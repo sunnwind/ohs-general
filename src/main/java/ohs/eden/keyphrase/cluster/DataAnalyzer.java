@@ -182,7 +182,7 @@ public class DataAnalyzer {
 		System.out.printf("size2:\t%d\n", size2);
 		System.out.printf("coverage:\t%f (%d/%d)\n", coverage, cm.size(), size1);
 
-		TextFileWriter writer = new TextFileWriter(KPPath.KYP_DIR + String.format("map_%d-%d.txt", qloc, tloc));
+		TextFileWriter writer = new TextFileWriter(KPPath.KP_DIR + String.format("map_%d-%d.txt", qloc, tloc));
 
 		for (int i = 0; i < qidx.size(); i++) {
 			if (!cm.containsKey(i)) {
@@ -221,7 +221,7 @@ public class DataAnalyzer {
 
 		for (int i = 0; i < dictFileNames.length; i++) {
 			Indexer<String> idx = Generics.newIndexer();
-			TextFileReader reader = new TextFileReader(KPPath.KYP_DIR + dictFileNames[i], "euc-kr");
+			TextFileReader reader = new TextFileReader(KPPath.KP_DIR + dictFileNames[i], "euc-kr");
 			while (reader.hasNext()) {
 				String[] parts = reader.next().split("\t");
 

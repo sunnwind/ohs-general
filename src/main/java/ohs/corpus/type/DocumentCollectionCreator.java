@@ -50,8 +50,8 @@ public class DocumentCollectionCreator {
 
 		private Timer timer;
 
-		public CountWorker(RawDocumentCollection rdc, IntegerArrayMatrix ranges, AtomicInteger range_cnt, AtomicInteger file_cnt,
-				Counter<String> wordCnts, Counter<String> docFreqs, Timer timer) {
+		public CountWorker(RawDocumentCollection rdc, IntegerArrayMatrix ranges, AtomicInteger range_cnt,
+				AtomicInteger file_cnt, Counter<String> wordCnts, Counter<String> docFreqs, Timer timer) {
 			this.rdc = rdc;
 			this.ranges = ranges;
 			this.range_cnt = range_cnt;
@@ -169,7 +169,8 @@ public class DocumentCollectionCreator {
 
 			while ((range_loc = range_cnt.getAndIncrement()) < ranges.size()) {
 				IntegerArray range = ranges.get(range_loc);
-				IntegerArrayMatrix subranges = new IntegerArrayMatrix(BatchUtils.getBatchRanges(range.get(1) - range.get(0), 100));
+				IntegerArrayMatrix subranges = new IntegerArrayMatrix(
+						BatchUtils.getBatchRanges(range.get(1) - range.get(0), 100));
 
 				File outFile = new File(tmpDir, new DecimalFormat("00000000").format(range_loc) + ".ser");
 				FileChannel out = FileUtils.openFileChannel(outFile, "rw");
@@ -272,8 +273,10 @@ public class DocumentCollectionCreator {
 		// dcc.create(MIRPath.OHSUMED_COL_DC_DIR, 1, new int[] { 3, 5 });
 		// dcc.create(MIRPath.CLEF_EH_2014_COL_DC_DIR, 0, new int[] { 3 });
 		// dcc.create(MIRPath.TREC_GENO_2007_COL_DC_DIR, 0, new int[] { 1 });
-		// dcc.create(MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR, 0, new int[] { 2, 3, 4 });
-		// dcc.create(MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR, 0, new int[] { 1, 2, 3, 4, 5 });
+		// dcc.create(MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR, 0, new int[] { 2, 3, 4
+		// });
+		// dcc.create(MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR, 0, new int[] { 1, 2, 3,
+		// 4, 5 });
 		// dcc.create(MIRPath.TREC_CDS_2014_COL_DC_DIR, 0, new int[] { 1, 2, 3 });
 		// dcc.create(MIRPath.TREC_CDS_2016_COL_DC_DIR, 0, new int[] { 1, 2, 3 });
 		// dcc.create(MIRPath.BIOASQ_COL_DC_DIR, 0, new int[] { 4, 5 });
@@ -282,39 +285,44 @@ public class DocumentCollectionCreator {
 		// dcc.create(MIRPath.CLUEWEB_COL_DC_DIR, 0, new int[] { 1 });
 
 		// scc.setMinDocFreq(0);
-		// scc.create(MIRPath.MESH_COL_LINE_DIR, 0, new int[] { 1 },MIRPath.MESH_COL_DC_DIR);
+		// scc.create(MIRPath.MESH_COL_LINE_DIR, 0, new int[] { 1
+		// },MIRPath.MESH_COL_DC_DIR);
+
+		// {
+		//
+		// // inDirNames.add(MIRPath.OHSUMED_COL_DC_DIR);
+		// // inDirNames.add(MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR);
+		// // inDirNames.add(MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR);
+		// // inDirNames.add(MIRPath.TREC_GENO_2007_COL_DC_DIR);
+		// // inDirNames.add(MIRPath.BIOASQ_COL_DC_DIR);
+		// // inDirNames.add(MIRPath.TREC_CDS_2016_COL_DC_DIR);
+		// // inDirNames.add(MIRPath.WIKI_COL_DC_DIR);
+		//
+		// int[] docid_locs = { 1, 0, 0, 0, 0, 0, -1 };
+		// int[][] target_loc_data = new int[docid_locs.length][];
+		// target_loc_data[0] = new int[] { 3, 5 };
+		// target_loc_data[1] = new int[] { 2, 3, 4 };
+		// target_loc_data[2] = new int[] { 1, 2, 3, 4, 5 };
+		// target_loc_data[3] = new int[] { 1 };
+		// target_loc_data[4] = new int[] { 4, 5 };
+		// target_loc_data[5] = new int[] { 1, 2, 3 };
+		// target_loc_data[6] = new int[] { 2, 3 };
+		//
+		// // int[] docid_locs = { 1, 0 };
+		// // int[][] target_loc_data = new int[docid_locs.length][];
+		// // target_loc_data[0] = new int[] { 3, 5 };
+		// // target_loc_data[1] = new int[] { 1 };
+		//
+		// // dcc.create(MIRPath.DATA_DIR + "merged/col/dc/", docid_locs,
+		// target_loc_data);
+		// }
 
 		{
 
-			// inDirNames.add(MIRPath.OHSUMED_COL_DC_DIR);
-			// inDirNames.add(MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR);
-			// inDirNames.add(MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR);
-			// inDirNames.add(MIRPath.TREC_GENO_2007_COL_DC_DIR);
-			// inDirNames.add(MIRPath.BIOASQ_COL_DC_DIR);
-			// inDirNames.add(MIRPath.TREC_CDS_2016_COL_DC_DIR);
-			// inDirNames.add(MIRPath.WIKI_COL_DC_DIR);
-
-			int[] docid_locs = { 1, 0, 0, 0, 0, 0, -1 };
-			int[][] target_loc_data = new int[docid_locs.length][];
-			target_loc_data[0] = new int[] { 3, 5 };
-			target_loc_data[1] = new int[] { 2, 3, 4 };
-			target_loc_data[2] = new int[] { 1, 2, 3, 4, 5 };
-			target_loc_data[3] = new int[] { 1 };
-			target_loc_data[4] = new int[] { 4, 5 };
-			target_loc_data[5] = new int[] { 1, 2, 3 };
-			target_loc_data[6] = new int[] { 2, 3 };
-
-			// int[] docid_locs = { 1, 0 };
-			// int[][] target_loc_data = new int[docid_locs.length][];
-			// target_loc_data[0] = new int[] { 3, 5 };
-			// target_loc_data[1] = new int[] { 1 };
-
-			// dcc.create(MIRPath.DATA_DIR + "merged/col/dc/", docid_locs, target_loc_data);
-		}
-
-		{
+			String[] attrs = { "type", "cn", "kor_kwds", "eng_kwds", "kor_title", "eng_title", "kor_abs", "eng_abs",
+					"kor_pos_kwds", "kor_pos_title", "kor_pos_abs" };
 			dcc.setStringTokenizer(new KoreanPosTokenizer());
-			dcc.create(KPPath.COL_DC_DIR, 0, new int[] { 8, 9, 10 });
+			dcc.create(KPPath.COL_DC_DIR, 0, new int[] { 9, 10 });
 		}
 
 		System.out.println("process ends.");
@@ -480,7 +488,8 @@ public class DocumentCollectionCreator {
 		Counter<String> wordCnts = Generics.newCounter(init_size);
 
 		for (int i = 0; i < counting_thread_size; i++) {
-			fs.add(tpe.submit(new CountWorker(rdc.copyShallow(), ranges, range_cnt, doc_cnt, wordCnts, docFreqs, timer)));
+			fs.add(tpe
+					.submit(new CountWorker(rdc.copyShallow(), ranges, range_cnt, doc_cnt, wordCnts, docFreqs, timer)));
 		}
 
 		for (int i = 0; i < counting_thread_size; i++) {

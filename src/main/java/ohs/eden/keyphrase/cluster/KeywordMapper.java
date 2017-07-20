@@ -145,12 +145,12 @@ public class KeywordMapper {
 		Indexer<StrPair> kwdIndexer = Generics.newIndexer();
 		Map<Integer, Integer> newIdToOldId = Generics.newHashMap();
 
-		String dictFileName = KPPath.KYP_DIR + "hanlim_kor-eng.txt";
-		String outputFileName = KPPath.KYP_DIR + "keyword_hanlim-kor-eng_3p.txt.gz";
+		String dictFileName = KPPath.KP_DIR + "hanlim_kor-eng.txt";
+		String outputFileName = KPPath.KP_DIR + "keyword_hanlim-kor-eng_3p.txt.gz";
 
 		if (!use_kor_to_eng) {
-			dictFileName = KPPath.KYP_DIR + "hanlim_eng-kor.txt";
-			outputFileName = KPPath.KYP_DIR + "keyword_hanlim-eng-kor_3p.txt.gz";
+			dictFileName = KPPath.KP_DIR + "hanlim_eng-kor.txt";
+			outputFileName = KPPath.KP_DIR + "keyword_hanlim-eng-kor_3p.txt.gz";
 		}
 
 		{
@@ -184,7 +184,7 @@ public class KeywordMapper {
 
 		DataCollection dc = new DataCollection(KPPath.COL_LINE_DIR);
 
-		String outDir = KPPath.KYP_DIR + "map_halim";
+		String outDir = KPPath.KP_DIR + "map_halim";
 
 		FileUtils.deleteFilesUnder(outDir);
 
@@ -272,7 +272,7 @@ public class KeywordMapper {
 		Map<Integer, Integer> newIdToOldId = Generics.newHashMap();
 
 		{
-			TextFileReader reader = new TextFileReader(KPPath.KYP_DIR + "jst_dict.txt", "euc-kr");
+			TextFileReader reader = new TextFileReader(KPPath.KP_DIR + "jst_dict.txt", "euc-kr");
 			while (reader.hasNext()) {
 				String line = reader.next();
 				String[] parts = line.split("\t");
@@ -293,7 +293,7 @@ public class KeywordMapper {
 
 		DataCollection dc = new DataCollection(KPPath.COL_LINE_DIR);
 
-		String outDir = KPPath.KYP_DIR + "map_jst";
+		String outDir = KPPath.KP_DIR + "map_jst";
 
 		FileUtils.deleteFilesUnder(outDir);
 
@@ -392,7 +392,7 @@ public class KeywordMapper {
 
 		DataCollection dc = new DataCollection(KPPath.COL_LINE_DIR);
 
-		String outDir = KPPath.KYP_DIR + "map_other3p";
+		String outDir = KPPath.KP_DIR + "map_other3p";
 
 		FileUtils.deleteFilesUnder(outDir);
 

@@ -16,11 +16,11 @@ import ohs.types.generic.Vocab;
  * 
  * 
  * 1. Kurland, O. and Lee, L. 2005. PageRank without hyperlinks: structural re-ranking using links induced by language models. Proceedings
- * of the 28th annual international ACM SIGIR conference on Research and development in information retrieval, 306–313.
+ * of the 28th annual international ACM SIGIR conference on Research and development in information retrieval, 306��313.
  * 
  * 
  * 2. Strube, M. and Ponzetto, S.P. 2006. WikiRelate! computing semantic relatedness using wikipedia. proceedings of the 21st national
- * conference on Artificial intelligence - Volume 2, AAAI Press, 1419–1424.
+ * conference on Artificial intelligence - Volume 2, AAAI Press, 1419��1424.
  * 
  * 
  * @author Heung-Seon Oh
@@ -35,13 +35,13 @@ public class DocumentCentralityEstimator {
 		System.out.println("process ends.");
 	}
 
-	private int num_top_docs = 10;
-
 	private DocumentCollection dc;
 
-	private Vocab vocab;
+	private int num_top_docs = 10;
 
 	private Scorer scorer;
+
+	private Vocab vocab;
 
 	public DocumentCentralityEstimator(DocumentCollection dc, Scorer scorer) {
 		this.dc = dc;

@@ -3,15 +3,19 @@ package ohs.corpus.dump;
 import java.io.File;
 import java.text.DecimalFormat;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+
+import ohs.fake.FNPath;
 import ohs.io.FileUtils;
-import ohs.io.TextFileReader;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
 
@@ -19,9 +23,9 @@ public class NaverNewsDumper extends TextDumper {
 
 	class Worker1 implements Callable<Integer> {
 
-		private List<File> files;
-
 		private AtomicInteger file_cnt;
+
+		private List<File> files;
 
 		public Worker1(List<File> files, AtomicInteger file_cnt) {
 			super();
@@ -31,72 +35,79 @@ public class NaverNewsDumper extends TextDumper {
 
 		@Override
 		public Integer call() throws Exception {
-			List<String> res = Generics.newLinkedList();
 			int file_loc = 0;
 			while ((file_loc = file_cnt.getAndIncrement()) < files.size()) {
-				File file = files.get(file_loc);
+				File dir = files.get(file_loc);
 
-				TextFileReader reader = new TextFileReader(file.getPath(), "euc-kr");
+				List<File> files = FileUtils.getFilesUnder(dir);
+				List<String> res = Generics.newLinkedList();
 
-				int num_docs = 0;
-				while (reader.hasNext()) {
-					List<String> lines = reader.nextLines();
+				int batch_cnt = 0;
 
-					for (int i = 0; i < lines.size(); i++) {
-						lines.set(i, StrUtils.normalizeSpaces(lines.get(i)));
-					}
+				for (int i = 0; i < files.size(); i++) {
+					File file = files.get(i);
 
-					if (lines.size() < 3) {
-						continue;
-					}
+					Document doc = Jsoup.parse(FileUtils.readFromText(file));
+					Elements docElems = doc.getElementsByTag("doc");
 
-					if (lines.size() > 3) {
-						String title = lines.get(0);
-						String section = lines.get(1);
-						String body = StrUtils.join(" ", lines, 2, lines.size());
+					for (int j = 0; j < docElems.size(); j++) {
+						Element docElem = docElems.get(j);
 
-						lines.clear();
+						String id = docElem.getElementsByAttributeValue("name", "id").get(0).text();
+						String oid = docElem.getElementsByAttributeValue("name", "oid").get(0).text();
+						String title = docElem.getElementsByAttributeValue("name", "title").get(0).text();
+						String date = docElem.getElementsByAttributeValue("name", "date").get(0).text();
+						String cat = docElem.getElementsByAttributeValue("name", "category1").get(0).text();
+						String content = docElem.getElementsByAttributeValue("name", "content").get(0).text();
+						String url = docElem.getElementsByAttributeValue("name", "url").get(0).text();
 
-						lines.add(title);
-						lines.add(section);
-						lines.add(body);
-					}
+						List<String> vals = Generics.newArrayList();
+						vals.add(id);
+						vals.add(oid);
+						vals.add(cat);
+						vals.add(date);
+						vals.add(title);
+						vals.add(content);
+						vals.add(url);
 
-					lines = StrUtils.wrap(lines);
+						vals = StrUtils.wrap(vals);
+						res.add(StrUtils.join("\t", vals));
 
-					res.add(StrUtils.join("\t", lines));
-
-					if (res.size() % batch_size == 0) {
-						DecimalFormat df = new DecimalFormat("000000");
-						String outFileName = String.format("%s/%s.txt.gz", outPathName, df.format(batch_cnt.getAndIncrement()));
-						FileUtils.writeStringCollectionAsText(outFileName, res);
-						res.clear();
+						if (res.size() % batch_size == 0) {
+							write(dir, batch_cnt++, res);
+						}
 					}
 				}
-				reader.close();
 
-				if (res.size() > 0) {
-					DecimalFormat df = new DecimalFormat("000000");
-					String outFileName = String.format("%s/%s.txt.gz", outPathName, df.format(batch_cnt.getAndIncrement()));
-					FileUtils.writeStringCollectionAsText(outFileName, res);
-					res.clear();
-				}
+				write(dir, batch_cnt++, res);
 			}
 
 			return (int) 0;
+		}
+
+		private void write(File dir, int batch_cnt, List<String> res) throws Exception {
+			if (res.size() > 0) {
+				DecimalFormat df = new DecimalFormat("000000");
+				String outFileName = String.format("%s/%s_%s.txt.gz", outPathName, dir.getName().replace(".", ""),
+						df.format(batch_cnt));
+				FileUtils.writeStringCollectionAsText(outFileName, res);
+				res.clear();
+			}
 		}
 	}
 
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 
-		{
-			NaverNewsDumper dh = new NaverNewsDumper("../../data/naver_news/col/raw/", "../../data/naver_news/col/line/");
-			dh.dump();
-		}
+		NaverNewsDumper dh = new NaverNewsDumper(FNPath.FN_COL_RAW_DIR, FNPath.FN_COL_LINE_DIR);
+		dh.setThreadSize(10);
+		dh.setBatchSize(40000);
+		dh.dump();
 
 		System.out.println("process ends.");
 	}
+
+	private int thread_size = 3;
 
 	public NaverNewsDumper(String inDirName, String outDirName) {
 		super(inDirName, outDirName);
@@ -108,15 +119,13 @@ public class NaverNewsDumper extends TextDumper {
 
 		FileUtils.deleteFilesUnder(outPathName);
 
-		List<File> files = Generics.newLinkedList();
+		List<File> files = Generics.newArrayList();
 
-		for (File file : new File(inPathName).listFiles()) {
-			if (file.getName().endsWith(".pos")) {
-				files.add(file);
+		for (File f1 : new File(inPathName).listFiles()) {
+			for (File f2 : f1.listFiles()) {
+				files.add(f2);
 			}
 		}
-
-		int thread_size = 3;
 
 		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
 
@@ -137,9 +146,10 @@ public class NaverNewsDumper extends TextDumper {
 		}
 
 		tpe.shutdown();
+	}
 
-		// makeSingleFile();
-		// extractText();
+	public void setThreadSize(int thread_size) {
+		this.thread_size = thread_size;
 	}
 
 }

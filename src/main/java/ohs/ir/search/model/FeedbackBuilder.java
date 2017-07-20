@@ -26,37 +26,37 @@ import ohs.utils.Generics;
 
 public class FeedbackBuilder {
 
+	private Map<Integer, Double> cache;
+
 	private DocumentCollection dc;
 
-	private InvertedIndex ii;
-
-	private Vocab vocab;
+	private DocumentPriorEstimator dpe;
 
 	private int fb_doc_size = 10;
 
 	private int fb_word_size = 30;
 
-	private double prior_dir = 2000;
-
-	private double mixture_jm = 0;
-
-	private double mixture_fb = 0.5;
-
 	private WordFilter filter;
 
-	private Map<Integer, Double> cache;
-
-	private DocumentPriorEstimator dpe;
-
-	private boolean use_doc_prior = false;
+	private InvertedIndex ii;
 
 	private int len_psg_fix = 1000;
 
-	private int window_size_psg = 500;
+	private DenseVector lm_qbg;
+
+	private double mixture_fb = 0.5;
+
+	private double mixture_jm = 0;
 
 	private boolean print_log = false;
 
-	private DenseVector lm_qbg;
+	private double prior_dir = 2000;
+
+	private boolean use_doc_prior = false;
+
+	private Vocab vocab;
+
+	private int window_size_psg = 500;
 
 	public FeedbackBuilder(DocumentCollection dc, InvertedIndex ii, WordFilter filter) {
 		super();
@@ -73,8 +73,9 @@ public class FeedbackBuilder {
 	}
 
 	/**
-	 * Oh, H.-S., & Jung, Y. (2015). Cluster-based query expansion using external collections in medical information retrieval. Journal of
-	 * Biomedical Informatics, 58, 70–79. http://doi.org/10.1016/j.jbi.2015.09.017
+	 * Oh, H.-S., & Jung, Y. (2015). Cluster-based query expansion using external
+	 * collections in medical information retrieval. Journal of Biomedical
+	 * Informatics, 58, 70��79. http://doi.org/10.1016/j.jbi.2015.09.017
 	 * 
 	 * @param dss
 	 * @param scoreData
@@ -82,8 +83,8 @@ public class FeedbackBuilder {
 	 * @return
 	 * @throws Exception
 	 */
-	public SparseVector buildCBEEM(List<DocumentSearcher> dss, List<SparseVector> scoreData, List<DenseVector> docPriorData,
-			DenseVector colWeights, double mixture_col_weight) throws Exception {
+	public SparseVector buildCBEEM(List<DocumentSearcher> dss, List<SparseVector> scoreData,
+			List<DenseVector> docPriorData, DenseVector colWeights, double mixture_col_weight) throws Exception {
 
 		DenseVector colPriors = new DenseVector(dss.size());
 		List<SparseVector> rms = Generics.newArrayList(dss.size());
@@ -138,7 +139,8 @@ public class FeedbackBuilder {
 					SparseVector dv = dvs.get(k);
 					double cnt_w_in_d = dv.value(w);
 					double len_d = dv.sum();
-					double pr_w_in_d = TermWeighting.twoStageSmoothing(cnt_w_in_d, len_d, pr_w_in_c, prior_dir, pr_w_in_e, mixture_jm);
+					double pr_w_in_d = TermWeighting.twoStageSmoothing(cnt_w_in_d, len_d, pr_w_in_c, prior_dir,
+							pr_w_in_e, mixture_jm);
 					double doc_prior = 1;
 
 					if (docPriors != null) {
@@ -178,13 +180,18 @@ public class FeedbackBuilder {
 
 	/**
 	 * 
-	 * Diaz, F., & Metzler, D. (2006). Improving the estimation of relevance models using large external corpora. In Proceedings of the 29th
-	 * annual international ACM SIGIR conference on Research and development in information retrieval - SIGIR ’06 (p. 154). New York, New
-	 * York, USA: ACM Press. http://doi.org/10.1145/1148170.1148200
+	 * Diaz, F., & Metzler, D. (2006). Improving the estimation of relevance models
+	 * using large external corpora. In Proceedings of the 29th annual international
+	 * ACM SIGIR conference on Research and development in information retrieval -
+	 * SIGIR ��06 (p. 154). New York, New York, USA: ACM Press.
+	 * http://doi.org/10.1145/1148170.1148200
 	 * 
-	 * Weerkamp, W., Balog, K., & Rijke, M. de. (2009). A generative blog post retrieval model that uses query expansion based on external
-	 * collections. In Proceedings of the Joint Conference of the 47th Annual Meeting of the ACL and the 4th International Joint Conference
-	 * on Natural Language Processing of the AFNLP (Vol. 2, pp. 1057–1065). Retrieved from http://dl.acm.org/citation.cfm?id=1690294
+	 * Weerkamp, W., Balog, K., & Rijke, M. de. (2009). A generative blog post
+	 * retrieval model that uses query expansion based on external collections. In
+	 * Proceedings of the Joint Conference of the 47th Annual Meeting of the ACL and
+	 * the 4th International Joint Conference on Natural Language Processing of the
+	 * AFNLP (Vol. 2, pp. 1057��1065). Retrieved from
+	 * http://dl.acm.org/citation.cfm?id=1690294
 	 * 
 	 * 
 	 * @param fbs
@@ -192,8 +199,8 @@ public class FeedbackBuilder {
 	 * @return
 	 * @throws Exception
 	 */
-	public SparseVector buildEEM(List<FeedbackBuilder> fbs, List<SparseVector> scoreData, List<DenseVector> docPriorData,
-			DenseVector colWeights, double mixture_col_weight) throws Exception {
+	public SparseVector buildEEM(List<FeedbackBuilder> fbs, List<SparseVector> scoreData,
+			List<DenseVector> docPriorData, DenseVector colWeights, double mixture_col_weight) throws Exception {
 		List<Counter<String>> rms = Generics.newArrayList(fbs.size());
 		FeedbackBuilder baseFb = fbs.get(0);
 		Vocab baseVocab = baseFb.getVocab();
@@ -284,7 +291,8 @@ public class FeedbackBuilder {
 
 				double cnt2 = lm_fb.valueAt(j);
 				double pr_w2_in_c = vocab.getProb(w2);
-				double pr_w2 = TermWeighting.twoStageSmoothing(cnt2, lm_fb.sum(), pr_w2_in_c, prior_dir, pr_w2_in_c, mixture_jm);
+				double pr_w2 = TermWeighting.twoStageSmoothing(cnt2, lm_fb.sum(), pr_w2_in_c, prior_dir, pr_w2_in_c,
+						mixture_jm);
 				double idf2 = TermWeighting.idf(vocab.getDocCnt(), vocab.getDocFreq(w2));
 				double cosine = ws.getCosine(w1, w2);
 
@@ -323,7 +331,8 @@ public class FeedbackBuilder {
 				SparseVector dv = dvs.get(j);
 				double cnt_w_in_d = dv.value(w);
 				double len_d = dv.sum();
-				double pr_w_in_d = TermWeighting.twoStageSmoothing(cnt_w_in_d, len_d, pr_w_in_c, prior_dir, pr_w_in_c, mixture_jm);
+				double pr_w_in_d = TermWeighting.twoStageSmoothing(cnt_w_in_d, len_d, pr_w_in_c, prior_dir, pr_w_in_c,
+						mixture_jm);
 				double prior_d = 1;
 
 				if (docPriors != null) {
@@ -413,7 +422,8 @@ public class FeedbackBuilder {
 				SparseVector dv = dvs.get(j);
 				double cnt_w_in_d = dv.value(w);
 				double len_d = dv.sum();
-				double pr_w_in_d = TermWeighting.twoStageSmoothing(cnt_w_in_d, len_d, pr_w_in_c, prior_dir, pr_w_in_c, mixture_jm);
+				double pr_w_in_d = TermWeighting.twoStageSmoothing(cnt_w_in_d, len_d, pr_w_in_c, prior_dir, pr_w_in_c,
+						mixture_jm);
 				double prior_d = 1;
 
 				if (docPriors != null) {
@@ -544,8 +554,8 @@ public class FeedbackBuilder {
 					cnt_w_in_psg = psg.value(w);
 					len_psg = psg.sum();
 
-					pr_w_in_psg_jm = TermWeighting.twoStageSmoothing(cnt_w_in_psg, len_psg, pr_w_in_c, dirichlet_prior, pr_w_in_c,
-							mixture_jm);
+					pr_w_in_psg_jm = TermWeighting.twoStageSmoothing(cnt_w_in_psg, len_psg, pr_w_in_c, dirichlet_prior,
+							pr_w_in_c, mixture_jm);
 
 					pr_w_in_fb = weight_d * weight_psg * pr_w_in_psg_jm * prior_d;
 					// pr_w_in_fb = weight_psg * pr_w_in_psg_jm * prior_d;
@@ -669,8 +679,8 @@ public class FeedbackBuilder {
 					cnt_w_in_psg = psg.value(w);
 					len_psg = psg.sum();
 
-					pr_w_in_psg_jm = TermWeighting.twoStageSmoothing(cnt_w_in_psg, len_psg, pr_w_in_c, dirichlet_prior, pr_w_in_c,
-							mixture_jm);
+					pr_w_in_psg_jm = TermWeighting.twoStageSmoothing(cnt_w_in_psg, len_psg, pr_w_in_c, dirichlet_prior,
+							pr_w_in_c, mixture_jm);
 
 					pr_w_in_fb = weight_d * weight_psg * pr_w_in_psg_jm * prior_d;
 					// pr_w_in_fb = weight_psg * pr_w_in_psg_jm * prior_d;
@@ -715,7 +725,8 @@ public class FeedbackBuilder {
 				SparseVector dv = dvs.row(dseq);
 				double cnt_w_in_d = dv.value(w);
 				double len_d = dv.sum();
-				double pr_w_in_d = TermWeighting.twoStageSmoothing(cnt_w_in_d, len_d, pr_w_in_c, prior_dir, pr_w_in_c, mixture_jm);
+				double pr_w_in_d = TermWeighting.twoStageSmoothing(cnt_w_in_d, len_d, pr_w_in_c, prior_dir, pr_w_in_c,
+						mixture_jm);
 				double prior_d = 1;
 
 				if (docPriors != null) {
@@ -848,7 +859,8 @@ public class FeedbackBuilder {
 				SparseVector lm_d = lms_d.rowAt(j);
 
 				double pr_w_in_d = lm_d.value(w);
-				double pr_w_in_d_jm = pr_w_in_d = TermWeighting.jelinekMercerSmoothing(pr_w_in_d, pr_w_in_c, mixture_jm);
+				double pr_w_in_d_jm = pr_w_in_d = TermWeighting.jelinekMercerSmoothing(pr_w_in_d, pr_w_in_c,
+						mixture_jm);
 				double prior_d = 1;
 
 				if (docPriors != null) {

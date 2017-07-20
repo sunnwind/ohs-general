@@ -30,7 +30,7 @@ import ohs.utils.StrUtils;
 public class FeatureExtractor {
 
 	public static void build1() throws Exception {
-		DocumentSearcher ds = new DocumentSearcher(MIRPath.TREC_CDS_2014_COL_INDEX_DIR, MIRPath.STOPWORD_INQUERY_FILE);
+		DocumentSearcher ds = new DocumentSearcher(MIRPath.TREC_CDS_2014_COL_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
 		RandomAccessDenseMatrix E = new RandomAccessDenseMatrix(MIRPath.TREC_CDS_2014_DIR + "glove_model_raf.ser");
 
 		FeatureExtractor featExt = new FeatureExtractor(ds, E);
@@ -95,7 +95,7 @@ public class FeatureExtractor {
 	}
 
 	public static void build2() throws Exception {
-		DocumentSearcher ds = new DocumentSearcher(MIRPath.TREC_CDS_2014_COL_INDEX_DIR, MIRPath.STOPWORD_INQUERY_FILE);
+		DocumentSearcher ds = new DocumentSearcher(MIRPath.TREC_CDS_2014_COL_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
 		RandomAccessDenseMatrix E = new RandomAccessDenseMatrix(MIRPath.TREC_CDS_2014_DIR + "glove_model_raf.ser");
 
 		BidMap<String, Integer> idToSeq = Generics.newBidMap();

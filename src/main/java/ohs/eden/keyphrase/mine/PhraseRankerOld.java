@@ -1,11 +1,12 @@
-package ohs.ir.search.app;
+package ohs.eden.keyphrase.mine;
 
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
 import ohs.corpus.type.DocumentCollection;
-import ohs.eden.keyphrase.mine.PhraseMapper;
+import ohs.corpus.type.RawDocumentCollection;
+import ohs.eden.keyphrase.cluster.KPPath;
 import ohs.io.FileUtils;
 import ohs.ir.medical.general.MIRPath;
 import ohs.ir.search.index.WordFilter;
@@ -17,6 +18,10 @@ import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseVector;
 import ohs.matrix.SparseVector;
+import ohs.nlp.ling.types.MSentence;
+import ohs.nlp.ling.types.MultiToken;
+import ohs.nlp.ling.types.Token;
+import ohs.nlp.ling.types.TokenAttr;
 import ohs.tree.trie.hash.Node;
 import ohs.tree.trie.hash.Trie;
 import ohs.types.common.IntPair;
@@ -35,29 +40,41 @@ import ohs.utils.StrUtils;
  * @author Heung-Seon Oh
  * 
  */
-public class KeyphraseExtractor {
+public class PhraseRankerOld {
+
+	private static String LONG_UNDER_BAR = "__";
 
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 
-		Counter<String> phrsWeights = Generics.newCounter();
+		Counter<String> phrsBiases = Generics.newCounter();
 
 		{
-			List<String> lines = FileUtils.readLinesFromText(MIRPath.DATA_DIR + "phrs/phrs_cnt.txt");
-			phrsWeights = Generics.newCounter(lines.size());
+			List<String> lines = FileUtils.readLinesFromText(KPPath.KP_DIR + "ext/kphrs.txt");
+			phrsBiases = Generics.newCounter(lines.size());
 
 			for (String line : lines) {
 				String[] ps = line.split("\t");
+				String phrs = ps[0];
+				MSentence sent = MSentence.newSentence(phrs);
+
+				List<String> l = Generics.newArrayList();
+
+				for (MultiToken mt : sent) {
+					for (Token t : mt) {
+						l.add(String.format("%s_/_%s", t.get(TokenAttr.WORD), t.get(TokenAttr.POS)));
+					}
+				}
+
+				phrs = StrUtils.join(" ", l);
+
 				double weight = Double.parseDouble(ps[1]);
-				phrsWeights.setCount(ps[0], weight);
+				phrsBiases.setCount(phrs, weight);
 			}
 		}
 
-		// DocumentSearcher ds = new DocumentSearcher(MIRPath.DATA_DIR +
-		// "merged/col/dc/", MIRPath.STOPWORD_INQUERY_FILE);
-		// DocumentCollection dc = new DocumentCollection(MIRPath.DATA_DIR +
-		// "merged/col/dc/");
-		DocumentCollection dc = new DocumentCollection(MIRPath.TREC_CDS_2016_COL_DC_DIR);
+		DocumentCollection dc = new DocumentCollection(KPPath.COL_DC_DIR);
+		RawDocumentCollection rdc = new RawDocumentCollection(KPPath.COL_DC_DIR);
 
 		int dseq = 1000;
 
@@ -65,28 +82,23 @@ public class KeyphraseExtractor {
 
 		IntegerArrayMatrix d = DocumentCollection.toMultiSentences(p.getSecond());
 
-		List<List<String>> doc = Generics.newArrayList();
+		List<String> doc = Generics.newArrayList();
 
 		for (IntegerArray s : d) {
-			List<String> words = Generics.newArrayList(s.size());
 			for (int w : s) {
-				words.add(dc.getVocab().getObject(w));
+				doc.add(dc.getVocab().getObject(w));
 			}
-			doc.add(words);
 		}
 
 		String text = DocumentCollection.toText(dc.getVocab(), d);
 		System.out.println(text);
 
-		KeyphraseExtractor ke = new KeyphraseExtractor(dc, null, phrsWeights);
+		PhraseRankerOld ke = new PhraseRankerOld(dc, null, phrsBiases);
 		// ke.extract(StrUtils.split(text));
-		// ke.extractTFIDF(StrUtils.split(text));
-		ke.extractLM(StrUtils.split(text));
-
-		// biases.set(dc.getVocab().indexOf("cancer"), 1);
-		// biases.set(dc.getVocab().indexOf("breast"), 1);
-		// biases.set(dc.getVocab().indexOf("risk"), 1);
-		// biases.set(dc.getVocab().indexOf("cohort"), 1);
+		ke.extractTFIDF(doc);
+		// ke.extractLM(StrUtils.split(text));
+		
+		System.out.println(rdc.getMap(dseq).get("kor_pos_kwds"));
 
 		System.out.println("process ends.");
 	}
@@ -107,7 +119,7 @@ public class KeyphraseExtractor {
 
 	private int window_size = 5;
 
-	public KeyphraseExtractor(DocumentCollection dc, WordFilter wf, Counter<String> phrsBiases) {
+	public PhraseRankerOld(DocumentCollection dc, WordFilter wf, Counter<String> phrsBiases) {
 		this.dc = dc;
 		this.wf = wf;
 		this.vocab = dc.getVocab();
@@ -409,90 +421,6 @@ public class KeyphraseExtractor {
 		return null;
 	}
 
-	private CounterMap<String, String> getPhraseToWords(List<String> d, List<IntPair> ps) {
-		CounterMap<String, String> ret = Generics.newCounterMap();
-
-		for (IntPair p : ps) {
-			String phrs = StrUtils.join("_", d.subList(p.getFirst(), p.getSecond()));
-
-			int lower_boud = Math.max(0, p.getFirst() - window_size);
-			int upper_bound = Math.min(p.getSecond() + window_size, d.size());
-
-			for (int i = lower_boud; i < p.getFirst(); i++) {
-				double dist = p.getFirst() - i;
-				double score = 1d / dist;
-				String word = d.get(i);
-				ret.incrementCount(phrs, word, score);
-			}
-
-			for (int i = p.getSecond(); i < upper_bound; i++) {
-				double dist = i - p.getSecond() + 1;
-				double score = 1d / dist;
-				String word = d.get(i);
-				ret.incrementCount(phrs, word, score);
-			}
-		}
-		return ret;
-	}
-
-	private CounterMap<String, String> getWordToWords(List<String> d) {
-		CounterMap<String, String> ret = Generics.newCounterMap();
-		for (int i = 0; i < d.size(); i++) {
-			String word1 = d.get(i);
-
-			double score1 = 1d / (i + 1);
-			phrsBiases.incrementCount(word1, score1);
-
-			int m = Math.min(i + window_size, d.size());
-
-			for (int j = i + 1; j < m; j++) {
-				String word2 = d.get(j);
-				double dist = j - i;
-				double score2 = 1d / dist;
-				ret.incrementCount(word1, word2, score2);
-			}
-		}
-		return ret;
-	}
-
-	private Counter<String> getPhraseCounts(List<String> d, List<IntPair> ps) {
-		Counter<String> ret = Generics.newCounter();
-		for (IntPair p : ps) {
-			String phrs = StrUtils.join("_", d.subList(p.getFirst(), p.getSecond()));
-			ret.incrementCount(phrs, 1);
-		}
-		return ret;
-	}
-
-	private DenseVector getWordWeights(Indexer<String> wordIdxer, Counter<String> wordCnts) {
-		DenseVector ret = new DenseVector(wordIdxer.size());
-
-		for (int w = 0; w < wordIdxer.size(); w++) {
-			String word = wordIdxer.getObject(w);
-			double doc_freq = vocab.getDocFreq(word);
-			double cnt = wordCnts.getCount(word);
-			double tfidf = TermWeighting.tfidf(cnt, vocab.getDocCnt(), doc_freq);
-			ret.add(w, tfidf);
-		}
-		return ret;
-	}
-
-	private DenseVector getPhraseWeights(Indexer<String> phrsIdxer, Indexer<String> wordIdxer,
-			DenseVector wordWeights) {
-		DenseVector ret = new DenseVector(phrsIdxer.size());
-		for (int p = 0; p < phrsIdxer.size(); p++) {
-			String phrs = phrsIdxer.getObject(p);
-			double weight = 0;
-			List<String> words = StrUtils.split("_", phrs);
-			for (String word : words) {
-				int w = wordIdxer.indexOf(word);
-				weight += wordWeights.value(w);
-			}
-			ret.add(p, weight);
-		}
-		return ret;
-	}
-
 	public SparseVector extractTFIDF(List<String> d) {
 		List<IntPair> ps = pm.map(d);
 		CounterMap<String, String> phrsSims = getPhraseToWords(d, ps);
@@ -601,7 +529,7 @@ public class KeyphraseExtractor {
 		mWords.add("breast");
 
 		for (IntPair p : ps) {
-			String phrs = StrUtils.join("_", d.subList(p.getFirst(), p.getSecond()));
+			String phrs = StrUtils.join(LONG_UNDER_BAR, d.subList(p.getFirst(), p.getSecond()));
 			int pos = p.getFirst();
 			int pid = phrsIdxer.indexOf(phrs);
 			biases2.add(pid, 1d / (pos + 1));
@@ -620,12 +548,96 @@ public class KeyphraseExtractor {
 		return null;
 	}
 
+	private Counter<String> getPhraseCounts(List<String> d, List<IntPair> ps) {
+		Counter<String> ret = Generics.newCounter();
+		for (IntPair p : ps) {
+			String phrs = StrUtils.join(LONG_UNDER_BAR, d.subList(p.getFirst(), p.getSecond()));
+			ret.incrementCount(phrs, 1);
+		}
+		return ret;
+	}
+
+	private CounterMap<String, String> getPhraseToWords(List<String> d, List<IntPair> ps) {
+		CounterMap<String, String> ret = Generics.newCounterMap();
+
+		for (IntPair p : ps) {
+			String phrs = StrUtils.join(LONG_UNDER_BAR, d.subList(p.getFirst(), p.getSecond()));
+
+			int lower_boud = Math.max(0, p.getFirst() - window_size);
+			int upper_bound = Math.min(p.getSecond() + window_size, d.size());
+
+			for (int i = lower_boud; i < p.getFirst(); i++) {
+				double dist = p.getFirst() - i;
+				double score = 1d / dist;
+				String word = d.get(i);
+				ret.incrementCount(phrs, word, score);
+			}
+
+			for (int i = p.getSecond(); i < upper_bound; i++) {
+				double dist = i - p.getSecond() + 1;
+				double score = 1d / dist;
+				String word = d.get(i);
+				ret.incrementCount(phrs, word, score);
+			}
+		}
+		return ret;
+	}
+
+	private DenseVector getPhraseWeights(Indexer<String> phrsIdxer, Indexer<String> wordIdxer,
+			DenseVector wordWeights) {
+		DenseVector ret = new DenseVector(phrsIdxer.size());
+		for (int p = 0; p < phrsIdxer.size(); p++) {
+			String phrs = phrsIdxer.getObject(p);
+			double weight = 0;
+			List<String> words = StrUtils.split(LONG_UNDER_BAR, phrs);
+			for (String word : words) {
+				int w = wordIdxer.indexOf(word);
+				weight += wordWeights.value(w);
+			}
+			ret.add(p, weight);
+		}
+		return ret;
+	}
+
 	private DenseVector getSubDocumentVector(DenseVector t, DenseVector dv) {
 		DenseVector ret = new DenseVector(dv.size());
 		for (int i = 0; i < t.size(); i++) {
 			if (t.value(i) != 0) {
 				ret.add(i, dv.value(i));
 			}
+		}
+		return ret;
+	}
+
+	private CounterMap<String, String> getWordToWords(List<String> d) {
+		CounterMap<String, String> ret = Generics.newCounterMap();
+		for (int i = 0; i < d.size(); i++) {
+			String word1 = d.get(i);
+
+			double score1 = 1d / (i + 1);
+			phrsBiases.incrementCount(word1, score1);
+
+			int m = Math.min(i + window_size, d.size());
+
+			for (int j = i + 1; j < m; j++) {
+				String word2 = d.get(j);
+				double dist = j - i;
+				double score2 = 1d / dist;
+				ret.incrementCount(word1, word2, score2);
+			}
+		}
+		return ret;
+	}
+
+	private DenseVector getWordWeights(Indexer<String> wordIdxer, Counter<String> wordCnts) {
+		DenseVector ret = new DenseVector(wordIdxer.size());
+
+		for (int w = 0; w < wordIdxer.size(); w++) {
+			String word = wordIdxer.getObject(w);
+			double doc_freq = vocab.getDocFreq(word);
+			double cnt = wordCnts.getCount(word);
+			double tfidf = TermWeighting.tfidf(cnt, vocab.getDocCnt(), doc_freq);
+			ret.add(w, tfidf);
 		}
 		return ret;
 	}

@@ -1,7 +1,7 @@
 package ohs.nlp.ling.types;
 
 public enum TokenAttr {
-	WORD, POS, KWD;
+	KWD, POS, WORD;
 	// WORD, STEM, LEMMA, POS, NER
 
 	public static int size() {

@@ -30,7 +30,7 @@ public class KoreanPosTokenizer extends StringTokenizer {
 						tt.add(word);
 						tt.add(pos);
 
-						ret.add(tt.toString());
+						ret.add(tt.toString().replace(" / ", "_/_"));
 					}
 				}
 			}

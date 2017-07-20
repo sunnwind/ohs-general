@@ -26,12 +26,12 @@ public class DataAnalyzer2 {
 
 		if (a_type == 0) {
 			KeywordData kwdData = new KeywordData();
-			kwdData.readObject(KPPath.KYP_DIR + "kwd_2p-wos_clusters.ser.gz");
+			kwdData.readObject(KPPath.KP_DIR + "kwd_2p-wos_clusters.ser.gz");
 
 			Map<Integer, String> docToType = Generics.newHashMap();
 
 			{
-				TextFileReader reader = new TextFileReader(KPPath.KYP_DIR + "cn.txt.gz");
+				TextFileReader reader = new TextFileReader(KPPath.KP_DIR + "cn.txt.gz");
 				while (reader.hasNext()) {
 					String[] parts = reader.next().split("\t");
 					String cn = parts[0];
@@ -59,11 +59,11 @@ public class DataAnalyzer2 {
 					}
 				}
 			}
-			da.analyze1(kwdData, docToType, KPPath.KYP_DIR + "kwd_2p-wos_types.txt");
+			da.analyze1(kwdData, docToType, KPPath.KP_DIR + "kwd_2p-wos_types.txt");
 		} else if (a_type == 1) {
-			da.analyze2(KPPath.KYP_DIR + "kwd_2p-wos_types.txt", null);
+			da.analyze2(KPPath.KP_DIR + "kwd_2p-wos_types.txt", null);
 		} else if (a_type == 2) {
-			da.analyze3(KPPath.KYP_DIR + "kwd_2p.txt.gz", KPPath.KYP_DIR + "kwd_wos.txt.gz", null);
+			da.analyze3(KPPath.KP_DIR + "kwd_2p.txt.gz", KPPath.KP_DIR + "kwd_wos.txt.gz", null);
 		} else if (a_type == 3) {
 			da.analyze4();
 		}
@@ -76,7 +76,7 @@ public class DataAnalyzer2 {
 
 	public void analyze4() throws Exception {
 		KeywordData kwdData = new KeywordData();
-		kwdData.readObject(KPPath.KYP_DIR + "keyword_data_clusters.ser.gz");
+		kwdData.readObject(KPPath.KP_DIR + "keyword_data_clusters.ser.gz");
 
 		System.out.println(kwdData.getClusterToKeywords().size());
 		System.out.println(kwdData.getKeywords().size());

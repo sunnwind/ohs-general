@@ -8,6 +8,11 @@ import ohs.utils.StrUtils;
 
 public class MDocument extends ArrayList<MSentence> {
 
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 3622971030346445909L;
+
 	public static MDocument newDocument(String s) {
 		s = s.replace(StrUtils.LINE_REP, "\n");
 		String[] ps = s.split("[\\n]+");

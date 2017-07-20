@@ -1,7 +1,5 @@
 package ohs.ir.medical.general;
 
-import ohs.corpus.dump.ClueWebDumper;
-
 public class MIRPath {
 
 	public static final String DATA_DIR = "../../data/medical_ir/";
@@ -38,8 +36,6 @@ public class MIRPath {
 
 	public static final String BIOASQ_COL_DC_DIR = BIOASQ_COL_DIR + "dc/";
 
-	public static final String BIOASQ_COL_INDEX_DIR = BIOASQ_COL_DIR + "idx/";
-
 	public static final String BIOASQ_MESH_TREE_SER_FILE = BIOASQ_DIR + "mesh_tree.ser.gz";
 
 	public static final String BIOASQ_MESH_RES_DIR = BIOASQ_DIR + "res/";
@@ -66,8 +62,6 @@ public class MIRPath {
 
 	public static final String MESH_COL_DC_DIR = MESH_COL_DIR + "dc/";
 
-	public static final String MESH_COL_INDEX_DIR = MESH_COL_DIR + "idx/";
-
 	/*
 	 * UMLS
 	 */
@@ -86,15 +80,14 @@ public class MIRPath {
 
 	public static final String WIKI_COL_DIR = WIKI_DIR + "col/";
 
-	public static final String WIKI_COL_XML_FILE = WIKI_COL_DIR + "raw/enwiki-20170201-pages-articles-multistream.xml.bz2";
+	public static final String WIKI_COL_XML_FILE = WIKI_COL_DIR
+			+ "raw/enwiki-20170201-pages-articles-multistream.xml.bz2";
 
 	public static final String WIKI_COL_LINE_DIR = WIKI_COL_DIR + "line/";
 
 	public static final String WIKI_COL_TOK_DIR = WIKI_COL_DIR + "tok/";
 
 	public static final String WIKI_COL_DC_DIR = WIKI_COL_DIR + "dc/";
-
-	public static final String WIKI_COL_INDEX_DIR = WIKI_COL_DIR + "idx/";
 
 	public static final String WIKI_COL_COCNT_DIR = WIKI_COL_DIR + "cocnt/";
 
@@ -105,12 +98,6 @@ public class MIRPath {
 	public static final String WIKI_CATEGORYLINK_FILE = WIKI_DIR + "wiki_categorylink.csv.gz";
 
 	public static final String WIKI_VOCAB_FILE = WIKI_DIR + "vocab.txt.gz";
-
-	public static final String WIKI_INDEX_DIR = WIKI_DIR + "index/";
-
-	public static final String WIKI_INDEX_SENT_DIR = WIKI_DIR + "index_sent/";
-
-	public static final String WIKI_CATEGORY_INDEX_DIR = WIKI_DIR + "cat_index/";
 
 	public static final String WIKI_REDIRECT_TITLE_FILE = WIKI_DIR + "redirects.txt";
 
@@ -140,8 +127,6 @@ public class MIRPath {
 
 	public static final String CLUEWEB_COL_DC_DIR = CLUEWEB_COL_DIR + "dc/";
 
-	public static final String CLUEWEB_COL_INDEX_DIR = CLUEWEB_COL_DIR + "idx/";
-
 	public static final String CLUEWEB_FILE_NAME_FILE = CLUEWEB_DIR + "clueweb12_disk_b_file_names.txt";
 
 	/*
@@ -168,17 +153,18 @@ public class MIRPath {
 
 	public static final String CLEF_EH_2014_COL_DC_DIR = CLEF_EH_2014_COL_DIR + "dc/";
 
-	public static final String CLEF_EH_2014_COL_INDEX_DIR = CLEF_EH_2014_COL_DIR + "idx/";
-
 	public static final String CLEF_EH_2014_VALID_DOC_NO_FILE = CLEF_EH_2014_DIR + "cds-docnos.txt";
 
 	public static final String CLEF_EH_2014_QUERY_DIR = CLEF_EH_2014_DIR + "query/";
 
-	public static final String CLEF_EH_2013_QUERY_FILE = CLEF_EH_2014_QUERY_DIR + "queries.clef2013ehealth.1-50.test.xml";
+	public static final String CLEF_EH_2013_QUERY_FILE = CLEF_EH_2014_QUERY_DIR
+			+ "queries.clef2013ehealth.1-50.test.xml";
 
-	public static final String CLEF_EH_2014_QUERY_FILE = CLEF_EH_2014_QUERY_DIR + "queries.clef2014ehealth.1-50.test.en.xml";
+	public static final String CLEF_EH_2014_QUERY_FILE = CLEF_EH_2014_QUERY_DIR
+			+ "queries.clef2014ehealth.1-50.test.en.xml";
 
-	public static final String CLEF_EH_2014_REL_JUDGE_FILE = CLEF_EH_2014_QUERY_DIR + "clef2014t3.qrels.test.graded.txt";
+	public static final String CLEF_EH_2014_REL_JUDGE_FILE = CLEF_EH_2014_QUERY_DIR
+			+ "clef2014t3.qrels.test.graded.txt";
 
 	public static final String CLEF_EH_2015_QUERY_DIR = CLEF_EH_2015_DIR + "query/";
 
@@ -209,8 +195,6 @@ public class MIRPath {
 	public static final String TREC_CDS_2014_COL_TOK_DIR = TREC_CDS_2014_COL_DIR + "tok/";
 
 	public static final String TREC_CDS_2014_COL_DC_DIR = TREC_CDS_2014_COL_DIR + "dc/";
-
-	public static final String TREC_CDS_2014_COL_INDEX_DIR = TREC_CDS_2014_COL_DIR + "idx/";
 
 	public static final String TREC_CDS_2014_QUERY_DIR = TREC_CDS_2014_DIR + "query/";
 
@@ -246,8 +230,6 @@ public class MIRPath {
 
 	public static final String TREC_CDS_2016_COL_DC_DIR = TREC_CDS_2016_COL_DIR + "dc/";
 
-	public static final String TREC_CDS_2016_COL_INDEX_DIR = TREC_CDS_2016_COL_DIR + "idx/";
-
 	public static final String TREC_CDS_2016_QUERY_DIR = TREC_CDS_2016_DIR + "query/";
 
 	public static final String TREC_CDS_2016_QUERY_FILE = TREC_CDS_2016_QUERY_DIR + "topics2016.xml";
@@ -272,13 +254,12 @@ public class MIRPath {
 
 	public static final String TREC_GENO_2007_COL_DC_DIR = TREC_GENO_2007_COL_DIR + "dc/";
 
-	public static final String TREC_GENO_2007_COL_INDEX_DIR = TREC_GENO_2007_COL_DIR + "idx/";
-
 	public static final String TREC_GENO_2007_QUERY_DIR = TREC_GENO_2007_DIR + "query/";
 
 	public static final String TREC_GENO_2007_QUERY_FILE = TREC_GENO_2007_QUERY_DIR + "2007topics.txt";
 
-	public static final String TREC_GENO_2007_RELEVANCE_JUDGE_FILE = TREC_GENO_2007_QUERY_DIR + "trecgen2007.all.judgments.tsv.txt";
+	public static final String TREC_GENO_2007_RELEVANCE_JUDGE_FILE = TREC_GENO_2007_QUERY_DIR
+			+ "trecgen2007.all.judgments.tsv.txt";
 
 	/*
 	 * TREC Precision Medicine
@@ -300,8 +281,6 @@ public class MIRPath {
 
 	public static final String TREC_PM_2017_COL_MEDLINE_DC_DIR = TREC_PM_2017_COL_MEDLINE_DIR + "dc/";
 
-	public static final String TREC_PM_2017_COL_MEDLINE_INDEX_DIR = TREC_PM_2017_COL_MEDLINE_DIR + "idx/";
-
 	public static final String TREC_PM_2017_COL_CLINICAL_RAW_DIR = TREC_PM_2017_COL_CLINICAL_DIR + "raw/";
 
 	public static final String TREC_PM_2017_COL_CLINICAL_LINE_DIR = TREC_PM_2017_COL_CLINICAL_DIR + "line/";
@@ -310,13 +289,13 @@ public class MIRPath {
 
 	public static final String TREC_PM_2017_COL_CLINICAL_DC_DIR = TREC_PM_2017_COL_CLINICAL_DIR + "dc/";
 
-	public static final String TREC_PM_2017_COL_CLINICAL_INDEX_DIR = TREC_PM_2017_COL_CLINICAL_DIR + "idx/";
 
 	public static final String TREC_PM_2017_QUERY_DIR = TREC_PM_2017_DIR + "query/";
 
 	public static final String TREC_PM_2017_QUERY_FILE = TREC_PM_2017_QUERY_DIR + "topics2017.xml";
 
-	public static final String TREC_PM_2017_RELEVANCE_JUDGE_FILE = TREC_PM_2017_QUERY_DIR + "trecgen2017.all.judgments.tsv.txt";
+	public static final String TREC_PM_2017_RELEVANCE_JUDGE_FILE = TREC_PM_2017_QUERY_DIR
+			+ "trecgen2017.all.judgments.tsv.txt";
 
 	/*
 	 * OHSUMED
@@ -333,8 +312,6 @@ public class MIRPath {
 	public static final String OHSUMED_COL_TOK_DIR = OHSUMED_COL_DIR + "tok/";
 
 	public static final String OHSUMED_COL_DC_DIR = OHSUMED_COL_DIR + "dc/";
-
-	public static final String OHSUMED_COL_INDEX_DIR = OHSUMED_COL_DIR + "idx/";
 
 	public static final String OHSUMED_QUERY_DIR = OHSUMED_DIR + "query/";
 

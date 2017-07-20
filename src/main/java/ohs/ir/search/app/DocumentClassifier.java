@@ -46,14 +46,16 @@ public class DocumentClassifier {
 	}
 
 	public static void generate() throws Exception {
-		DocumentSearcher ds = new DocumentSearcher(MIRPath.TREC_CDS_2014_COL_INDEX_DIR, MIRPath.STOPWORD_INQUERY_FILE);
+		DocumentSearcher ds = new DocumentSearcher(MIRPath.TREC_CDS_2014_COL_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
 		RandomAccessDenseMatrix radm = new RandomAccessDenseMatrix(MIRPath.TREC_CDS_2014_DIR + "glove_model_raf.ser");
 
 		List<BaseQuery> bqs1 = QueryReader.readTrecCdsQueries(MIRPath.TREC_CDS_2014_QUERY_FILE);
 		List<BaseQuery> bqs2 = QueryReader.readTrecCdsQueries(MIRPath.TREC_CDS_2015_QUERY_A_FILE);
 
-		CounterMap<String, String> relvData1 = RelevanceReader.readTrecCdsRelevances(MIRPath.TREC_CDS_2014_REL_JUDGE_FILE);
-		CounterMap<String, String> relvData2 = RelevanceReader.readTrecCdsRelevances(MIRPath.TREC_CDS_2015_REL_JUDGE_FILE);
+		CounterMap<String, String> relvData1 = RelevanceReader
+				.readTrecCdsRelevances(MIRPath.TREC_CDS_2014_REL_JUDGE_FILE);
+		CounterMap<String, String> relvData2 = RelevanceReader
+				.readTrecCdsRelevances(MIRPath.TREC_CDS_2015_REL_JUDGE_FILE);
 
 		BidMap<String, Integer> idTodseq = Generics.newBidMap();
 
@@ -157,14 +159,16 @@ public class DocumentClassifier {
 	}
 
 	public static void generate2() throws Exception {
-		DocumentSearcher ds = new DocumentSearcher(MIRPath.TREC_CDS_2014_COL_INDEX_DIR, MIRPath.STOPWORD_INQUERY_FILE);
+		DocumentSearcher ds = new DocumentSearcher(MIRPath.TREC_CDS_2014_COL_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
 		RandomAccessDenseMatrix radm = new RandomAccessDenseMatrix(MIRPath.TREC_CDS_2014_DIR + "glove_model_raf.ser");
 
 		List<BaseQuery> bqs1 = QueryReader.readTrecCdsQueries(MIRPath.TREC_CDS_2014_QUERY_FILE);
 		List<BaseQuery> bqs2 = QueryReader.readTrecCdsQueries(MIRPath.TREC_CDS_2015_QUERY_A_FILE);
 
-		CounterMap<String, String> relvData1 = RelevanceReader.readTrecCdsRelevances(MIRPath.TREC_CDS_2014_REL_JUDGE_FILE);
-		CounterMap<String, String> relvData2 = RelevanceReader.readTrecCdsRelevances(MIRPath.TREC_CDS_2015_REL_JUDGE_FILE);
+		CounterMap<String, String> relvData1 = RelevanceReader
+				.readTrecCdsRelevances(MIRPath.TREC_CDS_2014_REL_JUDGE_FILE);
+		CounterMap<String, String> relvData2 = RelevanceReader
+				.readTrecCdsRelevances(MIRPath.TREC_CDS_2015_REL_JUDGE_FILE);
 
 		System.out.println(relvData1.totalSize());
 		System.out.println(relvData2.totalSize());

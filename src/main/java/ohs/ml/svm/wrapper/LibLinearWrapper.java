@@ -15,9 +15,11 @@ import ohs.math.ArrayUtils;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.DenseVector;
+import ohs.matrix.SparseMatrix;
 import ohs.matrix.SparseVector;
 import ohs.types.generic.Counter;
 import ohs.types.generic.Indexer;
+import ohs.types.number.IntegerArray;
 
 public class LibLinearWrapper implements Serializable {
 
@@ -67,18 +69,18 @@ public class LibLinearWrapper implements Serializable {
 		this.featIndexer = featIndexer;
 	}
 
-	public String evalute(List<SparseVector> testData, List<Integer> testLabels) {
+	public String evalute(SparseMatrix X, IntegerArray Y) {
 		SparseVector correct = new SparseVector(ArrayUtils.copy(model.getLabels()));
 		correct.sortIndexes();
 
 		SparseVector anss = correct.copy();
 		SparseVector preds = correct.copy();
 
-		for (int i = 0; i < testData.size(); i++) {
-			SparseVector x = testData.get(i);
+		for (int i = 0; i < X.size(); i++) {
+			SparseVector x = X.get(i);
 			SparseVector scores = score(x);
 			int pred = scores.argMax();
-			int ans = testLabels.get(i);
+			int ans = Y.get(i);
 
 			if (pred == ans) {
 				correct.add(ans, 1);
@@ -128,14 +130,14 @@ public class LibLinearWrapper implements Serializable {
 		return VectorUtils.toCounter(score(sv), labelIndexer);
 	}
 
-	public List<SparseVector> score(List<SparseVector> xs) {
+	public SparseMatrix score(SparseMatrix X) {
 		List<SparseVector> ret = new ArrayList<SparseVector>();
-		for (int i = 0; i < xs.size(); i++) {
-			SparseVector x = xs.get(i);
+		for (int i = 0; i < X.size(); i++) {
+			SparseVector x = X.get(i);
 			SparseVector scores = score(x);
 			ret.add(scores);
 		}
-		return ret;
+		return new SparseMatrix(ret);
 	}
 
 	public SparseVector score(SparseVector x) {

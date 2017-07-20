@@ -58,7 +58,8 @@ public class WordSimilarityComputer {
 					SparseVector sv = VectorUtils.toSparseVector(c);
 					ret.put(w1, sv);
 
-					// System.out.printf("%s\t%s\n", vocab.getObject(w1), VectorUtils.toCounter(sv, vocab));
+					// System.out.printf("%s\t%s\n", vocab.getObject(w1), VectorUtils.toCounter(sv,
+					// vocab));
 
 				}
 
@@ -74,7 +75,7 @@ public class WordSimilarityComputer {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 
-		DocumentSearcher ds = new DocumentSearcher(MIRPath.TREC_CDS_2014_COL_INDEX_DIR, MIRPath.STOPWORD_INQUERY_FILE);
+		DocumentSearcher ds = new DocumentSearcher(MIRPath.TREC_CDS_2014_COL_DIR, MIRPath.STOPWORD_INQUERY_FILE);
 
 		WordSimilarityComputer wsc = new WordSimilarityComputer(MIRPath.TREC_CDS_2014_DIR + "glove_model_raf.ser",
 				MIRPath.TREC_CDS_2014_DIR + "cosine_word.ser.gz");

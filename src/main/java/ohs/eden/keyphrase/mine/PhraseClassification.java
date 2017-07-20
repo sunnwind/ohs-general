@@ -279,7 +279,7 @@ public class PhraseClassification {
 	}
 
 	public void generateData() throws Exception {
-		List<String> lines = FileUtils.readLinesFromText(KPPath.KYP_DIR + "phrs_3p_label.txt.gz");
+		List<String> lines = FileUtils.readLinesFromText(KPPath.KP_DIR + "phrs_3p_label.txt.gz");
 
 		IntegerArrayMatrix I = new IntegerArrayMatrix();
 		IntegerArray L = new IntegerArray();
@@ -343,10 +343,10 @@ public class PhraseClassification {
 		List<String> St = Generics.newArrayList();
 
 		DenseMatrix EW = new DenseMatrix();
-		EW.readObject(KPPath.KYP_DIR + "glove_embedding.ser.gz");
+		EW.readObject(KPPath.KP_DIR + "glove_embedding.ser.gz");
 
 		DenseMatrix ED = new DenseMatrix();
-		ED.readObject(KPPath.KYP_DIR + "glove_embedding_doc.ser.gz");
+		ED.readObject(KPPath.KP_DIR + "glove_embedding_doc.ser.gz");
 
 		getData(lines, vocab, EW, ED, D.get(0), L, X, Y, S);
 		getData(lines, vocab, EW, ED, D.get(1), L, Xt, Yt, St);
@@ -363,18 +363,18 @@ public class PhraseClassification {
 
 		System.out.println(c.toString());
 
-		X.writeObject(KPPath.KYP_DIR + "phrs_quality_train_X.ser.gz");
-		Y.writeObject(KPPath.KYP_DIR + "phrs_quality_train_Y.ser.gz");
-		FileUtils.writeStringCollectionAsText(KPPath.KYP_DIR + "phrs_train_S.txt.gz", S);
+		X.writeObject(KPPath.KP_DIR + "phrs_quality_train_X.ser.gz");
+		Y.writeObject(KPPath.KP_DIR + "phrs_quality_train_Y.ser.gz");
+		FileUtils.writeStringCollectionAsText(KPPath.KP_DIR + "phrs_train_S.txt.gz", S);
 
-		Xt.writeObject(KPPath.KYP_DIR + "phrs_quality_test_X.ser.gz");
-		Yt.writeObject(KPPath.KYP_DIR + "phrs_quality_test_Y.ser.gz");
-		FileUtils.writeStringCollectionAsText(KPPath.KYP_DIR + "phrs_test_S.txt.gz", St);
+		Xt.writeObject(KPPath.KP_DIR + "phrs_quality_test_X.ser.gz");
+		Yt.writeObject(KPPath.KP_DIR + "phrs_quality_test_Y.ser.gz");
+		FileUtils.writeStringCollectionAsText(KPPath.KP_DIR + "phrs_test_S.txt.gz", St);
 	}
 
 	public void generateDocumentEmbedding() throws Exception {
 		DenseMatrix E = new DenseMatrix();
-		E.readObject(KPPath.KYP_DIR + "glove_embedding.ser.gz");
+		E.readObject(KPPath.KP_DIR + "glove_embedding.ser.gz");
 
 		DocumentCollection ldc = new DocumentCollection(KPPath.COL_DC_DIR);
 
@@ -400,7 +400,7 @@ public class PhraseClassification {
 			de.multiply(1f / word_cnt);
 		}
 
-		DE.writeObject(KPPath.KYP_DIR + "glove_embedding_doc.ser.gz");
+		DE.writeObject(KPPath.KP_DIR + "glove_embedding_doc.ser.gz");
 	}
 
 	public void getData(List<String> lines, Vocab vocab, DenseMatrix EW, DenseMatrix ED, IntegerArray dlocs, IntegerArray L, DenseMatrix X,
@@ -493,16 +493,16 @@ public class PhraseClassification {
 		param.setThreadSize(2);
 
 		DenseMatrix X = new DenseMatrix();
-		X.readObject(KPPath.KYP_DIR + "phrs_quality_train_X.ser.gz");
+		X.readObject(KPPath.KP_DIR + "phrs_quality_train_X.ser.gz");
 
 		IntegerArray Y = new IntegerArray();
-		Y.readObject(KPPath.KYP_DIR + "phrs_quality_train_Y.ser.gz");
+		Y.readObject(KPPath.KP_DIR + "phrs_quality_train_Y.ser.gz");
 
 		DenseMatrix Xt = new DenseMatrix();
-		Xt.readObject(KPPath.KYP_DIR + "phrs_quality_test_X.ser.gz");
+		Xt.readObject(KPPath.KP_DIR + "phrs_quality_test_X.ser.gz");
 
 		IntegerArray Yt = new IntegerArray();
-		Yt.readObject(KPPath.KYP_DIR + "phrs_quality_test_Y.ser.gz");
+		Yt.readObject(KPPath.KP_DIR + "phrs_quality_test_Y.ser.gz");
 
 		Counter<Integer> labels = Generics.newCounter();
 		for (int y : Y) {
@@ -537,7 +537,7 @@ public class PhraseClassification {
 		trainer.train(X, Y, Xt, Yt, 100);
 		trainer.finish();
 
-		List<String> lines = FileUtils.readLinesFromText(KPPath.KYP_DIR + "phrs_test_S.txt.gz");
+		List<String> lines = FileUtils.readLinesFromText(KPPath.KP_DIR + "phrs_test_S.txt.gz");
 
 		IntegerArray Yth = nn.classify(Xt);
 
@@ -563,7 +563,7 @@ public class PhraseClassification {
 			lines.set(i, line);
 		}
 
-		FileUtils.writeStringCollectionAsText(KPPath.KYP_DIR + "phrs_test_S_res.txt.gz", lines);
+		FileUtils.writeStringCollectionAsText(KPPath.KP_DIR + "phrs_test_S_res.txt.gz", lines);
 	}
 
 	public void trainQualityClassifier() throws Exception {

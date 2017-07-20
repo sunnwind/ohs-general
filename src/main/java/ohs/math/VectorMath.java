@@ -215,7 +215,8 @@ public class VectorMath {
 		}
 	}
 
-	public static double addAfterMultiplyByThreads(DenseMatrix a, double ac, DenseMatrix b, double bc, DenseMatrix c, int num_threads) {
+	public static double addAfterMultiplyByThreads(DenseMatrix a, double ac, DenseMatrix b, double bc, DenseMatrix c,
+			int num_threads) {
 		ArrayMath.addAfterMultiplyByThreads(a.values(), ac, b.values(), bc, c.values(), num_threads);
 		return c.sumColumns().sum();
 	}
@@ -388,6 +389,18 @@ public class VectorMath {
 		}
 		ret = Math.sqrt(ret);
 		return ret;
+	}
+
+	public static double exp(Vector x) {
+		double sum = ArrayMath.exp(x.values(), x.values());
+		x.setSum(sum);
+		return sum;
+	}
+
+	public static double sumLogProbs(Vector x) {
+		double sum = ArrayMath.sumLogProbs(x.values());
+		x.setSum(sum);
+		return sum;
 	}
 
 	public static double geometricMean(Vector x) {
@@ -680,7 +693,8 @@ public class VectorMath {
 		return new SparseVector(c);
 	}
 
-	public static double multiplyAfterAdd(DenseMatrix a, double ac, DenseMatrix b, double bc, DenseMatrix c, DenseMatrix d) {
+	public static double multiplyAfterAdd(DenseMatrix a, double ac, DenseMatrix b, double bc, DenseMatrix c,
+			DenseMatrix d) {
 		double sum = 0;
 		for (int i = 0; i < a.rowSize(); i++) {
 			sum += multiplyAfterAdd(a.row(i), ac, b.row(i), bc, c.row(i), c.row(i));
@@ -703,12 +717,15 @@ public class VectorMath {
 		return sum;
 	}
 
-	public static double multiplyAfterAdd(DenseVector a, DenseVector ac, DenseVector b, DenseVector bc, DenseVector c, DenseVector d) {
-		double sum = ArrayMath.multiplyAfterAdd(a.values(), ac.values(), b.values(), bc.values(), c.values(), d.values());
+	public static double multiplyAfterAdd(DenseVector a, DenseVector ac, DenseVector b, DenseVector bc, DenseVector c,
+			DenseVector d) {
+		double sum = ArrayMath.multiplyAfterAdd(a.values(), ac.values(), b.values(), bc.values(), c.values(),
+				d.values());
 		return sum;
 	}
 
-	public static double multiplyAfterAdd(DenseVector a, double ac, DenseVector b, double bc, DenseVector c, DenseVector d) {
+	public static double multiplyAfterAdd(DenseVector a, double ac, DenseVector b, double bc, DenseVector c,
+			DenseVector d) {
 		double sum = ArrayMath.multiplyAfterAdd(a.values(), ac, b.values(), bc, c.values(), d.values());
 		return sum;
 	}

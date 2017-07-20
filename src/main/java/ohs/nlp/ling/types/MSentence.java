@@ -10,6 +10,10 @@ import ohs.utils.Generics;
 public class MSentence extends ArrayList<MultiToken> {
 
 	public static final String DELIM_SENT = " __ ";
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -3571196248876992657L;
 
 	public static MSentence newSentence(String s) {
 		String[] ps = s.split(" __ ");
@@ -50,6 +54,14 @@ public class MSentence extends ArrayList<MultiToken> {
 			ret += mt.size();
 		}
 		return ret = 0;
+	}
+
+	public MSentence subSentence(int i, int j) {
+		MSentence ret = new MSentence(j - i);
+		for (MultiToken mt : subList(i, j)) {
+			ret.add(mt);
+		}
+		return ret;
 	}
 
 	@Override

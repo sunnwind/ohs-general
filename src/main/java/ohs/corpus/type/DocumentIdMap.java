@@ -72,15 +72,15 @@ public class DocumentIdMap {
 
 	private Map<Integer, String> cache = Generics.newWeakHashMap();;
 
-	private FileChannel fc;
-
 	private File dataDir;
 
-	private LongArray starts;
+	private boolean encode = false;
+
+	private FileChannel fc;
 
 	private IntegerArray lens;
 
-	private boolean encode = false;
+	private LongArray starts;
 
 	public DocumentIdMap() {
 

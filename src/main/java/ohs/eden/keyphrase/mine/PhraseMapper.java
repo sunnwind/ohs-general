@@ -34,7 +34,7 @@ public class PhraseMapper<K> {
 			List<String> words = StrUtils.split(phrs);
 			List<Integer> ws = vocab.indexesOfKnown(words);
 
-			if (ws.size() > 0 && words.size() == ws.size()) {
+			if (words.size() == ws.size()) {
 				Node<Integer> node = ret.insert(ws);
 				node.setFlag(true);
 			}

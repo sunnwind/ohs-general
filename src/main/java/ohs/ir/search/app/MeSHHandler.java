@@ -329,7 +329,7 @@ public class MeSHHandler {
 		CounterMap<String, String> cm = Generics.newCounterMap();
 		String sep = " = ";
 
-		WordFilter filter = new DocumentSearcher(MIRPath.TREC_CDS_2014_COL_INDEX_DIR, MIRPath.STOPWORD_INQUERY_FILE).getWordFilter();
+		WordFilter filter = new DocumentSearcher(MIRPath.TREC_CDS_2014_COL_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE).getWordFilter();
 		StringTokenizer st = new EnglishTokenizer();
 
 		{

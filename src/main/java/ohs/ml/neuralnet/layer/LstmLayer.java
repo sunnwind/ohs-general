@@ -42,56 +42,56 @@ public class LstmLayer extends Layer {
 	 */
 	private static final long serialVersionUID = 2848535801786544922L;
 
+	private DenseVector a;
+	private DenseVector bh;
+	private DenseMatrix C;
+
+	private DenseVector c0;
+	private DenseVector c0_prev;
+	private DenseVector da;
+
+	private DenseVector dbh;
+
+	private DenseVector dc_prev;
+	private DenseVector dc0;
+
+	private DenseVector df;
+	private DenseVector dg;
+	private DenseVector dh_prev;
+	private DenseVector di;
+
+	private DenseVector doo;
+	private DenseMatrix dWhh;
+	private DenseMatrix dWxh;
+
+	private DenseMatrix F;
+	private DenseMatrix G;
+	private DenseMatrix H;
+	private DenseVector h0;
+	private DenseVector h0_prev;
+
+	private int hidden_size;
+	private DenseMatrix I;
+	private int input_size;
+	private Nonlinearity non;
+	private DenseMatrix O;
+	private DenseVector tmp;
+	private DenseMatrix tmp_C;
+	private DenseMatrix tmp_dC;
+
+	private DenseMatrix tmp_dX;
+	private DenseMatrix tmp_F;
+	private DenseMatrix tmp_G;
+	private DenseMatrix tmp_H;
+	private DenseMatrix tmp_I;
+
+	private DenseMatrix tmp_O;
+	private DenseMatrix Whh;
 	/**
 	 * input to hidden
 	 */
 	private DenseMatrix Wxh;
-	private DenseMatrix Whh;
-	private DenseVector bh;
-
-	private DenseMatrix dWxh;
-	private DenseMatrix dWhh;
-	private DenseVector dbh;
-
-	private Nonlinearity non;
-
-	private int input_size;
-	private int hidden_size;
-
-	private DenseMatrix I;
-	private DenseMatrix F;
-	private DenseMatrix O;
-	private DenseMatrix G;
-
-	private DenseMatrix H;
-	private DenseMatrix C;
 	private DenseMatrix X;
-
-	private DenseVector h0;
-	private DenseVector h0_prev;
-	private DenseVector c0;
-	private DenseVector c0_prev;
-	private DenseVector a;
-
-	private DenseVector dc0;
-	private DenseVector dc_prev;
-	private DenseVector dh_prev;
-	private DenseVector di;
-	private DenseVector df;
-	private DenseVector doo;
-	private DenseVector dg;
-	private DenseVector da;
-
-	private DenseMatrix tmp_dX;
-	private DenseMatrix tmp_I;
-	private DenseMatrix tmp_F;
-	private DenseMatrix tmp_O;
-	private DenseMatrix tmp_G;
-
-	private DenseMatrix tmp_H;
-	private DenseMatrix tmp_C;
-	private DenseMatrix tmp_dC;
-	private DenseVector tmp;
 
 	public LstmLayer(DenseMatrix Wxh, DenseMatrix Whh, DenseVector bh, Nonlinearity non) {
 		super();

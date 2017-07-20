@@ -11,15 +11,15 @@ import ohs.types.generic.BidMap;
 
 public class PaperDataFileIterator implements Iterator<Map<PaperAttr, String>> {
 
-	private TextFileReader reader;
-
-	private int num_papers = 0;
+	private Map<String, PaperAttr> attrMap;
 
 	private Map<PaperAttr, String> attrValueMap;
 
-	private Map<String, PaperAttr> attrMap;
-
 	private final String DOCUMENT_START = "@NEW_DOCUMENT";
+
+	private int num_papers = 0;
+
+	private TextFileReader reader;
 
 	private boolean readFromLine = false;
 

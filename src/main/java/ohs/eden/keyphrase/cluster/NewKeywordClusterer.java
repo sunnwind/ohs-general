@@ -224,7 +224,7 @@ public class NewKeywordClusterer {
 		NewKeywordClusterer kc = new NewKeywordClusterer(kwdData);
 		// kc.setTitleData(FileUtils.readStrCounterMap(KPPath.KYP_TITLE_DATA_FILE));
 		kc.cluster();
-		kc.writeClusters(KPPath.KYP_DIR + "kwd_2p-wos_clusters.txt.gz");
+		kc.writeClusters(KPPath.KP_DIR + "kwd_2p-wos_clusters.txt.gz");
 
 		// kwdData.writeObject(KPPath.KYP_DIR + "kwd_2p-wos_clusters.ser.gz");
 

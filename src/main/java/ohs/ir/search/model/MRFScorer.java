@@ -16,9 +16,9 @@ public class MRFScorer extends LMScorer {
 
 	protected DenseVector mixtures = new DenseVector(new double[] { 0.85, 0.1, 0.05 });
 
-	protected int window_size = 5;
-
 	protected int phrs_size = 3;
+
+	protected int window_size = 5;
 
 	public MRFScorer(DocumentSearcher ds) {
 		this(ds.getVocab(), ds.getDocumentCollection(), ds.getInvertedIndex());

@@ -9,13 +9,13 @@ import ohs.types.generic.Vocab;
 
 public abstract class Scorer {
 
-	protected Vocab vocab;
-
 	protected DocumentCollection dc;
+
+	protected DenseVector docPriors;
 
 	protected InvertedIndex ii;
 
-	protected DenseVector docPriors;
+	protected Vocab vocab;
 
 	public Scorer(DocumentSearcher ds) {
 		this(ds.getVocab(), ds.getDocumentCollection(), ds.getInvertedIndex());

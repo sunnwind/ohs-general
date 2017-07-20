@@ -40,11 +40,11 @@ public class MeshNumberPredictor {
 		System.out.println("process ends.");
 	}
 
-	private IntegerArray Y;
+	private MeshTree mt;
 
 	private DenseMatrix X;
 
-	private MeshTree mt;
+	private IntegerArray Y;
 
 	public Pair<DenseMatrix, IntegerArray> buildDocumentEmbeddings(IntegerArrayMatrix docData, Map<Integer, DenseVector> docToEmb) {
 		List<DenseVector> X = Generics.newArrayList(docData.size());

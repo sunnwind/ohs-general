@@ -189,7 +189,7 @@ public class DataHandler {
 		System.out.printf("avg_len: %f\n", avg_len);
 		System.out.printf("max_len: %d\n", max_len);
 
-		FileUtils.writeStringCounterAsText(KPPath.KYP_DIR + "phrs_3p_kwds.txt.gz", c);
+		FileUtils.writeStringCounterAsText(KPPath.KP_DIR + "phrs_3p_kwds.txt.gz", c);
 	}
 
 	public void get3PKeywordsEng() throws Exception {
@@ -221,7 +221,7 @@ public class DataHandler {
 			}
 		}
 
-		FileUtils.writeStringCounterAsText(KPPath.KYP_DIR + "eng_kwds.txt", c);
+		FileUtils.writeStringCounterAsText(KPPath.KP_DIR + "eng_kwds.txt", c);
 
 		System.out.println(c);
 	}
@@ -604,9 +604,9 @@ public class DataHandler {
 	}
 
 	public void matchPhrasesToKeywords() throws Exception {
-		Counter<String> c = FileUtils.readStringCounterFromText(KPPath.KYP_DIR + "phrs_3p_kwds.txt.gz");
+		Counter<String> c = FileUtils.readStringCounterFromText(KPPath.KP_DIR + "phrs_3p_kwds.txt.gz");
 
-		List<String> lines = FileUtils.readLinesFromText(KPPath.KYP_DIR + "phrs_3p.txt.gz");
+		List<String> lines = FileUtils.readLinesFromText(KPPath.KP_DIR + "phrs_3p.txt.gz");
 
 		Counter<String> cc = Generics.newCounter();
 
@@ -632,7 +632,7 @@ public class DataHandler {
 
 		System.out.println(cc);
 
-		FileUtils.writeStringCollectionAsText(KPPath.KYP_DIR + "phrs_3p_label.txt.gz", lines);
+		FileUtils.writeStringCollectionAsText(KPPath.KP_DIR + "phrs_3p_label.txt.gz", lines);
 	}
 
 	public void mergeKeywords() throws Exception {
@@ -819,8 +819,8 @@ public class DataHandler {
 		String dir = KPPath.COL_DIR;
 		String scDir = dir + "dc/";
 		String ccDir = dir + "cocnt/";
-		String outFileName1 = KPPath.KYP_DIR + "glove_model.ser.gz";
-		String outFileName2 = KPPath.KYP_DIR + "glove_embedding.ser.gz";
+		String outFileName1 = KPPath.KP_DIR + "glove_model.ser.gz";
+		String outFileName2 = KPPath.KP_DIR + "glove_embedding.ser.gz";
 
 		int thread_size = 50;
 		int hidden_size = 200;

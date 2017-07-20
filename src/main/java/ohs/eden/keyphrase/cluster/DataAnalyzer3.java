@@ -22,11 +22,11 @@ public class DataAnalyzer3 {
 
 	public void analyze() throws Exception {
 		KeywordData kwdData = new KeywordData();
-		kwdData.readObject(KPPath.KYP_DIR + "keyword_data_clusters.ser.gz");
+		kwdData.readObject(KPPath.KP_DIR + "keyword_data_clusters.ser.gz");
 
 		Indexer<String> docIndexer = kwdData.getDocumentIndxer();
 		Indexer<StrPair> kwdIndexer = kwdData.getKeywordIndexer();
-		List<String> lines = FileUtils.readLinesFromText(KPPath.KYP_DIR + "topics.csv");
+		List<String> lines = FileUtils.readLinesFromText(KPPath.KP_DIR + "topics.csv");
 		Indexer<String> clstIndexer = Generics.newIndexer();
 		SetMap<Integer, Integer> clstToKwds1 = Generics.newSetMap();
 

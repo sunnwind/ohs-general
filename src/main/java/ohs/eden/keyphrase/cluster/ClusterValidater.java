@@ -36,7 +36,7 @@ public class ClusterValidater {
 	}
 
 	public void validate() throws Exception {
-		TextFileWriter writer = new TextFileWriter(KPPath.KYP_DIR + "cluster_filter.txt.gz");
+		TextFileWriter writer = new TextFileWriter(KPPath.KP_DIR + "cluster_filter.txt.gz");
 		int filter_cnt = 0;
 
 		IntegerArray toFilter = new IntegerArray();
@@ -117,7 +117,7 @@ public class ClusterValidater {
 
 		toFilter.trimToSize();
 
-		FileUtils.writeIntegers(KPPath.KYP_DIR + "cids_confirmed.ser.gz", toFilter.values());
+		FileUtils.writeIntegers(KPPath.KP_DIR + "cids_confirmed.ser.gz", toFilter.values());
 
 	}
 

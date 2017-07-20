@@ -21,21 +21,21 @@ import ohs.utils.Generics;
 
 public class PassageScorer extends Scorer {
 
-	private Vocab vocab;
+	private WeakHashMap<Integer, IntegerArrayMatrix> cache = Generics.newWeakHashMap();
 
 	private DocumentCollection dc;
 
-	private InvertedIndex ii;
-
 	private double dirichlet_prior = 1000;
-
-	private double mixture_jm = 0.7;
 
 	private WordFilter filter;
 
-	private WeakHashMap<Integer, IntegerArrayMatrix> cache = Generics.newWeakHashMap();
+	private InvertedIndex ii;
 
 	private int len_psg_fix = 500;
+
+	private double mixture_jm = 0.7;
+
+	private Vocab vocab;
 
 	public PassageScorer(DocumentSearcher ds) {
 		super(ds);

@@ -71,7 +71,7 @@ public class DataHandler {
 	}
 
 	public void test() {
-		TextFileReader reader = new TextFileReader(KPPath.KYP_DIR + "keyword_cluster.txt");
+		TextFileReader reader = new TextFileReader(KPPath.KP_DIR + "keyword_cluster.txt");
 
 		List<String> lines1 = Generics.newArrayList();
 		List<String> lines2 = Generics.newArrayList();
@@ -99,7 +99,7 @@ public class DataHandler {
 
 		{
 
-			TextFileWriter writer = new TextFileWriter(KPPath.KYP_DIR + "c1.txt");
+			TextFileWriter writer = new TextFileWriter(KPPath.KP_DIR + "c1.txt");
 			for (String line : lines1) {
 				writer.write(line + "\n");
 			}
@@ -108,7 +108,7 @@ public class DataHandler {
 
 		{
 
-			TextFileWriter writer = new TextFileWriter(KPPath.KYP_DIR + "c2.txt");
+			TextFileWriter writer = new TextFileWriter(KPPath.KP_DIR + "c2.txt");
 			for (String line : lines2) {
 				writer.write(line + "\n");
 			}
@@ -117,7 +117,7 @@ public class DataHandler {
 
 		{
 
-			TextFileWriter writer = new TextFileWriter(KPPath.KYP_DIR + "c3.txt");
+			TextFileWriter writer = new TextFileWriter(KPPath.KP_DIR + "c3.txt");
 			for (String line : lines3) {
 				writer.write(line + "\n");
 			}
@@ -134,15 +134,15 @@ public class DataHandler {
 		Set<String> stopwords = Generics.newHashSet();
 		stopwords.add("<sto>");
 
-		CooccurrenceCounter cc = new CooccurrenceCounter();
+		CooccurrenceCounter cc = new CooccurrenceCounter(scDir, ccDir, stopwords);
 		cc.setOutputFileSize(100);
 		cc.setSymmetric(true);
 		cc.setCountThreadSize(10);
 		cc.setWindowSize(10);
-		cc.count(scDir, ccDir, stopwords);
+		cc.count();
 
-		DocumentCollection lsc = new DocumentCollection(scDir);
-		Vocab vocab = lsc.getVocab();
+		DocumentCollection dc = new DocumentCollection(scDir);
+		Vocab vocab = dc.getVocab();
 
 		GloveParam param = new GloveParam(vocab.size(), 300);
 		param.setThreadSize(50);
@@ -191,7 +191,7 @@ public class DataHandler {
 			List<String> ll = Generics.newArrayList();
 
 			for (int i = 0; i < d1.size(); i++) {
-				MSentence sent = d1.getSentence(i);
+				MSentence sent = d1.get(i);
 
 				String[][] words = sent.getSub(TokenAttr.WORD);
 				String[][] poss = sent.getSub(TokenAttr.POS);
@@ -230,7 +230,7 @@ public class DataHandler {
 	}
 
 	public void extractCNs() throws Exception {
-		TextFileWriter writer = new TextFileWriter(KPPath.KYP_DIR + "cn.txt.gz");
+		TextFileWriter writer = new TextFileWriter(KPPath.KP_DIR + "cn.txt.gz");
 
 		for (File file : new File(KPPath.COL_LINE_DIR).listFiles()) {
 			List<String> lines = FileUtils.readLinesFromText(file);
@@ -471,11 +471,14 @@ public class DataHandler {
 
 				MDocument doc = TaggedTextParser.parse(korTitle + "\\n" + korAbs);
 				//
-				for (Token t : doc.getSubTokens()) {
-					String word = t.get(TokenAttr.WORD);
-					String pos = t.get(TokenAttr.POS);
-					if (pos.startsWith("N")) {
-						c.incrementCount(word.toLowerCase(), 1);
+				for (List<Token> ts : doc.getTokens()) {
+
+					for (Token t : ts) {
+						String word = t.get(TokenAttr.WORD);
+						String pos = t.get(TokenAttr.POS);
+						if (pos.startsWith("N")) {
+							c.incrementCount(word.toLowerCase(), 1);
+						}
 					}
 				}
 

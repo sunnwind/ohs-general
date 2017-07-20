@@ -19,10 +19,6 @@ public class Sequence<E> implements Serializable {
 		return values[i];
 	}
 
-	public E[] values() {
-		return values;
-	}
-
 	public int length() {
 		return values.length;
 	}
@@ -36,6 +32,10 @@ public class Sequence<E> implements Serializable {
 			}
 		}
 		return sb.toString();
+	}
+
+	public E[] values() {
+		return values;
 	}
 
 }

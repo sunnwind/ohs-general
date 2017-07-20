@@ -1,15 +1,16 @@
 package ohs.nlp.ling.types;
 
 import java.util.ArrayList;
+import java.util.Collection;
 
 public class MultiToken extends ArrayList<Token> {
+
+	public static final String DELIM = " + ";
 
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1548339270826089537L;
-
-	public static final String DELIM = " + ";
 
 	public static MultiToken newMultiToken(String s) {
 		String[] ps = s.split(" \\+ ");
@@ -26,6 +27,10 @@ public class MultiToken extends ArrayList<Token> {
 
 	public MultiToken() {
 
+	}
+
+	public MultiToken(Collection<Token> ts) {
+		addAll(ts);
 	}
 
 	public MultiToken(int size) {

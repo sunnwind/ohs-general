@@ -52,7 +52,7 @@ public class KorPhraseClassification {
 		System.out.println("process begins.");
 
 		KorPhraseClassification qc = new KorPhraseClassification();
-		// qc.generateData();
+		qc.generateData();
 		qc.vectorizeData();
 		qc.trainClassifier();
 		//
@@ -121,7 +121,7 @@ public class KorPhraseClassification {
 	}
 
 	public void generateData() throws Exception {
-		List<String> ins = FileUtils.readLinesFromText(KPPath.KYP_DIR + "ext/label_data.txt");
+		List<String> ins = FileUtils.readLinesFromText(KPPath.KP_DIR + "ext/label_data.txt");
 		Vocab vocab = DocumentCollection.readVocab(KPPath.COL_DC_DIR + "vocab.ser");
 		KoreanPosTokenizer kpt = new KoreanPosTokenizer();
 		// InvertedIndex ii = getInvertedIndex(lines, vocab, kpt);
@@ -228,12 +228,12 @@ public class KorPhraseClassification {
 			outs.add(StrUtils.join("\t", s));
 		}
 
-		FileUtils.writeStringCollectionAsText(KPPath.KYP_DIR + "ext/label_data_2.txt", outs);
+		FileUtils.writeStringCollectionAsText(KPPath.KP_DIR + "ext/label_data_2.txt", outs);
 	}
 
 	public void generateDocumentEmbedding() throws Exception {
 		DenseMatrix E = new DenseMatrix();
-		E.readObject(KPPath.KYP_DIR + "glove_embedding.ser.gz");
+		E.readObject(KPPath.KP_DIR + "glove_embedding.ser.gz");
 
 		DocumentCollection ldc = new DocumentCollection(KPPath.COL_DC_DIR);
 
@@ -259,11 +259,11 @@ public class KorPhraseClassification {
 			de.multiply(1f / word_cnt);
 		}
 
-		DE.writeObject(KPPath.KYP_DIR + "glove_embedding_doc.ser.gz");
+		DE.writeObject(KPPath.KP_DIR + "glove_embedding_doc.ser.gz");
 	}
 
-	public void getData(List<String> lines, Vocab vocab, DenseMatrix EW, DenseMatrix ED, IntegerArray dlocs, IntegerArray L, DenseMatrix X,
-			IntegerArray Y, List<String> S) {
+	public void getData(List<String> lines, Vocab vocab, DenseMatrix EW, DenseMatrix ED, IntegerArray dlocs,
+			IntegerArray L, DenseMatrix X, IntegerArray Y, List<String> S) {
 		int hidden_size = EW.colSize();
 
 		DenseVector f1 = new DenseVector(hidden_size);
@@ -404,8 +404,8 @@ public class KorPhraseClassification {
 	}
 
 	public void trainClassifier() throws Exception {
-		DenseMatrix XD = new DenseMatrix(KPPath.KYP_DIR + "ext/X.ser.gz");
-		IntegerArray YD = new IntegerArray(KPPath.KYP_DIR + "ext/Y.ser.gz");
+		DenseMatrix XD = new DenseMatrix(KPPath.KP_DIR + "ext/X.ser.gz");
+		IntegerArray YD = new IntegerArray(KPPath.KP_DIR + "ext/Y.ser.gz");
 
 		DenseMatrix X = new DenseMatrix();
 		IntegerArray Y = new IntegerArray();
@@ -510,7 +510,7 @@ public class KorPhraseClassification {
 
 		trainer.finish();
 
-		nn.writeObject(KPPath.KYP_DIR + "ext/nn_model.ser.gz");
+		nn.writeObject(KPPath.KP_DIR + "ext/nn_model.ser.gz");
 	}
 
 	public void vectorizeData() throws Exception {
@@ -520,7 +520,7 @@ public class KorPhraseClassification {
 
 		RandomAccessDenseMatrix E = new RandomAccessDenseMatrix(KPPath.COL_DIR + "emb/glove_emb_ra.ser", false);
 
-		List<String> ins = FileUtils.readLinesFromText(KPPath.KYP_DIR + "ext/label_data_2.txt");
+		List<String> ins = FileUtils.readLinesFromText(KPPath.KP_DIR + "ext/label_data_2.txt");
 
 		List<DenseVector> X = Generics.newLinkedList();
 		List<Integer> Y = Generics.newLinkedList();
@@ -629,7 +629,8 @@ public class KorPhraseClassification {
 						continue;
 					}
 
-					// DenseVector x = new DenseMatrix(new DenseVector[] { ek, ed }).toDenseVector();
+					// DenseVector x = new DenseMatrix(new DenseVector[] { ek, ed
+					// }).toDenseVector();
 					// VectorMath.subtract(ek, ed, ek);
 
 					DoubleArray tmp = new DoubleArray();
@@ -678,8 +679,8 @@ public class KorPhraseClassification {
 
 		}
 
-		new DenseMatrix(X).writeObject(KPPath.KYP_DIR + "ext/X.ser.gz");
-		new IntegerArray(Y).writeObject(KPPath.KYP_DIR + "ext/Y.ser.gz");
+		new DenseMatrix(X).writeObject(KPPath.KP_DIR + "ext/X.ser.gz");
+		new IntegerArray(Y).writeObject(KPPath.KP_DIR + "ext/Y.ser.gz");
 	}
 
 }

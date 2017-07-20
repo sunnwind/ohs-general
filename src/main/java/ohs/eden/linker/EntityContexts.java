@@ -13,9 +13,9 @@ import ohs.utils.Generics;
 import ohs.utils.Timer;
 
 public class EntityContexts {
-	private Indexer<String> wordIndexer;
-
 	private Map<Integer, SparseVector> contVecs;
+
+	private Indexer<String> wordIndexer;
 
 	public EntityContexts() {
 		wordIndexer = new Indexer<String>();
@@ -35,6 +35,12 @@ public class EntityContexts {
 		return wordIndexer;
 	}
 
+	public void read(String fileName) throws Exception {
+		ObjectInputStream ois = FileUtils.openObjectInputStream(fileName);
+		readObject(ois);
+		ois.close();
+	}
+
 	public void readObject(ObjectInputStream ois) throws Exception {
 		Timer timer = Timer.newTimer();
 		timer.start();
@@ -52,18 +58,18 @@ public class EntityContexts {
 		System.out.printf("read [%s] - [%s]\n", this.getClass().getName(), timer.stop());
 	}
 
-	public void read(String fileName) throws Exception {
-		ObjectInputStream ois = FileUtils.openObjectInputStream(fileName);
-		readObject(ois);
-		ois.close();
-	}
-
 	public void setContextVectors(Map<Integer, SparseVector> conVecs) {
 		this.contVecs = conVecs;
 	}
 
 	public void setWordIndexer(Indexer<String> wordIndexer) {
 		this.wordIndexer = wordIndexer;
+	}
+
+	public void write(String fileName) throws Exception {
+		ObjectOutputStream oos = FileUtils.openObjectOutputStream(fileName);
+		writeObject(oos);
+		oos.close();
 	}
 
 	public void writeObject(ObjectOutputStream oos) throws Exception {
@@ -78,11 +84,5 @@ public class EntityContexts {
 		}
 
 		System.out.printf("write [%s] - [%s]\n", this.getClass().getName(), timer.stop());
-	}
-
-	public void write(String fileName) throws Exception {
-		ObjectOutputStream oos = FileUtils.openObjectOutputStream(fileName);
-		writeObject(oos);
-		oos.close();
 	}
 }

@@ -48,39 +48,39 @@ public class DocumentCollection {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 
-		{
-			String[] dirs = { MIRPath.OHSUMED_COL_DC_DIR, MIRPath.TREC_CDS_2014_COL_DC_DIR, MIRPath.TREC_CDS_2016_COL_DC_DIR,
-					MIRPath.WIKI_COL_DC_DIR, MIRPath.BIOASQ_COL_DC_DIR };
-
-			for (int j = 0; j < dirs.length && j < 1; j++) {
-				String dir = dirs[j];
-
-				System.out.println(dir);
-
-				DocumentCollection dc = new DocumentCollection(dir);
-				int[][] ranges = BatchUtils.getBatchRanges(dc.size(), 500);
-
-				Timer timer = Timer.newTimer();
-
-				System.out.println(dc.getText(0));
-
-				// for (int i = 0; i < ranges.length; i++) {
-				// List<Pair<String, IntegerArray>> res = dc.getRange(ranges[i][0], ranges[i][1], false);
-				//
-				// for (int k = 0; k < res.size(); k++) {
-				// IntegerArrayMatrix doc = DocumentCollection.toMultiSentences(res.get(k).getSecond());
-				// String s = DocumentCollection.getText(dc.getVocab(), doc);
-				//
-				// System.out.println(s);
-				// System.out.println();
-				// }
-				// }
-
-				System.out.println(timer.stop());
-
-				System.out.println();
-			}
-		}
+//		{
+//			String[] dirs = { MIRPath.OHSUMED_COL_DC_DIR, MIRPath.TREC_CDS_2014_COL_DC_DIR, MIRPath.TREC_CDS_2016_COL_DC_DIR,
+//					MIRPath.WIKI_COL_DC_DIR, MIRPath.BIOASQ_COL_DC_DIR };
+//
+//			for (int j = 0; j < dirs.length && j < 1; j++) {
+//				String dir = dirs[j];
+//
+//				System.out.println(dir);
+//
+//				DocumentCollection dc = new DocumentCollection(dir);
+//				int[][] ranges = BatchUtils.getBatchRanges(dc.size(), 500);
+//
+//				Timer timer = Timer.newTimer();
+//
+//				System.out.println(dc.getText(0));
+//
+//				// for (int i = 0; i < ranges.length; i++) {
+//				// List<Pair<String, IntegerArray>> res = dc.getRange(ranges[i][0], ranges[i][1], false);
+//				//
+//				// for (int k = 0; k < res.size(); k++) {
+//				// IntegerArrayMatrix doc = DocumentCollection.toMultiSentences(res.get(k).getSecond());
+//				// String s = DocumentCollection.getText(dc.getVocab(), doc);
+//				//
+//				// System.out.println(s);
+//				// System.out.println();
+//				// }
+//				// }
+//
+//				System.out.println(timer.stop());
+//
+//				System.out.println();
+//			}
+//		}
 
 		// {
 		// String[] dirs = { MIRPath.OHSUMED_COL_DC_DIR, MIRPath.TREC_CDS_2016_COL_DC_DIR, MIRPath.TREC_CDS_2014_COL_DC_DIR };

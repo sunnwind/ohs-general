@@ -12,17 +12,17 @@ import ohs.types.generic.Vocab;
 
 public class BM25Scorer extends Scorer {
 
+	private double b = TermWeighting.b;
+
 	private double k1 = TermWeighting.k1;
 
 	private double k3 = TermWeighting.k3;
 
-	private double b = TermWeighting.b;
-
-	private double sigma = 0;
+	private double len_d_avg = dc.getAvgDocLength();
 
 	private double num_docs = vocab.getDocCnt();
 
-	private double len_d_avg = dc.getAvgDocLength();
+	private double sigma = 0;
 
 	public BM25Scorer(DocumentSearcher ds) {
 		super(ds);

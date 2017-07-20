@@ -27,9 +27,9 @@ public class TrecPmMedlineDumper extends TextDumper {
 
 	class Worker implements Callable<Integer> {
 
-		private List<File> files;
-
 		private AtomicInteger file_cnt;
+
+		private List<File> files;
 
 		public Worker(List<File> files, AtomicInteger file_cnt) {
 			super();

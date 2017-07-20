@@ -802,9 +802,9 @@ public class UserKeywordCollector {
 	}
 
 	public void matchPhrasesToKeywords() throws Exception {
-		Counter<String> c = FileUtils.readStringCounterFromText(KPPath.KYP_DIR + "phrs_3p_kwds.txt.gz");
+		Counter<String> c = FileUtils.readStringCounterFromText(KPPath.KP_DIR + "phrs_3p_kwds.txt.gz");
 
-		List<String> lines = FileUtils.readLinesFromText(KPPath.KYP_DIR + "phrs_3p.txt.gz");
+		List<String> lines = FileUtils.readLinesFromText(KPPath.KP_DIR + "phrs_3p.txt.gz");
 
 		Counter<String> cc = Generics.newCounter();
 
@@ -830,7 +830,7 @@ public class UserKeywordCollector {
 
 		System.out.println(cc);
 
-		FileUtils.writeStringCollectionAsText(KPPath.KYP_DIR + "phrs_3p_label.txt.gz", lines);
+		FileUtils.writeStringCollectionAsText(KPPath.KP_DIR + "phrs_3p_label.txt.gz", lines);
 	}
 
 	public void mergeKeywords() throws Exception {

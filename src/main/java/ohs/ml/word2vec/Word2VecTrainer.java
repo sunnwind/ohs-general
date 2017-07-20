@@ -35,13 +35,13 @@ public class Word2VecTrainer {
 	public class Worker implements Callable<Integer> {
 		private Word2VecModel G;
 
+		private DenseMatrix tmp_dW;
+
 		private DenseVector tmp_h = new DenseVector(param.getHiddenSize());
 
 		private DenseVector tmp_v = new DenseVector(param.getVocabSize());
 
 		private ParameterUpdater updater;
-
-		private DenseMatrix tmp_dW;
 
 		public Worker() {
 			G = new Word2VecModel(param.getVocabSize(), param.getHiddenSize());
@@ -352,21 +352,21 @@ public class Word2VecTrainer {
 		System.out.println("process ends.");
 	}
 
-	private int max_iters;
+	private AtomicInteger iter_cnt = new AtomicInteger(0);
 
 	private double learning_rate;
 
-	private Word2VecParam param;
-
-	private SentenceCollection sc;
-
 	private Word2VecModel M;
+
+	private int max_iters;
+
+	private Word2VecParam param;
 
 	private Word2VecModel R1;
 
 	private Word2VecModel R2;
 
-	private AtomicInteger iter_cnt = new AtomicInteger(0);
+	private SentenceCollection sc;
 
 	public Word2VecTrainer() {
 

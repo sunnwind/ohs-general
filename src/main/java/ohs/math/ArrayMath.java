@@ -240,7 +240,8 @@ public class ArrayMath {
 		return sum;
 	}
 
-	public static double addAfterMultiplyByThreads(double[][] a, double ac, double[][] b, double bc, double[][] c, int thread_size) {
+	public static double addAfterMultiplyByThreads(double[][] a, double ac, double[][] b, double bc, double[][] c,
+			int thread_size) {
 		if (ArrayChecker.isEqualSize(a, b) && ArrayChecker.isEqualSize(b, c)) {
 
 		} else {
@@ -285,7 +286,8 @@ public class ArrayMath {
 		return sum;
 	}
 
-	public static double addAfterMultiplyByThreads(double[][] a, double[] ac, double[][] b, double[] bc, double[][] c, int thread_size) {
+	public static double addAfterMultiplyByThreads(double[][] a, double[] ac, double[][] b, double[] bc, double[][] c,
+			int thread_size) {
 		if (ArrayChecker.isEqual(a, b) && ArrayChecker.isEqual(b, c)) {
 
 		} else {
@@ -330,8 +332,8 @@ public class ArrayMath {
 		return sum;
 	}
 
-	public static double addAfterMultiplyByThreads(double[][] a, double[][] ac, double[][] b, double[][] bc, double[][] c,
-			int thread_size) {
+	public static double addAfterMultiplyByThreads(double[][] a, double[][] ac, double[][] b, double[][] bc,
+			double[][] c, int thread_size) {
 		if (ArrayChecker.isEqualSize(a, b, c)) {
 
 		} else {
@@ -1139,7 +1141,8 @@ public class ArrayMath {
 
 	/**
 	 * 
-	 * See the example in table 8.2 in Introduction to Information Retrieval by Manning et al.
+	 * See the example in table 8.2 in Introduction to Information Retrieval by
+	 * Manning et al.
 	 * 
 	 * 
 	 * @param judges1
@@ -2345,7 +2348,8 @@ public class ArrayMath {
 		return sum;
 	}
 
-	public static double multiplyAfterAdd(double[][] a, double ac, double[][] b, double bc, double[][] c, double[][] d) {
+	public static double multiplyAfterAdd(double[][] a, double ac, double[][] b, double bc, double[][] c,
+			double[][] d) {
 		double sum = 0;
 		for (int i = 0; i < a.length; i++) {
 			sum += multiplyAfterAdd(a[i], ac, b[i], bc, c[i], d[i]);
@@ -3213,7 +3217,8 @@ public class ArrayMath {
 	 * @param min_dist
 	 * @param damping_factor
 	 */
-	public static void randomWalk(double[][] T, double[] cents, double[] biases, int max_iter, double min_dist, double damping_factor) {
+	public static void randomWalk(double[][] T, double[] cents, double[] biases, int max_iter, double min_dist,
+			double damping_factor) {
 		if (!ArrayChecker.isProductable(T, cents)) {
 			throw new IllegalArgumentException();
 		}
@@ -3628,8 +3633,8 @@ public class ArrayMath {
 	 *               = a + log (1 - e^(b-a))
 	 * </pre>
 	 * 
-	 * By exponentiating <tt>b-a</tt>, we obtain better numerical precision than we would if we calculated <tt>e^a</tt> or <tt>e^b</tt>
-	 * directly.
+	 * By exponentiating <tt>b-a</tt>, we obtain better numerical precision than we
+	 * would if we calculated <tt>e^a</tt> or <tt>e^b</tt> directly.
 	 * <p>
 	 * Returns <tt>NaN</tt> if b > a (so that log(e^a - e^b) is undefined).
 	 */
@@ -3729,11 +3734,12 @@ public class ArrayMath {
 	 *               = a + log (1 + e^(b-a))
 	 * </pre>
 	 * 
-	 * By exponentiating <tt>b-a</tt>, we obtain better numerical precision than we would if we calculated <tt>e^a</tt> or <tt>e^b</tt>
-	 * directly.
+	 * By exponentiating <tt>b-a</tt>, we obtain better numerical precision than we
+	 * would if we calculated <tt>e^a</tt> or <tt>e^b</tt> directly.
 	 * <P>
-	 * Note: This function is just like {@link cc.mallet.fst.Transducer#sumNegLogProb sumNegLogProb} in <TT>Transducer</TT>, except that the
-	 * logs aren't negated.
+	 * Note: This function is just like
+	 * {@link cc.mallet.fst.Transducer#sumNegLogProb sumNegLogProb} in
+	 * <TT>Transducer</TT>, except that the logs aren't negated.
 	 */
 	public static double sumLogProb(double a, double b) {
 		if (a == Double.NEGATIVE_INFINITY)
@@ -3749,12 +3755,14 @@ public class ArrayMath {
 	/**
 	 * Below from Stanford NLP package, SloppyMath.java
 	 * 
-	 * Sums an array of numbers log(x1)...log(xn). This saves some of the unnecessary calls to Math.log in the two-argument version.
+	 * Sums an array of numbers log(x1)...log(xn). This saves some of the
+	 * unnecessary calls to Math.log in the two-argument version.
 	 * <p>
-	 * Note that this implementation IGNORES elements of the x array that are more than LOGTOLERANCE (currently 30.0) less than the maximum
-	 * element.
+	 * Note that this implementation IGNORES elements of the x array that are more
+	 * than LOGTOLERANCE (currently 30.0) less than the maximum element.
 	 * <p>
-	 * Cursory testing makes me wonder if this is actually much faster than repeated use of the 2-argument version, however -cas.
+	 * Cursory testing makes me wonder if this is actually much faster than repeated
+	 * use of the 2-argument version, however -cas.
 	 * 
 	 * @param x
 	 *            An array log(x1), log(x2), ..., log(xn)
@@ -4017,7 +4025,7 @@ public class ArrayMath {
 		return sum;
 	}
 
-	public double sumAfterLogProb(double[] x) {
+	public double sumAfterLogProbs(double[] x) {
 		log(x, x);
 		return sumLogProbs(x);
 	}

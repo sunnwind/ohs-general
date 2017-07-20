@@ -10,6 +10,7 @@ import de.bwaldvogel.liblinear.Problem;
 import de.bwaldvogel.liblinear.SolverType;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseVector;
+import ohs.matrix.SparseMatrix;
 import ohs.matrix.SparseVector;
 import ohs.types.generic.Indexer;
 import ohs.types.number.IntegerArray;
@@ -64,10 +65,11 @@ public class LibLinearTrainer {
 		this.param = param;
 	}
 
-	public LibLinearWrapper train(Indexer<String> labelIndexer, Indexer<String> featIndexer, DenseMatrix X, IntegerArray Y) {
+	public LibLinearWrapper train(Indexer<String> labelIdxer, Indexer<String> featIdxer, DenseMatrix X,
+			IntegerArray Y) {
 		Problem prob = new Problem();
 		prob.l = X.size();
-		prob.n = featIndexer.size() + 1;
+		prob.n = featIdxer.size() + 1;
 		prob.y = new double[prob.l];
 		prob.x = new Feature[prob.l][];
 		prob.bias = -1;
@@ -84,13 +86,14 @@ public class LibLinearTrainer {
 
 		Model model = Linear.train(prob, param);
 
-		return new LibLinearWrapper(model, labelIndexer, featIndexer);
+		return new LibLinearWrapper(model, labelIdxer, featIdxer);
 	}
 
-	public LibLinearWrapper train(Indexer<String> labelIndexer, Indexer<String> featIndexer, List<SparseVector> X, List<Integer> Y) {
+	public LibLinearWrapper train(Indexer<String> labelIdxer, Indexer<String> featIdxer, SparseMatrix X,
+			IntegerArray Y) {
 		Problem prob = new Problem();
 		prob.l = X.size();
-		prob.n = featIndexer.size() + 1;
+		prob.n = featIdxer.size() + 1;
 		prob.y = new double[prob.l];
 		prob.x = new Feature[prob.l][];
 		prob.bias = -1;
@@ -107,7 +110,7 @@ public class LibLinearTrainer {
 
 		Model model = Linear.train(prob, param);
 
-		return new LibLinearWrapper(model, labelIndexer, featIndexer);
+		return new LibLinearWrapper(model, labelIdxer, featIdxer);
 	}
 
 }

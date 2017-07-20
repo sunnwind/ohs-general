@@ -19,6 +19,7 @@ import ohs.ml.glove.GloveModel;
 import ohs.ml.glove.GloveParam;
 import ohs.ml.glove.GloveTrainer;
 import ohs.ml.neuralnet.com.BatchUtils;
+import ohs.nlp.ling.types.MDocument;
 import ohs.nlp.ling.types.MSentence;
 import ohs.nlp.ling.types.MultiToken;
 import ohs.nlp.ling.types.Token;
@@ -31,10 +32,44 @@ import ohs.utils.StrUtils;
 
 public class KorDataHandler {
 
-	public void get3PKorKeywords() throws Exception {
+	public static String[] ATTRS = { "type", "cn", "kor_kwds", "eng_kwds", "kor_title", "eng_title", "kor_abs",
+			"eng_abs", "kor_pos_kwds", "kor_pos_title", "kor_pos_abs" };
 
-		// String[] attrs = { "type", "cn", "kor_kwds", "eng_kwds", "kor_title", "eng_title", "kor_abs", "eng_abs" };
+	public static String getString(MSentence sent, TokenAttr attr) {
+		StringBuffer sb = new StringBuffer();
+		for (int i = 0; i < sent.size(); i++) {
+			MultiToken mt = sent.get(i);
+			for (int j = 0; j < mt.size(); j++) {
+				Token t = mt.get(j);
+				sb.append(t.get(attr));
+				if (j < mt.size() - 1) {
+					// sb.append(MultiToken.DELIM);
+					sb.append(" ");
+				}
+			}
 
+			if (i < sent.size() - 1) {
+				// sb.append(MSentence.DELIM_SENT);
+				sb.append(" ");
+			}
+		}
+		return sb.toString();
+	}
+
+	public static void main(String[] args) throws Exception {
+		System.out.println("process begins.");
+		KorDataHandler dh = new KorDataHandler();
+		// dh.tagPOS();
+		// dh.getKeyphraseDocuments();
+		// dh.trainGlove();
+		// dh.getLabelData();
+		// dh.getKeyphrases();
+		dh.getKeyphrasePatterns();
+		// dh.test();
+		System.out.println("process ends.");
+	}
+
+	public void getKeyphraseDocuments() throws Exception {
 		RawDocumentCollection rdc = new RawDocumentCollection(KPPath.COL_DC_DIR);
 
 		Counter<String> c = Generics.newCounter();
@@ -42,9 +77,9 @@ public class KorDataHandler {
 		List<String> res = Generics.newLinkedList();
 
 		for (int i = 0; i < rdc.size(); i++) {
-			int progress = BatchUtils.progress(i + 1, rdc.size());
-			if (progress > 0) {
-				System.out.printf("[%d percent]\n", progress);
+			int prog = BatchUtils.progress(i + 1, rdc.size());
+			if (prog > 0) {
+				System.out.printf("[%d percent]\n", prog);
 			}
 
 			HashMap<String, String> m = rdc.getMap(i);
@@ -58,6 +93,9 @@ public class KorDataHandler {
 			String engTitle = vals.get(j++);
 			String korAbs = vals.get(j++);
 			String engAbs = vals.get(j++);
+			String korPosKwds = vals.get(j++);
+			String korPosTitle = vals.get(j++);
+			String korPosAbs = vals.get(j++);
 
 			if (type.equals("patent")) {
 				break;
@@ -99,26 +137,17 @@ public class KorDataHandler {
 				l.add(StrUtils.join(StrUtils.LINE_REP, korKwds2));
 				l.add(korTitle + StrUtils.LINE_REP + korAbs);
 				l = StrUtils.wrap(l);
-				res.add(StrUtils.join("\t", l));
+				// res.add(StrUtils.join("\t", l));
+				res.add(i + "");
 			}
 		}
-		FileUtils.writeStringCollectionAsText(KPPath.KYP_DIR + "ext/3p_kwd_doc.txt", res);
+		rdc.close();
+
+		FileUtils.writeStringCollectionAsText(KPPath.KP_DIR + "ext/kphrs_dseq.txt", res);
 	}
 
-	public static void main(String[] args) throws Exception {
-		System.out.println("process begins.");
-		KorDataHandler dh = new KorDataHandler();
-		// dh.tagPOS();
-		// dh.get3PKorKeywords();
-		// dh.trainGlove();
-		// dh.getLabelData();
-		// dh.getKeywordPosPatterns();
-//		dh.test();
-		System.out.println("process ends.");
-	}
-
-	public void getKeywordPosPatterns() throws Exception {
-		List<String> lines = FileUtils.readLinesFromText(KPPath.KYP_DIR + "ext/label_data.txt");
+	public void getKeyphrasePatterns() throws Exception {
+		List<String> lines = FileUtils.readLinesFromText(KPPath.KP_DIR + "ext/label_data.txt");
 
 		Counter<String> c = Generics.newCounter();
 		CounterMap<String, String> cm = Generics.newCounterMap();
@@ -146,12 +175,11 @@ public class KorDataHandler {
 			}
 		}
 
-		FileUtils.writeStringCounterAsText(KPPath.KYP_DIR + "ext/kwd_pat.txt", c);
-		// FileUtils.writeStringCounterMapAsText(KPPath.KYP_DIR + "ext/kwd_pat.txt", cm);
+		FileUtils.writeStringCounterAsText(KPPath.KP_DIR + "ext/kphrs_pat.txt", c);
 	}
 
-	public void test() throws Exception {
-		List<String> lines = FileUtils.readLinesFromText(KPPath.KYP_DIR + "ext/label_data.txt");
+	public void getKeyphrases() throws Exception {
+		List<String> lines = FileUtils.readLinesFromText(KPPath.KP_DIR + "ext/label_data.txt");
 
 		Counter<String> c = Generics.newCounter();
 
@@ -163,134 +191,118 @@ public class KorDataHandler {
 			}
 
 			ps = StrUtils.unwrap(ps);
-			List<String> kwds = StrUtils.split(StrUtils.LINE_REP, ps.get(0));
+			List<String> kphrss = StrUtils.split(StrUtils.LINE_REP, ps.get(0));
 			String title = ps.get(1);
 			String abs = ps.get(2);
 
-			for (String kwd : kwds) {
-				MSentence sent = MSentence.newSentence(kwd);
+			for (String phrs : kphrss) {
+				MSentence sent = MSentence.newSentence(phrs);
 
 				String wordPat = getString(sent, TokenAttr.WORD);
 				String posPat = getString(sent, TokenAttr.POS);
 
-				c.incrementCount(wordPat, 1);
+				c.incrementCount(sent.toString(), 1);
 			}
 		}
 
-		System.out.println(c.size());
-		System.out.println(c.totalCount());
-
-		System.out.println(1d * c.size() / lines.size());
-		System.out.println(1d * c.totalCount() / lines.size());
-
-		Counter<Integer> c2 = Generics.newCounter();
-
-		for (String wordPat : c.keySet()) {
-			c2.incrementCount(StrUtils.split(wordPat).size(), 1);
-		}
-
-		List<Integer> lens = Generics.newArrayList(c2.keySet());
-		Collections.sort(lens);
-		
-		System.out.println();
-
-		for (int i = 0; i < lens.size(); i++) {
-			int len = lens.get(i);
-			int cnt = (int) c2.getCount(len);
-			System.out.printf("%d\t%d\n", len, cnt);
-		}
-
-//		System.out.println(c2.toStringSortedByValues(true, true, c2.size(), "\t"));
-
-	}
-
-	public static String getString(MSentence sent, TokenAttr attr) {
-		StringBuffer sb = new StringBuffer();
-		for (int i = 0; i < sent.size(); i++) {
-			MultiToken mt = sent.get(i);
-			for (int j = 0; j < mt.size(); j++) {
-				Token t = mt.get(j);
-				sb.append(t.get(attr));
-				if (j < mt.size() - 1) {
-					// sb.append(MultiToken.DELIM);
-					sb.append(" ");
-				}
-			}
-
-			if (i < sent.size() - 1) {
-				// sb.append(MSentence.DELIM_SENT);
-				sb.append(" ");
-			}
-		}
-		return sb.toString();
+		FileUtils.writeStringCounterAsText(KPPath.KP_DIR + "ext/kphrs.txt", c);
 	}
 
 	public void getLabelData() throws Exception {
+		RawDocumentCollection rdc = new RawDocumentCollection(KPPath.COL_DC_DIR);
 
-		List<String> res = Generics.newArrayList();
+		List<String> tmp = FileUtils.readLinesFromText(KPPath.KP_DIR + "ext/kphrs_dseq.txt");
+		List<String> res = Generics.newArrayList(tmp.size());
 
-		for (File file : FileUtils.getFilesUnder(KPPath.COL_LINE_POS_DIR)) {
+		for (int i = 0; i < tmp.size(); i++) {
+			String r = tmp.get(i);
+			int dseq = Integer.parseInt(r);
 
-			if (file.getPath().contains("patent")) {
-				break;
+			List<String> vals = rdc.get(dseq);
+			int j = 0;
+			String type = vals.get(j++);
+			String cn = vals.get(j++);
+			String korKwdStr = vals.get(j++);
+			String engKwdStr = vals.get(j++);
+			String korTitle = vals.get(j++);
+			String engTitle = vals.get(j++);
+			String korAbs = vals.get(j++);
+			String engAbs = vals.get(j++);
+			String korPosKwdsStr = vals.get(j++);
+			String korPosTitle = vals.get(j++).replace(StrUtils.LINE_REP, "\n");
+			String korPosAbs = vals.get(j++).replace(StrUtils.LINE_REP, "\n");
+			List<String> korPosKwds = StrUtils.split("\n", korPosKwdsStr);
+
+			if (korPosKwds.size() == 0 || korPosTitle.length() == 0 || korPosAbs.length() == 0) {
+				continue;
 			}
 
-			for (String line : FileUtils.readLinesFromText(file)) {
-				List<String> ps = StrUtils.unwrap(StrUtils.split("\t", line));
-				String type = ps.get(0);
-				String cn = ps.get(1);
-				String korKwdStr = ps.get(2);
-				String engKwdStr = ps.get(3);
-				String korTitle = ps.get(4);
-				String engTitle = ps.get(5);
-				String korAbs = ps.get(6);
-				String engAbs = ps.get(7);
+			String content = korPosTitle + "\n" + korPosAbs;
 
-				List<String> korPosKwds = StrUtils.split("\t", ps.get(8));
-				String korPosTitle = ps.get(9).replace(StrUtils.LINE_REP, "\n");
-				String korPosAbs = ps.get(10).replace(StrUtils.LINE_REP, "\n");
+			List<String> cs = Generics.newArrayList();
 
-				if (korPosKwds.size() == 0 || korPosTitle.length() == 0 || korPosAbs.length() == 0) {
-					continue;
+			for (String kphrs : korPosKwds) {
+				if (content.contains(kphrs)) {
+					cs.add(kphrs);
 				}
-
-				String[] subs = { ps.get(8), ps.get(9), ps.get(10) };
-				subs = StrUtils.wrap(subs);
-				res.add(StrUtils.join("\t", subs));
 			}
-		}
 
-		FileUtils.writeStringCollectionAsText(KPPath.KYP_DIR + "ext/label_data.txt", res);
+			if (cs.size() == 0) {
+				continue;
+			}
+
+			String[] subs = { StrUtils.join("\n", cs), vals.get(9), vals.get(10) };
+
+			for (int k = 0; k < subs.length; k++) {
+				subs[k] = subs[k].replace("\n", StrUtils.LINE_REP);
+			}
+
+			subs = StrUtils.wrap(subs);
+			res.add(StrUtils.join("\t", subs));
+		}
+		rdc.close();
+
+		FileUtils.writeStringCollectionAsText(KPPath.KP_DIR + "ext/label_data.txt", res);
 	}
 
-	public void getLabelData2() throws Exception {
+	private String getText(List<List<List<Pair<String, String>>>> result) {
+		StringBuffer sb = new StringBuffer();
 
-		List<String> res = Generics.newArrayList();
+		for (int i = 0; i < result.size(); i++) {
+			List<List<Pair<String, String>>> ll = result.get(i);
+			for (int j = 0; j < ll.size(); j++) {
+				List<Pair<String, String>> l = ll.get(j);
 
-		for (String line : FileUtils.readLinesFromText(KPPath.KYP_DIR + "ext/3p_kwd_doc.txt")) {
-			String[] ps = line.split("\t");
-			ps = StrUtils.unwrap(ps);
+				for (int k = 0; k < l.size(); k++) {
+					Pair<String, String> pair = l.get(k);
+					// String f = pair.getFirst().replace(" ", "_");
+					String f = pair.getFirst().replace(" ", "");
+					String s = pair.getSecond();
 
-			int dseq = Integer.parseInt(ps[0]);
-			String[] korKwds = ps[1].split(StrUtils.LINE_REP);
-			String content = ps[2];
+					if (s.length() == 0) {
+						continue;
+					}
 
-			List<String> korKwds2 = Generics.newArrayList();
+					// sb.append(String.format("%s%s%s", f, Token.DELIM, s));
+					sb.append(String.format("%s%s%s", f, " / ", s));
 
-			for (String kwd : korKwds) {
-				if (content.contains(kwd)) {
-					korKwds2.add(kwd);
+					if (k != l.size() - 1) {
+						// sb.append("+");
+						sb.append(MultiToken.DELIM);
+					}
+				}
+
+				if (j != ll.size() - 1) {
+					// sb.append("\n");
+					sb.append(" __ ");
 				}
 			}
-
-			if (korKwds2.size() > 0) {
-				ps[1] = StrUtils.join(StrUtils.LINE_REP, korKwds2);
-				ps = StrUtils.wrap(ps);
-				res.add(StrUtils.join("\t", ps));
+			if (i != ll.size() - 1) {
+				sb.append("\n");
 			}
 		}
 
-		FileUtils.writeStringCollectionAsText(KPPath.KYP_DIR + "ext/label_content.txt", res);
+		return sb.toString().trim();
 	}
 
 	public void tagPOS() throws Exception {
@@ -365,6 +377,90 @@ public class KorDataHandler {
 		}
 	}
 
+	public void test() throws Exception {
+
+		{
+			RawDocumentCollection dc = new RawDocumentCollection(KPPath.COL_DC_DIR);
+
+			System.out.println(dc.getAttrData());
+
+			for (int i = 0; i < 1000000; i++) {
+				String s = dc.getMap(i).toString();
+				String s2 = dc.getMap(i).get("kor_pos_abs");
+
+				if (s2.length() > 0) {
+					System.out.println(i);
+					System.out.println(s2);
+					System.out.println("======================");
+				}
+			}
+		}
+
+		// {
+		// DocumentCollection dc = new DocumentCollection(KPPath.COL_DC_DIR);
+		//
+		// String s = dc.getText(32586).getSecond();
+		//
+		// System.out.println(s);
+		// System.out.println("======================");
+		// }
+
+	}
+
+	public void test2() throws Exception {
+		List<String> lines = FileUtils.readLinesFromText(KPPath.KP_DIR + "ext/label_data.txt");
+
+		Counter<String> c = Generics.newCounter();
+
+		for (String line : lines) {
+			List<String> ps = StrUtils.split("\t", line);
+
+			if (ps.size() != 3) {
+				continue;
+			}
+
+			ps = StrUtils.unwrap(ps);
+			List<String> kwds = StrUtils.split(StrUtils.LINE_REP, ps.get(0));
+			String title = ps.get(1);
+			String abs = ps.get(2);
+
+			for (String kwd : kwds) {
+				MSentence sent = MSentence.newSentence(kwd);
+
+				String wordPat = getString(sent, TokenAttr.WORD);
+				String posPat = getString(sent, TokenAttr.POS);
+
+				c.incrementCount(wordPat, 1);
+			}
+		}
+
+		System.out.println(c.size());
+		System.out.println(c.totalCount());
+
+		System.out.println(1d * c.size() / lines.size());
+		System.out.println(1d * c.totalCount() / lines.size());
+
+		Counter<Integer> c2 = Generics.newCounter();
+
+		for (String wordPat : c.keySet()) {
+			c2.incrementCount(StrUtils.split(wordPat).size(), 1);
+		}
+
+		List<Integer> lens = Generics.newArrayList(c2.keySet());
+		Collections.sort(lens);
+
+		System.out.println();
+
+		for (int i = 0; i < lens.size(); i++) {
+			int len = lens.get(i);
+			int cnt = (int) c2.getCount(len);
+			System.out.printf("%d\t%d\n", len, cnt);
+		}
+
+		// System.out.println(c2.toStringSortedByValues(true, true, c2.size(), "\t"));
+
+	}
+
 	public void trainGlove() throws Exception {
 		String dir = KPPath.COL_DIR;
 		String scDir = dir + "dc/";
@@ -408,45 +504,5 @@ public class KorDataHandler {
 
 		// DenseMatrix E = new DenseMatrix(KPPath.COL_DIR + "emb/glove_emb.ser.gz");
 		RandomAccessDenseMatrix.build(E, KPPath.COL_DIR + "emb/glove_emb_ra.ser");
-	}
-
-	private String getText(List<List<List<Pair<String, String>>>> result) {
-		StringBuffer sb = new StringBuffer();
-
-		for (int i = 0; i < result.size(); i++) {
-			List<List<Pair<String, String>>> ll = result.get(i);
-			for (int j = 0; j < ll.size(); j++) {
-				List<Pair<String, String>> l = ll.get(j);
-
-				for (int k = 0; k < l.size(); k++) {
-					Pair<String, String> pair = l.get(k);
-					// String f = pair.getFirst().replace(" ", "_");
-					String f = pair.getFirst().replace(" ", "");
-					String s = pair.getSecond();
-
-					if (s.length() == 0) {
-						continue;
-					}
-
-					// sb.append(String.format("%s%s%s", f, Token.DELIM, s));
-					sb.append(String.format("%s%s%s", f, " / ", s));
-
-					if (k != l.size() - 1) {
-						// sb.append("+");
-						sb.append(MultiToken.DELIM);
-					}
-				}
-
-				if (j != ll.size() - 1) {
-					// sb.append("\n");
-					sb.append(" __ ");
-				}
-			}
-			if (i != ll.size() - 1) {
-				sb.append("\n");
-			}
-		}
-
-		return sb.toString().trim();
 	}
 }

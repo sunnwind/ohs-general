@@ -72,7 +72,7 @@ public class ClefEHealthExperiments {
 
 	public static String resDir = dataDir + "res/";
 
-	public static String idxDir = MIRPath.TREC_CDS_2014_COL_INDEX_DIR;
+	public static String idxDir = MIRPath.TREC_CDS_2014_COL_DC_DIR;
 
 	public static String queryFileName = MIRPath.TREC_CDS_2014_QUERY_FILE;
 
@@ -121,7 +121,8 @@ public class ClefEHealthExperiments {
 		resDir = dataDir + "res/";
 	}
 
-	public static ListMap<String, Integer> getRelevantRanks(CounterMap<String, String> resData, CounterMap<String, String> relvData) {
+	public static ListMap<String, Integer> getRelevantRanks(CounterMap<String, String> resData,
+			CounterMap<String, String> relvData) {
 		ListMap<String, Integer> ret = Generics.newListMap();
 		for (String qid : resData.keySet()) {
 			List<String> docids = resData.getCounter(qid).getSortedKeys();
@@ -310,7 +311,8 @@ public class ClefEHealthExperiments {
 				int dseq = rScores.indexAt(j);
 				double score = rScores.valueAt(j);
 				double relv = rDocs.value(dseq);
-				// System.out.printf("[%s, %d, %d, %f, %f]\n", bq.getId(), j + 1, dseq, score, relv);
+				// System.out.printf("[%s, %d, %d, %f, %f]\n", bq.getId(), j + 1, dseq, score,
+				// relv);
 				double score2 = score + relv;
 				rScores.setAt(j, score2);
 			}
@@ -331,8 +333,8 @@ public class ClefEHealthExperiments {
 		new SparseMatrix(qData).writeObject(resDir + String.format("%s_%s.ser.gz", "q", modelName));
 	}
 
-	private void collectSearchResults(DocumentIdMap dim, List<BaseQuery> bqs, List<SparseVector> dData, CounterMap<String, String> resData)
-			throws Exception {
+	private void collectSearchResults(DocumentIdMap dim, List<BaseQuery> bqs, List<SparseVector> dData,
+			CounterMap<String, String> resData) throws Exception {
 
 		Map<Integer, String> m = Generics.newHashMap();
 
@@ -365,8 +367,8 @@ public class ClefEHealthExperiments {
 		}
 	}
 
-	private void collectSearchResults(DocumentSearcher ds, BaseQuery bq, SparseVector scores, CounterMap<String, String> resData, int top_k)
-			throws Exception {
+	private void collectSearchResults(DocumentSearcher ds, BaseQuery bq, SparseVector scores,
+			CounterMap<String, String> resData, int top_k) throws Exception {
 
 		scores = scores.subVector(top_k);
 		scores.sortIndexes();
@@ -382,7 +384,8 @@ public class ClefEHealthExperiments {
 	public void evaluate() throws Exception {
 		CounterMap<String, String> sr1 = FileUtils.readStringCounterMap(MIRPath.TREC_CDS_2014_DIR + "sr_kld.ser.gz");
 		CounterMap<String, String> sr2 = FileUtils.readStringCounterMap(MIRPath.TREC_CDS_2014_DIR + "sr_kld-fb.ser.gz");
-		CounterMap<String, String> relvData = RelevanceReader.readTrecCdsRelevances(MIRPath.TREC_CDS_2014_REL_JUDGE_FILE);
+		CounterMap<String, String> relvData = RelevanceReader
+				.readTrecCdsRelevances(MIRPath.TREC_CDS_2014_REL_JUDGE_FILE);
 
 		Performance p1 = new Performance();
 		Performance p2 = new Performance();
@@ -860,7 +863,8 @@ public class ClefEHealthExperiments {
 
 		if (use_relevance_feedback) {
 			Scorer scorer = ds.getScorer();
-			FeedbackBuilder fb = new FeedbackBuilder(ds.getDocumentCollection(), ds.getInvertedIndex(), ds.getWordFilter());
+			FeedbackBuilder fb = new FeedbackBuilder(ds.getDocumentCollection(), ds.getInvertedIndex(),
+					ds.getWordFilter());
 			for (int i = 0; i < bqs.size(); i++) {
 				BaseQuery bq = bqs.get(i);
 				SparseVector Q = qData.get(i);
@@ -901,7 +905,8 @@ public class ClefEHealthExperiments {
 					int dseq = scores.indexAt(j);
 					double score = scores.valueAt(j);
 					double relv = relvs.value(dseq);
-					// System.out.printf("[%s, %d, %d, %f, %f]\n", bq.getId(), j + 1, dseq, score, relv);
+					// System.out.printf("[%s, %d, %d, %f, %f]\n", bq.getId(), j + 1, dseq, score,
+					// relv);
 					double score2 = score + relv;
 					scores.setAt(j, score2);
 				}
@@ -925,7 +930,8 @@ public class ClefEHealthExperiments {
 			scorer.setDocumentPriors(qualityPriors);
 			scorer.setPhraseSize(2);
 		} else if (modelName.equals("wmrf")) {
-			// Counter<String> phrsDocFreqs = FileUtils.readStringCounterFromText("../../data/medical_ir/phrs/phrs_freq.txt");
+			// Counter<String> phrsDocFreqs =
+			// FileUtils.readStringCounterFromText("../../data/medical_ir/phrs/phrs_freq.txt");
 			List<String> phrss = FileUtils.readLinesFromText("../../data/medical_ir/phrs/phrs_medical.txt");
 
 			ds.setScorer(new WeightedMRFScorer(ds, phrss));
@@ -1068,8 +1074,10 @@ public class ClefEHealthExperiments {
 		DenseVector qualityPriors = new DenseVector(dataDir + "doc_prior_quality-2.ser.gz");
 		DenseVector stopRatioPriors = new DenseVector(dataDir + "doc_prior_stop-ratio.ser.gz");
 
-		// QueryModelBuilder qmb = new QueryModelBuilder(new DocumentCollection(MIRPath.TREC_CDS_2016_COL_DC_DIR).getVocab(),
-		// new RandomAccessDenseMatrix(MIRPath.TREC_CDS_2016_DIR + "emb/glove_ra.ser", true));
+		// QueryModelBuilder qmb = new QueryModelBuilder(new
+		// DocumentCollection(MIRPath.TREC_CDS_2016_COL_DC_DIR).getVocab(),
+		// new RandomAccessDenseMatrix(MIRPath.TREC_CDS_2016_DIR + "emb/glove_ra.ser",
+		// true));
 
 		boolean use_qbg = false;
 		boolean use_pseudo_relevance_feedback = true;
@@ -1092,7 +1100,8 @@ public class ClefEHealthExperiments {
 				SparseVector scores2 = scorer.scoreFromCollection(Q, scores);
 				scorer.postprocess(scores2);
 
-				scores2 = VectorMath.addAfterMultiply(new SparseVector[] { scores, scores2 }, new double[] { 0.5, 0.5 });
+				scores2 = VectorMath.addAfterMultiply(new SparseVector[] { scores, scores2 },
+						new double[] { 0.5, 0.5 });
 				scorer.postprocess(scores2);
 
 				dData.set(i, scores2);
@@ -1160,9 +1169,11 @@ public class ClefEHealthExperiments {
 					double prior1 = medicalPriors.value(dseq);
 					double prior2 = qualityPriors.value(dseq);
 					double prior3 = stopRatioPriors.value(dseq);
-					// double score2 = ArrayMath.dotProduct(mixtures, new double[] { score, prior1, prior2 });
+					// double score2 = ArrayMath.dotProduct(mixtures, new double[] { score, prior1,
+					// prior2 });
 
-					// double score2 = score * (mixture_medical * prior1 + (1 - mixture_medical) * prior2);
+					// double score2 = score * (mixture_medical * prior1 + (1 - mixture_medical) *
+					// prior2);
 					double score2 = score * prior3;
 					scores.setAt(j, dseq, score2);
 				}
@@ -1175,7 +1186,8 @@ public class ClefEHealthExperiments {
 		if (use_relevance_feedback) {
 			LMScorer scorer = (LMScorer) ds.getScorer();
 
-			FeedbackBuilder fb = new FeedbackBuilder(ds.getDocumentCollection(), ds.getInvertedIndex(), ds.getWordFilter());
+			FeedbackBuilder fb = new FeedbackBuilder(ds.getDocumentCollection(), ds.getInvertedIndex(),
+					ds.getWordFilter());
 			SparseMatrix rfbData = new SparseMatrix(resDir + "rfb_lmd_doc-prior.ser.gz");
 
 			for (int i = 0; i < qData.rowSize(); i++) {
@@ -1206,7 +1218,8 @@ public class ClefEHealthExperiments {
 		if (use_pseudo_relevance_feedback) {
 			LMScorer scorer = (LMScorer) ds.getScorer();
 
-			FeedbackBuilder fb = new FeedbackBuilder(ds.getDocumentCollection(), ds.getInvertedIndex(), ds.getWordFilter());
+			FeedbackBuilder fb = new FeedbackBuilder(ds.getDocumentCollection(), ds.getInvertedIndex(),
+					ds.getWordFilter());
 			fb.setFeedbackMixture(0.1);
 			fb.setFbDocSize(20);
 
@@ -1397,8 +1410,10 @@ public class ClefEHealthExperiments {
 		DocumentSearcher ds2 = new DocumentSearcher(MIRPath.TREC_CDS_2016_COL_DC_DIR, stopwordFileName);
 		ds2.setTopK(top_k);
 
-		FeedbackBuilder fb1 = new FeedbackBuilder(ds1.getDocumentCollection(), ds1.getInvertedIndex(), ds1.getWordFilter());
-		FeedbackBuilder fb2 = new FeedbackBuilder(ds2.getDocumentCollection(), ds2.getInvertedIndex(), ds2.getWordFilter());
+		FeedbackBuilder fb1 = new FeedbackBuilder(ds1.getDocumentCollection(), ds1.getInvertedIndex(),
+				ds1.getWordFilter());
+		FeedbackBuilder fb2 = new FeedbackBuilder(ds2.getDocumentCollection(), ds2.getInvertedIndex(),
+				ds2.getWordFilter());
 
 		List<FeedbackBuilder> fbs = Generics.newArrayList();
 		fbs.add(fb1);
