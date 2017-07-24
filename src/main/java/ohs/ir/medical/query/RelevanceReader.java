@@ -9,7 +9,8 @@ import ohs.utils.Generics;
 
 public class RelevanceReader {
 
-	public static CounterMap<String, String> filter(CounterMap<String, String> relData, BidMap<String, String> docIdMap) {
+	public static CounterMap<String, String> filter(CounterMap<String, String> relData,
+			BidMap<String, String> docIdMap) {
 		CounterMap<String, String> ret = new CounterMap<String, String>();
 
 		int num_pairs = 0;
@@ -61,7 +62,8 @@ public class RelevanceReader {
 	public static void main(String[] args) throws Exception {
 
 		{
-			CounterMap<String, String> relData = readTrecGenomicsRelevances(MIRPath.TREC_GENO_2007_RELEVANCE_JUDGE_FILE);
+			CounterMap<String, String> relData = readTrecGenomicsRelevances(
+					MIRPath.TREC_GENO_2007_RELEVANCE_JUDGE_FILE);
 			System.out.println(relData);
 		}
 
@@ -72,12 +74,12 @@ public class RelevanceReader {
 		TextFileReader reader = new TextFileReader(fileName);
 		while (reader.hasNext()) {
 			String line = reader.next();
-//			String[] parts = line.split("\\text");
+			// String[] parts = line.split("\\text");
 			String[] parts = line.split(" ");
-			
-//			if(parts.length == 1){
-//				parts = line.split(" ");
-//			}
+
+			// if(parts.length == 1){
+			// parts = line.split(" ");
+			// }
 
 			String qid = parts[0];
 			String docid = parts[2];
@@ -146,6 +148,8 @@ public class RelevanceReader {
 			ret = readOhsumedRelevances(fileName);
 		} else if (fileName.contains("trec_genomics")) {
 			ret = readTrecGenomicsRelevances(fileName);
+		} else if (fileName.contains("trec_pm")) {
+
 		}
 		System.out.printf("read [%d] at [%s]\n", ret.totalSize(), fileName);
 		return ret;

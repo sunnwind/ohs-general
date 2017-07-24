@@ -14,9 +14,9 @@ import ohs.types.generic.ListList;
 import ohs.types.generic.Pair;
 import ohs.utils.Generics;
 
-public class PhrasePatternMapper {
+public class KCandidatePhraseSearcher {
 
-	public static PhrasePatternMapper newPhrasePatternMapper(Collection<String> phrss) {
+	public static KCandidatePhraseSearcher newCandidatePhraseSearcher(Collection<String> phrss) {
 		Trie<String> dict = new Trie<String>();
 		for (String phrs : phrss) {
 			MSentence s = MSentence.newSentence(phrs);
@@ -31,7 +31,7 @@ public class PhrasePatternMapper {
 			node.setFlag(true);
 		}
 		dict.trimToSize();
-		return new PhrasePatternMapper(dict);
+		return new KCandidatePhraseSearcher(dict);
 	}
 
 	public static void main(String[] args) throws Exception {
@@ -42,19 +42,19 @@ public class PhrasePatternMapper {
 
 	private Trie<String> dict;
 
-	public PhrasePatternMapper(Trie<String> dict) {
+	public KCandidatePhraseSearcher(Trie<String> dict) {
 		this.dict = dict;
 	}
 
-	public ListList<IntPair> map(MDocument d) {
+	public ListList<IntPair> search(MDocument d) {
 		ListList<IntPair> ret = Generics.newListList(d.size());
 		for (MSentence s : d) {
-			ret.add(map(s));
+			ret.add(search(s));
 		}
 		return ret;
 	}
 
-	public List<IntPair> map(MSentence s) {
+	public List<IntPair> search(MSentence s) {
 		List<Token> ts = s.getTokens();
 		List<IntPair> ret = Generics.newArrayList();
 		int i = 0;

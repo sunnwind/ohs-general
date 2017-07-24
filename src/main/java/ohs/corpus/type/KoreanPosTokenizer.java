@@ -22,8 +22,8 @@ public class KoreanPosTokenizer extends StringTokenizer {
 			for (MSentence sent : doc) {
 				for (MultiToken mts : sent) {
 					for (Token t : mts) {
-						String word = t.get(TokenAttr.WORD);
-						String pos = t.get(TokenAttr.POS);
+						String word = t.get(0);
+						String pos = t.get(1);
 						word = word.toLowerCase();
 
 						Token tt = new Token();

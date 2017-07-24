@@ -2,12 +2,10 @@ package ohs.bioasq;
 
 import java.util.List;
 
-import ohs.corpus.type.EnglishNormalizer;
 import ohs.corpus.type.EnglishTokenizer;
 import ohs.corpus.type.StringTokenizer;
 import ohs.io.FileUtils;
 import ohs.ir.medical.general.MIRPath;
-import ohs.ir.medical.general.NLPUtils;
 import ohs.ir.search.app.DocumentSearcher;
 import ohs.ir.search.app.LemmaExpander;
 import ohs.ir.weight.TermWeighting;
@@ -42,7 +40,7 @@ public class MeshSearcher {
 	private MeshTree mt;
 
 	public MeshSearcher() throws Exception {
-		ds = new DocumentSearcher(MIRPath.BIOASQ_COL_INDEX_DIR, MIRPath.STOPWORD_INQUERY_FILE);
+		ds = new DocumentSearcher(MIRPath.BIOASQ_COL_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
 		ds.setMaxMatchSize(10000);
 		ds.setUseIdfMatch(true);
 
@@ -57,7 +55,8 @@ public class MeshSearcher {
 		List<SparseVector> dData = Generics.newArrayList();
 		List<SparseVector> mData = Generics.newArrayList();
 
-		LemmaExpander le = new LemmaExpander(vocab, FileUtils.readStringHashMapFromText(MIRPath.TREC_CDS_2014_DIR + "lemmas.txt"));
+		LemmaExpander le = new LemmaExpander(vocab,
+				FileUtils.readStringHashMapFromText(MIRPath.TREC_CDS_2014_DIR + "lemmas.txt"));
 
 		String[] testFileNames = { "Task5aDryRun_1raw.json", "Task5aDryRun_2raw.json" };
 
@@ -146,9 +145,12 @@ public class MeshSearcher {
 				mData.add(new SparseVector(meshes));
 			}
 
-			new SparseMatrix(qData).writeObject(MIRPath.BIOASQ_MESH_RES_SEARCH_DIR + String.format("q_kld-%d.ser.gz", i));
-			new SparseMatrix(dData).writeObject(MIRPath.BIOASQ_MESH_RES_SEARCH_DIR + String.format("d_kld-%d.ser.gz", i));
-			new SparseMatrix(mData).writeObject(MIRPath.BIOASQ_MESH_RES_SEARCH_DIR + String.format("m_kld-%d.ser.gz", i));
+			new SparseMatrix(qData)
+					.writeObject(MIRPath.BIOASQ_MESH_RES_SEARCH_DIR + String.format("q_kld-%d.ser.gz", i));
+			new SparseMatrix(dData)
+					.writeObject(MIRPath.BIOASQ_MESH_RES_SEARCH_DIR + String.format("d_kld-%d.ser.gz", i));
+			new SparseMatrix(mData)
+					.writeObject(MIRPath.BIOASQ_MESH_RES_SEARCH_DIR + String.format("m_kld-%d.ser.gz", i));
 		}
 
 		// for (int j = 0; j < testData.size(); j++) {
@@ -178,7 +180,8 @@ public class MeshSearcher {
 		// for (int k = 0; k < Q.size(); k++) {
 		// int w = Q.indexAt(k);
 		// double cnt = Q.valueAt(k);
-		// double tfidf = TermWeighting.tfidf(cnt, vocab.getDocCnt(), vocab.getDocFreq(w));
+		// double tfidf = TermWeighting.tfidf(cnt, vocab.getDocCnt(),
+		// vocab.getDocFreq(w));
 		// toKeep.incrementCount(w, tfidf);
 		// }
 		//
@@ -187,7 +190,8 @@ public class MeshSearcher {
 		// SparseVector Q2 = Q.copy();
 		// Q2.pruneExcept(toKeep.keySet());
 		//
-		// System.out.println(toKeep.size() + ": " + VectorUtils.toCounter(toKeep, vocab));
+		// System.out.println(toKeep.size() + ": " + VectorUtils.toCounter(toKeep,
+		// vocab));
 		//
 		// SparseVector scores = ds.match(Q2);
 		//
@@ -202,7 +206,8 @@ public class MeshSearcher {
 		// int docseq = scores.indexAt(k);
 		// double score = scores.valueAt(k);
 		//
-		// Triple<String, IntegerArrayMatrix, String> t = ds.getDocumentStore().get(docseq);
+		// Triple<String, IntegerArrayMatrix, String> t =
+		// ds.getDocumentStore().get(docseq);
 		//
 		// String[] items = t.getThird().split("\t");
 		// items = StrUtils.unwrap(items);
@@ -224,9 +229,12 @@ public class MeshSearcher {
 		// mData.add(new SparseVector(meshIdxs));
 		// }
 
-		// new SparseMatrix(qData).writeObject(MIRPath.BIOASQ_MESH_RES_SEARCH_DIR + "q_kld.ser.gz");
-		// new SparseMatrix(dData).writeObject(MIRPath.BIOASQ_MESH_RES_SEARCH_DIR + "d_kld.ser.gz");
-		// new SparseMatrix(mData).writeObject(MIRPath.BIOASQ_MESH_RES_SEARCH_DIR + "m_kld.ser.gz");
+		// new SparseMatrix(qData).writeObject(MIRPath.BIOASQ_MESH_RES_SEARCH_DIR +
+		// "q_kld.ser.gz");
+		// new SparseMatrix(dData).writeObject(MIRPath.BIOASQ_MESH_RES_SEARCH_DIR +
+		// "d_kld.ser.gz");
+		// new SparseMatrix(mData).writeObject(MIRPath.BIOASQ_MESH_RES_SEARCH_DIR +
+		// "m_kld.ser.gz");
 	}
 
 }

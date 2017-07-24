@@ -2,6 +2,7 @@ package ohs.fake;
 
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -10,11 +11,19 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import kr.co.shineware.nlp.komoran.core.analyzer.Komoran;
 import kr.co.shineware.util.common.model.Pair;
+import ohs.corpus.type.RawDocumentCollection;
 import ohs.io.FileUtils;
+import ohs.io.TextFileWriter;
+import ohs.math.VectorMath;
+import ohs.math.VectorUtils;
+import ohs.matrix.SparseVector;
 import ohs.nlp.ling.types.MDocument;
 import ohs.nlp.ling.types.MSentence;
 import ohs.nlp.ling.types.MultiToken;
 import ohs.nlp.ling.types.Token;
+import ohs.types.generic.Counter;
+import ohs.types.generic.CounterMap;
+import ohs.types.generic.Indexer;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
 
@@ -107,9 +116,102 @@ public class DataHandler {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 		DataHandler dh = new DataHandler();
-		dh.tagPOS();
+		// dh.tagPOS();
+		dh.extractVocab();
 
 		System.out.println("process ends.");
+	}
+
+	public void extractVocab() throws Exception {
+		RawDocumentCollection rdc = new RawDocumentCollection(FNPath.FN_COL_DC_DIR);
+
+		TextFileWriter writer = new TextFileWriter(FNPath.DATA_DIR + "dissam_docs.txt");
+		int cnt = 0;
+
+		for (int i = 0; i < rdc.size(); i++) {
+			Map<String, String> m = rdc.getMap(i);
+
+			String id = m.get("id");
+			String cat = m.get("cat1");
+			String title = m.get("title");
+			String content = m.get("body");
+
+			String s = title + "\n" + content.replace(StrUtils.LINE_REP, "\n");
+			s = s.trim();
+
+			MDocument md = MDocument.newDocument(s);
+
+			CounterMap<String, Integer> cm = Generics.newCounterMap();
+			Indexer<String> wordIdxer = Generics.newIndexer();
+			List<String> l = Generics.newArrayList(md.size());
+
+			for (int j = 0; j < md.size(); j++) {
+				MSentence ms = md.get(j);
+
+				String type = "T";
+
+				if (j != 0) {
+					type = "B";
+				}
+
+				Counter<Integer> c = cm.getCounter(type);
+
+				StringBuffer sb = new StringBuffer();
+
+				for (Token t : ms.getTokens()) {
+					String word = t.get(0);
+					String pos = t.get(1);
+					sb.append(word + " ");
+
+					if (pos.startsWith("N")) {
+						String ss = String.format("%s / %s", t.get(0), t.get(1));
+						int w = wordIdxer.getIndex(ss);
+						c.incrementCount(w, 1);
+					}
+				}
+				l.add(sb.toString().trim());
+			}
+
+			String text = StrUtils.join("\n", l);
+			SparseVector sv1 = new SparseVector(cm.getCounter("T"));
+			SparseVector sv2 = new SparseVector(cm.getCounter("B"));
+
+			double cosine = VectorMath.cosine(sv1, sv2);
+
+			if (sv1.size() == 0 || sv2.size() == 0) {
+				continue;
+			}
+
+			if (cosine < 0.1) {
+
+				// System.out.println("=============");
+				// System.out.printf("cosine:\t%f\n", cosine);
+				// System.out.println(VectorUtils.toCounter(sv1, wordIdxer));
+				// System.out.println(VectorUtils.toCounter(sv2, wordIdxer));
+				// System.out.println("------------");
+				// System.out.println(text);
+				// System.out.println();
+
+				StringBuffer sb = new StringBuffer();
+				sb.append(String.format("id:\t%s", id));
+				sb.append(String.format("\ndseq:\t%d", i));
+				sb.append(String.format("\ncat1:\t%s", cat));
+				sb.append("\ntext:");
+				sb.append("\n" + text);
+				sb.append(String.format("\nTV:\t%s", VectorUtils.toCounter(sv1, wordIdxer)));
+				sb.append(String.format("\nBV:\t%s", VectorUtils.toCounter(sv2, wordIdxer)));
+				sb.append(String.format("\ncosine:\t%f", cosine));
+
+				writer.write(sb + "\n\n");
+
+				if (++cnt == 50000) {
+					break;
+				}
+			}
+		}
+		rdc.close();
+		writer.close();
+
 	}
 
 	private MDocument newMDocument(List<List<List<Pair<String, String>>>> result) {
@@ -127,7 +229,7 @@ public class DataHandler {
 
 				for (int k = 0; k < l.size(); k++) {
 					Pair<String, String> p = l.get(k);
-					String f = p.getFirst();
+					String f = p.getFirst().replace(" ", "_");
 					String s = p.getSecond();
 
 					if (s.length() == 0) {
@@ -153,7 +255,7 @@ public class DataHandler {
 
 		AtomicInteger file_cnt = new AtomicInteger(0);
 
-		int thread_size = 5;
+		int thread_size = 3;
 
 		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
 

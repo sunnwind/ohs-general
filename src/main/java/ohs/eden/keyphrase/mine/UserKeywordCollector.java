@@ -61,8 +61,8 @@ public class UserKeywordCollector {
 		// dh.getWikiPhrases();
 		// dh.mergeKeywords();
 		// dh.tokenizeKeywords();
-		dh.filterKeywords();
-		dh.sortKeywords();
+		// dh.filterKeywords();
+		// dh.sortKeywords();
 		// dh.getMedicalPhrases();
 
 		System.out.println("process ends.");
@@ -208,13 +208,15 @@ public class UserKeywordCollector {
 
 		/**
 		 * 
-		 * ENTRY and PRINT ENTRY terms may have several subfields, with each subfield entry separated from another by a bar. A final string
-		 * "map" indicates which value goes with which subfield. For example,
+		 * ENTRY and PRINT ENTRY terms may have several subfields, with each subfield
+		 * entry separated from another by a bar. A final string "map" indicates which
+		 * value goes with which subfield. For example,
 		 * 
 		 * PRINT ENTRY = Avian Sarcoma|T050|T191|NON|EQV|NLM (1994)|930624|abbcdef
 		 * 
-		 * In the final string of characters - 'abcdeef' - each letter corresponds to a specific subfield and indicates the position of the
-		 * subfield and any position repeats:
+		 * In the final string of characters - 'abcdeef' - each letter corresponds to a
+		 * specific subfield and indicates the position of the subfield and any position
+		 * repeats:
 		 * 
 		 * a the term itself
 		 * 
@@ -834,7 +836,8 @@ public class UserKeywordCollector {
 	}
 
 	public void mergeKeywords() throws Exception {
-		String[] fileNames = { "cds_kwd.txt", "mesh_phrs.txt", "pmct_kwd.txt", "scopus_kwd.txt", "snomed_phrs.txt", "wiki_phrs.txt" };
+		String[] fileNames = { "cds_kwd.txt", "mesh_phrs.txt", "pmct_kwd.txt", "scopus_kwd.txt", "snomed_phrs.txt",
+				"wiki_phrs.txt" };
 		String[] names = { "cds", "mes", "pm", "sco", "sno", "wkt" };
 
 		CounterMap<String, String> cm = Generics.newCounterMap(2000000);

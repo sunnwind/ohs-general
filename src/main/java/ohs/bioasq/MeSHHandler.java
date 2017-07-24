@@ -2,18 +2,15 @@ package ohs.bioasq;
 
 import java.util.List;
 import java.util.Set;
-import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import ohs.corpus.search.app.DocumentSearcher;
 import ohs.corpus.type.DocumentCollection;
 import ohs.corpus.type.EnglishNormalizer;
 import ohs.io.FileUtils;
 import ohs.io.TextFileReader;
 import ohs.io.TextFileWriter;
 import ohs.ir.medical.general.MIRPath;
-import ohs.ir.medical.general.NLPUtils;
 import ohs.ir.search.index.WordFilter;
 import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
@@ -353,7 +350,7 @@ public class MeSHHandler {
 		Set<String> stopwords = FileUtils.readStringSetFromText(MIRPath.STOPWORD_INQUERY_FILE);
 		WordFilter filter = new WordFilter(dc.getVocab(), stopwords);
 
-		EnglishNormalizer sn = new EnglishNormalizer(true);
+		EnglishNormalizer sn = new EnglishNormalizer();
 
 		{
 			TextFileReader reader = new TextFileReader(MIRPath.MESH_COL_RAW_DESCRIPTOR_FILE);

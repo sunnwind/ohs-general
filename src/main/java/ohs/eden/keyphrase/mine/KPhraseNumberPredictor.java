@@ -39,7 +39,7 @@ import ohs.utils.DataSplitter;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
 
-public class PhraseNumberPredictor {
+public class KPhraseNumberPredictor {
 
 	public static SparseVector extractFeatures(Vocab vocab, MDocument doc) {
 
@@ -52,8 +52,8 @@ public class PhraseNumberPredictor {
 		for (MSentence ms : doc) {
 			for (MultiToken mt : ms) {
 				for (Token t : mt) {
-					String word = t.get(TokenAttr.WORD);
-					String pos = t.get(TokenAttr.POS);
+					String word = t.get(0);
+					String pos = t.get(1);
 					String feat = String.format("%s_/_%s", word, pos);
 					int f = vocab.indexOf(feat);
 					if (f < 0) {
@@ -277,7 +277,7 @@ public class PhraseNumberPredictor {
 
 	private Vocab vocab;
 
-	public PhraseNumberPredictor(Vocab vocab, Model model) {
+	public KPhraseNumberPredictor(Vocab vocab, Model model) {
 		this.vocab = vocab;
 		this.model = model;
 	}

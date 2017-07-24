@@ -103,7 +103,7 @@ public class DataHandler {
 		IntegerArray meshNums = new IntegerArray(docseqs.size());
 		IntegerArray journals = new IntegerArray(docseqs.size());
 
-		DocumentSearcher ds = new DocumentSearcher(MIRPath.BIOASQ_COL_INDEX_DIR, MIRPath.STOPWORD_INQUERY_FILE);
+		DocumentSearcher ds = new DocumentSearcher(MIRPath.BIOASQ_COL_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
 		Vocab vocab = ds.getVocab();
 
 		DenseMatrix EW = new RandomAccessDenseMatrix(MIRPath.BIOASQ_DIR + "glove_model_raf.ser").rowsAsMatrix();
@@ -161,7 +161,7 @@ public class DataHandler {
 		FileUtils.delete(tmpFileName);
 
 		if (!FileUtils.exists(tmpFileName)) {
-			DocumentSearcher ds = new DocumentSearcher(MIRPath.BIOASQ_COL_INDEX_DIR, MIRPath.STOPWORD_INQUERY_FILE);
+			DocumentSearcher ds = new DocumentSearcher(MIRPath.BIOASQ_COL_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
 			DocumentCollection store = ds.getDocumentCollection();
 
 			DenseMatrix EW = new RandomAccessDenseMatrix(MIRPath.BIOASQ_DIR + "glove_model_raf.ser").rowsAsMatrix();
@@ -260,7 +260,7 @@ public class DataHandler {
 	}
 
 	public void classifyMeshes() throws Exception {
-		DocumentSearcher ds = new DocumentSearcher(MIRPath.BIOASQ_COL_INDEX_DIR, MIRPath.STOPWORD_INQUERY_FILE);
+		DocumentSearcher ds = new DocumentSearcher(MIRPath.BIOASQ_COL_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
 
 		MeshTree mt = new MeshTree(MIRPath.BIOASQ_MESH_TREE_SER_FILE);
 
@@ -338,7 +338,7 @@ public class DataHandler {
 		m.add(new IntegerArray(dir + "2015.ser.gz"));
 		m.add(new IntegerArray(dir + "2016.ser.gz"));
 
-		DocumentSearcher ds = new DocumentSearcher(MIRPath.BIOASQ_COL_INDEX_DIR, MIRPath.STOPWORD_INQUERY_FILE);
+		DocumentSearcher ds = new DocumentSearcher(MIRPath.BIOASQ_COL_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
 
 		ListMap<Integer, Integer> lm = Generics.newListMap();
 
@@ -374,7 +374,7 @@ public class DataHandler {
 	}
 
 	public void classifyYearsAndJournals() throws Exception {
-		DocumentSearcher ds = new DocumentSearcher(MIRPath.BIOASQ_COL_INDEX_DIR, MIRPath.STOPWORD_INQUERY_FILE);
+		DocumentSearcher ds = new DocumentSearcher(MIRPath.BIOASQ_COL_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
 
 		MeshTree mt = new MeshTree(MIRPath.BIOASQ_MESH_TREE_SER_FILE);
 

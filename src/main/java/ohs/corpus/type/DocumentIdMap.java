@@ -28,10 +28,11 @@ public class DocumentIdMap {
 		System.out.println("process begins.");
 
 		{
-			String[] dirs = { MIRPath.OHSUMED_COL_DC_DIR, MIRPath.TREC_CDS_2014_COL_DC_DIR, MIRPath.TREC_CDS_2016_COL_DC_DIR,
-					MIRPath.WIKI_COL_DC_DIR, MIRPath.BIOASQ_COL_DC_DIR };
+			String[] dirs = { MIRPath.OHSUMED_COL_DC_DIR, MIRPath.TREC_CDS_2014_COL_DC_DIR,
+					MIRPath.TREC_CDS_2016_COL_DC_DIR, MIRPath.WIKI_COL_DC_DIR, MIRPath.BIOASQ_COL_DC_DIR,
+					MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR, MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR };
 
-			for (int j = 1; j < dirs.length; j++) {
+			for (int j = 4; j < dirs.length; j++) {
 				String dir = dirs[j];
 
 				System.out.println(dir);
@@ -86,7 +87,8 @@ public class DocumentIdMap {
 
 	}
 
-	public DocumentIdMap(FileChannel fc, LongArray starts, IntegerArray lens, Map<Integer, String> cache) throws Exception {
+	public DocumentIdMap(FileChannel fc, LongArray starts, IntegerArray lens, Map<Integer, String> cache)
+			throws Exception {
 		this.fc = fc;
 		this.starts = starts;
 		this.lens = lens;

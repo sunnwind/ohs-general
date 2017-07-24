@@ -47,8 +47,8 @@ public class DocumentIdMapCreator {
 
 		private Timer timer;
 
-		public Worker(DocumentCollection dc, List<String> docids, int[][] ranges, AtomicInteger range_cnt, AtomicInteger doc_cnt,
-				Timer timer) {
+		public Worker(DocumentCollection dc, List<String> docids, int[][] ranges, AtomicInteger range_cnt,
+				AtomicInteger doc_cnt, Timer timer) {
 			this.dc = dc;
 			this.docids = docids;
 			this.ranges = ranges;

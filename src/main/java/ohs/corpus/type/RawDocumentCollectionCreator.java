@@ -8,6 +8,7 @@ import java.util.List;
 
 import edu.stanford.nlp.math.ArrayMath;
 import ohs.eden.keyphrase.cluster.KPPath;
+import ohs.fake.FNPath;
 import ohs.io.ByteArray;
 import ohs.io.ByteArrayMatrix;
 import ohs.io.ByteArrayUtils;
@@ -90,13 +91,15 @@ public class RawDocumentCollectionCreator {
 		boolean encode = false;
 
 		// {
-		// String[] attrs = { "sequential identifier", "MEDLINE identifier", "Human-assigned MeSH terms (MH)", "Title (TI)",
+		// String[] attrs = { "sequential identifier", "MEDLINE identifier",
+		// "Human-assigned MeSH terms (MH)", "Title (TI)",
 		// "Publication type (PT)", "Abstract (AB)", "Author (AU)", "Source (SO)" };
 		// String inDir = MIRPath.OHSUMED_COL_TOK_DIR;
 		// String outDir = MIRPath.OHSUMED_COL_DC_DIR;
 		// boolean append = false;
 		//
-		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
+		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir,
+		// append);
 		// rdcc.setEncode(encode);
 		// rdcc.addAttrs(Generics.newArrayList(attrs));
 		// createFromTokenizedData(inDir, rdcc);
@@ -110,18 +113,21 @@ public class RawDocumentCollectionCreator {
 		// String outDir = MIRPath.TREC_GENO_2007_COL_DC_DIR;
 		// boolean append = false;
 		//
-		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
+		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir,
+		// append);
 		// rdcc.setEncode(encode);
 		// rdcc.addAttrs(Generics.newArrayList(attrs));
 		// createFromTokenizedData(inDir, rdcc);
 		// }
 		//
 		// {
-		// String[] attrs = { "pmcid", "title", "abs", "body", "kwds", "journal", "pmid", "doi" };
+		// String[] attrs = { "pmcid", "title", "abs", "body", "kwds", "journal",
+		// "pmid", "doi" };
 		// String inDir = MIRPath.TREC_CDS_2016_COL_TOK_DIR;
 		// String outDir = MIRPath.TREC_CDS_2016_COL_DC_DIR;
 		// boolean append = false;
-		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
+		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir,
+		// append);
 		// rdcc.setEncode(encode);
 		// rdcc.addAttrs(Generics.newArrayList(attrs));
 		// createFromTokenizedData(inDir, rdcc);
@@ -132,18 +138,21 @@ public class RawDocumentCollectionCreator {
 		// String inDir = MIRPath.TREC_PM_2017_COL_MEDLINE_TOK_DIR;
 		// String outDir = MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR;
 		// boolean append = false;
-		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
+		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir,
+		// append);
 		// rdcc.setEncode(encode);
 		// rdcc.addAttrs(Generics.newArrayList(attrs));
 		// createFromTokenizedData(inDir, rdcc);
 		// }
 		//
 		// {
-		// String[] attrs = { "nctid", "brief_title", "official_title", "content", "kwds", "meshes" };
+		// String[] attrs = { "nctid", "brief_title", "official_title", "content",
+		// "kwds", "meshes" };
 		// String inDir = MIRPath.TREC_PM_2017_COL_CLINICAL_TOK_DIR;
 		// String outDir = MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR;
 		// boolean append = false;
-		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
+		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir,
+		// append);
 		// rdcc.setEncode(encode);
 		// rdcc.addAttrs(Generics.newArrayList(attrs));
 		// createFromTokenizedData(inDir, rdcc);
@@ -154,7 +163,8 @@ public class RawDocumentCollectionCreator {
 		// String inDir = MIRPath.TREC_CDS_2014_COL_TOK_DIR;
 		// String outDir = MIRPath.TREC_CDS_2014_COL_DC_DIR;
 		// boolean append = false;
-		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
+		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir,
+		// append);
 		// rdcc.setEncode(encode);
 		// rdcc.addAttrs(Generics.newArrayList(attrs));
 		// createFromTokenizedData(inDir, rdcc);
@@ -165,7 +175,8 @@ public class RawDocumentCollectionCreator {
 		// String inDir = MIRPath.WIKI_COL_TOK_DIR;
 		// String outDir = MIRPath.WIKI_COL_DC_DIR;
 		// boolean append = false;
-		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
+		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir,
+		// append);
 		// rdcc.setEncode(encode);
 		// rdcc.addAttrs(Generics.newArrayList(attrs));
 		// createFromTokenizedData(inDir, rdcc);
@@ -176,7 +187,8 @@ public class RawDocumentCollectionCreator {
 		// String inDir = MIRPath.BIOASQ_COL_TOK_DIR;
 		// String outDir = MIRPath.BIOASQ_COL_DC_DIR;
 		// boolean append = false;
-		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
+		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir,
+		// append);
 		// rdcc.setEncode(encode);
 		// rdcc.addAttrs(Generics.newArrayList(attrs));
 		// createFromTokenizedData(inDir, rdcc);
@@ -187,7 +199,8 @@ public class RawDocumentCollectionCreator {
 		// String inDir = MIRPath.CLUEWEB_COL_TOK_DIR;
 		// String outDir = MIRPath.CLUEWEB_COL_DC_DIR;
 		// boolean append = false;
-		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
+		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir,
+		// append);
 		// rdcc.setEncode(encode);
 		// rdcc.addAttrs(Generics.newArrayList(attrs));
 		// createFromTokenizedData(inDir, rdcc);
@@ -198,7 +211,8 @@ public class RawDocumentCollectionCreator {
 		// String inDir = MIRPath.CLEF_EH_2014_COL_TOK_DIR;
 		// String outDir = MIRPath.CLEF_EH_2014_COL_DC_DIR;
 		// boolean append = false;
-		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
+		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir,
+		// append);
 		// rdcc.setEncode(encode);
 		// rdcc.addAttrs(Generics.newArrayList(attrs));
 		// createFromTokenizedData(inDir, rdcc);
@@ -209,15 +223,27 @@ public class RawDocumentCollectionCreator {
 		// String inDir = "../../data/medical_ir/scopus/col/tok/";
 		// String outDir = "../../data/medical_ir/scopus/col/dc/";
 		// boolean append = false;
-		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
+		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir,
+		// append);
 		// rdcc.setEncode(encode);
 		// rdcc.addAttrs(Generics.newArrayList(attrs));
 		// createFromTokenizedData(inDir, rdcc);
 		// }
 
+//		{
+//			String[] attrs = { "id", "oid", "cat1", "date", "title", "body", "url" };
+//			String inDir = FNPath.FN_COL_LINE_POS_DIR;
+//			String outDir = FNPath.FN_COL_DC_DIR;
+//			boolean append = false;
+//			RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
+//			rdcc.setEncode(encode);
+//			rdcc.addAttrs(Generics.newArrayList(attrs));
+//			createFromTokenizedData(inDir, rdcc);
+//		}
+
 		{
-			String[] attrs = { "type", "cn", "kor_kwds", "eng_kwds", "kor_title", "eng_title", "kor_abs", "eng_abs", "kor_pos_kwds",
-					"kor_pos_title", "kor_pos_abs" };
+			String[] attrs = { "type", "cn", "kor_kwds", "eng_kwds", "kor_title", "eng_title", "kor_abs", "eng_abs",
+					"kor_pos_kwds", "kor_pos_title", "kor_pos_abs" };
 			String inDir = KPPath.COL_LINE_POS_DIR;
 			String outDir = KPPath.COL_DC_DIR;
 			boolean append = false;
@@ -256,7 +282,8 @@ public class RawDocumentCollectionCreator {
 		// inDirNames.add(MIRPath.WIKI_COL_DC_DIR);
 		// String outDirName = MIRPath.DATA_DIR + "merged/col/dc/";
 		//
-		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDirName, false);
+		// RawDocumentCollectionCreator rdcc = new
+		// RawDocumentCollectionCreator(outDirName, false);
 		// rdcc.setEncode(encode);
 		//
 		// create(inDirNames, rdcc);
@@ -363,7 +390,8 @@ public class RawDocumentCollectionCreator {
 		List<String> attrs = attrData.get(type);
 		if (attrs.size() > 0) {
 			if (attrs.size() != vals.size()) {
-				// System.err.printf("[%d/%d] values - [%s]\n", vals.size(), attrs.size(), StrUtils.join(", ", vals));
+				// System.err.printf("[%d/%d] values - [%s]\n", vals.size(), attrs.size(),
+				// StrUtils.join(", ", vals));
 				System.err.printf("[%d/%d] values\n", vals.size(), attrs.size());
 				return;
 			}

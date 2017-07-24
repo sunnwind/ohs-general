@@ -35,7 +35,7 @@ import ohs.utils.StrUtils;
  * @author Heung-Seon Oh
  * 
  */
-public class PhraseRanker {
+public class KPhraseRanker {
 
 	private static String LONG_UNDER_BAR = "__";
 
@@ -73,8 +73,8 @@ public class PhraseRanker {
 
 		List<String> ins = FileUtils.readLinesFromText(KPPath.KP_DIR + "ext/label_data.txt");
 
-		PhraseRanker pr = new PhraseRanker(dc, null, phrsBiases);
-		PhraseNumberPredictor pnp = new PhraseNumberPredictor(
+		KPhraseRanker pr = new KPhraseRanker(dc, null, phrsBiases);
+		KPhraseNumberPredictor pnp = new KPhraseNumberPredictor(
 				DocumentCollection.readVocab(KPPath.KP_DIR + "ext/vocab_num_pred.ser"),
 				Linear.loadModel(new File(KPPath.KP_DIR + "ext/model_num_pred.txt")));
 
@@ -119,7 +119,7 @@ public class PhraseRanker {
 
 	private Indexer<String> phrsIdxer;
 
-	private PhrasePatternMapper pm;
+	private KCandidatePhraseSearcher pm;
 
 	private Vocab vocab;
 
@@ -127,7 +127,7 @@ public class PhraseRanker {
 
 	private int window_size = 5;
 
-	public PhraseRanker(DocumentCollection dc, WordFilter wf, Counter<String> phrsBiases) {
+	public KPhraseRanker(DocumentCollection dc, WordFilter wf, Counter<String> phrsBiases) {
 		this.dc = dc;
 		this.wf = wf;
 		this.vocab = dc.getVocab();
@@ -135,7 +135,7 @@ public class PhraseRanker {
 
 		phrsIdxer = Generics.newIndexer(phrsBiases.size());
 
-		pm = PhrasePatternMapper.newPhrasePatternMapper(phrsBiases.keySet());
+		pm = KCandidatePhraseSearcher.newCandidatePhraseSearcher(phrsBiases.keySet());
 
 	}
 
@@ -223,7 +223,7 @@ public class PhraseRanker {
 				MultiToken phrs = new MultiToken(ts.subList(p.getFirst(), p.getSecond()));
 
 				int lower_boud = Math.max(0, p.getFirst() - window_size);
-				int upper_bound = Math.min(p.getSecond() + window_size, d.size());
+				int upper_bound = Math.min(p.getSecond() + window_size, ts.size());
 
 				for (int j = lower_boud; j < p.getFirst(); j++) {
 					double dist = p.getFirst() - j;
@@ -313,7 +313,7 @@ public class PhraseRanker {
 
 		for (int w = 0; w < wordIdxer.size(); w++) {
 			Token t = wordIdxer.getObject(w);
-			String s = String.format("%s_/_%s", t.get(TokenAttr.WORD), t.get(TokenAttr.POS));
+			String s = String.format("%s_/_%s", t.get(0), t.get(1));
 			double doc_freq = vocab.getDocFreq(s);
 			double cnt = wordCnts.getCount(t);
 			double tfidf = TermWeighting.tfidf(cnt, vocab.getDocCnt(), doc_freq);
@@ -323,7 +323,7 @@ public class PhraseRanker {
 	}
 
 	public Counter<MultiToken> rank(MDocument doc) {
-		ListList<IntPair> ps = pm.map(doc);
+		ListList<IntPair> ps = pm.search(doc);
 		CounterMap<MultiToken, Token> phrsSims = getPhraseToWords(doc, ps);
 		CounterMap<Token, Token> wordSims = getWordToWords(doc);
 		Counter<MultiToken> phrsCnts = getPhraseCounts(doc, ps);

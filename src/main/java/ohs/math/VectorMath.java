@@ -1194,10 +1194,15 @@ public class VectorMath {
 	 */
 	public static void randomWalk(SparseMatrix T, DenseVector cents, DenseVector biases, int max_iter, double min_dist,
 			double damping_factor) {
+		cents.summation();
+		double uniform_cent = (1 - damping_factor) / cents.size();
+
+		if (cents.sum() == 0) {
+			cents.setAll(uniform_cent);
+		}
 
 		DenseVector old_cents = cents.copy();
 		double old_dist = Double.MAX_VALUE;
-		double uniform_cent = (1 - damping_factor) / T.rowSize();
 
 		for (int m = 0; m < max_iter; m++) {
 			for (int i = 0; i < T.rowSize(); i++) {
@@ -1207,14 +1212,15 @@ public class VectorMath {
 			}
 
 			double sum = 0;
+
 			if (biases == null) {
 				sum = add(cents, uniform_cent, cents);
 			} else {
 				sum = addAfterMultiply(biases, damping_factor, cents, 1, cents);
 			}
 
-			if (sum != 1) {
-				cents.multiply(1d / sum);
+			if (sum != 0 && sum != 1) {
+				multiply(cents, 1f / sum, cents);
 			}
 
 			double dist = euclideanDistance(old_cents, cents);
