@@ -20,6 +20,11 @@ public class PhraseMapper<K> {
 	public static Trie<String> createTrie(Collection<String> phrss) {
 		Trie<String> ret = new Trie<String>();
 		for (String phrs : phrss) {
+
+			if (phrs.equals(":")) {
+				System.out.println();
+			}
+
 			List<String> words = StrUtils.split(phrs);
 			Node<String> node = ret.insert(words);
 			node.setFlag(true);

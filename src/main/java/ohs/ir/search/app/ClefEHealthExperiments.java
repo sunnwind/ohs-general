@@ -236,7 +236,7 @@ public class ClefEHealthExperiments {
 			lm_q.normalize();
 
 			SparseVector scores = ds.search(lm_q);
-			SparseVector lm_fb = fb.buildRM1(scores);
+			SparseVector lm_fb = fb.buildRelevanceModel1(scores);
 			SparseVector lm_q2 = fb.updateQueryModel(lm_q, lm_fb);
 
 			lm_q2 = VectorUtils.toSparseVector(scores, ds.getVocab(), vocab2);
@@ -320,7 +320,7 @@ public class ClefEHealthExperiments {
 			rScores.sortValues();
 
 			fb.setFbDocSize(rScores.size());
-			SparseVector lm_fb = fb.buildRM1(rScores, 0, qualityPriors);
+			SparseVector lm_fb = fb.buildRelevanceModel1(rScores, 0, qualityPriors);
 			SparseVector lm_q2 = fb.updateQueryModel(lm_q, lm_fb);
 			qData.set(i, lm_q2);
 
@@ -916,7 +916,7 @@ public class ClefEHealthExperiments {
 				fb.setFbDocSize(scores.size());
 				fb.setFbWordSize(Integer.MAX_VALUE);
 
-				SparseVector lm_fb = fb.buildRM1(scores, 0, qualityPriors);
+				SparseVector lm_fb = fb.buildRelevanceModel1(scores, 0, qualityPriors);
 				SparseVector lm_q2 = fb.updateQueryModel(lm_q, lm_fb);
 				qData.set(i, lm_q2);
 			}
@@ -1236,7 +1236,7 @@ public class ClefEHealthExperiments {
 				SparseVector lm_fb = new SparseVector(0);
 				SparseVector lm_q2 = lm_q1;
 
-				lm_fb = fb.buildRM1(scores, 0, qualityPriors);
+				lm_fb = fb.buildRelevanceModel1(scores, 0, qualityPriors);
 				lm_q2 = fb.updateQueryModel(lm_q1, lm_fb);
 
 				SparseVector scores2 = scorer.scoreFromCollection(lm_q2, scores);

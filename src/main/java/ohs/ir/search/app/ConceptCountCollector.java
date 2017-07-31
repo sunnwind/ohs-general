@@ -1,6 +1,5 @@
 package ohs.ir.search.app;
 
-import java.io.File;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
@@ -15,8 +14,6 @@ import ohs.ir.medical.general.MIRPath;
 import ohs.ir.search.index.WordFilter;
 import ohs.ir.weight.TermWeighting;
 import ohs.matrix.DenseVector;
-import ohs.matrix.SparseMatrix;
-import ohs.matrix.SparseVector;
 import ohs.ml.neuralnet.com.BatchUtils;
 import ohs.types.common.IntPair;
 import ohs.types.generic.Counter;
@@ -34,32 +31,29 @@ import ohs.utils.Timer;
  * @author Heung-Seon Oh
  * 
  */
-public class PhraseWeightEstimatorOld {
-
-	public enum Type {
-		CDD, QDLM, IDF, DLM, LEN, STOP_RATIO
-	}
+public class ConceptCountCollector {
 
 	class Worker implements Callable<Integer> {
 
-		private AtomicInteger range_cnt;
-
-		private IntegerArrayMatrix ranges;
-
 		private DocumentCollection dc;
-
-		private Timer timer;
-
-		private Indexer<String> phrsIndexer;
-
-		private PhraseMapper<Integer> pm;
 
 		private Counter<Integer> phrsCnts;
 
 		private Counter<Integer> phrsFreqs;
 
-		public Worker(DocumentCollection dc, IntegerArrayMatrix ranges, AtomicInteger range_cnt, Indexer<String> phrsIndexer,
-				PhraseMapper<Integer> pm, Counter<Integer> phrsCnts, Counter<Integer> phrsFreqs, Timer timer) {
+		private Indexer<String> phrsIndexer;
+
+		private PhraseMapper<Integer> pm;
+
+		private AtomicInteger range_cnt;
+
+		private IntegerArrayMatrix ranges;
+
+		private Timer timer;
+
+		public Worker(DocumentCollection dc, IntegerArrayMatrix ranges, AtomicInteger range_cnt,
+				Indexer<String> phrsIndexer, PhraseMapper<Integer> pm, Counter<Integer> phrsCnts,
+				Counter<Integer> phrsFreqs, Timer timer) {
 			this.dc = dc;
 			this.ranges = ranges;
 			this.range_cnt = range_cnt;
@@ -110,7 +104,8 @@ public class PhraseWeightEstimatorOld {
 
 				int prog = BatchUtils.progress(loc, ranges.size());
 				if (prog > 0) {
-					System.out.printf("[%d percent, %d/%d, %d/%d, %s]\n", prog, loc, ranges.size(), range.get(1), dc.size(), timer.stop());
+					System.out.printf("[%d percent, %d/%d, %d/%d, %s]\n", prog, loc, ranges.size(), range.get(1),
+							dc.size(), timer.stop());
 				}
 			}
 
@@ -127,59 +122,39 @@ public class PhraseWeightEstimatorOld {
 	}
 
 	public static void main(String[] args) throws Exception {
+		System.out.println("process begins.");
+
 		List<String> phrss = null;
 
-		// {
-		// phrss = FileUtils.readLinesFromText(MIRPath.DATA_DIR + "phrs/phrs_sorted.txt");
-		// }
-
 		{
-			phrss = Generics.newLinkedList();
-
-			for (String line : FileUtils.readLinesFromText(MIRPath.DATA_DIR + "phrs/phrs_weight.txt")) {
-				String[] ps = line.split("\t");
-				int rsc_cnt = Integer.parseInt(ps[1]);
-				if (rsc_cnt < 2) {
-					continue;
-				}
-				phrss.add(ps[0]);
-			}
-			phrss = Generics.newArrayList(phrss);
+			Counter<String> c = FileUtils.readStringCounterFromText(MIRPath.DATA_DIR + "phrs/phrs_sorted.txt");
+			phrss = Generics.newArrayList(c.keySet());
 		}
-		// DocumentSearcher ds = new DocumentSearcher(MIRPath.DATA_DIR + "merged/col/dc/", MIRPath.STOPWORD_INQUERY_FILE);
 
 		DocumentCollection dc = new DocumentCollection(MIRPath.DATA_DIR + "merged/col/dc/");
 		WordFilter wf = new WordFilter(dc.getVocab(), FileUtils.readStringSetFromText(MIRPath.STOPWORD_INQUERY_FILE));
 
-		PhraseWeightEstimatorOld dpe = new PhraseWeightEstimatorOld(dc, wf, phrss);
+		ConceptCountCollector dpe = new ConceptCountCollector(dc, wf, phrss);
 		dpe.setBatchSize(2000);
 		dpe.setThreadSize(10);
-		dpe.estimate(MIRPath.DATA_DIR + "phrs/phrs_weight.txt");
+		dpe.collect(MIRPath.DATA_DIR + "phrs/phrs_cnt.txt");
 
-		// docPriors.writeObject(dataDir + "doc_prior_quality.ser.gz");
+		System.out.println("process begins.");
 	}
-
-	private int batch_size = 1000;
 
 	private int thread_size = 5;
 
-	private double prior_dir = 2000;
-
-	private double mixture_jm = 0;
+	private int batch_size = 1000;
 
 	private DocumentCollection dc;
+
+	private Indexer<String> phrsIndexer;
 
 	private Vocab vocab;
 
 	private WordFilter wf;
 
-	private Type type = Type.CDD;
-
-	private SparseVector Q;
-
-	private Indexer<String> phrsIndexer;
-
-	public PhraseWeightEstimatorOld(DocumentCollection dc, WordFilter wf, List<String> phrss) {
+	public ConceptCountCollector(DocumentCollection dc, WordFilter wf, List<String> phrss) {
 		this.dc = dc;
 		this.vocab = dc.getVocab();
 		this.wf = wf;
@@ -191,12 +166,12 @@ public class PhraseWeightEstimatorOld {
 		}
 	}
 
-	public PhraseWeightEstimatorOld(String idxDir) throws Exception {
+	public ConceptCountCollector(String idxDir) throws Exception {
 		dc = new DocumentCollection(idxDir);
 		vocab = dc.getVocab();
 	}
 
-	public DenseVector estimate(String outFileName) throws Exception {
+	public DenseVector collect(String outFileName) throws Exception {
 		Timer timer = Timer.newTimer();
 
 		IntegerArrayMatrix ranges = new IntegerArrayMatrix(BatchUtils.getBatchRanges(dc.size(), batch_size));
@@ -213,7 +188,8 @@ public class PhraseWeightEstimatorOld {
 		List<Future<Integer>> fs = Generics.newArrayList(thread_size);
 
 		for (int i = 0; i < thread_size; i++) {
-			fs.add(tpe.submit(new Worker(dc.copyShallow(), ranges, range_cnt, phrsIndexer, pm, phrsCnts, phrsFreqs, timer)));
+			fs.add(tpe.submit(
+					new Worker(dc.copyShallow(), ranges, range_cnt, phrsIndexer, pm, phrsCnts, phrsFreqs, timer)));
 		}
 
 		for (int i = 0; i < thread_size; i++) {
@@ -247,40 +223,12 @@ public class PhraseWeightEstimatorOld {
 		return null;
 	}
 
-	public double getDirichletPrior() {
-		return prior_dir;
-	}
-
-	public double getMixtureJM() {
-		return mixture_jm;
-	}
-
 	public void setBatchSize(int batch_size) {
 		this.batch_size = batch_size;
 	}
 
-	public void setDirichletPrior(double dirichlet_prior) {
-		this.prior_dir = dirichlet_prior;
-	}
-
-	public void setJmMixture(double mixture_jm) {
-		this.mixture_jm = mixture_jm;
-	}
-
-	public void setMixtureJM(double mixture_jm) {
-		this.mixture_jm = mixture_jm;
-	}
-
-	public void setQuery(SparseVector Q) {
-		this.Q = Q;
-	}
-
 	public void setThreadSize(int thread_size) {
 		this.thread_size = thread_size;
-	}
-
-	public void setType(Type type) {
-		this.type = type;
 	}
 
 }

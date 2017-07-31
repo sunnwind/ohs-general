@@ -29,9 +29,9 @@ public class SparseMatrix extends ArrayList<SparseVector> implements Matrix {
 	 */
 	private static final long serialVersionUID = -3542638642565119292L;
 
-	private int[] rowIdxs;
-
 	private int[][] idxs;
+
+	private int[] rowIdxs;
 
 	private double[][] vals;
 
@@ -602,6 +602,11 @@ public class SparseMatrix extends ArrayList<SparseVector> implements Matrix {
 	}
 
 	@Override
+	public SparseMatrix transpose() {
+		return new SparseMatrix(VectorUtils.toCounterMap(this).invert());
+	}
+
+	@Override
 	public void unwrapValues() {
 		idxs = new int[size()][];
 		vals = new double[size()][];
@@ -640,11 +645,6 @@ public class SparseMatrix extends ArrayList<SparseVector> implements Matrix {
 		ObjectOutputStream oos = FileUtils.openObjectOutputStream(fileName);
 		writeObject(oos);
 		oos.close();
-	}
-
-	@Override
-	public SparseMatrix transpose() {
-		return new SparseMatrix(VectorUtils.toCounterMap(this).invert());
 	}
 
 }

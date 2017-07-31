@@ -13,7 +13,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import ohs.math.ArrayWokers.SetAllWorker;
+import ohs.math.ThreadWokers.SetAllWorker;
 import ohs.utils.ByteSize;
 import ohs.utils.Conditions;
 import ohs.utils.Generics;

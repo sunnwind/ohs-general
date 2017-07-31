@@ -22,21 +22,21 @@ public class TrecCdsQuery implements BaseQuery {
 		System.out.println("process ends.");
 	}
 
-	private String id;
-
-	private String type;
-
-	private String note;
-
 	private String description;
-
-	private String summary;
 
 	private String diagnosis;
 
+	private String id;
+
 	private Query luceneQuery;
 
+	private String note;
+
 	private SparseVector queryModel;
+
+	private String summary;
+
+	private String type;
 
 	private List<Integer> words;
 
@@ -86,6 +86,10 @@ public class TrecCdsQuery implements BaseQuery {
 		return description;
 	}
 
+	public String getDiagnosis() {
+		return diagnosis;
+	}
+
 	@Override
 	public String getId() {
 		return id;
@@ -94,6 +98,10 @@ public class TrecCdsQuery implements BaseQuery {
 	@Override
 	public Query getLuceneQuery() {
 		return luceneQuery;
+	}
+
+	public String getNote() {
+		return note;
 	}
 
 	@Override
@@ -113,6 +121,10 @@ public class TrecCdsQuery implements BaseQuery {
 		}
 		ret = ret.replaceAll("[\\p{Punct}]+", " ");
 		return ret.trim();
+	}
+
+	public String getSummary() {
+		return summary;
 	}
 
 	public String getType() {

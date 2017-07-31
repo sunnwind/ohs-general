@@ -14,15 +14,15 @@ import java.util.stream.DoubleStream;
 
 import org.apache.commons.math.stat.inference.TTestImpl;
 
-import ohs.math.ArrayWokers.AddAfterMultiplyWorker1;
-import ohs.math.ArrayWokers.AddAfterMultiplyWorker2;
-import ohs.math.ArrayWokers.AddAfterMultiplyWorker3;
-import ohs.math.ArrayWokers.EqualColumnProductWorker;
-import ohs.math.ArrayWokers.EqualRowProductWorker;
-import ohs.math.ArrayWokers.OuterProductWorker;
-import ohs.math.ArrayWokers.ProductWorker3;
-import ohs.math.ArrayWokers.RowByColumnProductWorker;
-import ohs.math.ArrayWokers.RowBySingleColumnProductWorker;
+import ohs.math.ThreadWokers.AddAfterMultiplyWorker1;
+import ohs.math.ThreadWokers.AddAfterMultiplyWorker2;
+import ohs.math.ThreadWokers.AddAfterMultiplyWorker3;
+import ohs.math.ThreadWokers.RowByRowProductWorker;
+import ohs.math.ThreadWokers.ColumnByColumnProductWorker;
+import ohs.math.ThreadWokers.OuterProductWorker;
+import ohs.math.ThreadWokers.ProductWorker3;
+import ohs.math.ThreadWokers.RowByColumnProductWorker;
+import ohs.math.ThreadWokers.RowBySingleColumnProductWorker;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseVector;
 import ohs.types.generic.Counter;
@@ -2746,12 +2746,8 @@ public class ArrayMath {
 
 	/**
 	 * @param a
-	 *            M x K
-	 * @param b
-	 *            K x 1
-	 * @param c
-	 *            M x 1
-	 * @return
+	 *            M x K @param b K x 1 @param c M x 1 @return @throws
+	 *            Exception @throws
 	 */
 	public static double productByThreads(double[][] a, double[] b, double[] c, int thread_size) {
 		if (!ArrayChecker.isProductable(a, b, c)) {
@@ -2781,15 +2777,11 @@ public class ArrayMath {
 			for (int k = 0; k < fs.size(); k++) {
 				sum += fs.get(k).get().doubleValue();
 			}
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		} catch (ExecutionException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
-			fs.clear();
+			tpe.shutdown();
 		}
-
-		tpe.shutdown();
 
 		return sum;
 	}
@@ -2819,11 +2811,11 @@ public class ArrayMath {
 
 		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
 
-		AtomicInteger shared_j = new AtomicInteger(0);
+		AtomicInteger col_cnt = new AtomicInteger(0);
 		List<Future<Double>> fs = Generics.newArrayList();
 
 		for (int i = 0; i < thread_size; i++) {
-			fs.add(tpe.submit(new RowByColumnProductWorker(a, b, c, shared_j)));
+			fs.add(tpe.submit(new RowByColumnProductWorker(a, b, c, col_cnt)));
 		}
 
 		double sum = 0;
@@ -3000,7 +2992,7 @@ public class ArrayMath {
 		AtomicInteger shared_j = new AtomicInteger(0);
 
 		for (int i = 0; i < thread_size; i++) {
-			fs.add(tpe.submit(new EqualRowProductWorker(a, b, c, shared_j)));
+			fs.add(tpe.submit(new ColumnByColumnProductWorker(a, b, c, shared_j)));
 		}
 
 		double sum = 0;
@@ -3097,7 +3089,7 @@ public class ArrayMath {
 		AtomicInteger shared_j = new AtomicInteger(0);
 
 		for (int i = 0; i < thread_size; i++) {
-			fs.add(tpe.submit(new EqualColumnProductWorker(a, b, c, shared_j)));
+			fs.add(tpe.submit(new RowByRowProductWorker(a, b, c, shared_j)));
 		}
 
 		double sum = 0;
@@ -3227,6 +3219,8 @@ public class ArrayMath {
 			add(cents, 1f / cents.length, cents);
 		}
 
+		int thread_size = 5;
+
 		double[] old_cents = ArrayUtils.copy(cents);
 		double old_dist = Double.MAX_VALUE;
 		int num_docs = T.length;
@@ -3234,14 +3228,17 @@ public class ArrayMath {
 		double uniform_cent = (1 - damping_factor) / num_docs;
 
 		for (int m = 0; m < max_iter; m++) {
-			for (int i = 0; i < T.length; i++) {
-				double cent_sum_from_others = dotProduct(T[i], old_cents);
-				// for (int j = 0; j < T[i].length; j++) {
-				// // double tran_prob = T[i][j];
-				// cent_sum_from_others += T[i][j] * old_cents[j];
-				// }
-				cents[i] = damping_factor * cent_sum_from_others;
+
+			try {
+				productByThreads(T, old_cents, cents, thread_size);
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
+
+			// for (int i = 0; i < T.length; i++) {
+			// double cent_sum_from_others = dotProduct(T[i], old_cents);
+			// cents[i] = damping_factor * cent_sum_from_others;
+			// }
 
 			double sum = 0;
 			if (biases == null) {

@@ -601,7 +601,7 @@ public class ExperimentsOld {
 
 					SparseVector lm_q1 = ds1.getQueryModel(Q1, false);
 					SparseVector docScores1 = ds1.search(lm_q1);
-					SparseVector lm_fb1 = ds1.getFeedbackBuilder().buildRM1(docScores1);
+					SparseVector lm_fb1 = ds1.getFeedbackBuilder().buildRelevanceModel1(docScores1);
 
 					SparseVector lm_q2 = ds2.getQueryModel(Q2, false);
 
@@ -615,7 +615,7 @@ public class ExperimentsOld {
 					}
 					System.out.println();
 
-					SparseVector lm_fb2 = ds2.getFeedbackBuilder().buildRM1(docScores2);
+					SparseVector lm_fb2 = ds2.getFeedbackBuilder().buildRelevanceModel1(docScores2);
 					lm_fb2 = VectorUtils.toSparseVector(lm_fb2, vocab2, vocab1);
 					lm_fb2.normalize();
 
@@ -948,14 +948,14 @@ public class ExperimentsOld {
 						tmpScores2 = depScorer2.score(lm_q2, tmpScores2);
 
 						if (f1) {
-							SparseVector lm_fb1 = ds1.getFeedbackBuilder().buildRM1(tmpScores1);
+							SparseVector lm_fb1 = ds1.getFeedbackBuilder().buildRelevanceModel1(tmpScores1);
 							lm_q1 = ds1.updateQueryModel(lm_q1, lm_fb1);
 							scores1 = ds1.search(lm_q1);
 							tmpScores1 = scores1.subVector(top_n);
 						}
 
 						if (f2) {
-							SparseVector lm_fb2 = ds2.getFeedbackBuilder().buildRM1(tmpScores2);
+							SparseVector lm_fb2 = ds2.getFeedbackBuilder().buildRelevanceModel1(tmpScores2);
 							lm_q2 = ds2.updateQueryModel(lm_q2, lm_fb2);
 							scores2 = ds2.search(lm_q2);
 							tmpScores2 = scores2.subVector(top_n);

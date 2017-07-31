@@ -10,8 +10,10 @@ import java.util.Set;
 import ohs.io.FileUtils;
 import ohs.math.ArrayMath;
 import ohs.math.ArrayUtils;
+import ohs.types.generic.Pair;
 import ohs.types.number.DoubleArray;
 import ohs.utils.ByteSize;
+import ohs.utils.Generics;
 
 public class DenseVector implements Vector {
 	/**
@@ -19,9 +21,9 @@ public class DenseVector implements Vector {
 	 */
 	private static final long serialVersionUID = 1185683442330052104L;
 
-	private double[] vals;
-
 	private double sum;
+
+	private double[] vals;
 
 	public DenseVector() {
 
@@ -249,6 +251,14 @@ public class DenseVector implements Vector {
 	@Override
 	public double normalizeAfterSummation() {
 		return sum = ArrayMath.normalize(vals);
+	}
+
+	public List<Pair<Integer, Double>> pairs() {
+		List<Pair<Integer, Double>> ret = Generics.newArrayList(size());
+		for (int i = 0; i < size(); i++) {
+			ret.add(Generics.newPair(i, value(i)));
+		}
+		return ret;
 	}
 
 	@Override

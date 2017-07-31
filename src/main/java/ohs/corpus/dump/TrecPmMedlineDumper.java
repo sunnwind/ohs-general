@@ -50,7 +50,7 @@ public class TrecPmMedlineDumper extends TextDumper {
 				{
 					GZIPInputStream gzis = new GZIPInputStream(new FileInputStream(inFile));
 					ByteArrayOutputStream baos = new ByteArrayOutputStream();
-					byte[] buf = new byte[1024];
+					byte[] buf = new byte[1024 * 1024];
 					int size = 0;
 					while ((size = gzis.read(buf)) != -1) {
 						baos.write(buf, 0, size);
@@ -93,14 +93,23 @@ public class TrecPmMedlineDumper extends TextDumper {
 					{
 						Elements elem = docElem.getElementsByTag("ArticleTitle");
 						if (elem.size() > 0) {
-							title = elem.get(0).text();
+							List<String> l = Generics.newArrayList(elem.size());
+							for (int j = 0; j < elem.size(); j++) {
+								l.add(elem.get(j).text());
+							}
+							title = StrUtils.join(StrUtils.LINE_REP, l);
 						}
 					}
 
 					{
 						Elements elem = docElem.getElementsByTag("AbstractText");
 						if (elem.size() > 0) {
-							abs = elem.get(0).text();
+							List<String> l = Generics.newArrayList(elem.size());
+							for (int j = 0; j < elem.size(); j++) {
+								l.add(elem.get(j).text());
+							}
+
+							abs = StrUtils.join(StrUtils.LINE_REP, l);
 						}
 					}
 
@@ -131,143 +140,6 @@ public class TrecPmMedlineDumper extends TextDumper {
 
 			return (int) 0;
 		}
-
-		// public Integer callOld() throws Exception {
-		// String outPath = new File(files.replace(inPathName, outPathName)).getParent().replace("\\", "/");
-		// List<String> res = Generics.newArrayList();
-		//
-		// GZIPInputStream gzis = new GZIPInputStream(new FileInputStream(new File(files)));
-		// // GzipCompressorInputStream gzcis = new GzipCompressorInputStream(new FileInputStream(new File(inFileNames)));
-		// TarArchiveInputStream tais = new TarArchiveInputStream(gzis);
-		// BufferedReader br = new BufferedReader(new InputStreamReader(tais));
-		// TarArchiveEntry tae = null;
-		//
-		// int num_docs = 0;
-		// // read every single entry in TAR file
-		// while ((tae = tais.getNextTarEntry()) != null) {
-		// // the following two lines remove the .tar.gz extension for the folder name
-		// // System.out.println(entry.getName());
-		//
-		// // if (num_docs_in_coll == 40000) {
-		// // break;
-		// // }
-		//
-		// if (tae.isDirectory()) {
-		// continue;
-		// }
-		//
-		// String fileName = tae.getName();
-		//
-		// if (!fileName.endsWith("xml.gz")) {
-		// continue;
-		// }
-		//
-		// StringBuffer sb = new StringBuffer();
-		// ByteArrayOutputStream bout = new ByteArrayOutputStream();
-		//
-		// // {
-		// // //
-		// // //
-		// // String line = null;
-		// // while ((line = br.readLine()) != null) {
-		// // sb.append(line + "\n");
-		// // }
-		// // System.out.println(sb.toString());
-		// // }
-		//
-		// // {
-		// // GZIPInputStream gzis2 = new GZIPInputStream(new FileInputStream(tae.getFile()));
-		// //
-		// // byte[] buf = new byte[1024];
-		// // int c;
-		// // while ((c = gzis2.read(buf)) != -1) {
-		// // bout.write(buf, 0, c);
-		// // }
-		// // String s = new String(bout.toByteArray());;
-		// // System.out.println(s);
-		// // }
-		//
-		// {
-		// int size = (int) tae.getSize();
-		// byte[] buf = new byte[size];
-		// tais.read(buf);
-		//
-		// }
-		//
-		// if (sb.length() > 0) {
-		// Document doc = Jsoup.parse(sb.toString(), "", Parser.xmlParser());
-		//
-		// String pmcid = "";
-		// String title = "";
-		// String abs = "";
-		// String body = "";
-		// String kwds = "";
-		//
-		// Elements elem1 = doc.getElementsByAttributeValue("pub-id-type", "pmc");
-		//
-		// if (elem1.size() > 0) {
-		// pmcid = elem1.get(0).text();
-		//
-		// }
-		//
-		// String[] tags = { "article-title", "abstract", "body", "kwd" };
-		//
-		// for (int i = 0; i < tags.length; i++) {
-		// Elements elem3 = doc.getElementsByTag(tags[i]);
-		//
-		// if (elem3.size() > 0) {
-		// if (i == 0) {
-		// title = elem3.get(0).text();
-		// } else if (i == 1) {
-		// abs = elem3.get(0).text();
-		// } else if (i == 2) {
-		// body = elem3.get(0).text();
-		// } else if (i == 3) {
-		// List<String> l = Generics.newArrayList();
-		// for (int j = 0; j < elem3.size(); j++) {
-		// l.add(elem3.get(j).text());
-		// }
-		// if (l.size() > 0) {
-		// kwds = StrUtils.join(StrUtils.LINE_REP, l);
-		// }
-		// }
-		// }
-		// }
-		//
-		// List<String> values = Generics.newLinkedList();
-		// values.add(pmcid);
-		// values.add(title);
-		// values.add(abs);
-		// values.add(body);
-		// values.add(kwds);
-		//
-		// for (int i = 0; i < values.size(); i++) {
-		// values.set(i, StrUtils.normalizeSpaces(values.get(i)));
-		// }
-		//
-		// values = StrUtils.wrap(values);
-		//
-		// res.add(StrUtils.join("\t", values));
-		//
-		// if (res.size() % batch_size == 0) {
-		// DecimalFormat df = new DecimalFormat("00000");
-		// String outFileName = String.format("%s/%s.txt.gz", outPath, df.format(file_cnt.getAndIncrement()));
-		// FileUtils.writeStringCollectionAsText(outFileName, res);
-		// res.clear();
-		// }
-		// }
-		// }
-		// tais.close();
-		//
-		// if (res.size() > 0) {
-		// DecimalFormat df = new DecimalFormat("00000");
-		// String outFileName = String.format("%s/%s.txt.gz", outPath, df.format(file_cnt.getAndIncrement()));
-		// FileUtils.writeStringCollectionAsText(outFileName, res);
-		// res.clear();
-		// }
-		//
-		// return (int) 0;
-		// }
 	}
 
 	public static void main(String[] args) throws Exception {
@@ -276,6 +148,7 @@ public class TrecPmMedlineDumper extends TextDumper {
 		{
 			TrecPmMedlineDumper dh = new TrecPmMedlineDumper(MIRPath.TREC_PM_2017_COL_MEDLINE_RAW_DIR,
 					MIRPath.TREC_PM_2017_COL_MEDLINE_LINE_DIR);
+			dh.setThreadSize(5);
 			dh.dump();
 
 		}

@@ -14,6 +14,7 @@ import ohs.math.ArrayMath;
 import ohs.math.ArrayUtils;
 import ohs.types.generic.Counter;
 import ohs.types.generic.Indexer;
+import ohs.types.generic.Pair;
 import ohs.types.number.DoubleArray;
 import ohs.types.number.IntegerArray;
 import ohs.utils.ByteSize;
@@ -31,9 +32,9 @@ public class SparseVector implements Vector {
 
 	private int[] idxs;
 
-	private double[] vals;
-
 	private double sum;
+
+	private double[] vals;
 
 	public SparseVector() {
 
@@ -318,6 +319,14 @@ public class SparseVector implements Vector {
 	@Override
 	public double normalizeAfterSummation() {
 		return sum = ArrayMath.normalize(vals);
+	}
+
+	public List<Pair<Integer, Double>> pairs() {
+		List<Pair<Integer, Double>> ret = Generics.newArrayList(size());
+		for (int i = 0; i < size(); i++) {
+			ret.add(Generics.newPair(indexAt(i), valueAt(i)));
+		}
+		return ret;
 	}
 
 	@Override

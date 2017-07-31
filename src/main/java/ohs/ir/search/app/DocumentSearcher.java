@@ -50,7 +50,8 @@ public class DocumentSearcher {
 
 		private AtomicInteger q_cnt;
 
-		public SearchWorker(DocumentSearcher ds, List<SparseVector> queryData, List<SparseVector> scoreData, AtomicInteger q_cnt) {
+		public SearchWorker(DocumentSearcher ds, List<SparseVector> queryData, List<SparseVector> scoreData,
+				AtomicInteger q_cnt) {
 			this.ds = ds;
 			this.queryData = queryData;
 			this.scoreData = scoreData;
@@ -107,13 +108,20 @@ public class DocumentSearcher {
 	}
 
 	public static void test1() throws Exception {
-		// DocumentSearcher ds = new DocumentSearcher(MIRPath.CLUEWEB_COL_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
-		// DocumentSearcher ds = new DocumentSearcher(MIRPath.TREC_CDS_2016_COL_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
-		// DocumentSearcher ds = new DocumentSearcher(MIRPath.OHSUMED_COL_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
-		// DocumentSearcher ds = new DocumentSearcher(MIRPath.TREC_GENO_2007_COL_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
-		// DocumentSearcher ds = new DocumentSearcher(MIRPath.WIKI_COL_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
-//		DocumentSearcher ds = new DocumentSearcher(MIRPath.DATA_DIR + "merged/col/dc/", MIRPath.STOPWORD_INQUERY_FILE);
-		DocumentSearcher ds = new DocumentSearcher(MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR, MIRPath.STOPWORD_INQUERY_FILE);
+		// DocumentSearcher ds = new DocumentSearcher(MIRPath.CLUEWEB_COL_DC_DIR,
+		// MIRPath.STOPWORD_INQUERY_FILE);
+		// DocumentSearcher ds = new DocumentSearcher(MIRPath.TREC_CDS_2016_COL_DC_DIR,
+		// MIRPath.STOPWORD_INQUERY_FILE);
+		// DocumentSearcher ds = new DocumentSearcher(MIRPath.OHSUMED_COL_DC_DIR,
+		// MIRPath.STOPWORD_INQUERY_FILE);
+		// DocumentSearcher ds = new DocumentSearcher(MIRPath.TREC_GENO_2007_COL_DC_DIR,
+		// MIRPath.STOPWORD_INQUERY_FILE);
+		// DocumentSearcher ds = new DocumentSearcher(MIRPath.WIKI_COL_DC_DIR,
+		// MIRPath.STOPWORD_INQUERY_FILE);
+		// DocumentSearcher ds = new DocumentSearcher(MIRPath.DATA_DIR +
+		// "merged/col/dc/", MIRPath.STOPWORD_INQUERY_FILE);
+		DocumentSearcher ds = new DocumentSearcher(MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR,
+				MIRPath.STOPWORD_INQUERY_FILE);
 
 		ds.setScorer(new MRFScorer(ds));
 
@@ -242,8 +250,8 @@ public class DocumentSearcher {
 
 	private boolean use_cache = false;
 
-	public DocumentSearcher(Scorer scorer, RawDocumentCollection rdc, DocumentCollection dc, DiskInvertedIndex ii, WordFilter wf)
-			throws Exception {
+	public DocumentSearcher(Scorer scorer, RawDocumentCollection rdc, DocumentCollection dc, DiskInvertedIndex ii,
+			WordFilter wf) throws Exception {
 		this.scorer = scorer;
 		this.rdc = rdc;
 		this.dc = dc;
@@ -253,6 +261,8 @@ public class DocumentSearcher {
 	}
 
 	public DocumentSearcher(String dataDir, String stopwordFileName) throws Exception {
+		System.out.printf("read at [%s]\n", dataDir);
+
 		this.dataDir = new File(dataDir);
 
 		rdc = new RawDocumentCollection(dataDir);
@@ -470,7 +480,8 @@ public class DocumentSearcher {
 		return ii.getPostingList(new IntegerArray(Q.indexes()), keep_order, window_size);
 	}
 
-	public List<SparseVector> search(List<SparseVector> qData, List<SparseVector> dData, int thread_size) throws Exception {
+	public List<SparseVector> search(List<SparseVector> qData, List<SparseVector> dData, int thread_size)
+			throws Exception {
 
 		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
 

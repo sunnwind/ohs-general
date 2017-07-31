@@ -1,5 +1,6 @@
 package ohs.ir.search.app;
 
+import java.text.DecimalFormat;
 import java.util.Collections;
 import java.util.List;
 
@@ -19,6 +20,9 @@ public class TrecFormatter {
 
 		for (int i = 0; i < qids.size(); i++) {
 			String qid = qids.get(i);
+
+			Number nf = new DecimalFormat().parse(qid);
+
 			Counter<String> scores = sr.getCounter(qid);
 			List<String> dids = scores.getSortedKeys();
 
@@ -26,7 +30,7 @@ public class TrecFormatter {
 				String did = dids.get(j);
 				double score = scores.getCount(did);
 				int rank = j + 1;
-				res.add(String.format("%s\tQ0\t%s\t%d\t%f\t%s", qid, did, rank, score, runName));
+				res.add(String.format("%s\tQ0\t%s\t%d\t%f\t%s", nf.toString(), did, rank, score, runName));
 			}
 		}
 

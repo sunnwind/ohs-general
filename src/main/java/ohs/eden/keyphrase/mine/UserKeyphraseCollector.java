@@ -20,6 +20,7 @@ import ohs.io.FileUtils;
 import ohs.io.TextFileReader;
 import ohs.io.TextFileWriter;
 import ohs.ir.medical.general.MIRPath;
+import ohs.ir.search.app.DocumentSearcher;
 import ohs.ir.search.index.WordFilter;
 import ohs.ml.neuralnet.com.BatchUtils;
 import ohs.types.generic.Counter;
@@ -32,7 +33,7 @@ import ohs.utils.Generics;
 import ohs.utils.Generics.ListType;
 import ohs.utils.StrUtils;
 
-public class UserKeywordCollector {
+public class UserKeyphraseCollector {
 
 	public static List<String> getKeywords(String keywordStr) {
 		List<String> ret = Generics.newArrayList();
@@ -47,28 +48,28 @@ public class UserKeywordCollector {
 
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
-		UserKeywordCollector dh = new UserKeywordCollector();
-		// dh.get3PKeywords();
+		UserKeyphraseCollector dh = new UserKeyphraseCollector();
+		// dh.get3PKeyphrases();
 		// dh.getSnomedConcepts();
 		// dh.getSnomedPhrases();
 		// dh.getMeSHes();
-		// dh.getPaperKeywords();
+		// dh.getPaperKeyphrases();
 
 		// dh.getBioASQMeshes();
-		// dh.getTrecPmClinicalKeywords();
-		// dh.getScopusKeywords();
-		// dh.getTrecCdsKeywords();
+		// dh.getTrecPmClinicalKeyphrases();
+		// dh.getScopusKeyphrases();
+		// dh.getTrecCdsKeyphrases();
 		// dh.getWikiPhrases();
-		// dh.mergeKeywords();
-		// dh.tokenizeKeywords();
-		// dh.filterKeywords();
-		// dh.sortKeywords();
+		// dh.mergeKeyphrases();
+		// dh.tokenizeKeyphrases();
+		dh.filterKeyphrases();
+		 dh.sortKeyphrases();
 		// dh.getMedicalPhrases();
 
 		System.out.println("process ends.");
 	}
 
-	public void get3PKeywords() throws Exception {
+	public void get3PKeyphrases() throws Exception {
 		RawDocumentCollection rdc = new RawDocumentCollection(KPPath.COL_DC_DIR);
 
 		Counter<String> c = Generics.newCounter();
@@ -506,7 +507,7 @@ public class UserKeywordCollector {
 
 	}
 
-	public void getScopusKeywords() throws Exception {
+	public void getScopusKeyphrases() throws Exception {
 		List<File> files = FileUtils.getFilesUnder(MIRPath.DATA_DIR + "scopus/col/line/");
 		Counter<String> c = Generics.newCounter();
 		for (File file : files) {
@@ -711,7 +712,7 @@ public class UserKeywordCollector {
 		FileUtils.writeStringCounterAsText(outFile, c, true);
 	}
 
-	public void getTrecCdsKeywords() throws Exception {
+	public void getTrecCdsKeyphrases() throws Exception {
 		List<File> files = FileUtils.getFilesUnder(MIRPath.TREC_CDS_2016_COL_LINE_DIR);
 		Counter<String> c = Generics.newCounter();
 		for (File file : files) {
@@ -729,7 +730,7 @@ public class UserKeywordCollector {
 		FileUtils.writeStringCounterAsText(MIRPath.DATA_DIR + "phrs/cds_kwd.txt", c);
 	}
 
-	public void getTrecPmClinicalKeywords() throws Exception {
+	public void getTrecPmClinicalKeyphrases() throws Exception {
 		List<File> files = FileUtils.getFilesUnder(MIRPath.TREC_PM_2017_COL_CLINICAL_LINE_DIR);
 		Counter<String> c = Generics.newCounter();
 		for (File file : files) {
@@ -803,7 +804,7 @@ public class UserKeywordCollector {
 		FileUtils.writeStringCounterMapAsText(MIRPath.DATA_DIR + "phrs/wiki_phrs.txt", cm);
 	}
 
-	public void matchPhrasesToKeywords() throws Exception {
+	public void matchPhrasesToKeyphrases() throws Exception {
 		Counter<String> c = FileUtils.readStringCounterFromText(KPPath.KP_DIR + "phrs_3p_kwds.txt.gz");
 
 		List<String> lines = FileUtils.readLinesFromText(KPPath.KP_DIR + "phrs_3p.txt.gz");
@@ -835,10 +836,51 @@ public class UserKeywordCollector {
 		FileUtils.writeStringCollectionAsText(KPPath.KP_DIR + "phrs_3p_label.txt.gz", lines);
 	}
 
-	public void mergeKeywords() throws Exception {
+	private Pattern p1 = Pattern.compile("[;,.]+$");
+
+	private Pattern p2 = Pattern.compile("[\"]+");
+
+	private Counter<String> normalize(Counter<String> c) {
+		Counter<String> ret = Generics.newCounter(c.size());
+
+		for (Entry<String, Double> e : c.entrySet()) {
+			String key = e.getKey();
+			double val = e.getValue();
+			Matcher m = p1.matcher(key);
+
+			StringBuffer sb = new StringBuffer();
+			while (m.find()) {
+				// String g = m.group();
+				m.appendReplacement(sb, "");
+			}
+			m.appendTail(sb);
+
+			key = sb.toString();
+
+			m = p2.matcher(key);
+			sb = new StringBuffer();
+
+			while (m.find()) {
+				// String g = m.group();
+				m.appendReplacement(sb, " ");
+			}
+			m.appendTail(sb);
+
+			key = StrUtils.normalizeSpaces(sb.toString());
+
+			ret.setCount(key, val);
+		}
+
+		return ret;
+	}
+
+	public void mergeKeyphrases() throws Exception {
 		String[] fileNames = { "cds_kwd.txt", "mesh_phrs.txt", "pmct_kwd.txt", "scopus_kwd.txt", "snomed_phrs.txt",
 				"wiki_phrs.txt" };
 		String[] names = { "cds", "mes", "pm", "sco", "sno", "wkt" };
+
+		// String[] fileNames = { "sample.txt" };
+		// String[] names = { "sam" };
 
 		CounterMap<String, String> cm = Generics.newCounterMap(2000000);
 
@@ -847,17 +889,24 @@ public class UserKeywordCollector {
 			String name = names[i];
 
 			if (fileName.contains("wiki")) {
-				CounterMap<String, String> cm2 = FileUtils.readStringCounterMapFromText(fileName);
-				for (String phrs : cm2.keySet()) {
-					Counter<String> c = cm2.getCounter(phrs);
-					cm.incrementCount(phrs.toLowerCase(), name, c.totalCount());
+				CounterMap<String, String> cm2 = FileUtils.readStringCounterMapFromText(fileName).invert();
+				for (String type : cm2.keySet()) {
+					Counter<String> c = cm2.getCounter(type);
+					c = normalize(c);
+
+					for (Entry<String, Double> e : c.entrySet()) {
+						String phrs = e.getKey();
+						double cnt = e.getValue();
+						cm.incrementCount(phrs, name, cnt);
+					}
 				}
 			} else {
 				Counter<String> c = FileUtils.readStringCounterFromText(fileName);
+				c = normalize(c);
 				for (Entry<String, Double> e : c.entrySet()) {
 					String phrs = e.getKey();
 					double cnt = e.getValue();
-					cm.incrementCount(phrs.toLowerCase(), name, cnt);
+					cm.incrementCount(phrs, name, cnt);
 				}
 			}
 		}
@@ -881,7 +930,59 @@ public class UserKeywordCollector {
 		FileUtils.writeStringCollectionAsText(MIRPath.DATA_DIR + "phrs/phrs_merged.txt", res);
 	}
 
-	public void tokenizeKeywords() throws Exception {
+	// public void mergeKeyphrases() throws Exception {
+	// String[] fileNames = { "cds_kwd.txt", "mesh_phrs.txt", "pmct_kwd.txt",
+	// "scopus_kwd.txt", "snomed_phrs.txt",
+	// "wiki_phrs.txt" };
+	// String[] names = { "cds", "mes", "pm", "sco", "sno", "wkt" };
+	//
+	// CounterMap<String, String> cm = Generics.newCounterMap(2000000);
+	//
+	// for (int i = 0; i < fileNames.length; i++) {
+	// String fileName = MIRPath.DATA_DIR + "phrs/" + fileNames[i];
+	// String name = names[i];
+	//
+	// if (fileName.contains("wiki")) {
+	// CounterMap<String, String> cm2 =
+	// FileUtils.readStringCounterMapFromText(fileName);
+	// for (String phrs : cm2.keySet()) {
+	// Counter<String> c = cm2.getCounter(phrs);
+	// c = normalize(c);
+	// cm.incrementCount(phrs.toLowerCase(), name, c.totalCount());
+	// }
+	// } else {
+	// Counter<String> c = FileUtils.readStringCounterFromText(fileName);
+	// c = normalize(c);
+	// for (Entry<String, Double> e : c.entrySet()) {
+	// String phrs = e.getKey();
+	// double cnt = e.getValue();
+	// cm.incrementCount(phrs.toLowerCase(), name, cnt);
+	// }
+	// }
+	// }
+	//
+	// Counter<String> c = Generics.newCounter();
+	//
+	// for (String phrs : cm.keySet()) {
+	// c.setCount(phrs, cm.getCounter(phrs).size());
+	// }
+	//
+	// List<String> res = Generics.newArrayList(cm.size());
+	//
+	// for (String phrs : c.getSortedKeys()) {
+	// int len = (int) c.getCount(phrs);
+	// Counter<String> c2 = cm.removeKey(phrs);
+	// List<String> rs = Generics.newArrayList(c2.keySet());
+	// Collections.sort(rs);
+	// res.add(phrs + "\t" + (int) c2.totalCount() + "\t" + len + "\t" +
+	// StrUtils.join("\t", rs));
+	// }
+	//
+	// FileUtils.writeStringCollectionAsText(MIRPath.DATA_DIR +
+	// "phrs/phrs_merged.txt", res);
+	// }
+
+	public void tokenizeKeyphrases() throws Exception {
 		List<String> lines = FileUtils.readLinesFromText(MIRPath.DATA_DIR + "phrs/phrs_merged.txt");
 
 		SetMap<String, String> sm = Generics.newSetMap(lines.size());
@@ -981,117 +1082,52 @@ public class UserKeywordCollector {
 		FileUtils.writeStringCollectionAsText(MIRPath.DATA_DIR + "phrs/phrs_medical.txt", res);
 	}
 
-	public void filterKeywords() throws Exception {
-		List<String> lines = FileUtils.readLinesFromText(MIRPath.DATA_DIR + "phrs/phrs_merged_2.txt");
+	public void filterKeyphrases() throws Exception {
+		DocumentSearcher ds = new DocumentSearcher(MIRPath.DATA_DIR + "merged/col/dc/", MIRPath.STOPWORD_INQUERY_FILE);
+		WordFilter wf = ds.getWordFilter();
 
-		SetMap<String, String> sm = Generics.newSetMap(lines.size());
-		Counter<String> c1 = Generics.newCounter(lines.size());
+		List<String> res = Generics.newLinkedList();
 
-		for (String line : lines) {
+		for (String line : FileUtils.readLinesFromText(MIRPath.DATA_DIR + "phrs/phrs_merged_2.txt")) {
 			String[] ps = line.split("\t");
 			String phrs = ps[0];
-
-			if (phrs.length() < 3) {
-				continue;
-			}
-
-			if (phrs.startsWith("\"") || phrs.startsWith("!")) {
-				continue;
-			}
-
+			int rsc_cnt = Integer.parseInt(ps[1]);
 			int cnt = Integer.parseInt(ps[2]);
-			c1.incrementCount(phrs, cnt);
 
-			boolean wiki = false;
-			boolean mesh = false;
-			boolean cds = false;
-			boolean pm = false;
-			boolean snomed = false;
-			boolean scopus = false;
+			// if (rsc_cnt < 2) {
+			// continue;
+			// }
 
-			Set<String> rscs = Generics.newHashSet();
+			int stopword_cnt = 0;
+			List<String> words = StrUtils.split(phrs);
 
-			for (int i = 3; i < ps.length; i++) {
-				String rsc = ps[i];
-				if (rsc.equals("cds")) {
-					cds = true;
-				} else if (rsc.equals("mes")) {
-					mesh = true;
-				} else if (rsc.equals("pm")) {
-					pm = true;
-				} else if (rsc.equals("sco")) {
-					scopus = true;
-				} else if (rsc.equals("wkt")) {
-					wiki = true;
-				} else if (rsc.equals("sno")) {
-					snomed = true;
+			for (String word : words) {
+				if (wf.filter(word)) {
+					stopword_cnt++;
 				}
-				rscs.add(rsc);
 			}
 
-			if (rscs.size() < 4) {
+			double ratio = 1d * stopword_cnt / words.size();
+
+			if (ratio >= 0.5) {
 				continue;
 			}
 
-			// if (rscs.contains("wkt")) {
-			// if (rscs.size() < 2) {
-			// continue;
-			// }
-			// } else {
-			// if (rscs.size() < 3) {
-			// continue;
-			// }
-			// }
-
-			sm.put(phrs, rscs);
-		}
-
-		Set<String> clueWords = Generics.newHashSet();
-		clueWords.add("cancer");
-		clueWords.add("cancers");
-		clueWords.add("disease");
-		clueWords.add("diseases");
-		clueWords.add("carcinoma");
-		clueWords.add("disorder");
-		clueWords.add("disorders");
-
-		List<String> res = Generics.newArrayList(sm.keySet());
-		Collections.sort(res);
-
-		for (int i = 0; i < res.size(); i++) {
-			String phrs = res.get(i);
-
-			boolean is_medical = false;
-
-			for (String word : phrs.split(" ")) {
-
-				if (clueWords.contains(word)) {
-					is_medical = true;
-					break;
-				}
-			}
-
-			List<String> rs = Generics.newArrayList(sm.removeKey(phrs));
-			Collections.sort(rs);
-			res.set(i, phrs + "\t" + rs.size() + "\t" + (int) c1.getCount(phrs) + "\t" + StrUtils.join("\t", rs));
+			res.add(line);
 		}
 
 		FileUtils.writeStringCollectionAsText(MIRPath.DATA_DIR + "phrs/phrs_filtered.txt", res);
 	}
 
-	public void sortKeywords() throws Exception {
+	public void sortKeyphrases() throws Exception {
 		List<String> lines = FileUtils.readLinesFromText(MIRPath.DATA_DIR + "phrs/phrs_filtered.txt");
-		List<String> phrss = Generics.newArrayList(lines.size());
-
+		Counter<String> c = Generics.newCounter(lines.size());
 		for (String line : lines) {
 			String[] ps = line.split("\t");
 			String phrs = ps[0];
-			phrss.add(phrs);
+			c.setCount(phrs, Double.parseDouble(ps[2]));
 		}
-
-		Collections.sort(phrss);
-
-		FileUtils.writeStringCollectionAsText(MIRPath.DATA_DIR + "phrs/phrs_sorted.txt", phrss);
+		FileUtils.writeStringCounterAsText(MIRPath.DATA_DIR + "phrs/phrs_sorted.txt", c);
 	}
 
 }

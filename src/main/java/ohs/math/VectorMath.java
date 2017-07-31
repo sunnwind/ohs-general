@@ -4,13 +4,15 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import ohs.math.ArrayWokers.EqualColumnProductWorker2;
+import ohs.math.ThreadWokers.SRowByColumnProductWorker;
+import ohs.math.ThreadWokers.SRowBySRowProductWorker;
+import ohs.math.ThreadWokers.SelfSRowProductWorker;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseVector;
 import ohs.matrix.Matrix;
@@ -169,10 +171,10 @@ public class VectorMath {
 
 	public static double addAfterMultiply(SparseVector a, double ac, Counter<Integer> b) {
 		double sum = 0;
-		for (int i = 0; i < a.size(); i++) {
-			int j = a.indexAt(i);
-			double v = a.valueAt(i) * ac;
-			b.incrementCount(j, v);
+		for (int m = 0; m < a.size(); m++) {
+			int i = a.indexAt(m);
+			double v = a.valueAt(m) * ac;
+			b.incrementCount(i, v);
 			sum += v;
 		}
 		return sum;
@@ -361,18 +363,13 @@ public class VectorMath {
 	public static double euclideanDistance(Vector a, Vector b) {
 		double ret = 0;
 		int i = 0, j = 0;
-		double v1 = 0;
-		double v2 = 0;
-		int m = 0;
-		int n = 0;
-		double diff = 0;
 
 		while (i < a.size() && j < b.size()) {
-			m = a.indexAt(i);
-			n = b.indexAt(j);
-			v1 = a.valueAt(i);
-			v2 = b.valueAt(j);
-			diff = 0;
+			int m = a.indexAt(i);
+			int n = b.indexAt(j);
+			double v1 = a.valueAt(i);
+			double v2 = b.valueAt(j);
+			double diff = 0;
 
 			if (m == n) {
 				diff = v1 - v2;
@@ -387,18 +384,25 @@ public class VectorMath {
 			}
 			ret += diff * diff;
 		}
+
+		while (i < a.size()) {
+			int m = a.indexAt(i);
+			double v = a.valueAt(i);
+			ret += v;
+		}
+
+		while (j < b.size()) {
+			int n = b.indexAt(j);
+			double v = b.valueAt(j);
+			ret -= v;
+		}
+
 		ret = Math.sqrt(ret);
 		return ret;
 	}
 
 	public static double exp(Vector x) {
 		double sum = ArrayMath.exp(x.values(), x.values());
-		x.setSum(sum);
-		return sum;
-	}
-
-	public static double sumLogProbs(Vector x) {
-		double sum = ArrayMath.sumLogProbs(x.values());
 		x.setSum(sum);
 		return sum;
 	}
@@ -959,48 +963,6 @@ public class VectorMath {
 		return rowSums.sum();
 	}
 
-	public static SparseMatrix product(SparseMatrix a, SparseMatrix b) {
-		SparseMatrix sm1 = a;
-		SparseMatrix sm2 = b.transpose();
-
-		ListMap<Integer, Integer> lm = Generics.newListMap(b.colSize());
-
-		for (int n = 0; n < sm2.rowSize(); n++) {
-			int j = sm2.indexAt(n);
-			SparseVector sv2 = sm2.rowAt(n);
-			for (int k : sv2.indexes()) {
-				lm.put(k, n);
-			}
-		}
-
-		CounterMap<Integer, Integer> c = Generics.newCounterMap(a.rowSize());
-
-		Set<Integer> ns = Generics.newHashSet();
-
-		for (int m = 0; m < sm1.rowSize(); m++) {
-			int i = sm1.indexAt(m);
-			SparseVector sv1 = sm1.rowAt(m);
-			ns.clear();
-
-			for (int k : sv1.indexes()) {
-				List<Integer> tmp = lm.get(k, false);
-
-				if (tmp != null) {
-					ns.addAll(tmp);
-				}
-			}
-
-			for (int n : ns) {
-				int j = sm2.indexAt(n);
-				SparseVector sv2 = sm2.rowAt(n);
-				double dot = dotProduct(sv1, sv2);
-				c.setCount(i, j, dot);
-			}
-		}
-
-		return new SparseMatrix(c);
-	}
-
 	/**
 	 * @param a
 	 *            M x K
@@ -1025,8 +987,8 @@ public class VectorMath {
 	 *            M x K
 	 * @return
 	 */
-	public static double productByThreads(DenseMatrix a, DenseMatrix b, DenseMatrix c, int num_threads) {
-		ArrayMath.productByThreads(a.values(), b.values(), c.values(), num_threads);
+	public static double productByThreads(DenseMatrix a, DenseMatrix b, DenseMatrix c, int thread_size) {
+		ArrayMath.productByThreads(a.values(), b.values(), c.values(), thread_size);
 		return c.sumRows().sum();
 	}
 
@@ -1037,11 +999,11 @@ public class VectorMath {
 	 *            K x 1
 	 * @param c
 	 *            M x 1
-	 * @param num_threads
+	 * @param thread_size
 	 * @return
 	 */
-	public static double productByThreads(DenseMatrix a, DenseVector b, DenseVector c, int num_threads) {
-		double sum = ArrayMath.productByThreads(a.values(), b.values(), c.values(), num_threads);
+	public static double productByThreads(DenseMatrix a, DenseVector b, DenseVector c, int thread_size) {
+		double sum = ArrayMath.productByThreads(a.values(), b.values(), c.values(), thread_size);
 		c.setSum(sum);
 		return sum;
 	}
@@ -1053,42 +1015,27 @@ public class VectorMath {
 	 *            K x M
 	 * @param c
 	 *            1 x M
-	 * @param num_threads
+	 * @param thread_size
 	 * @return
 	 */
-	public static double productByThreads(DenseVector a, DenseMatrix b, DenseVector c, int num_threads) {
-		double sum = ArrayMath.productByThreads(a.values(), b.values(), c.values(), num_threads);
+	public static double productByThreads(DenseVector a, DenseMatrix b, DenseVector c, int thread_size) {
+		double sum = ArrayMath.productByThreads(a.values(), b.values(), c.values(), thread_size);
 		c.setSum(sum);
 		return sum;
 	}
 
-	public static SparseMatrix productByThreads(SparseMatrix a, SparseMatrix b, int thread_size) throws Exception {
-		SparseMatrix sm1 = a;
-		SparseMatrix sm2 = b.transpose();
-
-		CounterMap<Integer, Integer> c = Generics.newCounterMap(a.rowSize());
-
-		AtomicInteger loc = new AtomicInteger(0);
-		List<Future<Double>> fs = Generics.newArrayList(thread_size);
-		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
-
-		for (int i = 0; i < thread_size; i++) {
-			fs.add(tpe.submit(new EqualColumnProductWorker2(sm1, sm2, c, loc, false)));
-		}
-
-		double sum = 0;
-
-		for (int k = 0; k < fs.size(); k++) {
-			sum += fs.get(k).get().doubleValue();
-		}
-
-		tpe.shutdown();
-
-		return new SparseMatrix(c);
-	}
-
-	public static double productByThreads(SparseVector a, DenseMatrix b, DenseVector c, int num_threads) {
-		double sum = ArrayMath.productByThreads(a.indexes(), a.values(), b.values(), c.values(), num_threads);
+	/**
+	 * @param a
+	 *            1 x N
+	 * @param b
+	 *            N x M
+	 * @param c
+	 *            1 x M
+	 * @param thread_size
+	 * @return
+	 */
+	public static double productByThreads(SparseVector a, DenseMatrix b, DenseVector c, int thread_size) {
+		double sum = ArrayMath.productByThreads(a.indexes(), a.values(), b.values(), c.values(), thread_size);
 		c.setSum(sum);
 		return sum;
 	}
@@ -1123,20 +1070,6 @@ public class VectorMath {
 
 	/**
 	 * @param a
-	 *            K x M
-	 * @param b
-	 *            K x N
-	 * @param c
-	 *            M x N
-	 * @return
-	 */
-	public static double productColumns(SparseMatrix a, DenseMatrix b, DenseMatrix c, boolean add) {
-		ArrayMath.productColumns(a.values(), b.values(), c.values(), add);
-		return c.sumRows().sum();
-	}
-
-	/**
-	 * @param a
 	 *            M x K
 	 * @param b
 	 *            N x K
@@ -1147,6 +1080,136 @@ public class VectorMath {
 	public static double productRows(DenseMatrix a, DenseMatrix b, DenseMatrix c, boolean add) {
 		ArrayMath.productRows(a.values(), b.values(), c.values(), add);
 		return c.sumRows().sum();
+	}
+
+	/**
+	 * @param a
+	 *            M x K
+	 * @param b
+	 *            N x K
+	 * @return M x N
+	 */
+	public static SparseMatrix productRows(SparseMatrix a, SparseMatrix b) {
+		CounterMap<Integer, Integer> c = Generics.newCounterMap(a.rowSize());
+		for (int m = 0; m < a.rowSize(); m++) {
+			int i = a.indexAt(m);
+			SparseVector sv1 = a.rowAt(m);
+			Counter<Integer> tmp = c.getCounter(i);
+			for (int n = 0; n < b.rowSize(); n++) {
+				int j = b.indexAt(n);
+				SparseVector sv2 = b.rowAt(n);
+				double dot = dotProduct(sv1, sv2);
+				tmp.setCount(j, dot);
+			}
+		}
+		return new SparseMatrix(c);
+	}
+
+	/**
+	 * @param a
+	 *            M x N
+	 * @param thread_size
+	 * @return M x M
+	 * @throws Exception
+	 */
+	public static SparseMatrix productRowsByThreads(SparseMatrix a, int thread_size) throws Exception {
+		CounterMap<Integer, Integer> b = Generics.newCounterMap(a.rowSize());
+
+		ListMap<Integer, Integer> ii = Generics.newListMap(a.rowSize());
+
+		for (int m = 0; m < a.rowSize(); m++) {
+			SparseVector row = a.rowAt(m);
+			for (int n = 0; n < row.size(); n++) {
+				int j = row.indexAt(n);
+				ii.put(j, m);
+			}
+		}
+
+		AtomicInteger row_cnt = new AtomicInteger(0);
+		List<Future<Double>> fs = Generics.newArrayList(thread_size);
+		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
+
+		for (int i = 0; i < thread_size; i++) {
+			fs.add(tpe.submit(new SelfSRowProductWorker(a, b, ii, row_cnt)));
+		}
+
+		for (int k = 0; k < fs.size(); k++) {
+			fs.get(k).get();
+		}
+		tpe.shutdown();
+
+		CounterMap<Integer, Integer> c = Generics.newCounterMap(b.size());
+
+		for (Entry<Integer, Counter<Integer>> e1 : b.getEntrySet()) {
+			int i = e1.getKey();
+
+			for (Entry<Integer, Double> e2 : e1.getValue().entrySet()) {
+				int j = e2.getKey();
+				double v = e2.getValue();
+				c.setCount(i, j, v);
+
+				if (i != j) {
+					c.setCount(j, i, v);
+				}
+			}
+			e1.getValue().clear();
+		}
+		b = null;
+
+		return new SparseMatrix(c);
+	}
+
+	/**
+	 * @param a
+	 *            M x K
+	 * @param b
+	 *            N x K
+	 * @param thread_size
+	 * @return M x N
+	 * @throws Exception
+	 */
+	public static SparseMatrix productRowsByThreads(SparseMatrix a, SparseMatrix b, int thread_size) throws Exception {
+		CounterMap<Integer, Integer> c = Generics.newCounterMap(a.rowSize());
+
+		AtomicInteger row_cnt = new AtomicInteger(0);
+		List<Future<Double>> fs = Generics.newArrayList(thread_size);
+		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
+
+		for (int i = 0; i < thread_size; i++) {
+			fs.add(tpe.submit(new SRowBySRowProductWorker(a, b, c, row_cnt)));
+		}
+
+		double sum = 0;
+
+		for (int k = 0; k < fs.size(); k++) {
+			sum += fs.get(k).get().doubleValue();
+		}
+
+		tpe.shutdown();
+
+		return new SparseMatrix(c);
+	}
+
+	public static void productByThreads(SparseMatrix a, DenseVector b, DenseVector c, int thread_size) {
+		AtomicInteger row_cnt = new AtomicInteger(0);
+		List<Future<Double>> fs = Generics.newArrayList(thread_size);
+		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
+
+		for (int i = 0; i < thread_size; i++) {
+			fs.add(tpe.submit(new SRowByColumnProductWorker(a, b, c, row_cnt, PRINT_LOG)));
+		}
+
+		try {
+			double sum = 0;
+			for (int k = 0; k < fs.size(); k++) {
+				sum += fs.get(k).get().doubleValue();
+			}
+			c.summation();
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			tpe.shutdown();
+		}
 	}
 
 	public static double random(double min, double max, DenseMatrix x) {
@@ -1183,6 +1246,8 @@ public class VectorMath {
 		return x;
 	}
 
+	public static boolean PRINT_LOG = false;
+
 	/**
 	 * @param T
 	 *            Column-normalized transition probabilities
@@ -1194,6 +1259,7 @@ public class VectorMath {
 	 */
 	public static void randomWalk(SparseMatrix T, DenseVector cents, DenseVector biases, int max_iter, double min_dist,
 			double damping_factor) {
+
 		cents.summation();
 		double uniform_cent = (1 - damping_factor) / cents.size();
 
@@ -1201,15 +1267,22 @@ public class VectorMath {
 			cents.setAll(uniform_cent);
 		}
 
+		int thread_size = 5;
 		DenseVector old_cents = cents.copy();
 		double old_dist = Double.MAX_VALUE;
 
 		for (int m = 0; m < max_iter; m++) {
-			for (int i = 0; i < T.rowSize(); i++) {
-				SparseVector sv = T.rowAt(i);
-				double cent_from_others = dotProduct(sv, old_cents);
-				cents.set(i, damping_factor * cent_from_others);
-			}
+			cents.setAll(0);
+
+			productByThreads(T, old_cents, cents, thread_size);
+
+			cents.multiply(damping_factor);
+
+			// for (int i = 0; i < T.rowSize(); i++) {
+			// SparseVector sv = T.rowAt(i);
+			// double cent_from_others = dotProduct(sv, old_cents);
+			// cents.set(i, damping_factor * cent_from_others);
+			// }
 
 			double sum = 0;
 
@@ -1225,7 +1298,9 @@ public class VectorMath {
 
 			double dist = euclideanDistance(old_cents, cents);
 
-			System.out.printf("%d: %s - %s = %s\n", m + 1, old_dist, dist, old_dist - dist);
+			if (PRINT_LOG) {
+				System.out.printf("%d: %s - %s = %s\n", m + 1, old_dist, dist, old_dist - dist);
+			}
 
 			if (dist < min_dist) {
 				break;
@@ -1449,6 +1524,12 @@ public class VectorMath {
 	public static double sumColumns(DenseMatrix a, DenseVector b) {
 		double sum = ArrayMath.sumColumns(a.values(), b.values());
 		b.setSum(sum);
+		return sum;
+	}
+
+	public static double sumLogProbs(Vector x) {
+		double sum = ArrayMath.sumLogProbs(x.values());
+		x.setSum(sum);
 		return sum;
 	}
 

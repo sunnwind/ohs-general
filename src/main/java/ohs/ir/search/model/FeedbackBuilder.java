@@ -193,14 +193,16 @@ public class FeedbackBuilder {
 	 * AFNLP (Vol. 2, pp. 1057��1065). Retrieved from
 	 * http://dl.acm.org/citation.cfm?id=1690294
 	 * 
-	 * 
 	 * @param fbs
 	 * @param scoreData
+	 * @param docPriorData
+	 * @param colWeights
 	 * @return
 	 * @throws Exception
 	 */
-	public SparseVector buildEEM(List<FeedbackBuilder> fbs, List<SparseVector> scoreData,
-			List<DenseVector> docPriorData, DenseVector colWeights, double mixture_col_weight) throws Exception {
+	public static SparseVector buildExternalExpansionModel(List<FeedbackBuilder> fbs, List<SparseVector> scoreData,
+			List<DenseVector> docPriorData, DenseVector colWeights) throws Exception {
+
 		List<Counter<String>> rms = Generics.newArrayList(fbs.size());
 		FeedbackBuilder baseFb = fbs.get(0);
 		Vocab baseVocab = baseFb.getVocab();
@@ -217,22 +219,24 @@ public class FeedbackBuilder {
 
 			FeedbackBuilder fb = fbs.get(i);
 
-			int tmp_fb_word_size = getFbWordSize();
+			int tmp_fb_word_size = fb.getFbWordSize();
 			fb.setFbWordSize(Integer.MAX_VALUE);
 
-			SparseVector rm = fb.buildRM1(scores, 0, docPriors);
+			SparseVector rm = fb.buildRelevanceModel1(scores, 0, docPriors);
 
 			fb.setFbWordSize(tmp_fb_word_size);
 
-			rms.add(VectorUtils.toCounter(rm, baseVocab));
+			rms.add(VectorUtils.toCounter(rm, fb.getVocab()));
 
 			int fb_doc_size = Integer.min(scores.size(), fb.getFbDocSize());
+
 			colPriors.add(i, scores.subVector(fb_doc_size).sum());
 		}
 		colPriors.normalize();
 
-		if (colWeights != null && mixture_col_weight > 0) {
-			VectorMath.addAfterMultiply(colPriors, 1 - mixture_col_weight, colWeights, mixture_col_weight, colPriors);
+		if (colWeights != null) {
+			VectorMath.multiply(colPriors, colWeights, colPriors);
+			colPriors.normalize();
 		}
 
 		Counter<String> rmm = Generics.newCounter();
@@ -242,17 +246,20 @@ public class FeedbackBuilder {
 			Counter<String> rm = rms.get(i);
 
 			for (Entry<String, Double> e : rm.entrySet()) {
-				rmm.incrementCount(e.getKey(), prior_col * e.getValue());
+				String word = e.getKey();
+				double pr_w_in_rm = e.getValue();
+				rmm.incrementCount(word, prior_col * pr_w_in_rm);
 			}
 		}
 
 		SparseVector ret = VectorUtils.toSparseVector(rmm, baseVocab);
+		ret.sortValues();
 
 		if (baseFb.getFbWordSize() < Integer.MAX_VALUE) {
-			int min = Math.min(baseFb.getFbWordSize(), ret.size());
-			ret.keepTopN(min);
+			ret = ret.subVector(baseFb.getFbWordSize());
 		}
 		ret.normalize();
+
 		return ret;
 	}
 
@@ -445,8 +452,8 @@ public class FeedbackBuilder {
 	}
 
 	public SparseVector buildNegRM1(SparseVector docScores, int start) throws Exception {
-		SparseVector rm1 = buildRM1(docScores, 0, null);
-		SparseVector rm2 = buildRM1(docScores, 100, null);
+		SparseVector rm1 = buildRelevanceModel1(docScores, 0, null);
+		SparseVector rm2 = buildRelevanceModel1(docScores, 100, null);
 		SparseVector rm3 = VectorMath.addAfterMultiply(rm1, 1, rm2, -1);
 
 		for (int k = 0; k < rm3.size(); k++) {
@@ -698,20 +705,203 @@ public class FeedbackBuilder {
 		return VectorUtils.toSparseVector(lm_fb);
 	}
 
-	public SparseVector buildRM1(SparseVector scores) throws Exception {
-		return buildRM1(scores, 0, null);
+	public SparseVector buildRandomWalkModel(SparseVector Q, SparseVector scores) throws Exception {
+		DenseVector C = new DenseVector(vocab.size());
+		DenseVector B = new DenseVector(vocab.size());
+		SparseMatrix T = null;
+
+		{
+			CounterMap<Integer, Integer> cm = Generics.newCounterMap();
+			Counter<Integer> wordCnts = Generics.newCounter();
+
+			for (int j = 0; j < scores.size() && j < fb_doc_size; j++) {
+				int dseq = scores.indexAt(j);
+				double score = scores.valueAt(j);
+
+				IntegerArray d = dc.get(dseq).getSecond();
+				cm.incrementAll(WordProximities.hal(d, 5, false), score);
+
+				SparseVector dv = DocumentCollection.toDocVector(d);
+
+				for (int k = 0; k < dv.size(); k++) {
+					int w = dv.indexAt(k);
+					double cnt = dv.valueAt(k);
+					String word = vocab.getObject(w);
+					wordCnts.incrementCount(w, cnt);
+				}
+			}
+
+			CounterMap<Integer, Integer> cm2 = Generics.newCounterMap(cm.size());
+
+			for (int w1 : cm.keySet()) {
+				double idf1 = TermWeighting.idf(vocab.getDocCnt(), vocab.getDocFreq(w1));
+				Counter<Integer> c = cm.getCounter(w1);
+				for (Entry<Integer, Double> e : c.entrySet()) {
+					int w2 = e.getKey();
+					double sim = e.getValue();
+					double idf2 = TermWeighting.idf(vocab.getDocCnt(), vocab.getDocFreq(w2));
+					double new_sim = sim * idf1 * idf2;
+					cm2.setCount(w1, w2, new_sim);
+					cm2.setCount(w2, w1, new_sim);
+				}
+			}
+
+			T = new SparseMatrix(cm2);
+			T.normalizeColumns();
+		}
+
+		{
+			for (int i = 0; i < Q.size(); i++) {
+				int w = Q.indexAt(i);
+				double cnt = Q.valueAt(i);
+				double tfidf = TermWeighting.tfidf(cnt, vocab.getDocCnt(), vocab.getDocFreq(w));
+				B.add(w, tfidf);
+			}
+			B.normalize();
+		}
+
+		VectorMath.PRINT_LOG = false;
+
+		VectorMath.randomWalk(T, C, B, 100, 0.0000001, 0.85);
+
+		SparseVector ret = null;
+
+		{
+			Counter<Integer> c = Generics.newCounter();
+			for (int w = 0; w < C.size(); w++) {
+				double cent = C.value(w);
+				String word = vocab.getObject(w);
+				if (cent > 0) {
+					c.setCount(w, cent);
+				}
+			}
+			ret = new SparseVector(c);
+		}
+
+		ret.sortValues();
+		if (fb_word_size < Integer.MAX_VALUE) {
+			ret = ret.subVector(fb_word_size);
+		}
+		ret.normalize();
+
+		return ret;
 	}
 
-	public SparseVector buildRM1(SparseVector scores, int start, DenseVector docPriors) throws Exception {
+	public static SparseVector buildCorpusMixtureRandomWalkModel(SparseVector Q, List<FeedbackBuilder> fbs,
+			List<SparseVector> scoreData) throws Exception {
+		FeedbackBuilder baseFb = fbs.get(0);
+		Vocab baseVocab = baseFb.getVocab();
+
+		DenseVector C = new DenseVector(baseVocab.size());
+		DenseVector B = new DenseVector(baseVocab.size());
+		SparseMatrix T = null;
+
+		{
+
+			CounterMap<Integer, Integer> cm = Generics.newCounterMap();
+
+			for (int i = 0; i < fbs.size(); i++) {
+				FeedbackBuilder fb = fbs.get(i);
+				SparseVector scores = scoreData.get(i);
+				DocumentCollection dc = fb.getDocumentCollection();
+				Vocab vocab = fb.getVocab();
+
+				for (int j = 0; j < scores.size() && j < fb.getFbDocSize(); j++) {
+					int dseq = scores.indexAt(j);
+					double score = scores.valueAt(j);
+
+					IntegerArray d = dc.get(dseq).getSecond();
+
+					if (i != 0) {
+						List<String> words = Generics.newArrayList(d.size());
+
+						for (int w : d) {
+							String word = "<NL>";
+
+							if (w != DocumentCollection.SENT_END) {
+								word = vocab.getObject(w);
+							}
+							words.add(word);
+						}
+
+						List<Integer> ws = Generics.newArrayList(words.size());
+						d = new IntegerArray(baseVocab.indexesOf(words, -1));
+					}
+
+					cm.incrementAll(WordProximities.hal(d, 5, false), score);
+				}
+			}
+
+			CounterMap<Integer, Integer> cm2 = Generics.newCounterMap(cm.size());
+
+			for (int w1 : cm.keySet()) {
+				double idf1 = TermWeighting.idf(baseVocab.getDocCnt(), baseVocab.getDocFreq(w1));
+				Counter<Integer> c = cm.getCounter(w1);
+				for (Entry<Integer, Double> e : c.entrySet()) {
+					int w2 = e.getKey();
+					double sim = e.getValue();
+					double idf2 = TermWeighting.idf(baseVocab.getDocCnt(), baseVocab.getDocFreq(w2));
+					double new_sim = sim * idf1 * idf2;
+					cm2.setCount(w1, w2, new_sim);
+					cm2.setCount(w2, w1, new_sim);
+				}
+			}
+
+			T = new SparseMatrix(cm2);
+			T.normalizeColumns();
+		}
+
+		{
+			for (int i = 0; i < Q.size(); i++) {
+				int w = Q.indexAt(i);
+				double cnt = Q.valueAt(i);
+				double tfidf = TermWeighting.tfidf(cnt, baseVocab.getDocCnt(), baseVocab.getDocFreq(w));
+				B.add(w, tfidf);
+			}
+			B.normalize();
+		}
+
+		VectorMath.PRINT_LOG = false;
+
+		VectorMath.randomWalk(T, C, B, 100, 0.0000001, 0.85);
+
+		SparseVector ret = null;
+
+		{
+			Counter<Integer> c = Generics.newCounter();
+			for (int w = 0; w < C.size(); w++) {
+				double cent = C.value(w);
+				String word = baseVocab.getObject(w);
+				if (cent > 0) {
+					c.setCount(w, cent);
+				}
+			}
+			ret = new SparseVector(c);
+		}
+
+		ret.sortValues();
+		if (baseFb.getFbWordSize() < Integer.MAX_VALUE) {
+			ret = ret.subVector(baseFb.getFbWordSize());
+		}
+		ret.normalize();
+
+		return ret;
+	}
+
+	public SparseVector buildRelevanceModel1(SparseVector scores) throws Exception {
+		return buildRelevanceModel1(scores, 0, null);
+	}
+
+	public SparseVector buildRelevanceModel1(SparseVector scores, int start, DenseVector docPriors) throws Exception {
 		scores = scores.subVector(start, Math.min(fb_doc_size, scores.size() - start));
 
 		SparseMatrix dvs = dc.getDocVectors(scores.indexes());
-		SparseVector lm_fb = getWordCounts(dvs);
+		SparseVector ret = getWordCounts(dvs);
 
-		lm_fb.setAll(0);
+		ret.setAll(0);
 
-		for (int i = 0; i < lm_fb.size(); i++) {
-			int w = lm_fb.indexAt(i);
+		for (int i = 0; i < ret.size(); i++) {
+			int w = ret.indexAt(i);
 
 			if (filter.filter(w)) {
 				continue;
@@ -736,17 +926,18 @@ public class FeedbackBuilder {
 				double pr_w_in_fb = weight_d * pr_w_in_d * prior_d;
 
 				if (pr_w_in_fb > 0) {
-					lm_fb.addAt(i, pr_w_in_fb);
+					ret.addAt(i, pr_w_in_fb);
 				}
 			}
 		}
 
-		lm_fb.sortValues();
+		ret.sortValues();
 		if (fb_word_size < Integer.MAX_VALUE) {
-			lm_fb = lm_fb.subVector(fb_word_size);
+			ret = ret.subVector(fb_word_size);
 		}
-		lm_fb.normalize();
-		return lm_fb;
+		ret.normalize();
+
+		return ret;
 	}
 
 	public SparseVector buildSpecificLM(SparseVector docScores) throws Exception {
@@ -1043,6 +1234,14 @@ public class FeedbackBuilder {
 
 	private SparseVector getWordCounts(SparseMatrix docVecs) {
 		return VectorUtils.toSparseVector(VectorUtils.toCounter(docVecs));
+	}
+
+	private void postprocess(SparseVector lm_fb) {
+		lm_fb.sortValues();
+		if (fb_word_size < Integer.MAX_VALUE) {
+			lm_fb = lm_fb.subVector(fb_word_size);
+		}
+		lm_fb.normalize();
 	}
 
 	public void setDirichletPrior(double dirichlet_prior) {

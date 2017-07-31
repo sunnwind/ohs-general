@@ -10,11 +10,13 @@ public interface Matrix extends Serializable {
 
 	public void add(double v);
 
+	public int[] argMax();
+
+	public int[] argMin();
+
 	public ByteSize byteSize();
 
 	public int colSize();
-
-	public double sum();
 
 	public Vector column(int j);
 
@@ -22,23 +24,17 @@ public interface Matrix extends Serializable {
 
 	public String info();
 
+	public double max();
+
+	public double min();
+
 	public void multiply(double v);
 
 	public void normalizeColumns();
 
 	public void normalizeRows();
 
-	public void swapRows(int i, int j);
-
 	public double prob(int i, int j);
-
-	public int[] argMax();
-
-	public int[] argMin();
-
-	public double max();
-
-	public double min();
 
 	public void readObject(ObjectInputStream ois) throws Exception;
 
@@ -76,9 +72,13 @@ public interface Matrix extends Serializable {
 
 	public int sizeOfEntries();
 
+	public double sum();
+
 	public Vector sumColumns();
 
 	public Vector sumRows();
+
+	public void swapRows(int i, int j);
 
 	public Matrix transpose();
 

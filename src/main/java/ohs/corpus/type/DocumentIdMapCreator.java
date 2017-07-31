@@ -93,7 +93,7 @@ public class DocumentIdMapCreator {
 		DocumentIdMapCreator dic = new DocumentIdMapCreator();
 		dic.setThreadSize(5);
 
-		dic.create(MIRPath.CLUEWEB_COL_DC_DIR);
+		// dic.create(MIRPath.CLUEWEB_COL_DC_DIR);
 
 		// dic.create(MIRPath.OHSUMED_COL_DC_DIR, 1, new int[] { 3, 5 });
 		// dic.create(MIRPath.TREC_CDS_2014_COL_DC_DIR, 0, new int[] { 1, 2, 3 });
@@ -109,6 +109,9 @@ public class DocumentIdMapCreator {
 
 		// dic.setStringNormalizer(new ThreePStringNormalizer());
 		// dic.create(KPPath.COL_DC_DIR, 0, new int[] { 4, 5, 6, 7 });
+
+		dic.create(MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR);
+		dic.create(MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR);
 
 		System.out.println("process ends.");
 	}

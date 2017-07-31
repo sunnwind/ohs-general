@@ -60,9 +60,9 @@ public class WordFilter {
 		stopIds = Generics.newHashSet();
 
 		if (stopwords != null) {
-			for (String word : stopwords) {
-				int w = vocab.indexOf(word);
-				if (w != -1) {
+			for (int w = 0; w < vocab.size(); w++) {
+				String word = vocab.getObject(w);
+				if (stopwords.contains(word) || puncPat.matcher(word).find()) {
 					stopIds.add(w);
 				}
 			}

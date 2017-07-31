@@ -3,8 +3,10 @@ package ohs.matrix;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.util.List;
 import java.util.Set;
 
+import ohs.types.generic.Pair;
 import ohs.utils.ByteSize;
 
 /**
@@ -59,6 +61,8 @@ public interface Vector extends Serializable {
 	public double normalize();
 
 	public double normalizeAfterSummation();
+
+	public List<Pair<Integer, Double>> pairs();
 
 	public double prob(int index);
 

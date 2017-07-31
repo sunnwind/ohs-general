@@ -112,10 +112,12 @@ public class FileUtils {
 			/** Step: 3 ---> Create a tar entry for each file that is read. **/
 
 			/**
-			 * relativize is used to to add a file to a tar, without including the entire path from root.
+			 * relativize is used to to add a file to a tar, without including the entire
+			 * path from root.
 			 **/
 
-			TarArchiveEntry tae = new TarArchiveEntry(input, root.getParentFile().toURI().relativize(input.toURI()).getPath());
+			TarArchiveEntry tae = new TarArchiveEntry(input,
+					root.getParentFile().toURI().relativize(input.toURI()).getPath());
 
 			/** Step: 4 ---> Put the tar entry using putArchiveEntry. **/
 
@@ -142,7 +144,8 @@ public class FileUtils {
 				if (input.listFiles().length == 0) {
 
 					System.out.println("Adding Empty Folder: " + root.toURI().relativize(input.toURI()).getPath());
-					TarArchiveEntry entry = new TarArchiveEntry(input, root.getParentFile().toURI().relativize(input.toURI()).getPath());
+					TarArchiveEntry entry = new TarArchiveEntry(input,
+							root.getParentFile().toURI().relativize(input.toURI()).getPath());
 					taos.putArchiveEntry(entry);
 					taos.closeArchiveEntry();
 				}
@@ -174,7 +177,8 @@ public class FileUtils {
 		taos.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU);
 
 		/**
-		 * Step: 2 --->Open the source data and get a list of files from given directory recursively.
+		 * Step: 2 --->Open the source data and get a list of files from given directory
+		 * recursively.
 		 **/
 
 		File input = new File(inPath);
@@ -404,7 +408,8 @@ public class FileUtils {
 			} catch (Exception e) {
 				e.printStackTrace();
 			} finally {
-				System.out.printf("[%d, %d, %f]\n", ByteArray.MAX_ARRAY_SIZE, cursor, 1f * cursor / ByteArray.MAX_ARRAY_SIZE);
+				System.out.printf("[%d, %d, %f]\n", ByteArray.MAX_ARRAY_SIZE, cursor,
+						1f * cursor / ByteArray.MAX_ARRAY_SIZE);
 				long pos = buf.position();
 				System.out.println(new ByteSize(pos));
 				System.out.println();
@@ -423,7 +428,8 @@ public class FileUtils {
 			} catch (Exception e) {
 				e.printStackTrace();
 			} finally {
-				System.out.printf("[%d, %d, %f]\n", ByteArray.MAX_ARRAY_SIZE, cursor, 1f * cursor / ByteArray.MAX_ARRAY_SIZE);
+				System.out.printf("[%d, %d, %f]\n", ByteArray.MAX_ARRAY_SIZE, cursor,
+						1f * cursor / ByteArray.MAX_ARRAY_SIZE);
 				long pos = 1L * buf.position() * Integer.BYTES;
 				System.out.println(new ByteSize(pos));
 				System.out.println();
@@ -555,7 +561,8 @@ public class FileUtils {
 		InputStreamReader isr = null;
 
 		if (file.getName().endsWith(".gz")) {
-			CompressorInputStream cis = new CompressorStreamFactory().createCompressorInputStream(CompressorStreamFactory.GZIP, fis);
+			CompressorInputStream cis = new CompressorStreamFactory()
+					.createCompressorInputStream(CompressorStreamFactory.GZIP, fis);
 			isr = new InputStreamReader(cis, encoding);
 		} else if (file.getName().endsWith(".zip")) {
 			isr = new InputStreamReader(new ZipInputStream(fis));
@@ -564,7 +571,8 @@ public class FileUtils {
 			// fis.read(ignoreBytes); // "B", "Z" bytes from commandline tools
 			// ret = new BufferedReader(new InputStreamReader(new
 			// CBZip2InputStream(fis)));
-			CompressorInputStream cis = new CompressorStreamFactory().createCompressorInputStream(CompressorStreamFactory.BZIP2, fis);
+			CompressorInputStream cis = new CompressorStreamFactory()
+					.createCompressorInputStream(CompressorStreamFactory.BZIP2, fis);
 			isr = new InputStreamReader(cis, encoding);
 		} else {
 			isr = new InputStreamReader(fis, encoding);
@@ -602,12 +610,14 @@ public class FileUtils {
 		if (file.getName().endsWith(".gz")) {
 			// osw = new OutputStreamWriter(new GZIPOutputStream(new
 			// FileOutputStream(file, append)), encoding);
-			CompressorOutputStream cos = new CompressorStreamFactory().createCompressorOutputStream(CompressorStreamFactory.GZIP, fos);
+			CompressorOutputStream cos = new CompressorStreamFactory()
+					.createCompressorOutputStream(CompressorStreamFactory.GZIP, fos);
 			osw = new OutputStreamWriter(cos, encoding);
 		} else if (file.getName().endsWith(".bz2")) {
 			// osw = new OutputStreamWriter(new CBZip2OutputStream(new
 			// FileOutputStream(file, append)), encoding);
-			CompressorOutputStream cos = new CompressorStreamFactory().createCompressorOutputStream(CompressorStreamFactory.BZIP2, fos);
+			CompressorOutputStream cos = new CompressorStreamFactory()
+					.createCompressorOutputStream(CompressorStreamFactory.BZIP2, fos);
 			osw = new OutputStreamWriter(cos, encoding);
 		} else {
 			osw = new OutputStreamWriter(fos, encoding);
@@ -1031,6 +1041,17 @@ public class FileUtils {
 		if (line.startsWith(LINE_SIZE)) {
 			int size = Integer.parseInt(line.split("\t")[1]);
 			ret = Generics.newCounter(size);
+		}else {
+			String[] parts = line.split("\t");
+			int len = parts.length;
+
+			if (len == 1) {
+				ret.setCount(parts[0], 1);
+			} else if (len == 2) {
+				ret.setCount(parts[0], Double.parseDouble(parts[1]));
+			} else if (len > 2) {
+				ret.setCount(StrUtils.join("\t", parts, 0, len - 1), Double.parseDouble(parts[len - 1]));
+			}			
 		}
 
 		while ((line = br.readLine()) != null) {
@@ -1245,9 +1266,11 @@ public class FileUtils {
 		return info;
 	}
 
-	// public static long[] write(ByteArrayMatrix a, FileChannel b) throws Exception {
+	// public static long[] write(ByteArrayMatrix a, FileChannel b) throws Exception
+	// {
 	// long size = ByteArrayUtils.sizeOfByteBuffer(a);
-	// ByteBufferWrapper buf = new ByteBufferWrapper((int) Math.min(size, DEFAULT_BUF_SIZE));
+	// ByteBufferWrapper buf = new ByteBufferWrapper((int) Math.min(size,
+	// DEFAULT_BUF_SIZE));
 	// return write(a, buf, b);
 	// }
 
@@ -1359,7 +1382,8 @@ public class FileUtils {
 		oos.flush();
 	}
 
-	public static void writeIntegerDoublePairs(ObjectOutputStream oos, int[] indexes, double[] values) throws Exception {
+	public static void writeIntegerDoublePairs(ObjectOutputStream oos, int[] indexes, double[] values)
+			throws Exception {
 		int size = indexes.length;
 		oos.writeInt(size);
 		for (int i = 0; i < indexes.length; i++) {
@@ -1528,7 +1552,8 @@ public class FileUtils {
 		writeStringCounterAsText(fileName, c, false);
 	}
 
-	public static void writeStringCounterAsText(String fileName, Counter<String> c, boolean alphabet_order) throws Exception {
+	public static void writeStringCounterAsText(String fileName, Counter<String> c, boolean alphabet_order)
+			throws Exception {
 		Timer timer = Timer.newTimer();
 
 		BufferedWriter bw = openBufferedWriter(fileName, UTF_8, false);
@@ -1576,8 +1601,8 @@ public class FileUtils {
 		writeStringCounterMapAsText(fileName, cm, false);
 	}
 
-	public static void writeStringCounterMapAsText(String fileName, CounterMap<String, String> cm, boolean alphabet_order)
-			throws Exception {
+	public static void writeStringCounterMapAsText(String fileName, CounterMap<String, String> cm,
+			boolean alphabet_order) throws Exception {
 		Timer timer = Timer.newTimer();
 
 		BufferedWriter bw = openBufferedWriter(fileName, UTF_8, false);

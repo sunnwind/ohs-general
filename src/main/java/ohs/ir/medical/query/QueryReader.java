@@ -28,19 +28,22 @@ public class QueryReader {
 				ret.add(bq);
 			}
 		}
-		System.out.printf("filter out queries which have no relevance judgements [%d -> %d].\n", bqs.size(), ret.size());
+		System.out.printf("filter out queries which have no relevance judgements [%d -> %d].\n", bqs.size(),
+				ret.size());
 		return ret;
 	}
 
 	public static void main(String[] args) throws Exception {
 
 		// {
-		// List<BaseQuery> bqs = readClefEHealthQueries(MIRPath.CLEF_EH_2016_QUERY_FILE, null);
+		// List<BaseQuery> bqs = readClefEHealthQueries(MIRPath.CLEF_EH_2016_QUERY_FILE,
+		// null);
 		// System.out.println(bqs.size());
 		// }
 
 		// {
-		// List<BaseQuery> bqs = readTrecGenomicsQueries(MIRPath.TREC_GENO_2007_QUERY_FILE);
+		// List<BaseQuery> bqs =
+		// readTrecGenomicsQueries(MIRPath.TREC_GENO_2007_QUERY_FILE);
 		//
 		// for (int i = 0; i < bqs.size(); i++) {
 		// System.out.println(bqs.get(i));
@@ -58,7 +61,8 @@ public class QueryReader {
 		return readClefEHealthQueries(queryFileName, null);
 	}
 
-	public static List<BaseQuery> readClefEHealthQueries(String queryFileName, String dischargeDirName) throws Exception {
+	public static List<BaseQuery> readClefEHealthQueries(String queryFileName, String dischargeDirName)
+			throws Exception {
 		List<BaseQuery> ret = Generics.newArrayList();
 
 		Document doc = Jsoup.parse(FileUtils.readFromText(queryFileName));
@@ -277,7 +281,7 @@ public class QueryReader {
 			} else if (fileName.contains("topic-2015-B.xml")) {
 				diagnosis = elem2.getElementsByTag("diagnosis").get(0).text();
 			} else if (fileName.contains("topics2016.xml")) {
-				note = diagnosis = elem2.getElementsByTag("note").get(0).text();
+				note = elem2.getElementsByTag("note").get(0).text();
 			}
 
 			ret.add(new TrecCdsQuery(id, type, note, desc, summary, diagnosis));

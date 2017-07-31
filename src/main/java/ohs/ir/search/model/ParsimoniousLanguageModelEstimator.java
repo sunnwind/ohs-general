@@ -62,10 +62,10 @@ public class ParsimoniousLanguageModelEstimator {
 		nf.setMinimumFractionDigits(2);
 		nf.setGroupingUsed(false);
 
-		System.out.println("<=== start ===>");
+		// System.out.println("<=== start ===>");
 
 		for (int i = 0; i < max_iters; i++) {
-			System.out.println(VectorUtils.toCounter(lm, dc.getVocab()));
+			// System.out.println(VectorUtils.toCounter(lm, dc.getVocab()));
 
 			SparseVector lm_old = lm.copy();
 
@@ -89,12 +89,12 @@ public class ParsimoniousLanguageModelEstimator {
 			double diff = ArrayMath.sumSquaredDifferences(lm.values(), lm_old.values());
 
 			if (diff < epsilon) {
-				System.out.println(VectorUtils.toCounter(lm, dc.getVocab()));
+				// System.out.println(VectorUtils.toCounter(lm, dc.getVocab()));
 				break;
 			}
 		}
 
-		System.out.println("<=== end ===>");
+		// System.out.println("<=== end ===>");
 
 		return lm;
 	}

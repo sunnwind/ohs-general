@@ -25,16 +25,18 @@ public class EnglishTokenizer extends StringTokenizer {
 		if (use_lexical_tokenizer) {
 			s = StrUtils.join(" ", NLPUtils.tokenize(s));
 		}
+		
+		ret = super.tokenize(s);
 
-		ret = StrUtils.split(s);
-
-		for (int i = 0; i < ret.size(); i++) {
-			String tok = ret.get(i);
-			if (sn != null) {
-				tok = sn.normalize(tok);
-			}
-			ret.set(i, tok);
-		}
+		// ret = StrUtils.split(s);
+		//
+		// for (int i = 0; i < ret.size(); i++) {
+		// String tok = ret.get(i);
+		// if (sn != null) {
+		// tok = sn.normalize(tok);
+		// }
+		// ret.set(i, tok);
+		// }
 		return ret;
 	}
 
