@@ -289,7 +289,6 @@ public class MIRPath {
 
 	public static final String TREC_PM_2017_COL_CLINICAL_DC_DIR = TREC_PM_2017_COL_CLINICAL_DIR + "dc/";
 
-
 	public static final String TREC_PM_2017_QUERY_DIR = TREC_PM_2017_DIR + "query/";
 
 	public static final String TREC_PM_2017_QUERY_FILE = TREC_PM_2017_QUERY_DIR + "topics2017.xml";
@@ -324,6 +323,24 @@ public class MIRPath {
 	 */
 
 	public static final String SNOMED_DIR = DATA_DIR + "snomed_ct/";
+
+	/*
+	 * merged medical collection
+	 */
+
+	public static final String MERGE_DIR = DATA_DIR + "merged/";
+
+	public static final String MERGE_COL_DIR = MERGE_DIR + "col/";
+
+	public static final String MERGE_COL_RAW__DIR = MERGE_COL_DIR + "raw/";
+
+	public static final String MERGE_COL_DC_DIR = MERGE_COL_DIR + "dc/";
+
+	public static final String MERGE_COL_LINE__DIR = MERGE_COL_DIR + "line/";
+
+	public static final String MERGE_COL_TOK__DIR = MERGE_COL_DIR + "tok/";
+
+	public static final String PHRS_DIR = DATA_DIR + "phrs/";
 
 	/*
 	 * Common File Name Sets

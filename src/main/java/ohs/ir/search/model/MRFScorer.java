@@ -101,6 +101,7 @@ public class MRFScorer extends LMScorer {
 				if (pl == null) {
 					continue;
 				}
+				
 				super.score(pl.getWord(), 1, pl, ret);
 			}
 		}

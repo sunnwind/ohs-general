@@ -177,9 +177,8 @@ public abstract class InvertedIndex {
 	 * @throws Exception
 	 */
 	public PostingList getPostingList(IntegerArray Q, boolean keep_order, int window_size) throws Exception {
-		PostingList ret = null;
-
 		PostingList pl_x = getPostingList(Q.get(0));
+		PostingList ret = pl_x;
 
 		if (pl_x != null && Q.size() > 1) {
 			int i = 0;

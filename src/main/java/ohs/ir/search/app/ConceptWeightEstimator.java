@@ -4,6 +4,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -13,6 +15,14 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
+import edu.stanford.nlp.ling.CoreLabel;
+import edu.stanford.nlp.ling.CoreAnnotations.LemmaAnnotation;
+import edu.stanford.nlp.ling.CoreAnnotations.PartOfSpeechAnnotation;
+import edu.stanford.nlp.ling.CoreAnnotations.SentencesAnnotation;
+import edu.stanford.nlp.ling.CoreAnnotations.TokensAnnotation;
+import edu.stanford.nlp.pipeline.Annotation;
+import edu.stanford.nlp.pipeline.StanfordCoreNLP;
+import edu.stanford.nlp.util.CoreMap;
 import ohs.corpus.type.DocumentCollection;
 import ohs.corpus.type.EnglishTokenizer;
 import ohs.corpus.type.StringTokenizer;
@@ -54,7 +64,6 @@ public class ConceptWeightEstimator {
 
 			return ret;
 		}
-
 	}
 
 	class Worker implements Callable<CounterMap<Integer, Integer>> {
@@ -137,24 +146,45 @@ public class ConceptWeightEstimator {
 		Counter<String> phrsCnts = Generics.newCounter();
 
 		{
-			List<String> lines = FileUtils.readLinesFromText(MIRPath.DATA_DIR + "phrs/phrs_cnt.txt");
-			phrsCnts = Generics.newCounter(lines.size());
+			Counter<String> c1 = Generics.newCounter();
 
-			for (String line : lines) {
+			for (String line : FileUtils.readLinesFromText(MIRPath.DATA_DIR + "phrs/phrs_cnt.txt")) {
 				String[] ps = line.split("\t");
 				String phrs = ps[0];
 				double cnt = Double.parseDouble(ps[2]);
 				double doc_freq = Double.parseDouble(ps[3]);
-				phrsCnts.setCount(phrs, doc_freq);
+				c1.setCount(phrs, doc_freq);
 			}
+
+			Counter<String> c2 = FileUtils.readStringCounterFromText(MIRPath.DATA_DIR + "phrs/phrs_sorted.txt");
+
+			for (String phrs : c2.keySet()) {
+				double doc_freq = c1.getCount(phrs);
+				if (doc_freq > 500) {
+					phrsCnts.setCount(phrs, doc_freq);
+				}
+			}
+
+			System.out.printf("size: %d->%d\n", c2.size(), phrsCnts.size());
 		}
 
-		int size1 = phrsCnts.size();
-		phrsCnts.pruneKeysBelowThreshold(100);
-
-		System.out.printf("size: %d->%d\n", size1, phrsCnts.size());
-
 		Vocab vocab = DocumentCollection.readVocab(MIRPath.DATA_DIR + "merged/col/dc/vocab.ser");
+
+		Map<Integer, Integer> wordToLemma = Generics.newHashMap();
+
+		for (String line : FileUtils.readLinesFromText(MIRPath.DATA_DIR + "phrs/lemma.txt")) {
+			String[] ps = line.split("\t");
+			String word = ps[0];
+			String lemma = ps[1];
+
+			int w = vocab.indexOf(word);
+			int l = vocab.indexOf(lemma);
+
+			if (w < 0 || l < 0) {
+				continue;
+			}
+			wordToLemma.put(w, l);
+		}
 
 		Set<String> stopwords = FileUtils.readStringSetFromText(MIRPath.STOPWORD_INQUERY_FILE);
 		WordFilter wf = new WordFilter(vocab, stopwords);
@@ -230,9 +260,25 @@ public class ConceptWeightEstimator {
 					clueWords.incrementCount(word, 1);
 				}
 			}
+
+			for (String word : Generics.newArrayList(clueWords.keySet())) {
+				int w = vocab.indexOf(word);
+				if (w < 0) {
+					continue;
+				}
+				Integer l = wordToLemma.get(w);
+
+				if (l == null) {
+					continue;
+				}
+
+				String lemma = vocab.getObject(l);
+
+				clueWords.incrementCount(lemma, 1);
+			}
 		}
 
-		ConceptWeightEstimator pre = new ConceptWeightEstimator(vocab, wf, phrsCnts, clueWords);
+		ConceptWeightEstimator pre = new ConceptWeightEstimator(vocab, wf, phrsCnts, clueWords, wordToLemma);
 		pre.setThreadSize(10);
 		pre.estimate(MIRPath.DATA_DIR + "phrs/phrs_weight.txt");
 
@@ -255,11 +301,13 @@ public class ConceptWeightEstimator {
 
 	private DenseVector wordWeights;
 
-	public ConceptWeightEstimator(Vocab vocab, WordFilter wf, Counter<String> phrsCnts, Counter<String> clueWords) {
+	public ConceptWeightEstimator(Vocab vocab, WordFilter wf, Counter<String> phrsCnts, Counter<String> clueWords,
+			Map<Integer, Integer> wordToLemma) {
 		this.vocab = vocab;
 		this.wf = wf;
 		this.phrsCnts = phrsCnts;
 		this.clueWords = clueWords;
+		this.wordToLemma = wordToLemma;
 	}
 
 	private void computeWordWeights() {
@@ -337,6 +385,8 @@ public class ConceptWeightEstimator {
 		return ret;
 	}
 
+	private Map<Integer, Integer> wordToLemma;
+
 	private SparseMatrix getFeatureMatrix() {
 		CounterMap<Integer, Integer> cm = Generics.newCounterMap(phrsIdxer.size());
 
@@ -354,6 +404,12 @@ public class ConceptWeightEstimator {
 					continue;
 				}
 
+				if (wordToLemma != null) {
+					Integer l = wordToLemma.get(w);
+					if (l != null) {
+						w = l.intValue();
+					}
+				}
 				cm.incrementCount(p, w, 1);
 			}
 		}
@@ -368,7 +424,7 @@ public class ConceptWeightEstimator {
 		}
 
 		SparseMatrix F = new SparseMatrix(cm);
-		VectorMath.unitVector(F);
+		// VectorMath.unitVector(F);
 		return F;
 	}
 
@@ -384,6 +440,7 @@ public class ConceptWeightEstimator {
 				ii.put(j, m);
 			}
 		}
+		ii.trimToSize();
 
 		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
 
@@ -395,34 +452,52 @@ public class ConceptWeightEstimator {
 			fs.add(tpe.submit(new Worker(X, row_cnt, ii, timer)));
 		}
 
-		CounterMap<Integer, Integer> ret = Generics.newCounterMap();
+		CounterMap<Integer, Integer> cm = Generics.newCounterMap();
 
 		for (int i = 0; i < thread_size; i++) {
-			CounterMap<Integer, Integer> cm = fs.get(i).get();
-			ret.incrementAll(cm);
+			CounterMap<Integer, Integer> tmp = fs.get(i).get();
+			cm.incrementAll(tmp);
 		}
-		fs.clear();
 		tpe.shutdown();
 
-		ListMap<Integer, Integer> lm = Generics.newListMap(ListType.LINKED_LIST);
+		ListMap<Integer, Integer> ItoJs = Generics.newListMap(ListType.LINKED_LIST);
 
-		for (int i : ret.keySet()) {
-			for (int j : ret.getCounter(i).keySet()) {
-				lm.put(i, j);
+		for (int i : cm.keySet()) {
+			for (int j : cm.getCounter(i).keySet()) {
+				ItoJs.put(i, j);
 			}
 		}
 
-		for (int i : lm.keySet()) {
-			LinkedList<Integer> js = (LinkedList<Integer>) lm.get(i);
-			Counter<Integer> c = ret.getCounter(i);
-			for (int j : js) {
-				if (i != j) {
-					double v = c.getCount(j);
-					ret.incrementCount(j, i, v);
-				}
+		CounterMap<Integer, Integer> ret = Generics.newCounterMap(cm.size());
+
+		for (int i : Generics.newArrayList(cm.keySet())) {
+			Counter<Integer> c = cm.removeKey(i);
+			for (Entry<Integer, Double> e : c.entrySet()) {
+				int j = e.getKey();
+				double v = e.getValue();
+				ret.incrementCount(i, j, v);
+				ret.incrementCount(j, i, v);
 			}
-			js.clear();
 		}
+
+		// CounterMap<Integer, Integer> ret = Generics.newCounterMap(cm.size());
+		//
+		// for (int i : ItoJs.keySet()) {
+		// LinkedList<Integer> js = (LinkedList<Integer>) ItoJs.get(i);
+		// Counter<Integer> c = cm.getCounter(i);
+		// for (int j : js) {
+		// if (i != j) {
+		// double v = c.getCount(j);
+		// ret.incrementCount(i, j, v);
+		// ret.incrementCount(j, i, v);
+		// }
+		// }
+		// js.clear();
+		// c.clear();
+		//
+		// c = null;
+		// js = null;
+		// }
 
 		SparseMatrix T = new SparseMatrix(ret);
 		T.normalizeColumns();

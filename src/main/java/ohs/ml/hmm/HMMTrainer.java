@@ -96,9 +96,9 @@ public class HMMTrainer {
 		r.close();
 
 		for (MDocument doc : coll) {
-			for (MSentence sent : doc.getSentences()) {
-				for (MultiToken mt : sent.toMultiTokens()) {
-					String text = mt.get(TokenAttr.WORD);
+			for (List<Token> ts : doc.getTokens()) {
+				for (Token t : ts) {
+					String text = t.get(0);
 					String text2 = UnicodeUtils.decomposeToJamoStr(text);
 
 					System.out.println(text + "\t" + text2 + "\t" + String.valueOf(text2.getBytes()));
@@ -119,20 +119,21 @@ public class HMMTrainer {
 
 		wordIndexer.add("UNK");
 
-		MSentence[] sents = coll.getSentences();
+		List<MSentence> sents = coll.getSentences();
 
-		IntegerArrayMatrix wss = new IntegerArrayMatrix(sents.length);
-		IntegerArrayMatrix poss = new IntegerArrayMatrix(sents.length);
+		IntegerArrayMatrix wss = new IntegerArrayMatrix(sents.size());
+		IntegerArrayMatrix poss = new IntegerArrayMatrix(sents.size());
 
-		for (int i = 0; i < sents.length; i++) {
-			MSentence sent = sents[i];
+		for (int i = 0; i < sents.size(); i++) {
+			MSentence sent = sents.get(i);
 
-			MultiToken[] toks = sent.toMultiTokens();
-			int[] ws = ArrayUtils.range(toks.length);
-			int[] pos = ArrayUtils.range(toks.length);
+			List<Token> ts = sent.getTokens();
 
-			for (int j = 0; j < toks.length; j++) {
-				Token t = toks[j];
+			int[] ws = ArrayUtils.range(ts.size());
+			int[] pos = ArrayUtils.range(ts.size());
+
+			for (int j = 0; j < ts.size(); j++) {
+				Token t = ts.get(j);
 				ws[j] = wordIndexer.getIndex(t.get(TokenAttr.WORD));
 				pos[j] = posIndexer.getIndex(t.get(TokenAttr.POS));
 			}

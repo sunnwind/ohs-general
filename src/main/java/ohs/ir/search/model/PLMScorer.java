@@ -1,16 +1,12 @@
 package ohs.ir.search.model;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import ohs.ir.search.app.DocumentSearcher;
 import ohs.ir.weight.TermWeighting;
-import ohs.math.VectorUtils;
 import ohs.matrix.SparseVector;
-import ohs.types.generic.Counter;
-import ohs.types.generic.Pair;
 import ohs.types.number.IntegerArray;
 import ohs.utils.Generics;
 
@@ -222,7 +218,7 @@ public class PLMScorer extends LMScorer {
 	}
 
 	@Override
-	public ohs.matrix.SparseVector scoreFromIndex(SparseVector Q, SparseVector docs) throws Exception {
+	public SparseVector scoreFromIndex(SparseVector Q, SparseVector docs) throws Exception {
 		SparseVector ret = docs.copy();
 		ret.setAll(0);
 
