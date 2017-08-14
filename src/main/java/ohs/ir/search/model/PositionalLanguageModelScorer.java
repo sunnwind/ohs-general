@@ -10,7 +10,7 @@ import ohs.matrix.SparseVector;
 import ohs.types.number.IntegerArray;
 import ohs.utils.Generics;
 
-public class PLMScorer extends LMScorer {
+public class PositionalLanguageModelScorer extends LanguageModelScorer {
 
 	public static final double pi = Math.PI;
 
@@ -201,7 +201,7 @@ public class PLMScorer extends LMScorer {
 
 	private double sigma = 175;
 
-	public PLMScorer(DocumentSearcher ds) {
+	public PositionalLanguageModelScorer(DocumentSearcher ds) {
 		super(ds);
 	}
 

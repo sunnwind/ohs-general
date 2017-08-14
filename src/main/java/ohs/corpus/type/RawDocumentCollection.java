@@ -35,7 +35,8 @@ public class RawDocumentCollection {
 		System.out.println("process begins.");
 
 		// {
-		// RawDocumentCollection rdc = new RawDocumentCollection(MIRPath.WIKI_COL_DC_DIR);
+		// RawDocumentCollection rdc = new
+		// RawDocumentCollection(MIRPath.WIKI_COL_DC_DIR);
 		// System.out.println(rdc.size());
 		// // System.out.println(rdc.getText(0));
 		// // System.out.println(rdc.getText(10));
@@ -61,27 +62,44 @@ public class RawDocumentCollection {
 		// rdc.close();
 		// }
 
+		// {
+		// RawDocumentCollection rdc = new
+		// RawDocumentCollection(MIRPath.OHSUMED_COL_DC_DIR);
+		// System.out.println(rdc.toString());
+		//
+		// for (int i = 0; i < 10; i++) {
+		// String s = rdc.getText(i);
+		//
+		// System.out.println(s);
+		// System.out.println();
+		// }
+		// }
+		//
 		{
-			RawDocumentCollection rdc = new RawDocumentCollection(MIRPath.OHSUMED_COL_DC_DIR);
+			RawDocumentCollection rdc = new RawDocumentCollection(MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR);
 			System.out.println(rdc.toString());
-
-			for (int i = 0; i < 10; i++) {
-				String s = rdc.getText(i);
-
-				System.out.println(s);
-				System.out.println();
-			}
 		}
-		//
-		// {
-		// RawDocumentCollection rdc = new RawDocumentCollection(MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR);
-		// System.out.println(rdc.toString());
-		// }
-		//
-		// {
-		// RawDocumentCollection rdc = new RawDocumentCollection(MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR);
-		// System.out.println(rdc.toString());
-		// }
+
+		{
+			RawDocumentCollection rdc = new RawDocumentCollection(MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR);
+			System.out.println(rdc.toString());
+		}
+
+		{
+			RawDocumentCollection rdc = new RawDocumentCollection(MIRPath.TREC_CDS_2016_COL_DC_DIR);
+			System.out.println(rdc.toString());
+		}
+
+		{
+			RawDocumentCollection rdc = new RawDocumentCollection(MIRPath.WIKI_COL_DC_DIR);
+			System.out.println(rdc.toString());
+		}
+
+		{
+			RawDocumentCollection rdc = new RawDocumentCollection(MIRPath.DATA_DIR + "scopus/col/dc/");
+			System.out.println(rdc.toString());
+		}
+
 		//
 		// {
 		// RawDocumentCollection rdc = new
@@ -119,7 +137,8 @@ public class RawDocumentCollection {
 		// }
 
 		// {
-		// RawDocumentCollection rdc = new RawDocumentCollection(MIRPath.DATA_DIR + "merged/col/dc/");
+		// RawDocumentCollection rdc = new RawDocumentCollection(MIRPath.DATA_DIR +
+		// "merged/col/dc/");
 		// ListList<String> atrData = rdc.getAttrData();
 		// IntegerArrayMatrix ranges = rdc.getTypeRanges();
 		// System.out.println(atrData);
@@ -148,8 +167,9 @@ public class RawDocumentCollection {
 
 	private boolean use_cache = true;
 
-	private RawDocumentCollection(FileChannel fc, ListList<String> attrData, ListList<Boolean> flagData, LongArray starts,
-			IntegerArray lens, IntegerArray sizes, WeakHashMap<Integer, ArrayList<String>> cache, boolean use_cache) {
+	private RawDocumentCollection(FileChannel fc, ListList<String> attrData, ListList<Boolean> flagData,
+			LongArray starts, IntegerArray lens, IntegerArray sizes, WeakHashMap<Integer, ArrayList<String>> cache,
+			boolean use_cache) {
 		super();
 		this.fc = fc;
 		this.attrData = attrData;
@@ -214,8 +234,8 @@ public class RawDocumentCollection {
 	}
 
 	public RawDocumentCollection copyShallow() throws Exception {
-		return new RawDocumentCollection(FileUtils.openFileChannel(new File(dataDir, DATA_NAME), "r"), attrData, flagData, starts, lens,
-				sizes, cache, use_cache);
+		return new RawDocumentCollection(FileUtils.openFileChannel(new File(dataDir, DATA_NAME), "r"), attrData,
+				flagData, starts, lens, sizes, cache, use_cache);
 	}
 
 	public ArrayList<String> get(int dseq) throws Exception {
@@ -234,7 +254,8 @@ public class RawDocumentCollection {
 				long start = starts.get(dseq);
 				fc.position(start);
 				int len = lens.get(dseq);
-				// data = new ByteBufferWrapper(FileUtils.readByteArray(fc, len)).readByteArrayMatrix();
+				// data = new ByteBufferWrapper(FileUtils.readByteArray(fc,
+				// len)).readByteArrayMatrix();
 				data = FileUtils.readByteArrayMatrix(fc, len);
 			}
 
@@ -244,7 +265,8 @@ public class RawDocumentCollection {
 			ret = Generics.newArrayList(data.size());
 
 			for (int j = 0; j < data.size(); j++) {
-				String val = flags.get(j) ? DataCompression.decodeToString(data.get(j)) : new String(data.get(j).values());
+				String val = flags.get(j) ? DataCompression.decodeToString(data.get(j))
+						: new String(data.get(j).values());
 				ret.add(val);
 			}
 

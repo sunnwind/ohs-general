@@ -12,7 +12,8 @@ import ohs.utils.Generics;
 
 public abstract class InvertedIndex {
 
-	public static IntegerArrayMatrix findCollocations(IntegerArray poss_x, IntegerArray poss_y, boolean keep_order, int window_size) {
+	public static IntegerArrayMatrix findCollocations(IntegerArray poss_x, IntegerArray poss_y, boolean keep_order,
+			int window_size) {
 		List<IntegerArray> ret = Generics.newArrayList(Math.min(poss_x.size(), poss_y.size()));
 		int i = 0;
 		int j = 0;
@@ -45,7 +46,8 @@ public abstract class InvertedIndex {
 		return new IntegerArrayMatrix(ret);
 	}
 
-	public static PostingList findCollocations(PostingList pl_x, PostingList pl_y, boolean keep_order, int window_size) throws Exception {
+	public static PostingList findCollocations(PostingList pl_x, PostingList pl_y, boolean keep_order, int window_size)
+			throws Exception {
 		IntegerArray dseqs_x = pl_x.getDocSeqs();
 		IntegerArray dseqs_y = pl_y.getDocSeqs();
 		IntegerArrayMatrix posData_x = pl_x.getPosData();
@@ -122,7 +124,8 @@ public abstract class InvertedIndex {
 			}
 		}
 
-		PostingList ret = new PostingList(pl_y.getWord(), new IntegerArray(dseqs_xy), new IntegerArrayMatrix(posData_xy));
+		PostingList ret = new PostingList(pl_y.getWord(), new IntegerArray(dseqs_xy),
+				new IntegerArrayMatrix(posData_xy));
 
 		IntegerArrayMatrix m = new IntegerArrayMatrix(posData_xy_min);
 		ret.setEndPosData(m);
@@ -177,11 +180,46 @@ public abstract class InvertedIndex {
 	 * @throws Exception
 	 */
 	public PostingList getPostingList(IntegerArray Q, boolean keep_order, int window_size) throws Exception {
+		PostingList pl_x = null, pl_y = null;
+		int i = 0;
+
+		while (i < Q.size()) {
+			int y = Q.get(i);
+			pl_y = getPostingList(y);
+
+			if (i > 0) {
+				PostingList pl_xy = findCollocations(pl_x, pl_y, keep_order, window_size);
+				pl_y = pl_xy;
+			}
+
+			if (pl_y.size() == 0) {
+				break;
+			}
+
+			pl_x = pl_y;
+			i++;
+		}
+
+		if (i == Q.size() && i > 1) {
+			pl_y.setWord(-1);
+
+			IntegerArrayMatrix posData_min = pl_y.getEndPosData();
+			IntegerArrayMatrix posData = pl_y.getPosData();
+
+			pl_y.setPosData(posData_min);
+			pl_y.setEndPosData(posData);
+		}
+
+		return pl_y;
+	}
+
+	public PostingList getPostingListOld(IntegerArray Q, boolean keep_order, int window_size) throws Exception {
 		PostingList pl_x = getPostingList(Q.get(0));
 		PostingList ret = pl_x;
 
 		if (pl_x != null && Q.size() > 1) {
 			int i = 0;
+
 			while (++i < Q.size()) {
 				int y = Q.get(i);
 				PostingList pl_y = getPostingList(y);

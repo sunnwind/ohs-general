@@ -221,6 +221,7 @@ public class DocumentSelection {
 				List<String> items = Generics.newArrayList();
 				items.add(cn);
 				items.add(journal);
+				items.add(korTitle);
 
 				for (String kp : korKwdStr.split(StrUtils.LINE_REP)) {
 					items.add(kp);

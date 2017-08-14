@@ -68,13 +68,13 @@ import ohs.utils.Timer;
  */
 public class FileUtils {
 
-	public static final String UTF_8 = "UTF-8";
+	public static final int DEFAULT_BUF_SIZE = (int) new ByteSize(64, Type.MEGA).getBytes();
 
 	public static final String EUC_KR = "euc-kr";
 
 	public static final String LINE_SIZE = "###LINES###";
 
-	public static final int DEFAULT_BUF_SIZE = (int) new ByteSize(64, Type.MEGA).getBytes();
+	public static final String UTF_8 = "UTF-8";
 
 	private static void addFilesUnder(File root, List<File> files, boolean recursive) {
 		if (root != null) {
@@ -724,6 +724,27 @@ public class FileUtils {
 		return ret;
 	}
 
+	public static ByteArrayMatrix readByteArrayMatrix(FileChannel a, int size) throws Exception {
+		ByteArrayMatrix ret = null;
+		if (size < ByteArray.MAX_ARRAY_SIZE) {
+			ByteBufferWrapper b = new ByteBufferWrapper(readByteArray(a, size));
+			int size2 = b.readInteger() + Integer.BYTES;
+			if (size2 != size) {
+				System.out.printf("%d != %d\n", size, size2);
+			}
+			ret = b.readByteArrayMatrix();
+		} else {
+			int size2 = readInteger(a);
+			int rows = readInteger(a);
+			ret = new ByteArrayMatrix(rows);
+			for (int i = 0; i < rows; i++) {
+				ret.add(readByteArray(a));
+			}
+		}
+
+		return ret;
+	}
+
 	public static ByteArrayMatrix readByteArrayMatrix(ObjectInputStream ois) throws Exception {
 		return ByteArrayUtils.toByteArrayMatrix(readByteArray(ois));
 	}
@@ -1041,7 +1062,7 @@ public class FileUtils {
 		if (line.startsWith(LINE_SIZE)) {
 			int size = Integer.parseInt(line.split("\t")[1]);
 			ret = Generics.newCounter(size);
-		}else {
+		} else {
 			String[] parts = line.split("\t");
 			int len = parts.length;
 
@@ -1051,7 +1072,7 @@ public class FileUtils {
 				ret.setCount(parts[0], Double.parseDouble(parts[1]));
 			} else if (len > 2) {
 				ret.setCount(StrUtils.join("\t", parts, 0, len - 1), Double.parseDouble(parts[len - 1]));
-			}			
+			}
 		}
 
 		while ((line = br.readLine()) != null) {
@@ -1187,6 +1208,17 @@ public class FileUtils {
 		return new HashSet<String>(readLinesFromText(fileName));
 	}
 
+	public static SetMap<String, String> readStringSetMapFromText(String fileName) throws Exception {
+		SetMap<String, String> ret = Generics.newSetMap();
+		for (String line : readLinesFromText(fileName)) {
+			String[] ps = line.split("\t");
+			for (int i = 2; i < ps.length; i++) {
+				ret.put(ps[0], ps[i]);
+			}
+		}
+		return ret;
+	}
+
 	public static String removeExtension(String fileName) {
 		int end = fileName.lastIndexOf(".");
 		if (end > 0) {
@@ -1205,27 +1237,6 @@ public class FileUtils {
 	public static long[] write(ByteArray a, FileChannel b) throws Exception {
 		ByteBufferWrapper c = new ByteBufferWrapper(ByteArrayUtils.sizeOfByteBuffer(a));
 		return write(a, c, b);
-	}
-
-	public static ByteArrayMatrix readByteArrayMatrix(FileChannel a, int size) throws Exception {
-		ByteArrayMatrix ret = null;
-		if (size < ByteArray.MAX_ARRAY_SIZE) {
-			ByteBufferWrapper b = new ByteBufferWrapper(readByteArray(a, size));
-			int size2 = b.readInteger() + Integer.BYTES;
-			if (size2 != size) {
-				System.out.printf("%d != %d\n", size, size2);
-			}
-			ret = b.readByteArrayMatrix();
-		} else {
-			int size2 = readInteger(a);
-			int rows = readInteger(a);
-			ret = new ByteArrayMatrix(rows);
-			for (int i = 0; i < rows; i++) {
-				ret.add(readByteArray(a));
-			}
-		}
-
-		return ret;
 	}
 
 	public static long[] write(ByteArrayMatrix a, FileChannel b) throws Exception {

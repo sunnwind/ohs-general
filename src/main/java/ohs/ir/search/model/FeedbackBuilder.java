@@ -496,7 +496,7 @@ public class FeedbackBuilder {
 
 			int loc = 0;
 			for (SparseVector psg : psgs) {
-				psgScores.addAt(loc, loc, LMScorer.score(lm_q, psg, vocab, dirichlet_prior, mixture_jm));
+				psgScores.addAt(loc, loc, LanguageModelScorer.score(lm_q, psg, vocab, dirichlet_prior, mixture_jm));
 				loc++;
 			}
 
@@ -611,7 +611,7 @@ public class FeedbackBuilder {
 
 			int loc = 0;
 			for (SparseVector psg : psgs) {
-				psgScores.addAt(loc, loc, LMScorer.score(lm_q, psg, vocab, dirichlet_prior, mixture_jm));
+				psgScores.addAt(loc, loc, LanguageModelScorer.score(lm_q, psg, vocab, dirichlet_prior, mixture_jm));
 				loc++;
 			}
 

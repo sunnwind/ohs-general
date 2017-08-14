@@ -25,6 +25,10 @@ public class StringTokenizer {
 		return ret;
 	}
 
+	public StringNormalizer getStringNormalizer() {
+		return sn;
+	}
+
 	public List<String> tokenize(String s) {
 		List<String> ret = StrUtils.split(s);
 		for (int i = 0; i < ret.size(); i++) {

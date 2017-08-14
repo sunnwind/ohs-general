@@ -39,8 +39,8 @@ import ohs.ir.search.model.BM25Scorer;
 import ohs.ir.search.model.DocumentPriorEstimator;
 import ohs.ir.search.model.DocumentPriorEstimator.Type;
 import ohs.ir.search.model.FeedbackBuilder;
-import ohs.ir.search.model.LMScorer;
-import ohs.ir.search.model.MRFScorer;
+import ohs.ir.search.model.LanguageModelScorer;
+import ohs.ir.search.model.MarkovRandomFieldsScorer;
 import ohs.ir.search.model.Scorer;
 import ohs.ir.search.model.VSMScorer;
 import ohs.ir.search.model.WeightedMRFScorer;
@@ -261,7 +261,7 @@ public class ClefEHealthExperiments {
 		DocumentSearcher ds = new DocumentSearcher(idxDir, stopwordFileName);
 		ds.setTopK(top_k);
 
-		LMScorer scorer = (LMScorer) ds.getScorer();
+		LanguageModelScorer scorer = (LanguageModelScorer) ds.getScorer();
 
 		for (int i = 0; i < bqs.size(); i++) {
 			BaseQuery bq = bqs.get(i);
@@ -776,7 +776,7 @@ public class ClefEHealthExperiments {
 		DocumentSearcher ds = new DocumentSearcher(idxDir, stopwordFileName);
 		ds.setTopK(top_k);
 
-		LMScorer scorer = (LMScorer) ds.getScorer();
+		LanguageModelScorer scorer = (LanguageModelScorer) ds.getScorer();
 
 		Map<String, Integer> docIdMap = Generics.newHashMap();
 
@@ -925,8 +925,8 @@ public class ClefEHealthExperiments {
 		String modelName = "mrf";
 
 		if (modelName.equals("mrf")) {
-			ds.setScorer(new MRFScorer(ds));
-			MRFScorer scorer = (MRFScorer) ds.getScorer();
+			ds.setScorer(new MarkovRandomFieldsScorer(ds));
+			MarkovRandomFieldsScorer scorer = (MarkovRandomFieldsScorer) ds.getScorer();
 			scorer.setDocumentPriors(qualityPriors);
 			scorer.setPhraseSize(2);
 		} else if (modelName.equals("wmrf")) {
@@ -1114,7 +1114,7 @@ public class ClefEHealthExperiments {
 		}
 
 		if (use_qbg) {
-			LMScorer scorer = (LMScorer) ds.getScorer();
+			LanguageModelScorer scorer = (LanguageModelScorer) ds.getScorer();
 
 			DenseVector lm_qbg = new DenseVector(ds.getVocab().size());
 			Counter<String> phrsCnts = getPhrases();
@@ -1184,7 +1184,7 @@ public class ClefEHealthExperiments {
 		}
 
 		if (use_relevance_feedback) {
-			LMScorer scorer = (LMScorer) ds.getScorer();
+			LanguageModelScorer scorer = (LanguageModelScorer) ds.getScorer();
 
 			FeedbackBuilder fb = new FeedbackBuilder(ds.getDocumentCollection(), ds.getInvertedIndex(),
 					ds.getWordFilter());
@@ -1216,7 +1216,7 @@ public class ClefEHealthExperiments {
 		}
 
 		if (use_pseudo_relevance_feedback) {
-			LMScorer scorer = (LMScorer) ds.getScorer();
+			LanguageModelScorer scorer = (LanguageModelScorer) ds.getScorer();
 
 			FeedbackBuilder fb = new FeedbackBuilder(ds.getDocumentCollection(), ds.getInvertedIndex(),
 					ds.getWordFilter());
@@ -1341,7 +1341,7 @@ public class ClefEHealthExperiments {
 		FeedbackBuilder fb = new FeedbackBuilder(ds.getDocumentCollection(), ds.getInvertedIndex(), ds.getWordFilter());
 		fb.setMixtureJM(0.5);
 
-		LMScorer scorer = (LMScorer) ds.getScorer();
+		LanguageModelScorer scorer = (LanguageModelScorer) ds.getScorer();
 		Vocab vocab = ds.getVocab();
 
 		for (int i = 0; i < qData.rowSize(); i++) {
@@ -1423,7 +1423,7 @@ public class ClefEHealthExperiments {
 		dss.add(ds1);
 		dss.add(ds2);
 
-		LMScorer scorer = (LMScorer) ds1.getScorer();
+		LanguageModelScorer scorer = (LanguageModelScorer) ds1.getScorer();
 
 		DenseVector colWeights = new DenseVector(new double[] { 0.8, 0.2 });
 		double mixture_col_weight = 0;

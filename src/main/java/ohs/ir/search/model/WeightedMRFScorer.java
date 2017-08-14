@@ -20,7 +20,7 @@ import ohs.types.number.IntegerArrayMatrix;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
 
-public class WeightedMRFScorer extends MRFScorer {
+public class WeightedMRFScorer extends MarkovRandomFieldsScorer {
 
 	private List<String> phrss;
 
@@ -134,7 +134,7 @@ public class WeightedMRFScorer extends MRFScorer {
 				String phrs = StrUtils.join(" ", vocab.getObjects(subQ));
 				PostingList pl = ii.getPostingList(subQ, keep_order, window_size);
 
-				if (pl == null) {
+				if (pl.size() == 0) {
 					continue;
 				}
 

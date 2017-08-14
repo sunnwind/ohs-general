@@ -12,7 +12,7 @@ import ohs.matrix.SparseMatrix;
 import ohs.matrix.SparseVector;
 import ohs.types.generic.Vocab;
 
-public class LMScorer extends Scorer {
+public class LanguageModelScorer extends Scorer {
 
 	public static enum Type {
 		QL, KLD
@@ -62,11 +62,11 @@ public class LMScorer extends Scorer {
 
 	protected DenseVector lm_qbg;
 
-	public LMScorer(DocumentSearcher ds) {
+	public LanguageModelScorer(DocumentSearcher ds) {
 		super(ds.getVocab(), ds.getDocumentCollection(), ds.getInvertedIndex());
 	}
 
-	public LMScorer(Vocab vocab, DocumentCollection dc, InvertedIndex ii) {
+	public LanguageModelScorer(Vocab vocab, DocumentCollection dc, InvertedIndex ii) {
 		super(vocab, dc, ii);
 	}
 

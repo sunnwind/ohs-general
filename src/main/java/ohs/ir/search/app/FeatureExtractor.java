@@ -12,7 +12,7 @@ import ohs.ir.medical.query.BaseQuery;
 import ohs.ir.medical.query.QueryReader;
 import ohs.ir.medical.query.RelevanceReader;
 import ohs.ir.medical.query.TrecCdsQuery;
-import ohs.ir.search.model.LMScorer;
+import ohs.ir.search.model.LanguageModelScorer;
 import ohs.ir.weight.TermWeighting;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
@@ -259,9 +259,9 @@ public class FeatureExtractor {
 			SparseVector lm_q = Q.copy();
 			lm_q.normalize();
 
-			feats.add(LMScorer.score(lm_q, d, ds.getVocab(), 2000, 0));
-			feats.add(LMScorer.score(lm_q, d, ds.getVocab(), 0, 0.5));
-			feats.add(LMScorer.score(lm_q, d, ds.getVocab(), 2000, 0.5));
+			feats.add(LanguageModelScorer.score(lm_q, d, ds.getVocab(), 2000, 0));
+			feats.add(LanguageModelScorer.score(lm_q, d, ds.getVocab(), 0, 0.5));
+			feats.add(LanguageModelScorer.score(lm_q, d, ds.getVocab(), 2000, 0.5));
 
 		}
 		feats.trimToSize();

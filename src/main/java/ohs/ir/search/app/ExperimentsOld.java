@@ -36,8 +36,8 @@ import ohs.ir.medical.query.RelevanceReader;
 import ohs.ir.medical.query.TrecCdsQuery;
 import ohs.ir.search.model.BM25Scorer;
 import ohs.ir.search.model.FeedbackBuilder;
-import ohs.ir.search.model.LMScorer;
-import ohs.ir.search.model.MRFScorer;
+import ohs.ir.search.model.LanguageModelScorer;
+import ohs.ir.search.model.MarkovRandomFieldsScorer;
 import ohs.ir.search.model.TranslationModelScorer;
 import ohs.ir.search.model.VSMScorer;
 import ohs.ir.weight.TermWeighting;
@@ -1034,7 +1034,7 @@ public class ExperimentsOld {
 			docNorms.writeObject(docNormFileName);
 		}
 
-		LMScorer scorer1 = (LMScorer) ds.getScorer();
+		LanguageModelScorer scorer1 = (LanguageModelScorer) ds.getScorer();
 		BM25Scorer scorer2 = new BM25Scorer(ds);
 		VSMScorer scorer3 = new VSMScorer(ds);
 
@@ -1135,7 +1135,7 @@ public class ExperimentsOld {
 		String modelName = "mrf";
 
 		DocumentSearcher ds = new DocumentSearcher(idxDir, stopwordFileName);
-		ds.setScorer(new MRFScorer(ds));
+		ds.setScorer(new MarkovRandomFieldsScorer(ds));
 		ds.setTopK(top_k);
 
 		List<String> Qs = Generics.newArrayList(bqs.size());
@@ -1969,7 +1969,7 @@ public class ExperimentsOld {
 
 		CounterMap<String, String> resData1 = Generics.newCounterMap();
 
-		LMScorer scorer = (LMScorer) ds1.getScorer();
+		LanguageModelScorer scorer = (LanguageModelScorer) ds1.getScorer();
 		// scorer.setQueryBackgroundModel(lm_qbg);
 
 		// double[] mixture_jms = { 0.1, 0.3, 0.5, 0.7, 0.9 };

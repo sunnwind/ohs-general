@@ -23,8 +23,8 @@ import ohs.ir.search.index.InvertedIndex;
 import ohs.ir.search.index.Posting;
 import ohs.ir.search.index.PostingList;
 import ohs.ir.search.index.WordFilter;
-import ohs.ir.search.model.LMScorer;
-import ohs.ir.search.model.MRFScorer;
+import ohs.ir.search.model.LanguageModelScorer;
+import ohs.ir.search.model.MarkovRandomFieldsScorer;
 import ohs.ir.search.model.Scorer;
 import ohs.ir.weight.TermWeighting;
 import ohs.math.VectorUtils;
@@ -123,9 +123,9 @@ public class DocumentSearcher {
 		DocumentSearcher ds = new DocumentSearcher(MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR,
 				MIRPath.STOPWORD_INQUERY_FILE);
 
-		ds.setScorer(new MRFScorer(ds));
+		ds.setScorer(new MarkovRandomFieldsScorer(ds));
 
-		String Qstr = "lung cancer treatment";
+		String Qstr = "severe acute respiratory syndrome";
 		// String Qstr = "( )";
 		SparseVector Q = ds.index(Qstr);
 
@@ -273,7 +273,7 @@ public class DocumentSearcher {
 		ii = new DiskInvertedIndex(dataDir);
 		ii.setVocab(vocab);
 
-		scorer = new LMScorer(vocab, dc, ii);
+		scorer = new LanguageModelScorer(vocab, dc, ii);
 
 		if (stopwordFileName != null) {
 			Set<String> stopwords = FileUtils.readStringSetFromText(stopwordFileName);

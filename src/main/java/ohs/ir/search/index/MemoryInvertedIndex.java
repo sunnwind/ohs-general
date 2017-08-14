@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Map;
 
 import ohs.types.generic.Vocab;
+import ohs.types.number.IntegerArray;
+import ohs.types.number.IntegerArrayMatrix;
 import ohs.utils.Generics;
 import ohs.utils.Timer;
 
@@ -28,8 +30,14 @@ public class MemoryInvertedIndex extends InvertedIndex {
 
 		if (print_log) {
 			String word = vocab == null ? "null" : vocab.getObject(w);
-			System.out.printf("PL: cached=[%s], word=[%s], %s, time=[%s]\n", is_cached, word, is_cached, ret, timer.stop());
+			System.out.printf("PL: cached=[%s], word=[%s], %s, time=[%s]\n", is_cached, word, is_cached, ret,
+					timer.stop());
 		}
+
+		if (ret == null) {
+			ret = new PostingList(-1, new IntegerArray(), new IntegerArrayMatrix());
+		}
+
 		return ret;
 	}
 

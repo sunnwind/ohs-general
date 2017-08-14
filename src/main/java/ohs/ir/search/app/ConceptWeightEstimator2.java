@@ -1,13 +1,9 @@
 package ohs.ir.search.app;
 
-import java.io.File;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -15,31 +11,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Pattern;
 
-import org.apache.commons.math.stat.descriptive.SynchronizedMultivariateSummaryStatistics;
-
-import edu.stanford.nlp.ling.CoreLabel;
-import edu.stanford.nlp.ling.CoreAnnotations.LemmaAnnotation;
-import edu.stanford.nlp.ling.CoreAnnotations.PartOfSpeechAnnotation;
-import edu.stanford.nlp.ling.CoreAnnotations.SentencesAnnotation;
-import edu.stanford.nlp.ling.CoreAnnotations.TokensAnnotation;
-import edu.stanford.nlp.pipeline.Annotation;
-import edu.stanford.nlp.pipeline.StanfordCoreNLP;
-import edu.stanford.nlp.util.CoreMap;
-import ohs.corpus.type.DocumentCollection;
-import ohs.corpus.type.EnglishTokenizer;
-import ohs.corpus.type.StringTokenizer;
 import ohs.io.FileUtils;
 import ohs.ir.medical.general.MIRPath;
-import ohs.ir.medical.query.BaseQuery;
-import ohs.ir.medical.query.QueryReader;
-import ohs.ir.medical.query.TrecCdsQuery;
 import ohs.ir.search.index.WordFilter;
-import ohs.ir.search.model.WordProximities;
 import ohs.ir.weight.TermWeighting;
 import ohs.math.VectorMath;
-import ohs.math.VectorUtils;
 import ohs.matrix.DenseVector;
 import ohs.matrix.SparseMatrix;
 import ohs.matrix.SparseVector;
@@ -51,7 +28,6 @@ import ohs.types.generic.Indexer;
 import ohs.types.generic.ListMap;
 import ohs.types.generic.SetMap;
 import ohs.types.generic.Vocab;
-import ohs.types.number.IntegerArray;
 import ohs.utils.Generics;
 import ohs.utils.Generics.ListType;
 import ohs.utils.StrUtils;
@@ -62,7 +38,7 @@ import ohs.utils.Timer;
  * @author Heung-Seon Oh
  * 
  */
-public class ConceptWeightEstimator {
+public class ConceptWeightEstimator2 {
 
 	class PComparator implements Comparator<IntPair> {
 
@@ -155,158 +131,63 @@ public class ConceptWeightEstimator {
 
 		{
 			Counter<String> docFreqs = Generics.newCounter();
+			Counter<String> tfidfs = Generics.newCounter();
 
-			{
-				List<String> lines = FileUtils.readLinesFromText(MIRPath.DATA_DIR + "phrs/phrs_cnt.txt");
-				docFreqs = Generics.newCounter(lines.size());
+			for (String line : FileUtils.readLinesFromText(MIRPath.DATA_DIR + "phrs/phrs_cnt.txt")) {
+				String[] ps = line.split("\t");
+				String phrs = ps[0];
+				double tfidf = Double.parseDouble(ps[1]);
+				double cnt = Double.parseDouble(ps[2]);
+				double doc_freq = Double.parseDouble(ps[3]);
+				docFreqs.setCount(phrs, doc_freq);
+				tfidfs.setCount(phrs, tfidf);
+			}
 
-				for (String line : lines) {
-					String[] ps = line.split("\t");
-					String phrs = ps[0];
-					double tfidf = Double.parseDouble(ps[1]);
-					double cnt = Double.parseDouble(ps[2]);
-					double doc_freq = Double.parseDouble(ps[3]);
-					docFreqs.setCount(phrs, doc_freq);
-					// tfidfs.setCount(phrs, tfidf);
+			Counter<String> c2 = FileUtils.readStringCounterFromText(MIRPath.DATA_DIR + "phrs/phrs_sorted.txt");
+
+			for (String s : FileUtils.readLinesFromText(MIRPath.DATA_DIR + "phrs/phrs_filtered.txt")) {
+				String[] ps = s.split("\t");
+				String phrs = ps[0];
+				int rsc_cnt = Integer.parseInt(ps[1]);
+				double doc_freq = docFreqs.getCount(phrs);
+				double tfidf = tfidfs.getCount(phrs);
+
+				if (doc_freq > 500) {
+					phrsCnts.setCount(phrs, tfidf * rsc_cnt);
 				}
 			}
 
-			int size_old = docFreqs.size();
-			docFreqs.pruneKeysBelowThreshold(500);
-			phrsCnts = docFreqs;
-			System.out.printf("size: %d->%d\n", size_old, phrsCnts.size());
+			System.out.printf("size: %d->%d\n", c2.size(), phrsCnts.size());
 		}
 
-		Vocab vocab = DocumentCollection.readVocab(MIRPath.DATA_DIR + "merged/col/dc/vocab.ser");
+		DocumentSearcher ds = new DocumentSearcher(MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR,
+				MIRPath.STOPWORD_INQUERY_FILE);
+		// ds.setScorer(new MarkovRandomFieldsScorer(ds));
 
-		Map<Integer, Integer> wordToLemma = Generics.newHashMap();
+		List<String> phrss = phrsCnts.getSortedKeys();
 
-		for (String line : FileUtils.readLinesFromText(MIRPath.DATA_DIR + "phrs/lemma.txt")) {
-			String[] ps = line.split("\t");
-			String word = ps[0];
-			String lemma = ps[1];
+		Counter<String> c = Generics.newCounter();
 
-			int w = vocab.indexOf(word);
-			int l = vocab.indexOf(lemma);
+		for (int i = 0; i < phrss.size(); i++) {
+			String phrs = phrss.get(i);
+			SparseVector scores = ds.search(phrs);
+			// System.out.printf("%s, %f\n", phrs, scores.sum());
 
-			if (w < 0 || l < 0) {
-				continue;
+			int prog = BatchUtils.progress(i + 1, phrss.size());
+
+			if (prog > 0) {
+				System.out.printf("[%d percent, %d/%d]\n", prog, i + 1, phrss.size());
 			}
-			wordToLemma.put(w, l);
+
+			c.setCount(phrs, scores.sum());
 		}
 
-		Set<String> stopwords = FileUtils.readStringSetFromText(MIRPath.STOPWORD_INQUERY_FILE);
-		WordFilter wf = new WordFilter(vocab, stopwords);
+		FileUtils.writeStringCounterAsText(MIRPath.DATA_DIR + "phrs/phrs_score.txt", c);
 
-		Counter<String> clueWords = Generics.newCounter();
-		Counter<String> cluePhrsCnts = Generics.newCounter();
-
-		for (String s : FileUtils.readLinesFromText(MIRPath.DATA_DIR + "phrs/phrs_filtered.txt")) {
-			String[] ps = s.split("\t");
-			String phrs = ps[0];
-			int rsc_cnt = Integer.parseInt(ps[1]);
-			cluePhrsCnts.setCount(phrs, rsc_cnt);
-
-			for (String word : StrUtils.split(phrs)) {
-				clueWords.incrementCount(word, 1);
-			}
-		}
-
-		// {
-		// StringTokenizer st = new EnglishTokenizer();
-		//
-		// Pattern puncPat = Pattern.compile("^\\p{Punct}+");
-		//
-		// for (BaseQuery bq : QueryReader.readQueries(MIRPath.TREC_PM_2017_QUERY_FILE))
-		// {
-		// List<String> words = st.tokenize(bq.getSearchText());
-		//
-		// for (String word : words) {
-		// if (wf.filter(word)) {
-		// continue;
-		// }
-		// clueWords.incrementCount(word, 1);
-		// }
-		// }
-		//
-		// for (BaseQuery bq :
-		// QueryReader.readQueries(MIRPath.TREC_CDS_2014_QUERY_FILE)) {
-		// List<String> words = st.tokenize(bq.getSearchText());
-		//
-		// for (String word : words) {
-		// if (wf.filter(word)) {
-		// continue;
-		// }
-		// clueWords.incrementCount(word, 1);
-		// }
-		// }
-		//
-		// for (BaseQuery bq :
-		// QueryReader.readQueries(MIRPath.TREC_CDS_2015_QUERY_A_FILE)) {
-		// List<String> words = st.tokenize(bq.getSearchText());
-		//
-		// for (String word : words) {
-		// if (wf.filter(word)) {
-		// continue;
-		// }
-		// clueWords.incrementCount(word, 1);
-		// }
-		// }
-		//
-		// for (BaseQuery bq :
-		// QueryReader.readQueries(MIRPath.TREC_CDS_2016_QUERY_FILE)) {
-		// TrecCdsQuery tcq = (TrecCdsQuery) bq;
-		// List<String> l = Generics.newArrayList();
-		// l.add(tcq.getDescription());
-		// l.add(tcq.getSummary());
-		// l.add(tcq.getNote());
-		//
-		// String s = StrUtils.join("\n", l);
-		//
-		// List<String> words = st.tokenize(s);
-		//
-		// for (String word : words) {
-		// if (wf.filter(word)) {
-		// continue;
-		// }
-		// clueWords.incrementCount(word, 1);
-		// }
-		// }
-		//
-		// for (BaseQuery bq : QueryReader.readQueries(MIRPath.CLEF_EH_2016_QUERY_FILE))
-		// {
-		// List<String> words = st.tokenize(bq.getSearchText());
-		//
-		// for (String word : words) {
-		// if (wf.filter(word)) {
-		// continue;
-		// }
-		// clueWords.incrementCount(word, 1);
-		// }
-		// }
-		//
-		// for (String word : Generics.newArrayList(clueWords.keySet())) {
-		// int w = vocab.indexOf(word);
-		// if (w < 0) {
-		// continue;
-		// }
-		// Integer l = wordToLemma.get(w);
-		//
-		// if (l == null) {
-		// continue;
-		// }
-		//
-		// String lemma = vocab.getObject(l);
-		//
-		// clueWords.incrementCount(lemma, 1);
-		// }
-		// }
-
-		SetMap<String, String> abbrMap = FileUtils.readStringSetMapFromText(MIRPath.PHRS_DIR + "abbr_tok.txt");
-
-		ConceptWeightEstimator pre = new ConceptWeightEstimator(vocab, wf, phrsCnts, clueWords, wordToLemma, abbrMap);
-		pre.setThreadSize(10);
-		pre.estimate(MIRPath.DATA_DIR + "phrs/phrs_weight.txt");
+		// ConceptWeightEstimator2 pre = new ConceptWeightEstimator2(vocab, wf,
+		// phrsCnts, clueWords, wordToLemma, abbrMap);
+		// pre.setThreadSize(10);
+		// pre.estimate(MIRPath.DATA_DIR + "phrs/phrs_weight.txt");
 
 		System.out.println("process ends.");
 	}
@@ -331,7 +212,7 @@ public class ConceptWeightEstimator {
 
 	private DenseVector wordWeights;
 
-	public ConceptWeightEstimator(Vocab vocab, WordFilter wf, Counter<String> phrsCnts, Counter<String> clueWords,
+	public ConceptWeightEstimator2(Vocab vocab, WordFilter wf, Counter<String> phrsCnts, Counter<String> clueWords,
 			Map<Integer, Integer> wordToLemma, SetMap<String, String> abbrMap) {
 		this.vocab = vocab;
 		this.wf = wf;
@@ -363,8 +244,8 @@ public class ConceptWeightEstimator {
 
 		for (int w = 0; w < wordIdxer.size(); w++) {
 			String word = wordIdxer.getObject(w);
-			double cnt = vocab.getCount(word);
-			double tfidf = TermWeighting.tfidf(cnt, vocab.getDocCnt(), vocab.getDocFreq(word));
+			double cnt = c.getCount(word);
+			double tfidf = TermWeighting.tfidf(cnt, vocab.getDocCnt(), vocab.getDocFreq(w));
 			wordWeights.add(w, tfidf);
 		}
 	}
@@ -372,8 +253,6 @@ public class ConceptWeightEstimator {
 	public Counter<String> estimate(String outFileName) throws Exception {
 
 		computeWordWeights();
-
-		// getCooccurrenceMatrix();
 
 		SparseMatrix T = getSimilarityMatrix(getFeatureMatrix());
 
@@ -395,64 +274,10 @@ public class ConceptWeightEstimator {
 
 		FileUtils.writeStringCounterAsText(outFileName, ret);
 
-		// System.out.println(ret.toStringSortedByValues(true, true, 100, "\t"));
+		// System.out.println(ret.toStringSortedByValues(true, true, 100,
+		// "\t"));
 
 		return ret;
-	}
-
-	private SparseMatrix getCooccurrenceMatrix() {
-		CounterMap<Integer, Integer> cm = Generics.newCounterMap(phrsIdxer.size());
-
-		for (int i = 0; i < phrsIdxer.size(); i++) {
-			String phrs = phrsIdxer.getObject(i);
-			int p = phrsIdxer.indexOf(phrs);
-			if (p < 0) {
-				continue;
-			}
-
-			List<String> words = StrUtils.split(phrs);
-
-			IntegerArray ws = new IntegerArray(wordIdxer.indexesOf(words, -1));
-			cm.incrementAll(WordProximities.hal(ws, ws.size(), false));
-		}
-
-		for (int w1 : cm.keySet()) {
-			Counter<Integer> c = cm.getCounter(w1);
-			for (Entry<Integer, Double> e : c.entrySet()) {
-				int w2 = e.getKey();
-				double tfidf = wordWeights.value(w2);
-				cm.setCount(w1, w2, tfidf);
-			}
-		}
-
-		CounterMap<Integer, Integer> cm2 = Generics.newCounterMap(cm.size());
-
-		System.out.println(VectorUtils.toCounterMap(cm, wordIdxer, wordIdxer));
-
-		for (int w1 : cm.keySet()) {
-			Counter<Integer> c = cm.getCounter(w1);
-			for (Entry<Integer, Double> e : c.entrySet()) {
-				int w2 = e.getKey();
-				double sim = e.getValue();
-				cm2.setCount(w1, w2, sim);
-				if (w1 != w2) {
-					cm2.setCount(w2, w1, sim);
-				}
-			}
-		}
-
-		{
-			Iterator<Integer> iter = cm2.keySet().iterator();
-			while (iter.hasNext()) {
-				int w = iter.next();
-				if (!cm2.containsKey(w)) {
-					cm2.removeKey(w);
-				}
-			}
-		}
-
-		SparseMatrix F = new SparseMatrix(cm2);
-		return F;
 	}
 
 	private SparseMatrix getFeatureMatrix() {
@@ -474,12 +299,12 @@ public class ConceptWeightEstimator {
 
 				cm.incrementCount(p, w, 1);
 
-				// if (wordToLemma != null) {
-				// Integer l = wordToLemma.get(w);
-				// if (l != null) {
-				// cm.incrementCount(p, l, 1);
-				// }
-				// }
+				if (wordToLemma != null) {
+					Integer l = wordToLemma.get(w);
+					if (l != null) {
+						cm.incrementCount(p, l, 1);
+					}
+				}
 			}
 		}
 
@@ -510,7 +335,6 @@ public class ConceptWeightEstimator {
 					continue;
 				}
 				double cnt = clueWords.getCount(word);
-
 				if (cnt > 0) {
 					weight += wordWeights.value(w);
 				}
@@ -518,7 +342,7 @@ public class ConceptWeightEstimator {
 
 			double rsc_cnt = phrsCnts.getCount(phrs);
 
-			ret.add(i, weight);
+			ret.add(i, rsc_cnt);
 		}
 
 		ret.normalize();

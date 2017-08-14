@@ -1,5 +1,7 @@
 package ohs.math;
 
+import ohs.utils.Conditions;
+
 /**
  * @author Heung-Seon Oh
  * 
@@ -333,12 +335,23 @@ public class CommonMath {
 	public static void main(String[] args) {
 		System.out.println("process begins.");
 
-		double cnt_x = 8;
-		double cnt_y = 8;
-		double cnt_xy = 0;
-		double total_cnt = 10000000;
+		{
+			double cnt_x = 1938;
+			double cnt_y = 1311;
+			double cnt_xy = 1159;
+			double total_cnt = 50000952;
+			System.out.println(pmi(cnt_x, cnt_y, cnt_xy, total_cnt, true, false));
+		}
 
-		System.out.println(pmi(cnt_x, cnt_y, cnt_xy, total_cnt, true));
+		{
+
+			double pr_x = 0.8;
+			double pr_y = 0.75;
+			double pr_xy = 0.7;
+
+			System.out.println(pmi(pr_x, pr_y, pr_xy, true, false));
+		}
+
 		//
 		// System.out.println(permutation(5, 2));
 
@@ -486,37 +499,52 @@ public class CommonMath {
 	 * @param normalize
 	 * @return
 	 */
-	public static double pmi(double pr_x, double pr_y, double pr_xy, boolean normalize) {
+	public static double pmi(double pr_x, double pr_y, double pr_xy, boolean natural_log, boolean normalize) {
 		double ret = Double.NEGATIVE_INFINITY;
 
-		if (pr_x > 0 && pr_y > 0 && pr_xy > 0) {
+		if (Conditions.isInLeftOpenInterval(0, 1, pr_x) && Conditions.isInLeftOpenInterval(0, 1, pr_y)
+				&& Conditions.isInLeftOpenInterval(0, 1, pr_xy)) {
 			// ret = Math.log(pr_xy / (pr_x * pr_y));
-			ret = Math.log(pr_xy) - Math.log(pr_x) - Math.log(pr_y);
+			// ret = Math.log(pr_xy) - Math.log(pr_x) - Math.log(pr_y);
+			if (natural_log) {
+				ret = Math.log(pr_xy) - Math.log(pr_x) - Math.log(pr_y);
+			} else {
+				ret = log2(pr_xy) - log2(pr_x) - log2(pr_y);
+			}
 		}
 
 		if (normalize) {
 			if (ret == Double.NEGATIVE_INFINITY) {
 				ret = -1;
 			} else {
-				ret /= -Math.log(pr_xy);
+				if (natural_log) {
+					ret /= -Math.log(pr_xy);
+				} else {
+					ret /= -log2(pr_xy);
+				}
 			}
 		}
 		return ret;
 	}
 
 	/**
-	 * Gerlof Bouma, Normalized (Pointwise) Mutual Information in Collocation
-	 * Extraction
+	 * Bouma, G. (2009). Normalized (Pointwise) Mutual Information in Collocation
+	 * Extraction. Proceedings of German Society for Computational Linguistics (GSCL
+	 * 2009), 31–40.
+	 * 
+	 * https://en.wikipedia.org/wiki/Pointwise_mutual_information
 	 * 
 	 * @param cnt_x
 	 * @param cnt_y
 	 * @param cnt_xy
-	 * @param total_cnt
+	 * @param size
+	 * @param nature_log
 	 * @param normalize
 	 * @return
 	 */
-	public static double pmi(double cnt_x, double cnt_y, double cnt_xy, double total_cnt, boolean normalize) {
-		return pmi(cnt_x / total_cnt, cnt_y / total_cnt, cnt_xy / total_cnt, normalize);
+	public static double pmi(double cnt_x, double cnt_y, double cnt_xy, double size, boolean nature_log,
+			boolean normalize) {
+		return pmi(cnt_x / size, cnt_y / size, cnt_xy / size, nature_log, normalize);
 	}
 
 	/**

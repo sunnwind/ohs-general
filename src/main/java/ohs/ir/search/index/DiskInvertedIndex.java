@@ -41,8 +41,8 @@ public class DiskInvertedIndex extends InvertedIndex {
 
 	private boolean use_cache = true;
 
-	private DiskInvertedIndex(FileChannel fc, LongArray starts, IntegerArray lens, int doc_cnt, Map<Integer, PostingList> cache,
-			Vocab vocab, boolean use_cache, boolean print_log) {
+	private DiskInvertedIndex(FileChannel fc, LongArray starts, IntegerArray lens, int doc_cnt,
+			Map<Integer, PostingList> cache, Vocab vocab, boolean use_cache, boolean print_log) {
 		this.fc = fc;
 		this.starts = starts;
 		this.lens = lens;
@@ -85,8 +85,8 @@ public class DiskInvertedIndex extends InvertedIndex {
 	}
 
 	public DiskInvertedIndex copyShallow() throws Exception {
-		return new DiskInvertedIndex(FileUtils.openFileChannel(new File(dataDir, DATA_NAME), "r"), starts, lens, doc_cnt, cache, vocab,
-				use_cache, print_log);
+		return new DiskInvertedIndex(FileUtils.openFileChannel(new File(dataDir, DATA_NAME), "r"), starts, lens,
+				doc_cnt, cache, vocab, use_cache, print_log);
 	}
 
 	public FileChannel getFileChannel() {
@@ -96,7 +96,8 @@ public class DiskInvertedIndex extends InvertedIndex {
 	public PostingList getPostingList(int w) throws Exception {
 		Timer timer = Timer.newTimer();
 
-		PostingList ret = null;
+		PostingList ret = new PostingList(-1, new IntegerArray(), new IntegerArrayMatrix());
+
 		boolean is_cached = false;
 
 		if (w < 0 || w >= starts.size()) {
@@ -136,7 +137,8 @@ public class DiskInvertedIndex extends InvertedIndex {
 			}
 
 			// ret = PostingList.readPostingList(fc);
-			// ret = PostingList.toPostingList(new ByteBufferWrapper(data).readByteArrayMatrix(), encode);
+			// ret = PostingList.toPostingList(new
+			// ByteBufferWrapper(data).readByteArrayMatrix(), encode);
 
 			if (use_cache) {
 				synchronized (cache) {
@@ -149,7 +151,8 @@ public class DiskInvertedIndex extends InvertedIndex {
 
 		if (print_log) {
 			String word = vocab == null ? "null" : vocab.getObject(w);
-			System.out.printf("PL: cached=[%s], word=[%s], %s, time=[%s]\n", is_cached, word, is_cached, ret, timer.stop());
+			System.out.printf("PL: cached=[%s], word=[%s], %s, time=[%s]\n", is_cached, word, is_cached, ret,
+					timer.stop());
 		}
 		return ret;
 	}

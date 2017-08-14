@@ -37,8 +37,8 @@ import ohs.ir.medical.query.QueryReader;
 import ohs.ir.medical.query.RelevanceReader;
 import ohs.ir.search.model.BM25Scorer;
 import ohs.ir.search.model.FeedbackBuilder;
-import ohs.ir.search.model.LMScorer;
-import ohs.ir.search.model.MRFScorer;
+import ohs.ir.search.model.LanguageModelScorer;
+import ohs.ir.search.model.MarkovRandomFieldsScorer;
 import ohs.ir.search.model.ParsimoniousLanguageModelEstimator;
 import ohs.ir.search.model.VSMScorer;
 import ohs.ir.search.model.WeightedMRFScorer;
@@ -110,9 +110,14 @@ public class TrecPMExperiments {
 
 		for (int i = 0; i < corTypes.length; i++) {
 			int corType = corTypes[i];
-			if (corType < 1) {
+
+			if (corType != 1) {
 				continue;
 			}
+
+			// if (corType < 1) {
+			// continue;
+			// }
 
 			if (corType == 0) {
 				dataDir = MIRPath.TREC_CDS_2016_DIR;
@@ -138,7 +143,8 @@ public class TrecPMExperiments {
 			// e.runReranking2();
 			// e.runReranking3();
 			// e.runReranking4();
-			e.formatTrecOutput();
+			// e.formatTrecOutput();
+			e.test();
 		}
 
 		// e.runInitSearch();
@@ -499,7 +505,7 @@ public class TrecPMExperiments {
 		DocumentSearcher ds = new DocumentSearcher(idxDir, stopwordFileName);
 		ds.setTopK(top_k);
 
-		LMScorer scorer = (LMScorer) ds.getScorer();
+		LanguageModelScorer scorer = (LanguageModelScorer) ds.getScorer();
 
 		Map<String, Integer> docIdMap = Generics.newHashMap();
 
@@ -576,8 +582,8 @@ public class TrecPMExperiments {
 		String modelName = "lmd";
 
 		if (modelName.equals("mrf")) {
-			ds.setScorer(new MRFScorer(ds));
-			MRFScorer scorer = (MRFScorer) ds.getScorer();
+			ds.setScorer(new MarkovRandomFieldsScorer(ds));
+			MarkovRandomFieldsScorer scorer = (MarkovRandomFieldsScorer) ds.getScorer();
 			// scorer.setDocumentPriors(qualityPriors);
 			scorer.setPhraseSize(2);
 		} else if (modelName.equals("wmrf")) {
@@ -732,7 +738,7 @@ public class TrecPMExperiments {
 
 		ds.getWordFilter().buildStopIds2();
 
-		LMScorer scorer = (LMScorer) ds.getScorer();
+		LanguageModelScorer scorer = (LanguageModelScorer) ds.getScorer();
 
 		FeedbackBuilder fb = new FeedbackBuilder(ds.getDocumentCollection(), ds.getInvertedIndex(), ds.getWordFilter());
 
@@ -798,7 +804,7 @@ public class TrecPMExperiments {
 		ds.setUseCache(false);
 		ds.getWordFilter().buildStopIds2();
 
-		LMScorer scorer = (LMScorer) ds.getScorer();
+		LanguageModelScorer scorer = (LanguageModelScorer) ds.getScorer();
 
 		FeedbackBuilder fb = new FeedbackBuilder(ds.getDocumentCollection(), ds.getInvertedIndex(), ds.getWordFilter());
 
@@ -880,7 +886,7 @@ public class TrecPMExperiments {
 		DocumentSearcher ds2 = new DocumentSearcher(idxDir2, stopwordFileName);
 		ds2.getWordFilter().buildStopIds2();
 
-		LMScorer scorer = (LMScorer) ds1.getScorer();
+		LanguageModelScorer scorer = (LanguageModelScorer) ds1.getScorer();
 
 		FeedbackBuilder fb1 = new FeedbackBuilder(ds1.getDocumentCollection(), ds1.getInvertedIndex(),
 				ds1.getWordFilter());
@@ -969,7 +975,7 @@ public class TrecPMExperiments {
 		DocumentSearcher ds2 = new DocumentSearcher(idxDir2, stopwordFileName);
 		ds2.getWordFilter().buildStopIds2();
 
-		LMScorer scorer = (LMScorer) ds1.getScorer();
+		LanguageModelScorer scorer = (LanguageModelScorer) ds1.getScorer();
 
 		FeedbackBuilder fb1 = new FeedbackBuilder(ds1.getDocumentCollection(), ds1.getInvertedIndex(),
 				ds1.getWordFilter());
@@ -1067,9 +1073,7 @@ public class TrecPMExperiments {
 
 				for (int w : lm_q.indexes()) {
 					double cnt = dv.value(w);
-					if (cnt > 0) {
-						c.setCount(ds.getVocab().getObject(w), cnt);
-					}
+					c.setCount(ds.getVocab().getObject(w), cnt);
 				}
 
 				IntegerArray d = ds.getDocumentCollection().get(dseq).getSecond();
@@ -1164,11 +1168,11 @@ public class TrecPMExperiments {
 
 				sb.append(String.format("\ndseq:\t%d\nscore:\t%f", dseq, score));
 				sb.append(String.format("\ndid:\t%s\ntext:\n%s", p.getFirst(), p.getSecond()));
-				sb.append(String.format("\nqv:\t%s", c.toString(c.size())));
 				sb.append(String.format("\nphrs:\n%s", tmp2.toStringSortedByValues(true, true, tmp2.size(), "\t")));
-				sb.append(String.format("\n%s", tmp2.toString(tmp2.size())));
-				sb.append(String.format("\n%s", cc.toString(cc.size())));
-				sb.append(String.format("\n%s", cc3.toString(cc3.size())));
+				sb.append(String.format("\nQ:\t%s", c.toString(c.size())));
+				sb.append(String.format("\nGRWS %s", tmp2.toString(tmp2.size())));
+				sb.append(String.format("\nLRWS %s", cc.toString(cc.size())));
+				sb.append(String.format("\nPLM  %s", cc3.toString(cc3.size())));
 				sb.append("\n\n");
 			}
 
