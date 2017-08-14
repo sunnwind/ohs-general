@@ -4,7 +4,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -30,6 +29,8 @@ import ohs.utils.Timer;
  * 
  */
 public class VectorMath {
+
+	public static boolean PRINT_LOG = false;
 
 	public static double abs(DenseVector a, DenseVector b) {
 		double sum = ArrayMath.abs(a.values(), b.values());
@@ -1024,6 +1025,28 @@ public class VectorMath {
 		return sum;
 	}
 
+	public static void productByThreads(SparseMatrix a, DenseVector b, DenseVector c, int thread_size) {
+		AtomicInteger row_cnt = new AtomicInteger(0);
+		List<Future<Double>> fs = Generics.newArrayList(thread_size);
+		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
+
+		for (int i = 0; i < thread_size; i++) {
+			fs.add(tpe.submit(new SRowByColumnProductWorker(a, b, c, row_cnt, PRINT_LOG)));
+		}
+
+		try {
+			double sum = 0;
+			for (int k = 0; k < fs.size(); k++) {
+				sum += fs.get(k).get().doubleValue();
+			}
+			c.summation();
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			tpe.shutdown();
+		}
+	}
+
 	/**
 	 * @param a
 	 *            1 x N
@@ -1190,28 +1213,6 @@ public class VectorMath {
 		return new SparseMatrix(c);
 	}
 
-	public static void productByThreads(SparseMatrix a, DenseVector b, DenseVector c, int thread_size) {
-		AtomicInteger row_cnt = new AtomicInteger(0);
-		List<Future<Double>> fs = Generics.newArrayList(thread_size);
-		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
-
-		for (int i = 0; i < thread_size; i++) {
-			fs.add(tpe.submit(new SRowByColumnProductWorker(a, b, c, row_cnt, PRINT_LOG)));
-		}
-
-		try {
-			double sum = 0;
-			for (int k = 0; k < fs.size(); k++) {
-				sum += fs.get(k).get().doubleValue();
-			}
-			c.summation();
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			tpe.shutdown();
-		}
-	}
-
 	public static double random(double min, double max, DenseMatrix x) {
 		double sum = 0;
 		for (int i = 0; i < x.rowSize(); i++) {
@@ -1246,19 +1247,18 @@ public class VectorMath {
 		return x;
 	}
 
-	public static boolean PRINT_LOG = false;
-
 	/**
 	 * @param T
 	 *            Column-normalized transition probabilities
 	 * @param cents
+	 * @param biases
 	 * @param max_iter
 	 * @param min_dist
 	 * @param damping_factor
-	 * @return
+	 * @param thread_size
 	 */
 	public static void randomWalk(SparseMatrix T, DenseVector cents, DenseVector biases, int max_iter, double min_dist,
-			double damping_factor) {
+			double damping_factor, int thread_size) {
 
 		cents.summation();
 		double uniform_cent = (1 - damping_factor) / cents.size();
@@ -1267,7 +1267,6 @@ public class VectorMath {
 			cents.setAll(uniform_cent);
 		}
 
-		int thread_size = 5;
 		DenseVector old_cents = cents.copy();
 		double old_dist = Double.MAX_VALUE;
 
@@ -1316,8 +1315,8 @@ public class VectorMath {
 		}
 	}
 
-	public static void randomWalk(SparseMatrix T, DenseVector cents, int max_iter) {
-		randomWalk(T, cents, null, max_iter, 0.0000001, 0.85);
+	public static void randomWalk(SparseMatrix T, DenseVector cents, int max_iter, int thread_size) {
+		randomWalk(T, cents, null, max_iter, 0.0000001, 0.85, thread_size);
 	}
 
 	public static SparseVector rank(Vector a) {

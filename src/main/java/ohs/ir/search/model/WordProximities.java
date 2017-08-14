@@ -1,5 +1,8 @@
 package ohs.ir.search.model;
 
+import java.util.Map.Entry;
+
+import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
 import ohs.types.number.IntegerArray;
 import ohs.types.number.IntegerArrayMatrix;
@@ -36,6 +39,21 @@ public class WordProximities {
 			cm.incrementAll(hal(s, window_size, symmetric));
 		}
 		return cm;
+	}
+
+	public static CounterMap<Integer, Integer> symmetric(CounterMap<Integer, Integer> cm) {
+		CounterMap<Integer, Integer> ret = Generics.newCounterMap(cm);
+		for (Entry<Integer, Counter<Integer>> e1 : cm.getEntrySet()) {
+			int w1 = e1.getKey();
+			for (Entry<Integer, Double> e2 : e1.getValue().entrySet()) {
+				int w2 = e2.getKey();
+				double v = e2.getValue();
+				if (w1 != w2) {
+					ret.incrementCount(w2, w1, v);
+				}
+			}
+		}
+		return ret;
 	}
 
 }

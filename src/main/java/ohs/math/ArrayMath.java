@@ -1354,7 +1354,7 @@ public class ArrayMath {
 
 			normalizeColumns(T.values());
 
-			randomWalk(T.values(), cents.values(), 20, 0.0000001, 0.85);
+			randomWalk(T.values(), cents.values(), 20, 0.0000001, 0.85, 1);
 
 			System.out.println(cents);
 
@@ -1801,7 +1801,7 @@ public class ArrayMath {
 
 			double[] cents = new double[3];
 			ArrayUtils.setAll(cents, 1);
-			randomWalk(a, cents, 400, 0.0000000001, 1);
+			randomWalk(a, cents, 400, 0.0000000001, 1, 1);
 
 			System.out.printf("answer:   \t%s\n", ArrayUtils.toString(answer));
 			System.out.printf("estimated:\t%s\n", ArrayUtils.toString(cents));
@@ -1828,7 +1828,7 @@ public class ArrayMath {
 
 			double[] cents = new double[3];
 			ArrayUtils.setAll(cents, 1);
-			randomWalk(c, cents, 400, 0.0000000001, 1);
+			randomWalk(c, cents, 400, 0.0000000001, 1, 1);
 
 			System.out.printf("answer:   \t%s\n", ArrayUtils.toString(answer));
 			System.out.printf("estimated:\t%s\n", ArrayUtils.toString(cents));
@@ -1847,7 +1847,7 @@ public class ArrayMath {
 
 			double[] cents = new double[3];
 			ArrayUtils.setAll(cents, 1);
-			randomWalk(a, cents, 400, 0.0000000001, 0.8);
+			randomWalk(a, cents, 400, 0.0000000001, 0.8, 1);
 
 			System.out.printf("answer:   \t%s\n", ArrayUtils.toString(answer));
 			System.out.printf("estimated:\t%s\n", ArrayUtils.toString(cents));
@@ -1947,7 +1947,7 @@ public class ArrayMath {
 			double[] b = new double[m[0].length];
 			ArrayUtils.setAll(b, 1f / b.length);
 
-			randomWalk(m, b, 100, 0.0000001, 0);
+			randomWalk(m, b, 100, 0.0000001, 0, 1);
 
 			System.out.println(ArrayUtils.toString(b));
 		}
@@ -3192,25 +3192,24 @@ public class ArrayMath {
 		return sum;
 	}
 
-	public static void randomWalk(double[][] T, double[] cents, double[] biases, int max_iter) {
-		randomWalk(T, cents, biases, max_iter, 0.0000001, 0.85);
+	public static void randomWalk(double[][] T, double[] cents, double[] biases, int max_iter, int thread_size) {
+		randomWalk(T, cents, biases, max_iter, 0.0000001, 0.85, thread_size);
 	}
 
 	/**
-	 * 
 	 * http://people.revoledu.com/kardi/tutorial/PageRank/Page-Rank-Computation.html
 	 * 
 	 * @param T
 	 *            Column-normalized transition probabilities
 	 * @param cents
 	 * @param biases
-	 *            topical biases
 	 * @param max_iter
 	 * @param min_dist
 	 * @param damping_factor
+	 * @param thread_size
 	 */
 	public static void randomWalk(double[][] T, double[] cents, double[] biases, int max_iter, double min_dist,
-			double damping_factor) {
+			double damping_factor, int thread_size) {
 		if (!ArrayChecker.isProductable(T, cents)) {
 			throw new IllegalArgumentException();
 		}
@@ -3218,8 +3217,6 @@ public class ArrayMath {
 		if (sum(cents) == 0) {
 			add(cents, 1f / cents.length, cents);
 		}
-
-		int thread_size = 5;
 
 		double[] old_cents = ArrayUtils.copy(cents);
 		double old_dist = Double.MAX_VALUE;
@@ -3270,12 +3267,11 @@ public class ArrayMath {
 		}
 	}
 
-	public static void randomWalk(double[][] T, double[] cents, int max_iter) {
-		randomWalk(T, cents, max_iter, 0.0000001, 0.85);
+	public static void randomWalk(double[][] T, double[] cents, int max_iter, int thread_size) {
+		randomWalk(T, cents, max_iter, 0.0000001, 0.85, thread_size);
 	}
 
 	/**
-	 * 
 	 * http://people.revoledu.com/kardi/tutorial/PageRank/Page-Rank-Computation.html
 	 * 
 	 * @param T
@@ -3284,10 +3280,11 @@ public class ArrayMath {
 	 * @param max_iter
 	 * @param min_dist
 	 * @param damping_factor
-	 * @return
+	 * @param thread_size
 	 */
-	public static void randomWalk(double[][] T, double[] cents, int max_iter, double min_dist, double damping_factor) {
-		randomWalk(T, cents, null, max_iter, min_dist, damping_factor);
+	public static void randomWalk(double[][] T, double[] cents, int max_iter, double min_dist, double damping_factor,
+			int thread_size) {
+		randomWalk(T, cents, null, max_iter, min_dist, damping_factor, thread_size);
 	}
 
 	public static double reLU(double[] a, double[] b) {

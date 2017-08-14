@@ -451,7 +451,7 @@ public class KPhraseRanker {
 
 		biases2.normalizeAfterSummation();
 
-		ArrayMath.randomWalk(T4.values(), cents.values(), null, 500);
+		ArrayMath.randomWalk(T4.values(), cents.values(), null, 500, 10);
 
 		Counter<MultiToken> ret = Generics.newCounter();
 

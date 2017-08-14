@@ -64,16 +64,6 @@ import ohs.utils.Timer;
  */
 public class ConceptWeightEstimator {
 
-	class PComparator implements Comparator<IntPair> {
-
-		@Override
-		public int compare(IntPair o1, IntPair o2) {
-			int ret = o1.getFirst() - o2.getFirst();
-
-			return ret;
-		}
-	}
-
 	class Worker implements Callable<CounterMap<Integer, Integer>> {
 
 		private ListMap<Integer, Integer> ii;
@@ -172,7 +162,7 @@ public class ConceptWeightEstimator {
 			}
 
 			int size_old = docFreqs.size();
-			docFreqs.pruneKeysBelowThreshold(500);
+			docFreqs.pruneKeysBelowThreshold(1000);
 			phrsCnts = docFreqs;
 			System.out.printf("size: %d->%d\n", size_old, phrsCnts.size());
 		}
@@ -373,14 +363,12 @@ public class ConceptWeightEstimator {
 
 		computeWordWeights();
 
-		// getCooccurrenceMatrix();
-
-		SparseMatrix T = getSimilarityMatrix(getFeatureMatrix());
+		SparseMatrix T = getSimilarityMatrix(getFeatureMatrix(getCooccurrenceMatrix()));
 
 		DenseVector cents = new DenseVector(phrsIdxer.size());
 		DenseVector biases = getPhraseBiases();
 
-		VectorMath.randomWalk(T, cents, biases, 500, 0.000001, 0.85);
+		VectorMath.randomWalk(T, cents, biases, 500, 0.000001, 0.85, thread_size);
 
 		Counter<String> ret = Generics.newCounter();
 
@@ -401,6 +389,8 @@ public class ConceptWeightEstimator {
 	}
 
 	private SparseMatrix getCooccurrenceMatrix() {
+		System.out.println("get cooccurrence matrix.");
+
 		CounterMap<Integer, Integer> cm = Generics.newCounterMap(phrsIdxer.size());
 
 		for (int i = 0; i < phrsIdxer.size(); i++) {
@@ -412,50 +402,38 @@ public class ConceptWeightEstimator {
 
 			List<String> words = StrUtils.split(phrs);
 
-			IntegerArray ws = new IntegerArray(wordIdxer.indexesOf(words, -1));
+			IntegerArray ws = new IntegerArray(words.size());
+
+			for (String word : words) {
+				int w = wordIdxer.indexOf(word);
+				ws.add(w);
+			}
+
 			cm.incrementAll(WordProximities.hal(ws, ws.size(), false));
 		}
 
-		for (int w1 : cm.keySet()) {
-			Counter<Integer> c = cm.getCounter(w1);
-			for (Entry<Integer, Double> e : c.entrySet()) {
-				int w2 = e.getKey();
-				double tfidf = wordWeights.value(w2);
-				cm.setCount(w1, w2, tfidf);
+		cm = WordProximities.symmetric(cm);
+
+		{
+			Set<Integer> clueSet = Generics.newHashSet(wordIdxer.indexesOfKnown(clueWords.keySet()));
+
+			for (Entry<Integer, Counter<Integer>> e : cm.getEntrySet()) {
+				e.getValue().pruneExcept(clueSet);
 			}
 		}
 
-		CounterMap<Integer, Integer> cm2 = Generics.newCounterMap(cm.size());
+		weightTFIDFs(cm);
 
 		System.out.println(VectorUtils.toCounterMap(cm, wordIdxer, wordIdxer));
 
-		for (int w1 : cm.keySet()) {
-			Counter<Integer> c = cm.getCounter(w1);
-			for (Entry<Integer, Double> e : c.entrySet()) {
-				int w2 = e.getKey();
-				double sim = e.getValue();
-				cm2.setCount(w1, w2, sim);
-				if (w1 != w2) {
-					cm2.setCount(w2, w1, sim);
-				}
-			}
-		}
-
-		{
-			Iterator<Integer> iter = cm2.keySet().iterator();
-			while (iter.hasNext()) {
-				int w = iter.next();
-				if (!cm2.containsKey(w)) {
-					cm2.removeKey(w);
-				}
-			}
-		}
-
-		SparseMatrix F = new SparseMatrix(cm2);
-		return F;
+		SparseMatrix C = new SparseMatrix(cm);
+		C.normalizeColumns();
+		return C;
 	}
 
-	private SparseMatrix getFeatureMatrix() {
+	private SparseMatrix getFeatureMatrix(SparseMatrix C) {
+		System.out.println("get feature matrix.");
+
 		CounterMap<Integer, Integer> cm = Generics.newCounterMap(phrsIdxer.size());
 
 		for (int i = 0; i < phrsIdxer.size(); i++) {
@@ -465,8 +443,7 @@ public class ConceptWeightEstimator {
 				continue;
 			}
 
-			List<String> words = StrUtils.split(phrs);
-			for (String word : words) {
+			for (String word : StrUtils.split(phrs)) {
 				int w = wordIdxer.indexOf(word);
 				if (w < 0) {
 					continue;
@@ -493,16 +470,42 @@ public class ConceptWeightEstimator {
 		}
 
 		SparseMatrix F = new SparseMatrix(cm);
-		// VectorMath.unitVector(F);
+		VectorMath.unitVector(F);
+
+		for (int i = 0; i < F.rowSize(); i++) {
+			int p = F.indexAt(i);
+			SparseVector pv = F.rowAt(i);
+			Counter<Integer> c = Generics.newCounter();
+
+			for (int j = 0; j < pv.size(); j++) {
+				int w1 = pv.indexAt(j);
+				double weight1 = wordWeights.value(w1);
+				SparseVector wv = C.row(w1);
+
+				for (int k = 0; k < wv.size(); k++) {
+					int w2 = wv.indexAt(k);
+					double weight2 = wv.valueAt(k);
+					c.incrementCount(w2, weight1 * weight2);
+				}
+			}
+
+			c.keepTopNKeys(100);
+
+			F.setRowAt(i, new SparseVector(c));
+		}
+
 		return F;
 	}
 
 	private DenseVector getPhraseBiases() {
+		System.out.println("get phrase biases");
+
 		DenseVector ret = new DenseVector(phrsIdxer.size());
 
 		for (int i = 0; i < phrsIdxer.size(); i++) {
 			String phrs = phrsIdxer.getObject(i);
 			double weight = 0;
+			double cnt2 = 0;
 			for (String word : StrUtils.split(phrs)) {
 				// weight += clueWords.getCount(word);
 				int w = wordIdxer.indexOf(word);
@@ -513,12 +516,13 @@ public class ConceptWeightEstimator {
 
 				if (cnt > 0) {
 					weight += wordWeights.value(w);
+					cnt2++;
 				}
 			}
 
 			double rsc_cnt = phrsCnts.getCount(phrs);
 
-			ret.add(i, weight);
+			ret.add(i, cnt2);
 		}
 
 		ret.normalize();
@@ -527,6 +531,8 @@ public class ConceptWeightEstimator {
 	}
 
 	private SparseMatrix getSimilarityMatrix(SparseMatrix X) throws Exception {
+		System.out.println("get similarity matrix");
+
 		Timer timer = Timer.newTimer();
 
 		ListMap<Integer, Integer> ii = Generics.newListMap(X.rowSize());
@@ -605,6 +611,18 @@ public class ConceptWeightEstimator {
 
 	public void setThreadSize(int thread_size) {
 		this.thread_size = thread_size;
+	}
+
+	private void weightTFIDFs(CounterMap<Integer, Integer> cm) {
+		for (int w1 : cm.keySet()) {
+			Counter<Integer> c = cm.getCounter(w1);
+			for (Entry<Integer, Double> e : c.entrySet()) {
+				int w2 = e.getKey();
+				double sim = e.getValue();
+				double tfidf = wordWeights.value(w2);
+				cm.setCount(w1, w2, sim * tfidf);
+			}
+		}
 	}
 
 }

@@ -12,9 +12,11 @@ import java.util.Set;
 //import fig.basic.Pair;
 
 /**
- * Maintains counts of (key, value) pairs. The map is structured so that for every key, one can get a counter over values. Example usage:
- * keys might be words with values being POS tags, and the cnt being the number of occurences of that word/tag pair. The sub-counters
- * returned by getCounter(word) would be cnt distributions over tags for that word.
+ * Maintains counts of (key, value) pairs. The map is structured so that for
+ * every key, one can get a counter over values. Example usage: keys might be
+ * words with values being POS tags, and the cnt being the number of occurences
+ * of that word/tag pair. The sub-counters returned by getCounter(word) would be
+ * cnt distributions over tags for that word.
  * 
  * @author Dan Klein
  */
@@ -52,7 +54,8 @@ public class CounterMap<K, V> implements java.io.Serializable {
 	}
 
 	/**
-	 * Finds the key with maximum cnt. This is a linear operation, and ties are broken arbitrarily.
+	 * Finds the key with maximum cnt. This is a linear operation, and ties are
+	 * broken arbitrarily.
 	 * 
 	 * @return a key with minumum cnt
 	 */
@@ -105,7 +108,8 @@ public class CounterMap<K, V> implements java.io.Serializable {
 	}
 
 	/**
-	 * Gets the total cnt of the given key, or zero if that key is not present. Does not create any objs.
+	 * Gets the total cnt of the given key, or zero if that key is not present. Does
+	 * not create any objs.
 	 */
 	public double getCount(K key) {
 		Counter<V> valueCounter = cm.get(key);
@@ -115,7 +119,8 @@ public class CounterMap<K, V> implements java.io.Serializable {
 	}
 
 	/**
-	 * Gets the cnt of the given (key, value) entry, or zero if that entry is not present. Does not create any objs.
+	 * Gets the cnt of the given (key, value) entry, or zero if that entry is not
+	 * present. Does not create any objs.
 	 */
 	public double getCount(K key, V value) {
 		Counter<V> valueCounter = cm.get(key);
@@ -125,9 +130,11 @@ public class CounterMap<K, V> implements java.io.Serializable {
 	}
 
 	/**
-	 * Gets the sub-counter for the given key. If there is none, a counter is created for that key, and installed in the CounterMap. You
-	 * can, for example, add to the returned empty counter directly (though you shouldn't). This is so whether the key is present or not,
-	 * modifying the returned counter has the same effect (but don't do it).
+	 * Gets the sub-counter for the given key. If there is none, a counter is
+	 * created for that key, and installed in the CounterMap. You can, for example,
+	 * add to the returned empty counter directly (though you shouldn't). This is so
+	 * whether the key is present or not, modifying the returned counter has the
+	 * same effect (but don't do it).
 	 */
 	public Counter<V> getCounter(K key) {
 		return ensureCounter(key);
@@ -275,7 +282,8 @@ public class CounterMap<K, V> implements java.io.Serializable {
 	}
 
 	/**
-	 * Constructs reverse CounterMap where the cnt of a pair (k,v) is the cnt of (v,k) in the current CounterMap
+	 * Constructs reverse CounterMap where the cnt of a pair (k,v) is the cnt of
+	 * (v,k) in the current CounterMap
 	 * 
 	 * @return
 	 */
@@ -293,7 +301,8 @@ public class CounterMap<K, V> implements java.io.Serializable {
 	}
 
 	/**
-	 * True if there are no ents in the CounterMap (false does not mean totalCount > 0)
+	 * True if there are no ents in the CounterMap (false does not mean totalCount >
+	 * 0)
 	 */
 	public boolean isEmpty() {
 		return size() == 0;
@@ -383,7 +392,8 @@ public class CounterMap<K, V> implements java.io.Serializable {
 	}
 
 	/**
-	 * The number of keys in this CounterMap (not the number of key-value ents -- use totalSize() for that)
+	 * The number of keys in this CounterMap (not the number of key-value ents --
+	 * use totalSize() for that)
 	 */
 	public int size() {
 		return cm.size();
@@ -435,7 +445,8 @@ public class CounterMap<K, V> implements java.io.Serializable {
 	}
 
 	/**
-	 * Returns the total of all counts in sub-counters. This implementation is linear; it recalculates the total each time.
+	 * Returns the total of all counts in sub-counters. This implementation is
+	 * linear; it recalculates the total each time.
 	 */
 	public double totalCount() {
 		double total = 0.0;
@@ -447,7 +458,8 @@ public class CounterMap<K, V> implements java.io.Serializable {
 	}
 
 	/**
-	 * Returns the total number of (key, value) ents in the CounterMap (not their total counts).
+	 * Returns the total number of (key, value) ents in the CounterMap (not their
+	 * total counts).
 	 */
 	public int totalSize() {
 		int total = 0;

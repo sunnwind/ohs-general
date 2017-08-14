@@ -99,7 +99,7 @@ public class QueryModelBuilder {
 		SparseVector ret = new SparseVector(e_ds.size());
 
 		// ArrayMath.randomWalk(m.values(), ret.values(), 20);
-		ArrayMath.randomWalk(m.values(), ret.values(), 20, 0.0000001, 1);
+		ArrayMath.randomWalk(m.values(), ret.values(), 20, 0.0000001, 1, 5);
 
 		ret = ret.subVector(0, Q.size());
 		ret.setIndexes(ArrayUtils.copy(Q.indexes()));
@@ -173,7 +173,7 @@ public class QueryModelBuilder {
 		SparseVector ret = new SparseVector(e_ds.size());
 
 		// ArrayMath.randomWalk(m.values(), ret.values(), 20);
-		ArrayMath.randomWalk(m.values(), ret.values(), 20, 0.0000001, 1);
+		ArrayMath.randomWalk(m.values(), ret.values(), 20, 0.0000001, 1, 5);
 
 		ret = ret.subVector(0, Q.size());
 		ret.setIndexes(ArrayUtils.copy(Q.indexes()));
@@ -211,7 +211,7 @@ public class QueryModelBuilder {
 			ret.addAt(i, w, pr_w_in_q_emb);
 		}
 
-		ArrayMath.randomWalk(m.values(), ret.values(), 20);
+		ArrayMath.randomWalk(m.values(), ret.values(), 20, 5);
 
 		ret.summation();
 
