@@ -382,7 +382,7 @@ public class KeyphraseExtractor {
 
 		biases2.normalizeAfterSummation();
 
-		ArrayMath.randomWalk(T4.values(), cents.values(), null, 500);
+		ArrayMath.randomWalk(T4.values(), cents.values(), null, 500, 10);
 		// ArrayMath.randomWalk(T2.values(), cents.values(), null, 500, 0.0000001, 0);
 
 		// Set<Integer> toKeep = Generics.newHashSet();
@@ -613,7 +613,7 @@ public class KeyphraseExtractor {
 
 		biases2.normalizeAfterSummation();
 
-		ArrayMath.randomWalk(T4.values(), cents.values(), null, 500);
+		ArrayMath.randomWalk(T4.values(), cents.values(), null, 500, 10);
 
 		System.out.println(VectorUtils.toCounter(cents, phrsIdxer).toStringSortedByValues(true, true, 50, "\t"));
 

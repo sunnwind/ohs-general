@@ -73,6 +73,14 @@ public class CounterMap<K, V> implements java.io.Serializable {
 		return maxKey;
 	}
 
+	public double getProbability(K key1, V key2) {
+		double ret = 0;
+		if (containsKey(key1)) {
+			ret = getCounter(key1).getProbability(key2);
+		}
+		return ret;
+	}
+
 	public void clear() {
 		clear(true);
 	}

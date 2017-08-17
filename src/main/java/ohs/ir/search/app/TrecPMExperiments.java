@@ -1145,7 +1145,7 @@ public class TrecPMExperiments {
 					}
 					B.normalize();
 
-					ArrayMath.randomWalk(T.values(), C.values(), B.values(), 100);
+					ArrayMath.randomWalk(T.values(), C.values(), B.values(), 100, 10);
 
 					cc = VectorUtils.toCounter(C, wordIdxer);
 				}

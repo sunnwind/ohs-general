@@ -59,7 +59,8 @@ public class UserKeyphraseCollector {
 		// dh.getWikiPhrases();
 		// dh.mergeKeyphrases();
 		// dh.tokenizeKeyphrases();
-		dh.filterKeyphrases();
+		// dh.filterKeyphrases();
+		// dh.getSeedKeyphrases();
 		// dh.sortKeyphrases();
 		// dh.getMedicalPhrases();
 		// dh.shows();
@@ -75,8 +76,7 @@ public class UserKeyphraseCollector {
 		DocumentSearcher ds = new DocumentSearcher(MIRPath.DATA_DIR + "merged/col/dc/", MIRPath.STOPWORD_INQUERY_FILE);
 		WordFilter wf = ds.getWordFilter();
 
-		List<String> res1 = Generics.newLinkedList();
-		List<String> res2 = Generics.newLinkedList();
+		List<String> res = Generics.newLinkedList();
 
 		for (String line : FileUtils.readLinesFromText(MIRPath.DATA_DIR + "phrs/phrs_merged_tok.txt")) {
 			String[] ps = line.split("\t");
@@ -108,7 +108,7 @@ public class UserKeyphraseCollector {
 				}
 			}
 
-			if (cnt1 == 2 && ((cnt2 > 0 && cnt3 > 0) || cnt2 == 2 || cnt3 == 2)) {
+			if (cnt1 == 2) {
 
 			} else {
 				continue;
@@ -125,15 +125,59 @@ public class UserKeyphraseCollector {
 
 			double ratio = 1d * stopword_cnt / words.size();
 
-//			if (ratio >= 0.5) {
-//				continue;
-//			}
+			// if (ratio >= 0.5) {
+			// continue;
+			// }
 
-			res1.add(line);
+			res.add(line);
 		}
 
-		FileUtils.writeStringCollectionAsText(MIRPath.DATA_DIR + "phrs/phrs_filtered.txt", res1);
+		FileUtils.writeStringCollectionAsText(MIRPath.DATA_DIR + "phrs/phrs_filtered.txt", res);
+	}
 
+	public void getSeedKeyphrases() throws Exception {
+		List<String> res = Generics.newLinkedList();
+
+		for (String line : FileUtils.readLinesFromText(MIRPath.DATA_DIR + "phrs/phrs_filtered.txt")) {
+			String[] ps = line.split("\t");
+			String phrs = ps[0];
+			int rsc_cnt = Integer.parseInt(ps[1]);
+			int cnt = Integer.parseInt(ps[2]);
+
+			Set<String> rscs = Generics.newHashSet();
+
+			for (int i = 3; i < ps.length; i++) {
+				rscs.add(ps[i]);
+			}
+
+			int cnt1 = 0;
+			int cnt2 = 0;
+			int cnt3 = 0;
+
+			for (String rsc : rscs) {
+				if (rsc.equals("wkt") || rsc.equals("sco")) {
+					cnt1++;
+				} else if (rsc.equals("cds")) {
+					cnt2++;
+				} else if (rsc.equals("pm")) {
+					cnt2++;
+				} else if (rsc.equals("mes")) {
+					cnt3++;
+				} else if (rsc.equals("sno")) {
+					cnt3++;
+				}
+			}
+
+			if ((cnt2 + cnt3) >= 3) {
+
+			} else {
+				continue;
+			}
+
+			res.add(line);
+		}
+
+		FileUtils.writeStringCollectionAsText(MIRPath.DATA_DIR + "phrs/phrs_seed.txt", res);
 	}
 
 	public void get3PKeyphrases() throws Exception {
