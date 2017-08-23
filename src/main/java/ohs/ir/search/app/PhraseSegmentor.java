@@ -9,6 +9,7 @@ import ohs.ir.search.index.PostingList;
 import ohs.math.CommonMath;
 import ohs.types.generic.Counter;
 import ohs.types.number.IntegerArray;
+import ohs.utils.Generics;
 import ohs.utils.StrUtils;
 
 public class PhraseSegmentor {
@@ -20,9 +21,15 @@ public class PhraseSegmentor {
 
 		PhraseSegmentor ps = new PhraseSegmentor(ds);
 
-		Counter<String> phrsWeights = FileUtils.readStringCounterFromText(MIRPath.PHRS_DIR + "phrs_weight.txt");
+		List<String> phrss = Generics.newArrayList();
+
+		for (String s : FileUtils.readLinesFromText(MIRPath.PHRS_DIR + "phrs_filtered.txt")) {
+			String[] pp = s.split("\t");
+			phrss.add(pp[0]);
+		}
+
 		int cnt = 0;
-		for (String phrs : phrsWeights.getSortedKeys()) {
+		for (String phrs : phrss) {
 			ps.segment(phrs);
 
 			if (cnt++ > 200) {
@@ -67,7 +74,7 @@ public class PhraseSegmentor {
 			double pmi = Double.NEGATIVE_INFINITY;
 			int cnt_x = pl1.size();
 			int cnt_y = pl2.size();
-			int cnt_xy1 = 0;
+//			int cnt_xy1 = 0;
 			int cnt_xy2 = 0;
 			int doc_cnt = ii.getDocCnt();
 
@@ -76,19 +83,19 @@ public class PhraseSegmentor {
 			} else {
 				cnt_x = pl1.size();
 				cnt_y = pl2.size();
-				cnt_xy1 = InvertedIndex.intersection(pl1, pl2).size();
+//				cnt_xy1 = InvertedIndex.intersection(pl1, pl2).size();
 				cnt_xy2 = InvertedIndex.findCollocations(pl1, pl2, true, QL.size()).size();
 				pmi = CommonMath.pmi(cnt_x, cnt_y, cnt_xy2, doc_cnt, true, false);
 				// double pr_x = 1d * cnt_x / doc_cnt;
 				// double pr_y = 1d * cnt_y / doc_cnt;
 				// double pr_xy = 1d * cnt_xy2 / cnt_xy1;
-//				pmi = CommonMath.pmi(pr_x, pr_y, pr_xy, true, false);
+				// pmi = CommonMath.pmi(pr_x, pr_y, pr_xy, true, false);
 			}
 
 			// double pmi = pe.pmi(QL, QR);
 
-			System.out.printf("[%s # %s] => %d, %d, %d, %d, %d => %f\n", StrUtils.join(" ", words, 0, i),
-					StrUtils.join(" ", words, i, words.size()), cnt_x, cnt_y, cnt_xy0, cnt_xy1, cnt_xy2, pmi);
+			System.out.printf("[%s # %s] => %d, %d, %d, %d => %f\n", StrUtils.join(" ", words, 0, i),
+					StrUtils.join(" ", words, i, words.size()), cnt_x, cnt_y, cnt_xy0, cnt_xy2, pmi);
 		}
 
 		System.out.println();

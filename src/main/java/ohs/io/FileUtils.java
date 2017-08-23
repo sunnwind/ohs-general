@@ -1081,10 +1081,10 @@ public class FileUtils {
 
 			if (len == 1) {
 				ret.setCount(parts[0], 1);
-			} else if (len == 2) {
+			} else if (len >= 2) {
 				ret.setCount(parts[0], Double.parseDouble(parts[1]));
 			} else if (len > 2) {
-				ret.setCount(StrUtils.join("\t", parts, 0, len - 1), Double.parseDouble(parts[len - 1]));
+//				ret.setCount(StrUtils.join("\t", parts, 0, len - 1), Double.parseDouble(parts[len - 1]));
 			}
 		}
 

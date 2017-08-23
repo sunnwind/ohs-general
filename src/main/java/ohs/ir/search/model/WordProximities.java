@@ -4,9 +4,11 @@ import java.util.Map.Entry;
 
 import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
+import ohs.types.generic.ListMap;
 import ohs.types.number.IntegerArray;
 import ohs.types.number.IntegerArrayMatrix;
 import ohs.utils.Generics;
+import ohs.utils.Generics.ListType;
 
 public class WordProximities {
 
@@ -41,19 +43,24 @@ public class WordProximities {
 		return cm;
 	}
 
-	public static CounterMap<Integer, Integer> symmetric(CounterMap<Integer, Integer> cm) {
-		CounterMap<Integer, Integer> ret = Generics.newCounterMap(cm);
-		for (Entry<Integer, Counter<Integer>> e1 : cm.getEntrySet()) {
-			int w1 = e1.getKey();
-			for (Entry<Integer, Double> e2 : e1.getValue().entrySet()) {
-				int w2 = e2.getKey();
-				double v = e2.getValue();
-				if (w1 != w2) {
-					ret.incrementCount(w2, w1, v);
+	public static void symmetric(CounterMap<Integer, Integer> cm) {
+		System.out.println("get symmetric matrix");
+		
+		ListMap<Integer, Integer> lm = Generics.newListMap();
+
+		for (int i : cm.keySet()) {
+			lm.put(i, Generics.newArrayList(cm.getCounter(i).keySet()));
+		}
+
+		for (int k1 : lm.keySet()) {
+			for (int k2 : lm.get(k1)) {
+				if (k1 == k2) {
+					continue;
 				}
+				double v = cm.getCount(k1, k2);
+				cm.incrementCount(k2, k1, v);
 			}
 		}
-		return ret;
 	}
 
 }

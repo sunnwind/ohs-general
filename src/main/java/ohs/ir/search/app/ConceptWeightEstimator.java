@@ -12,16 +12,16 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.lucene.geo.GeoEncodingUtils;
+import org.apache.xalan.xsltc.compiler.sym;
 
 import ohs.corpus.type.DocumentCollection;
 import ohs.io.FileUtils;
-import ohs.io.TextFileReader;
 import ohs.io.TextFileWriter;
 import ohs.ir.medical.general.MIRPath;
 import ohs.ir.search.index.WordFilter;
 import ohs.ir.search.model.WordProximities;
 import ohs.ir.weight.TermWeighting;
+import ohs.math.ArrayMath;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.DenseVector;
@@ -32,7 +32,6 @@ import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
 import ohs.types.generic.Indexer;
 import ohs.types.generic.ListMap;
-import ohs.types.generic.Pair;
 import ohs.types.generic.SetMap;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
@@ -50,6 +49,8 @@ public class ConceptWeightEstimator {
 
 	class Worker implements Callable<CounterMap<Integer, Integer>> {
 
+		private CounterMap<Integer, Integer> cm;
+
 		private ListMap<Integer, Integer> ii;
 
 		private double min_cosine = 0.3;
@@ -61,19 +62,18 @@ public class ConceptWeightEstimator {
 		private Timer timer;
 
 		public Worker(SparseMatrix T, ListMap<Integer, Integer> ii, double min_cosine, AtomicInteger range_cnt,
-				Timer timer) {
+				CounterMap<Integer, Integer> cm, Timer timer) {
 			this.T = T;
 			this.ii = ii;
 			this.min_cosine = min_cosine;
 			this.row_cnt = range_cnt;
+			this.cm = cm;
 			this.timer = timer;
 		}
 
 		@Override
 		public CounterMap<Integer, Integer> call() throws Exception {
 			int m = 0;
-
-			CounterMap<Integer, Integer> cm = Generics.newCounterMap();
 
 			while ((m = row_cnt.getAndIncrement()) < T.rowSize()) {
 				int p1 = T.indexAt(m);
@@ -83,7 +83,11 @@ public class ConceptWeightEstimator {
 
 				List<Integer> ns = getLocations(t1, m);
 
-				Counter<Integer> c = cm.getCounter(p1);
+				Counter<Integer> c = null;
+
+				synchronized (cm) {
+					c = cm.getCounter(p1);
+				}
 
 				for (int n : ns) {
 					if (n > m) {
@@ -147,7 +151,7 @@ public class ConceptWeightEstimator {
 			String[] ps = line.split("\t");
 			String phrs = ps[0];
 			double cnt = tmpCnts.getCount(phrs);
-			if (cnt > 0) {
+			if (cnt > 50) {
 				phrsCnts.setCount(phrs, cnt);
 			}
 		}
@@ -184,6 +188,9 @@ public class ConceptWeightEstimator {
 			String phrs = ps[0];
 
 			for (String word : StrUtils.split(phrs)) {
+				if (wf.filter(word)) {
+					continue;
+				}
 				clueWords.incrementCount(word, 1);
 			}
 		}
@@ -193,7 +200,7 @@ public class ConceptWeightEstimator {
 		ConceptWeightEstimator pre = new ConceptWeightEstimator(vocab, wf, phrsCnts, seedPhrsCnts, clueWords,
 				wordToLemma, abbrMap);
 		pre.setThreadSize(10);
-		pre.setMinCosine(0.1);
+		pre.setMinCosine(0.2);
 		pre.setMinFeatSize(10);
 		pre.estimate(MIRPath.DATA_DIR + "phrs/phrs_weight.txt");
 
@@ -278,7 +285,7 @@ public class ConceptWeightEstimator {
 		SparseMatrix T = getSimilarityMatrix(getFeatureMatrix(null));
 
 		DenseVector P = new DenseVector(phrsIdxer.size());
-		DenseVector B = getPhraseBiases();
+		DenseVector B = getBiases();
 
 		System.out.println(VectorUtils.toCounter(B, phrsIdxer).toStringSortedByValues(true, true, 50, "\t"));
 
@@ -301,6 +308,177 @@ public class ConceptWeightEstimator {
 
 		// System.out.println(ret.toStringSortedByValues(true, true, 100, "\t"));
 
+		return ret;
+	}
+
+	private DenseVector getBiases() {
+		System.out.println("get phrase biases");
+
+		System.out.println(clueWords.toString());
+
+		DenseVector ret = new DenseVector(phrsIdxer.size());
+
+		for (int i = 0; i < phrsIdxer.size(); i++) {
+			String phrs = phrsIdxer.getObject(i);
+
+			List<String> words = StrUtils.split(phrs);
+			double weight = 0;
+
+			for (int j = 0; j < words.size(); j++) {
+				String word = words.get(j);
+				double cnt = clueWords.getCount(word);
+				int w = vocab.indexOf(word);
+
+				if (!clueWords.containsKey(word) || w < 0) {
+					continue;
+				}
+
+				double tfidf = TermWeighting.tfidf(cnt, vocab.getDocCnt(), vocab.getDocFreq(w));
+				weight += tfidf;
+			}
+
+			weight /= words.size();
+			ret.add(i, weight);
+		}
+
+		ret.normalize();
+		return ret;
+	}
+
+	private DenseVector getBiases2() {
+		System.out.println("get phrase biases");
+
+		DenseVector ret = new DenseVector(phrsIdxer.size());
+		ret.add(1);
+
+		CounterMap<String, String> bigrams = Generics.newCounterMap();
+		Counter<String> unigrams = Generics.newCounter();
+
+		for (String phrs : phrsCnts.keySet()) {
+			double cnt = phrsCnts.getCount(phrs);
+
+			List<String> words = StrUtils.split(phrs);
+
+			for (int i = 0; i < words.size(); i++) {
+				String word1 = words.get(i);
+
+				if (i < words.size() - 1) {
+					String word2 = words.get(i + 1);
+					bigrams.incrementCount(word1, word2, 1);
+				}
+				unigrams.incrementCount(word1, 1);
+			}
+		}
+
+		for (int i = 0; i < phrsIdxer.size(); i++) {
+			String phrs = phrsIdxer.getObject(i);
+			double p_weight = 0;
+
+			List<String> words = StrUtils.split(phrs);
+
+			for (int j = 0; j < words.size(); j++) {
+				String word1 = words.get(j);
+				int w = vocab.indexOf(word1);
+				double weight = wordWeights.value(w);
+				double cnt1 = unigrams.getCount(word1);
+				double cnt2 = 0;
+
+				if (j < words.size() - 1) {
+					String word2 = words.get(j + 1);
+					cnt2 = bigrams.getCount(word1, word2);
+				}
+
+				if (cnt1 > 0) {
+					cnt1 = 1;
+				}
+
+				if (cnt2 > 0) {
+					cnt2 = 2;
+				}
+
+				double cnt3 = cnt1 + cnt2;
+
+				if (cnt1 > 0) {
+					// p_weight += weight;
+					p_weight += cnt1;
+				}
+			}
+
+			p_weight /= words.size();
+
+			ret.add(i, p_weight);
+		}
+
+		ret.normalize();
+
+		return ret;
+	}
+
+	private DenseVector getBiases3() {
+		System.out.println("get phrase biases");
+
+		CounterMap<String, String> bigrams = Generics.newCounterMap();
+		Counter<String> unigrams = Generics.newCounter();
+
+		for (String phrs : phrsCnts.keySet()) {
+			double cnt = phrsCnts.getCount(phrs);
+
+			List<String> words = StrUtils.split(phrs);
+
+			for (int i = 0; i < words.size(); i++) {
+				String word1 = words.get(i);
+
+				if (i < words.size() - 1) {
+					String word2 = words.get(i + 1);
+					bigrams.incrementCount(word1, word2, cnt);
+				}
+				unigrams.incrementCount(word1, cnt);
+			}
+		}
+
+		double mixture_b = 0.5;
+
+		Counter<Integer> c = Generics.newCounter();
+
+		for (int i = 0; i < phrsIdxer.size(); i++) {
+			String phrs = phrsIdxer.getObject(i);
+			double pr_sum = 0;
+
+			List<String> words = StrUtils.split(phrs);
+
+			for (int j = 0; j < words.size(); j++) {
+				String word1 = words.get(j);
+				double pr_u = unigrams.getProbability(word1);
+				double pr_b = 0;
+
+				if (j < words.size() - 1) {
+					String word2 = words.get(j + 1);
+					pr_b = bigrams.getProbability(word1, word2);
+				}
+
+				double pr = (1 - mixture_b) * pr_u + mixture_b * pr_b;
+
+				if (pr > 0) {
+					pr_sum += Math.log(pr);
+				}
+			}
+
+			if (pr_sum != 0) {
+				c.setCount(i, pr_sum);
+			}
+		}
+
+		SparseVector prs = new SparseVector(c);
+		VectorMath.softmax(prs);
+
+		DenseVector ret = new DenseVector(phrsIdxer.size());
+
+		for (int i = 0; i < prs.size(); i++) {
+			int j = prs.indexAt(i);
+			double v = prs.valueAt(i);
+			ret.add(j, v);
+		}
+		ret.normalize();
 		return ret;
 	}
 
@@ -327,20 +505,11 @@ public class ConceptWeightEstimator {
 			double cnt = phrsCnts.getCount(phrs);
 
 			List<String> words = StrUtils.split(phrs);
-
-			IntegerArray ws = new IntegerArray(words.size());
-
-			for (String word : words) {
-				int w = vocab.indexOf(word);
-				if (wf.filter(w)) {
-					w = -1;
-				}
-				ws.add(w);
-			}
+			IntegerArray ws = new IntegerArray(vocab.indexesOf(words, -1));
 			cm.incrementAll(WordProximities.hal(ws, ws.size(), false), cnt);
 		}
 
-		cm = WordProximities.symmetric(cm);
+		WordProximities.symmetric(cm);
 
 		Set<Integer> clueSet = Generics.newHashSet(vocab.indexesOfKnown(clueWords.keySet()));
 
@@ -468,35 +637,6 @@ public class ConceptWeightEstimator {
 		return new SparseMatrix(cm);
 	}
 
-	private DenseVector getPhraseBiases() {
-		System.out.println("get phrase biases");
-
-		DenseVector ret = new DenseVector(phrsIdxer.size());
-
-		for (int i = 0; i < phrsIdxer.size(); i++) {
-			String phrs = phrsIdxer.getObject(i);
-			double p_weight = 0;
-
-			List<String> words = StrUtils.split(phrs);
-
-			for (String word : words) {
-				int w = vocab.indexOf(word);
-				double weight = wordWeights.value(w);
-				if (clueWords.getCount(word) > 0) {
-					p_weight += weight;
-				}
-			}
-
-			p_weight /= words.size();
-
-			ret.add(i, p_weight);
-		}
-
-		ret.normalize();
-
-		return ret;
-	}
-
 	private SparseMatrix getSimilarityMatrix(SparseMatrix X) throws Exception {
 		System.out.println("get similarity matrix");
 
@@ -519,31 +659,18 @@ public class ConceptWeightEstimator {
 
 		AtomicInteger row_cnt = new AtomicInteger(0);
 
-		for (int i = 0; i < thread_size; i++) {
-			fs.add(tpe.submit(new Worker(X, ii, min_cosine, row_cnt, timer)));
-		}
-
 		CounterMap<Integer, Integer> cm = Generics.newCounterMap();
 
 		for (int i = 0; i < thread_size; i++) {
-			CounterMap<Integer, Integer> tmp = fs.get(i).get();
-			cm.incrementAll(tmp);
+			fs.add(tpe.submit(new Worker(X, ii, min_cosine, row_cnt, cm, timer)));
+		}
+
+		for (int i = 0; i < thread_size; i++) {
+			fs.get(i).get();
 		}
 		tpe.shutdown();
 
-		System.out.println("get inverted index");
-
-		ListMap<Integer, Integer> ItoJs = Generics.newListMap(ListType.LINKED_LIST);
-
-		for (int i : cm.keySet()) {
-			for (int j : cm.getCounter(i).keySet()) {
-				ItoJs.put(i, j);
-			}
-		}
-
-		System.out.println("get symmetric matrix");
-
-		cm = WordProximities.symmetric(cm);
+		WordProximities.symmetric(cm);
 
 		SparseMatrix T = new SparseMatrix(cm);
 		T.normalizeColumns();
