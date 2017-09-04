@@ -1,4 +1,4 @@
-package ohs.eden.keyphrase.mine;
+package ohs.eden.keyphrase.kmine;
 
 import java.io.File;
 import java.util.List;
@@ -28,7 +28,6 @@ import ohs.nlp.ling.types.MDocument;
 import ohs.nlp.ling.types.MSentence;
 import ohs.nlp.ling.types.MultiToken;
 import ohs.nlp.ling.types.Token;
-import ohs.nlp.ling.types.TokenAttr;
 import ohs.types.generic.Counter;
 import ohs.types.generic.Indexer;
 import ohs.types.generic.ListMap;

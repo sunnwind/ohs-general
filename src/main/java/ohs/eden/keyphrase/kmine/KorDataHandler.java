@@ -1,11 +1,18 @@
-package ohs.eden.keyphrase.mine;
+package ohs.eden.keyphrase.kmine;
 
 import java.io.File;
-import java.util.Collections;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Scanner;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
-import edu.stanford.nlp.ling.Sentence;
+import edu.stanford.nlp.io.EncodingPrintWriter.out;
+import edu.stanford.nlp.optimization.SGDWithAdaGradAndFOBOS;
 import kr.co.shineware.nlp.komoran.core.analyzer.Komoran;
 import kr.co.shineware.util.common.model.Pair;
 import ohs.corpus.type.DocumentCollection;
@@ -19,7 +26,6 @@ import ohs.ml.glove.GloveModel;
 import ohs.ml.glove.GloveParam;
 import ohs.ml.glove.GloveTrainer;
 import ohs.ml.neuralnet.com.BatchUtils;
-import ohs.nlp.ling.types.MDocument;
 import ohs.nlp.ling.types.MSentence;
 import ohs.nlp.ling.types.MultiToken;
 import ohs.nlp.ling.types.Token;
@@ -64,8 +70,10 @@ public class KorDataHandler {
 		// dh.trainGlove();
 		// dh.getLabelData();
 		// dh.getKeyphrases();
-		dh.getKeyphrasePatterns();
-		// dh.test();
+		// dh.getKeyphrasePatterns();
+//		dh.getLabelData2();
+		dh.merge();
+
 		System.out.println("process ends.");
 	}
 
@@ -265,6 +273,96 @@ public class KorDataHandler {
 		FileUtils.writeStringCollectionAsText(KPPath.KP_DIR + "ext/label_data.txt", res);
 	}
 
+	public void getLabelData2() throws Exception {
+		String[] inFileNames = { "keywords.zip", "contents.zip" };
+		String[] outFileNames = { "tmp1.txt", "tmp2.txt" };
+
+		String dirPath = KPPath.KP_DIR + "ext/pos_tagged/";
+
+		for (int i = 0; i < inFileNames.length; i++) {
+			ZipFile zipFile = new ZipFile(new File(dirPath + inFileNames[i]));
+
+			Enumeration<? extends ZipEntry> entries = zipFile.entries();
+
+			List<String> res = Generics.newLinkedList();
+
+			while (entries.hasMoreElements()) {
+				ZipEntry entry = entries.nextElement();
+
+				if (entry.isDirectory()) {
+					continue;
+				}
+
+				String cn = entry.getName().split("[\\./]+")[1];
+
+				if (cn.equals("txt")) {
+					continue;
+				}
+
+				InputStream stream = zipFile.getInputStream(entry);
+				InputStreamReader reader = new InputStreamReader(stream, "UTF-8");
+				Scanner inputStream = new Scanner(reader);
+
+				StringBuffer sb = new StringBuffer();
+
+				while (inputStream.hasNext()) {
+					String data = inputStream.nextLine(); // Gets a whole line
+					sb.append(data + "\n");
+				}
+
+				String s = sb.toString().trim();
+
+				List<String> lines = StrUtils.split("\n\n", s);
+
+				for (int j = 0; j < lines.size(); j++) {
+					List<String> l = Generics.newArrayList();
+					for (String p : lines.get(j).split("\n")) {
+						l.add(StrUtils.join(" ", p.split(" "), 0, 2));
+					}
+					lines.set(j, StrUtils.join("\n", l));
+				}
+
+				// System.out.println(sb.toString());
+
+				inputStream.close();
+				stream.close();
+				res.add(String.format("%s\t%s", cn, StrUtils.join("\n\n", lines).replace("\n", "<nl>")));
+			}
+			zipFile.close();
+
+			FileUtils.writeStringCollectionAsText(dirPath + outFileNames[i], res);
+		}
+	}
+
+	public void merge() throws Exception {
+		String[] outFileNames = { "tmp1.txt", "tmp2.txt" };
+		String dirPath = KPPath.KP_DIR + "ext/pos_tagged/";
+		
+		Map<String,String> m1 = Generics.newHashMap();
+		Map<String,String> m2 = Generics.newHashMap();
+		
+		for(String line : FileUtils.readLinesFromText(dirPath + outFileNames[0])) {
+			String[] ps = line.split("\t");
+			m1.put(ps[0], ps[1]);
+		}
+		
+		for(String line : FileUtils.readLinesFromText(dirPath + outFileNames[1])) {
+			String[] ps = line.split("\t");
+			m2.put(ps[0], ps[1]);
+		}
+		
+		List<String> outs = Generics.newArrayList(m1.size());
+		
+		for(String cn : m1.keySet()) {
+			String title = m1.get(cn);
+			String body = m2.get(cn);
+			outs.add(String.format("%s\t%s\t%s", cn, title, body));
+		}
+		
+		FileUtils.writeStringCollectionAsText(dirPath + "label_data2.txt", outs);
+
+	}
+
 	private String getText(List<List<List<Pair<String, String>>>> result) {
 		StringBuffer sb = new StringBuffer();
 
@@ -375,90 +473,6 @@ public class KorDataHandler {
 
 			FileUtils.writeStringCollectionAsText(file.getPath().replace("line", "line_pos"), lines);
 		}
-	}
-
-	public void test() throws Exception {
-
-		{
-			RawDocumentCollection dc = new RawDocumentCollection(KPPath.COL_DC_DIR);
-
-			System.out.println(dc.getAttrData());
-
-			for (int i = 0; i < 1000000; i++) {
-				String s = dc.getMap(i).toString();
-				String s2 = dc.getMap(i).get("kor_pos_abs");
-
-				if (s2.length() > 0) {
-					System.out.println(i);
-					System.out.println(s2);
-					System.out.println("======================");
-				}
-			}
-		}
-
-		// {
-		// DocumentCollection dc = new DocumentCollection(KPPath.COL_DC_DIR);
-		//
-		// String s = dc.getText(32586).getSecond();
-		//
-		// System.out.println(s);
-		// System.out.println("======================");
-		// }
-
-	}
-
-	public void test2() throws Exception {
-		List<String> lines = FileUtils.readLinesFromText(KPPath.KP_DIR + "ext/label_data.txt");
-
-		Counter<String> c = Generics.newCounter();
-
-		for (String line : lines) {
-			List<String> ps = StrUtils.split("\t", line);
-
-			if (ps.size() != 3) {
-				continue;
-			}
-
-			ps = StrUtils.unwrap(ps);
-			List<String> kwds = StrUtils.split(StrUtils.LINE_REP, ps.get(0));
-			String title = ps.get(1);
-			String abs = ps.get(2);
-
-			for (String kwd : kwds) {
-				MSentence sent = MSentence.newSentence(kwd);
-
-				String wordPat = getString(sent, TokenAttr.WORD);
-				String posPat = getString(sent, TokenAttr.POS);
-
-				c.incrementCount(wordPat, 1);
-			}
-		}
-
-		System.out.println(c.size());
-		System.out.println(c.totalCount());
-
-		System.out.println(1d * c.size() / lines.size());
-		System.out.println(1d * c.totalCount() / lines.size());
-
-		Counter<Integer> c2 = Generics.newCounter();
-
-		for (String wordPat : c.keySet()) {
-			c2.incrementCount(StrUtils.split(wordPat).size(), 1);
-		}
-
-		List<Integer> lens = Generics.newArrayList(c2.keySet());
-		Collections.sort(lens);
-
-		System.out.println();
-
-		for (int i = 0; i < lens.size(); i++) {
-			int len = lens.get(i);
-			int cnt = (int) c2.getCount(len);
-			System.out.printf("%d\t%d\n", len, cnt);
-		}
-
-		// System.out.println(c2.toStringSortedByValues(true, true, c2.size(), "\t"));
-
 	}
 
 	public void trainGlove() throws Exception {

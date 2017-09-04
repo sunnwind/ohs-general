@@ -124,13 +124,15 @@ public class ConceptCountCollector {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 		List<String> phrss = Generics.newLinkedList();
-		for (String line : FileUtils.readLinesFromText(MIRPath.PHRS_DIR + "phrs_merged_tok.txt")) {
+		for (String line : FileUtils.readLinesFromText(MIRPath.PHRS_DIR + "phrs_filtered.txt")) {
 			String[] ps = line.split("\t");
 			phrss.add(ps[0]);
 		}
 		phrss = Generics.newArrayList(phrss);
 
-		DocumentCollection dc = new DocumentCollection(MIRPath.DATA_DIR + "merged/col/dc/");
+		// DocumentCollection dc = new DocumentCollection(MIRPath.DATA_DIR +
+		// "merged/col/dc/");
+		DocumentCollection dc = new DocumentCollection(MIRPath.TREC_CDS_2016_COL_DC_DIR);
 		WordFilter wf = new WordFilter(dc.getVocab(), FileUtils.readStringSetFromText(MIRPath.STOPWORD_INQUERY_FILE));
 
 		ConceptCountCollector dpe = new ConceptCountCollector(dc, wf, phrss);

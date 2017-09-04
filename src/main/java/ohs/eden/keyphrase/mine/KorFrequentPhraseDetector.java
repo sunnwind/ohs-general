@@ -19,7 +19,6 @@ import ohs.corpus.type.DocumentCollection;
 import ohs.io.ByteArrayMatrix;
 import ohs.io.ByteArrayUtils;
 import ohs.io.FileUtils;
-import ohs.ir.medical.general.MIRPath;
 import ohs.ml.neuralnet.com.BatchUtils;
 import ohs.types.generic.Counter;
 import ohs.types.generic.ListList;

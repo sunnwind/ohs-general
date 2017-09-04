@@ -14,7 +14,6 @@ import ohs.io.RandomAccessDenseMatrix;
 import ohs.io.TextFileWriter;
 import ohs.ir.medical.general.MIRPath;
 import ohs.ir.search.index.WordFilter;
-import ohs.ir.weight.TermWeighting;
 import ohs.math.VectorMath;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseVector;
@@ -80,24 +79,19 @@ public class EmbeddingConceptSimilarityEstimator {
 					c.incrementCount(n, cosine);
 				}
 
-				tmp.setCount(idxer.getObject(m), c.average());
-
 				if (c.size() > 0) {
-					String phrs1 = idxer.getObject(m);
+					String phrs1 = phrsIdxer.getObject(m);
 					List<String> res = Generics.newArrayList(c.size());
 
 					for (int p2 : c.getSortedKeys()) {
-						String phrs2 = idxer.getObject(p2);
+						String phrs2 = phrsIdxer.getObject(p2);
 						res.add(String.format("%s\t%s\t%f", phrs1, phrs2, c.getCount(p2)));
 					}
 
-					// synchronized (writer) {
-					// writer.write(StrUtils.join("\n", res) + "\n");
-					// }
+					synchronized (writer) {
+						writer.write(StrUtils.join("\n", res) + "\n");
+					}
 				}
-
-				// System.out.printf("%s, %s\n", phrsIdxer.getObject(m),
-				// VectorUtils.toCounter(c, phrsIdxer));
 
 				int prog = BatchUtils.progress(m, X.rowSize());
 
@@ -113,7 +107,7 @@ public class EmbeddingConceptSimilarityEstimator {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 
-		Counter<String> tmpCnts = Generics.newCounter();
+		Counter<String> phrsCnts = Generics.newCounter();
 
 		for (String line : FileUtils.readLinesFromText(MIRPath.DATA_DIR + "phrs/phrs_cnt.txt")) {
 			String[] ps = line.split("\t");
@@ -121,18 +115,7 @@ public class EmbeddingConceptSimilarityEstimator {
 			double tfidf = Double.parseDouble(ps[1]);
 			double cnt = Double.parseDouble(ps[2]);
 			double doc_freq = Double.parseDouble(ps[3]);
-			tmpCnts.setCount(phrs, cnt);
-		}
-
-		Counter<String> phrsCnts = Generics.newCounter();
-
-		for (String line : FileUtils.readLinesFromText(MIRPath.DATA_DIR + "phrs/phrs_filtered.txt")) {
-			String[] ps = line.split("\t");
-			String phrs = ps[0];
-			double cnt = tmpCnts.getCount(phrs);
-			if (cnt > 50) {
-				phrsCnts.setCount(phrs, cnt);
-			}
+			phrsCnts.setCount(phrs, cnt);
 		}
 
 		Indexer<String> phrsIdxer = Generics.newIndexer(phrsCnts.keySet());
@@ -145,14 +128,6 @@ public class EmbeddingConceptSimilarityEstimator {
 		Vocab vocab = dc.getVocab();
 
 		DenseMatrix X = new DenseMatrix(phrsIdxer.size(), E.colSize());
-
-		System.out.println("get phrase embeddings");
-
-		DenseVector idfs = new DenseVector(vocab.size());
-
-		for (int w = 0; w < idfs.size(); w++) {
-			idfs.add(w, TermWeighting.idf(vocab.getDocCnt(), vocab.getDocFreq(w)));
-		}
 
 		for (int p = 0; p < phrsIdxer.size(); p++) {
 			String phrs = phrsIdxer.getObject(p);
@@ -167,17 +142,14 @@ public class EmbeddingConceptSimilarityEstimator {
 					continue;
 				}
 
-				double idf = TermWeighting.idf(vocab.getDocCnt(), vocab.getDocFreq(w));
-
 				DenseVector e = E.row(w);
-				// VectorMath.add(e, x);
-				VectorMath.addAfterMultiply(e, idf, x);
+				VectorMath.add(e, x);
+				x.summation();
 				cnt++;
 			}
 
 			if (cnt > 0) {
-				// x.multiply(1d / cnt);
-				x.multiply(1d / idfs.sum());
+				x.multiply(1d / cnt);
 			}
 
 			double ratio = 1d * cnt / words.size();
@@ -197,36 +169,32 @@ public class EmbeddingConceptSimilarityEstimator {
 
 		pre.setThreadSize(7);
 		pre.setMinCosine(0.8);
-		pre.estimate(MIRPath.DATA_DIR + "phrs/phrs_cosine.txt");
+		pre.estimate(MIRPath.DATA_DIR + "phrs/phrs_sim.txt");
 
 		System.out.println("process ends.");
 	}
 
 	private double min_cosine = 0.3;
 
-	private Indexer<String> idxer;
+	private Indexer<String> phrsIdxer;
 
 	private int thread_size = 5;
 
 	private TextFileWriter writer;
 
-	private DenseMatrix X;
-
-	public EmbeddingConceptSimilarityEstimator(Indexer<String> idxer, DenseMatrix X) {
-		this.idxer = idxer;
-		this.X = X;
-	}
-
 	private TextFileWriter writer2;
 
-	private Counter<String> tmp;
+	private DenseMatrix X;
+
+	public EmbeddingConceptSimilarityEstimator(Indexer<String> phrsIdxer, DenseMatrix X) {
+		this.phrsIdxer = phrsIdxer;
+		this.X = X;
+	}
 
 	public void estimate(String outFileName) throws Exception {
 		Timer timer = Timer.newTimer();
 
 		writer = new TextFileWriter(outFileName);
-
-		tmp = Generics.newCounter();
 
 		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
 
@@ -246,9 +214,6 @@ public class EmbeddingConceptSimilarityEstimator {
 		tpe.shutdown();
 
 		writer.close();
-
-		FileUtils.writeStringCounterAsText(outFileName, tmp);
-
 	}
 
 	public void setMinCosine(double min_cosine) {

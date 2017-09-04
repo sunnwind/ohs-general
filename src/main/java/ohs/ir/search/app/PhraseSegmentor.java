@@ -21,15 +21,18 @@ public class PhraseSegmentor {
 
 		PhraseSegmentor ps = new PhraseSegmentor(ds);
 
-		List<String> phrss = Generics.newArrayList();
-
-		for (String s : FileUtils.readLinesFromText(MIRPath.PHRS_DIR + "phrs_filtered.txt")) {
-			String[] pp = s.split("\t");
-			phrss.add(pp[0]);
-		}
+//		List<String> phrss = Generics.newArrayList();
+		//
+		// for (String s : FileUtils.readLinesFromText(MIRPath.PHRS_DIR +
+		// "phrs_filtered.txt")) {
+		// String[] pp = s.split("\t");
+		// phrss.add(pp[0]);
+		// }
+		
+		Counter<String> phrsBiases = FileUtils.readStringCounterFromText(MIRPath.PHRS_DIR + "phrs_bias.txt");
 
 		int cnt = 0;
-		for (String phrs : phrss) {
+		for (String phrs : phrsBiases.getSortedKeys()) {
 			ps.segment(phrs);
 
 			if (cnt++ > 200) {
@@ -51,12 +54,15 @@ public class PhraseSegmentor {
 		IntegerArray Q = new IntegerArray(ds.getVocab().indexesOf(words, -1));
 
 		PmiEstimator pe = new PmiEstimator(ds.getInvertedIndex());
+		pe.setNormalize(true);
 
 		InvertedIndex ii = ds.getInvertedIndex();
 
 		PostingList pl0 = ii.getPostingList(Q, true, 1);
 
 		int cnt_xy0 = pl0.size();
+		
+		boolean normalize = true;
 
 		for (int i = 1; i < Q.size(); i++) {
 			IntegerArray QL = Q.subArray(0, i);
@@ -85,7 +91,7 @@ public class PhraseSegmentor {
 				cnt_y = pl2.size();
 //				cnt_xy1 = InvertedIndex.intersection(pl1, pl2).size();
 				cnt_xy2 = InvertedIndex.findCollocations(pl1, pl2, true, QL.size()).size();
-				pmi = CommonMath.pmi(cnt_x, cnt_y, cnt_xy2, doc_cnt, true, false);
+				pmi = CommonMath.pmi(cnt_x, cnt_y, cnt_xy2, doc_cnt, true, normalize);
 				// double pr_x = 1d * cnt_x / doc_cnt;
 				// double pr_y = 1d * cnt_y / doc_cnt;
 				// double pr_xy = 1d * cnt_xy2 / cnt_xy1;

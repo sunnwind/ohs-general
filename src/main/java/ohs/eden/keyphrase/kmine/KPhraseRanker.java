@@ -1,4 +1,4 @@
-package ohs.eden.keyphrase.mine;
+package ohs.eden.keyphrase.kmine;
 
 import java.io.File;
 import java.util.List;
@@ -77,6 +77,7 @@ public class KPhraseRanker {
 		KPhraseNumberPredictor pnp = new KPhraseNumberPredictor(
 				DocumentCollection.readVocab(KPPath.KP_DIR + "ext/vocab_num_pred.ser"),
 				Linear.loadModel(new File(KPPath.KP_DIR + "ext/model_num_pred.txt")));
+		int cnt = 0;
 
 		for (String line : ins) {
 			String[] ps = line.split("\t");
@@ -91,15 +92,48 @@ public class KPhraseRanker {
 			String body = ps[2].replace(StrUtils.LINE_REP, "\n");
 			String content = title + "\n" + body;
 			MDocument doc = MDocument.newDocument(content);
-			Counter<MultiToken> phrss = pr.rank(doc);
 
-			System.out.println(phrss.toStringSortedByValues(true, true, phrss.size(), "\t"));
+			StringBuffer sb1 = new StringBuffer();
+
+			for (MSentence ms : doc) {
+				for (MultiToken mt : ms) {
+					for (Token t : mt) {
+						sb1.append(t.get(0));
+					}
+					sb1.append(" ");
+				}
+				sb1.append("\n");
+			}
+
+			Counter<MultiToken> phrss = pr.rank(doc);
 
 			int pred_phrs_size = pnp.predict(doc);
 
+			phrss.keepTopNKeys(pred_phrs_size);
+
+			System.out.println("<Input>");
+			System.out.println(sb1.toString());
+			System.out.println("<Output>");
+
+			StringBuffer sb2 = new StringBuffer();
+
+			for (MultiToken mt : phrss.getSortedKeys()) {
+				StringBuffer sb = new StringBuffer();
+				double score = phrss.getCount(mt);
+				for (Token t : mt) {
+					sb.append(t.get(0));
+				}
+				
+			}
+
+			System.out.println(phrss.toStringSortedByValues(true, true, phrss.size(), "\t"));
 			System.out.println();
 
 			// ke.extractTFIDF(content);
+
+			if (++cnt == 30) {
+				break;
+			}
 		}
 
 		int dseq = 1000;
@@ -316,7 +350,10 @@ public class KPhraseRanker {
 			String s = String.format("%s_/_%s", t.get(0), t.get(1));
 			double doc_freq = vocab.getDocFreq(s);
 			double cnt = wordCnts.getCount(t);
-			double tfidf = TermWeighting.tfidf(cnt, vocab.getDocCnt(), doc_freq);
+			if (doc_freq == 0) {
+				doc_freq = 1;
+			}
+			double tfidf = TermWeighting.tfidf(cnt, vocab.getDocCnt() + 1, doc_freq);
 			ret.add(w, tfidf);
 		}
 		return ret;
@@ -395,7 +432,7 @@ public class KPhraseRanker {
 		// }
 
 		// System.out.println(VectorUtils.toCounterMap(T2, wordIdxer, wordIdxer));
-		System.out.println();
+		// System.out.println();
 
 		for (Token t1 : wordSims.keySet()) {
 			int w1 = wordIdxer.indexOf(t1);

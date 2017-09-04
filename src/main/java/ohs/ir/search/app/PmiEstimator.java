@@ -13,6 +13,8 @@ public class PmiEstimator {
 
 	private InvertedIndex ii;
 
+	private boolean normalize = false;
+
 	public PmiEstimator(InvertedIndex ii) {
 		this.ii = ii;
 	}
@@ -51,7 +53,7 @@ public class PmiEstimator {
 				cnt_y = pl2.size();
 				cnt_xy1 = InvertedIndex.intersection(pl1, pl2).size();
 				cnt_xy2 = InvertedIndex.findCollocations(pl1, pl2, true, QL.size()).size();
-				pmi = CommonMath.pmi(cnt_x, cnt_y, cnt_xy2, doc_cnt, true, false);
+				pmi = CommonMath.pmi(cnt_x, cnt_y, cnt_xy2, doc_cnt, true, normalize);
 			}
 			ret.add(Generics.newPair(i, pmi));
 		}
@@ -73,7 +75,7 @@ public class PmiEstimator {
 		int cnt_y = pl2.size();
 		int cnt_xy = InvertedIndex.findCollocations(pl1, pl2, true, x.size()).size();
 		int doc_cnt = ii.getDocCnt();
-		double pmi = CommonMath.pmi(cnt_x, cnt_y, cnt_xy, doc_cnt, true, false);
+		double pmi = CommonMath.pmi(cnt_x, cnt_y, cnt_xy, doc_cnt, true, normalize);
 		return pmi;
 	}
 
@@ -88,8 +90,12 @@ public class PmiEstimator {
 		int cnt_y = pl2.size();
 		int cnt_xy = InvertedIndex.intersection(pl1, pl2).size();
 		int doc_cnt = ii.getDocCnt();
-		double pmi = CommonMath.pmi(cnt_x, cnt_y, cnt_xy, doc_cnt, true, false);
+		double pmi = CommonMath.pmi(cnt_x, cnt_y, cnt_xy, doc_cnt, true, normalize);
 		return pmi;
+	}
+
+	public void setNormalize(boolean normalize) {
+		this.normalize = normalize;
 	}
 
 }

@@ -7,6 +7,10 @@ import java.util.ArrayList;
 public class Token extends ArrayList<String> {
 
 	public static final String DELIM = " / ";
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 7950967445551151259L;
 
 	public static Token newToken(String s) {
 		String[] ps = s.split(DELIM);

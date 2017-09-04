@@ -1,6 +1,10 @@
 package ohs.ir.search.app;
 
+import java.io.File;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
@@ -8,22 +12,34 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.swing.text.Position.Bias;
+
+import org.apache.xalan.xsltc.compiler.sym;
+
 import ohs.corpus.type.DocumentCollection;
 import ohs.io.FileUtils;
 import ohs.io.RandomAccessDenseMatrix;
 import ohs.io.TextFileWriter;
 import ohs.ir.medical.general.MIRPath;
 import ohs.ir.search.index.WordFilter;
+import ohs.ir.search.model.WordProximities;
 import ohs.ir.weight.TermWeighting;
+import ohs.math.ArrayMath;
 import ohs.math.VectorMath;
-import ohs.matrix.DenseMatrix;
+import ohs.math.VectorUtils;
 import ohs.matrix.DenseVector;
+import ohs.matrix.SparseMatrix;
+import ohs.matrix.SparseVector;
 import ohs.ml.neuralnet.com.BatchUtils;
 import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
 import ohs.types.generic.Indexer;
+import ohs.types.generic.ListMap;
+import ohs.types.generic.SetMap;
 import ohs.types.generic.Vocab;
+import ohs.types.number.IntegerArray;
 import ohs.utils.Generics;
+import ohs.utils.Generics.ListType;
 import ohs.utils.StrUtils;
 import ohs.utils.Timer;
 
@@ -36,12 +52,25 @@ public class EmbeddingConceptWeightEstimator {
 
 	class Worker implements Callable<CounterMap<Integer, Integer>> {
 
+		private CounterMap<Integer, Integer> cm;
+
+		private ListMap<Integer, Integer> ii;
+
+		private double min_cosine = 0.3;
+
 		private AtomicInteger row_cnt;
+
+		private SparseMatrix T;
 
 		private Timer timer;
 
-		public Worker(AtomicInteger range_cnt, Timer timer) {
+		public Worker(SparseMatrix T, ListMap<Integer, Integer> ii, double min_cosine, AtomicInteger range_cnt,
+				CounterMap<Integer, Integer> cm, Timer timer) {
+			this.T = T;
+			this.ii = ii;
+			this.min_cosine = min_cosine;
 			this.row_cnt = range_cnt;
+			this.cm = cm;
 			this.timer = timer;
 		}
 
@@ -49,238 +78,213 @@ public class EmbeddingConceptWeightEstimator {
 		public CounterMap<Integer, Integer> call() throws Exception {
 			int m = 0;
 
-			while ((m = row_cnt.getAndIncrement()) < X1.rowSize()) {
-				DenseVector x1 = X1.rowAt(m);
+			while ((m = row_cnt.getAndIncrement()) < T.rowSize()) {
+				int p1 = T.indexAt(m);
+				SparseVector t1 = T.rowAt(m);
 
-				if (x1.sum() == 0) {
-					continue;
+				double avg1 = VectorMath.mean(t1);
+
+				List<Integer> ns = getLocations(t1, m);
+
+				Counter<Integer> c = null;
+
+				synchronized (cm) {
+					c = cm.getCounter(p1);
 				}
 
-				Counter<Integer> c = Generics.newCounter();
+				for (int n : ns) {
+					if (n > m) {
+						int p2 = T.indexAt(n);
+						SparseVector t2 = T.rowAt(n);
+						double avg2 = VectorMath.mean(t2);
+						double cosine = VectorMath.cosine(t1, t2);
 
-				for (int n = 0; n < X2.rowSize(); n++) {
-					DenseVector x2 = X2.row(n);
+						if (cosine < min_cosine || cosine <= 0) {
+							continue;
+						}
 
-					if (x2.sum() == 0) {
-						continue;
+						double score = cosine * avg1 * avg2;
+						c.setCount(p2, score);
 					}
-
-					double cosine = VectorMath.cosine(x1, x2);
-
-					// if (cosine < min_cosine) {1
-					// continue;
-					// }
-
-					c.incrementCount(n, cosine);
 				}
 
-				synchronized (phrsWeights) {
-					phrsWeights.setCount(idxer1.getObject(m), c.average());
-				}
-
-				// System.out.printf("%s, %s\n", phrsIdxer.getObject(m),
-				// VectorUtils.toCounter(c, phrsIdxer));
-
-				int prog = BatchUtils.progress(m + 1, X1.rowSize());
+				int prog = BatchUtils.progress(m, T.rowSize());
 
 				if (prog > 0) {
-					System.out.printf("[%d percent, %d/%d, %s]\n", prog, m + 1, X1.rowSize(), timer.stop());
+					System.out.printf("[%d percent, %d/%d, %s]\n", prog, m, T.rowSize(), timer.stop());
 				}
 			}
 
-			return null;
+			return cm;
 		}
+
+		private List<Integer> getLocations(SparseVector a, int m) {
+			Set<Integer> set = Generics.newHashSet();
+			for (int j : a.indexes()) {
+				for (int n : ii.get(j)) {
+					if (n > m) {
+						set.add(n);
+					}
+				}
+			}
+			List<Integer> ns = Generics.newArrayList(set);
+			Collections.sort(ns);
+			return ns;
+		}
+
 	}
 
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 
-		Counter<String> tmpCnts = Generics.newCounter();
+		Indexer<String> phrsIdxer = null;
+		DenseVector phrsBiases = null;
 
-		for (String line : FileUtils.readLinesFromText(MIRPath.DATA_DIR + "phrs/phrs_cnt.txt")) {
-			String[] ps = line.split("\t");
-			String phrs = ps[0];
-			double tfidf = Double.parseDouble(ps[1]);
-			double cnt = Double.parseDouble(ps[2]);
-			double doc_freq = Double.parseDouble(ps[3]);
-			tmpCnts.setCount(phrs, cnt);
+		{
+			Counter<String> c = FileUtils.readStringCounterFromText(MIRPath.PHRS_DIR + "phrs_bias.txt");
+			phrsIdxer = Generics.newIndexer(c.getSortedKeys());
+			phrsBiases = VectorUtils.toDenseVector(c, phrsIdxer);
+
+			// for (int i = 0; i < phrsBiases.size(); i++) {
+			// double v = phrsBiases.value(i);
+			// if (v < 0.5) {
+			// phrsBiases.set(i, 0);
+			// }
+			// }
+
+			VectorMath.exp(phrsBiases);
+
+			phrsBiases.normalizeAfterSummation();
 		}
 
-		Counter<String> phrsCnts = Generics.newCounter();
+		SparseMatrix S = null;
 
-		for (String line : FileUtils.readLinesFromText(MIRPath.DATA_DIR + "phrs/phrs_filtered.txt")) {
-			String[] ps = line.split("\t");
-			String phrs = ps[0];
-			double cnt = tmpCnts.getCount(phrs);
-			if (cnt > 50) {
-				phrsCnts.setCount(phrs, cnt);
+		{
+			DocumentCollection dc = new DocumentCollection(MIRPath.TREC_CDS_2016_COL_DC_DIR);
+
+			Set<String> stopwords = FileUtils.readStringSetFromText(MIRPath.STOPWORD_INQUERY_FILE);
+			WordFilter wf = new WordFilter(dc.getVocab(), stopwords);
+			Vocab vocab = dc.getVocab();
+
+			DenseVector phrsWeights = new DenseVector(phrsIdxer.size());
+
+			for (int p = 0; p < phrsIdxer.size(); p++) {
+				String phrs = phrsIdxer.getObject(p);
+				List<String> words = StrUtils.split(phrs);
+				double weight = 0;
+
+				for (String word : words) {
+					int w = vocab.indexOf(word);
+
+					if (wf.filter(w)) {
+						continue;
+					}
+
+					double cnt = vocab.getCount(word);
+					double doc_freq = vocab.getDocFreq(word);
+
+					if (doc_freq == 0 || cnt == 0) {
+						continue;
+					}
+
+					double tfidf = TermWeighting.tfidf(cnt, vocab.getDocCnt(), doc_freq);
+					weight += tfidf;
+				}
+				phrsWeights.add(p, weight);
 			}
-		}
 
-		Counter<String> seedPhrsCnts = Generics.newCounter();
+			CounterMap<String, String> cm = FileUtils.readStringCounterMapFromText(MIRPath.PHRS_DIR + "phrs_sim.txt");
+			CounterMap<Integer, Integer> cm2 = Generics.newCounterMap(cm.size());
 
-		for (String line : FileUtils.readLinesFromText(MIRPath.DATA_DIR + "phrs/phrs_seed.txt")) {
-			String[] ps = line.split("\t");
-			String phrs = ps[0];
-			double cnt = tmpCnts.getCount(phrs);
-			if (cnt > 0) {
-				seedPhrsCnts.setCount(phrs, cnt);
-			}
-		}
+			for (String phrs1 : Generics.newArrayList(cm.keySet())) {
+				int p1 = phrsIdxer.indexOf(phrs1);
 
-		Indexer<String> phrsIdxer = Generics.newIndexer(phrsCnts.keySet());
-		Indexer<String> seedPhrsIdxer = Generics.newIndexer(seedPhrsCnts.keySet());
-
-		DocumentCollection dc = new DocumentCollection(MIRPath.TREC_CDS_2016_COL_DC_DIR);
-		RandomAccessDenseMatrix E = new RandomAccessDenseMatrix(MIRPath.TREC_CDS_2016_DIR + "emb/glove_ra.ser");
-
-		Set<String> stopwords = FileUtils.readStringSetFromText(MIRPath.STOPWORD_INQUERY_FILE);
-		WordFilter wf = new WordFilter(dc.getVocab(), stopwords);
-		Vocab vocab = dc.getVocab();
-
-		System.out.println("get phrase embeddings");
-
-		DenseMatrix X1 = new DenseMatrix(phrsIdxer.size(), E.colSize());
-
-		for (int p = 0; p < phrsIdxer.size(); p++) {
-			String phrs = phrsIdxer.getObject(p);
-			DenseVector x = X1.row(p);
-			int cnt = 0;
-			double idf_sum = 0;
-			List<String> words = StrUtils.split(phrs);
-
-			for (String word : words) {
-				int w = vocab.indexOf(word);
-
-				if (wf.filter(w)) {
+				if (p1 < 0) {
 					continue;
 				}
 
-				double idf = TermWeighting.idf(vocab.getDocCnt(), vocab.getDocFreq(w));
-				idf_sum += idf;
+				double b1 = phrsWeights.value(p1);
 
-				DenseVector e = E.row(w);
-				VectorMath.add(e, x);
-				// VectorMath.addAfterMultiply(e, idf, x);
-				cnt++;
-			}
+				Counter<String> c = cm.removeKey(phrs1);
 
-			if (cnt > 0) {
-				x.multiply(1d / cnt);
-				// x.multiply(1d / idf_sum);
-			}
+				for (Entry<String, Double> e : c.entrySet()) {
+					String phrs2 = e.getKey();
+					double cosine = e.getValue();
+					int p2 = phrsIdxer.indexOf(phrs2);
 
-			double ratio = 1d * cnt / words.size();
+					if (p2 < 0) {
+						continue;
+					}
 
-			if (ratio <= 0.5) {
-				x.setAll(0);
-			}
+					double b2 = phrsWeights.value(p2);
 
-			int prog = BatchUtils.progress(p + 1, phrsIdxer.size());
+					// if (cosine < 0.9) {
+					// continue;
+					// }
 
-			if (prog > 0) {
-				System.out.printf("[%d percent, %d/%d]\n", prog, p + 1, phrsIdxer.size());
-			}
-		}
+					cosine = b1 * b2 * cosine;
 
-		DenseMatrix X2 = new DenseMatrix(seedPhrsIdxer.size(), E.colSize());
-
-		for (int p = 0; p < seedPhrsIdxer.size(); p++) {
-			String phrs = seedPhrsIdxer.getObject(p);
-			DenseVector x = X2.row(p);
-			int cnt = 0;
-			double idf_sum = 0;
-			List<String> words = StrUtils.split(phrs);
-
-			for (String word : words) {
-				int w = vocab.indexOf(word);
-
-				if (wf.filter(w)) {
-					continue;
+					cm2.setCount(p1, p2, cosine);
+					cm2.setCount(p2, p1, cosine);
 				}
-
-				double idf = TermWeighting.idf(vocab.getDocCnt(), vocab.getDocFreq(w));
-				idf_sum += idf;
-
-				DenseVector e = E.row(w);
-				VectorMath.add(e, x);
-				// VectorMath.addAfterMultiply(e, idf, x);
-				cnt++;
 			}
-
-			if (cnt > 0) {
-				x.multiply(1d / cnt);
-				// x.multiply(1d / idf_sum);
-			}
-
-			double ratio = 1d * cnt / words.size();
-
-			if (ratio <= 0.5) {
-				x.setAll(0);
-			}
-
-			int prog = BatchUtils.progress(p + 1, phrsIdxer.size());
-
-			if (prog > 0) {
-				System.out.printf("[%d percent, %d/%d]\n", prog, p + 1, phrsIdxer.size());
-			}
+			S = new SparseMatrix(cm2);
 		}
 
-		EmbeddingConceptWeightEstimator pre = new EmbeddingConceptWeightEstimator(phrsIdxer, X1, seedPhrsIdxer, X2);
+		S.normalizeColumns();
 
-		pre.setThreadSize(7);
-		// pre.setMinCosine(0.8);
-		pre.estimate(MIRPath.DATA_DIR + "phrs/phr_weight_emb.txt");
+		EmbeddingConceptWeightEstimator pre = new EmbeddingConceptWeightEstimator(phrsIdxer, S, phrsBiases);
+		pre.setThreadSize(10);
+		pre.setMinCosine(0.2);
+		pre.estimate(MIRPath.DATA_DIR + "phrs/phrs_weight.txt");
 
 		System.out.println("process ends.");
 	}
 
+	private DenseVector B;
+
 	private double min_cosine = 0.3;
 
-	private Indexer<String> idxer1;
+	private Indexer<String> phrsIdxer;
 
-	private Indexer<String> idxer2;
+	private SparseMatrix S;
 
 	private int thread_size = 5;
 
-	private DenseMatrix X1;
+	public EmbeddingConceptWeightEstimator(Indexer<String> phrsIdxer, SparseMatrix S, DenseVector B) {
+		this.phrsIdxer = phrsIdxer;
+		this.S = S;
+		this.B = B;
 
-	private DenseMatrix X2;
-
-	public EmbeddingConceptWeightEstimator(Indexer<String> idxer1, DenseMatrix X1, Indexer<String> idxer2,
-			DenseMatrix X2) {
-		this.idxer1 = idxer1;
-		this.X1 = X1;
-		this.idxer1 = idxer1;
-		this.X2 = X2;
 	}
 
-	private Counter<String> phrsWeights;
+	public Counter<String> estimate(String outFileName) throws Exception {
 
-	public void estimate(String outFileName) throws Exception {
-		Timer timer = Timer.newTimer();
+		DenseVector P = new DenseVector(phrsIdxer.size());
 
-		phrsWeights = Generics.newCounter();
+		// System.out.println(VectorUtils.toCounter(B,
+		// phrsIdxer).toStringSortedByValues(true, true, 50, "\t"));
 
-		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
+		System.out.println("run random-walk");
 
-		List<Future<CounterMap<Integer, Integer>>> fs = Generics.newArrayList(thread_size);
+		VectorMath.randomWalk(S, P, B, 500, 0.000001, 0.85, thread_size);
 
-		AtomicInteger row_cnt = new AtomicInteger(0);
+		Counter<String> ret = Generics.newCounter();
 
-		System.out.println("get similarity matrix");
-
-		for (int i = 0; i < thread_size; i++) {
-			fs.add(tpe.submit(new Worker(row_cnt, timer)));
+		for (int w = 0; w < phrsIdxer.size(); w++) {
+			String phrs = phrsIdxer.getObject(w);
+			double c = P.value(w);
+			if (c > 0) {
+				c = Math.log(c);
+				ret.incrementCount(phrs, c);
+			}
 		}
 
-		for (int i = 0; i < thread_size; i++) {
-			fs.get(i).get();
-		}
-		tpe.shutdown();
+		FileUtils.writeStringCounterAsText(outFileName, ret);
 
-		FileUtils.writeStringCounterAsText(outFileName, phrsWeights);
+		// System.out.println(ret.toStringSortedByValues(true, true, 100, "\t"));
 
+		return ret;
 	}
 
 	public void setMinCosine(double min_cosine) {

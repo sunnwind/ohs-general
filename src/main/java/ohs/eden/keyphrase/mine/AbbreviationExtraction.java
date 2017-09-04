@@ -6,8 +6,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.rmi.CORBA.Stub;
-
 import ohs.corpus.type.EnglishTokenizer;
 import ohs.eden.keyphrase.cluster.AbbreviationExtractor;
 import ohs.io.FileUtils;

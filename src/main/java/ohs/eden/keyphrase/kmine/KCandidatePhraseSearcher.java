@@ -1,4 +1,4 @@
-package ohs.eden.keyphrase.mine;
+ package ohs.eden.keyphrase.kmine;
 
 import java.util.Collection;
 import java.util.List;

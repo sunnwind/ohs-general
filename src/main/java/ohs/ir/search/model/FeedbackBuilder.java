@@ -321,7 +321,7 @@ public class FeedbackBuilder {
 
 		SparseVector cents = lm_fb.copy();
 
-		ArrayMath.randomWalk(m3.values(), cents.values(), 30, 0.000001, 1);
+		ArrayMath.randomWalk(m3.values(), cents.values(), 30, 0.000001, 1, 5);
 
 		for (int i = 0; i < lm_fb.size(); i++) {
 			int w = lm_fb.indexAt(i);
@@ -762,7 +762,7 @@ public class FeedbackBuilder {
 
 		VectorMath.PRINT_LOG = false;
 
-		VectorMath.randomWalk(T, C, B, 100, 0.0000001, 0.85);
+		VectorMath.randomWalk(T, C, B, 100, 0.0000001, 0.85, 5);
 
 		SparseVector ret = null;
 
@@ -863,7 +863,7 @@ public class FeedbackBuilder {
 
 		VectorMath.PRINT_LOG = false;
 
-		VectorMath.randomWalk(T, C, B, 100, 0.0000001, 0.85);
+		VectorMath.randomWalk(T, C, B, 100, 0.0000001, 0.85, 5);
 
 		SparseVector ret = null;
 

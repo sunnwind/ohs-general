@@ -469,6 +469,21 @@ public class VectorUtils {
 		return toSparseVector(x, indexer, false);
 	}
 
+	public static DenseVector toDenseVector(Counter<String> x, Indexer<String> indexer) {
+		DenseVector ret = new DenseVector(indexer.size());
+
+		for (Entry<String, Double> e : x.entrySet()) {
+			String key = e.getKey();
+			double v = e.getValue();
+			int i = indexer.indexOf(key);
+			if (i < 0) {
+				continue;
+			}
+			ret.add(i, v);
+		}
+		return ret;
+	}
+
 	public static SparseVector toSparseVector(Counter<String> x, Indexer<String> indexer, boolean add_if_unseen) {
 		List<Integer> idxs = Generics.newArrayList(x.size());
 		List<Double> vals = Generics.newArrayList(x.size());

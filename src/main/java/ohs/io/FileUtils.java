@@ -1053,6 +1053,11 @@ public class FileUtils {
 	}
 
 	public static Counter<String> readStringCounterFromText(String fileName) throws Exception {
+		return readStringCounterFromText(fileName, 0, 1);
+	}
+
+	public static Counter<String> readStringCounterFromText(String fileName, int key_loc, int val_loc)
+			throws Exception {
 
 		BufferedReader br = openBufferedReader(fileName);
 		String line = br.readLine();
@@ -1063,28 +1068,19 @@ public class FileUtils {
 			int size = Integer.parseInt(line.split("\t")[1]);
 			ret = Generics.newCounter(size);
 		} else {
-			String[] parts = line.split("\t");
-			int len = parts.length;
+			String[] ps = line.split("\t");
+			int len = ps.length;
 
-			if (len == 1) {
-				ret.setCount(parts[0], 1);
-			} else if (len == 2) {
-				ret.setCount(parts[0], Double.parseDouble(parts[1]));
-			} else if (len > 2) {
-				ret.setCount(StrUtils.join("\t", parts, 0, len - 1), Double.parseDouble(parts[len - 1]));
+			if ((key_loc >= 0 && key_loc < len) && (val_loc >= 0 && val_loc < len)) {
+				ret.setCount(ps[key_loc], Double.parseDouble(ps[val_loc]));
 			}
 		}
 
 		while ((line = br.readLine()) != null) {
-			String[] parts = line.split("\t");
-			int len = parts.length;
-
-			if (len == 1) {
-				ret.setCount(parts[0], 1);
-			} else if (len >= 2) {
-				ret.setCount(parts[0], Double.parseDouble(parts[1]));
-			} else if (len > 2) {
-//				ret.setCount(StrUtils.join("\t", parts, 0, len - 1), Double.parseDouble(parts[len - 1]));
+			String[] ps = line.split("\t");
+			int len = ps.length;
+			if ((key_loc >= 0 && key_loc < len) && (val_loc >= 0 && val_loc < len)) {
+				ret.setCount(ps[key_loc], Double.parseDouble(ps[val_loc]));
 			}
 		}
 
@@ -1122,22 +1118,28 @@ public class FileUtils {
 			ret = Generics.newCounterMap(size);
 		}
 
-		int num_entries = 0;
+		int size = 0;
 
 		while ((line = br.readLine()) != null) {
-			String[] parts = line.split("\t");
-			String outKey = parts[0];
-			for (int i = 2; i < parts.length; i++) {
-				String[] two = StrUtils.split2Two(":", parts[i]);
-				String inKey = two[0];
-				double cnt = Double.parseDouble(two[1]);
-				ret.setCount(outKey, inKey, cnt);
-				num_entries++;
+			String[] ps = line.split("\t");
+
+			if (ps.length == 3) {
+				ret.setCount(ps[0], ps[1], Double.parseDouble(ps[2]));
+				size++;
+			} else {
+				String outKey = ps[0];
+				for (int i = 2; i < ps.length; i++) {
+					String[] two = StrUtils.split2Two(":", ps[i]);
+					String inKey = two[0];
+					double cnt = Double.parseDouble(two[1]);
+					ret.setCount(outKey, inKey, cnt);
+					size++;
+				}
 			}
 		}
 		br.close();
 
-		System.out.printf("read [%d] ents at [%s]\n", num_entries, fileName);
+		System.out.printf("read [%d] ents at [%s]\n", size, fileName);
 		return ret;
 	}
 
@@ -1584,7 +1586,8 @@ public class FileUtils {
 			if (val - tmp == 0) {
 				output = String.format("\n%s\t%d", key, tmp);
 			} else {
-				output = String.format("\n%s\t%f", key, val);
+//				output = String.format("\n%s\t%f", key, val);
+				output = String.format("\n%s\t%s", key, val + "");
 			}
 			bw.write(output);
 		}

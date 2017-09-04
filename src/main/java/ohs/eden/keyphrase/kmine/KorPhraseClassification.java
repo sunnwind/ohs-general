@@ -1,4 +1,4 @@
-package ohs.eden.keyphrase.mine;
+package ohs.eden.keyphrase.kmine;
 
 import java.util.List;
 import java.util.Map;
@@ -8,6 +8,7 @@ import java.util.Set;
 import ohs.corpus.type.DocumentCollection;
 import ohs.corpus.type.KoreanPosTokenizer;
 import ohs.eden.keyphrase.cluster.KPPath;
+import ohs.eden.keyphrase.mine.PhraseMapper;
 import ohs.io.FileUtils;
 import ohs.io.RandomAccessDenseMatrix;
 import ohs.ir.search.index.InvertedIndex;
@@ -22,7 +23,6 @@ import ohs.matrix.SparseVector;
 import ohs.ml.neuralnet.com.NeuralNet;
 import ohs.ml.neuralnet.com.NeuralNetParams;
 import ohs.ml.neuralnet.com.NeuralNetTrainer;
-import ohs.ml.neuralnet.layer.BatchNormalizationLayer;
 import ohs.ml.neuralnet.layer.FullyConnectedLayer;
 import ohs.ml.neuralnet.layer.NonlinearityLayer;
 import ohs.ml.neuralnet.layer.SoftmaxLayer;

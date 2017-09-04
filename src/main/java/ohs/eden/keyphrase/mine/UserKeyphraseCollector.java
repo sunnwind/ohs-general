@@ -97,18 +97,19 @@ public class UserKeyphraseCollector {
 			for (String rsc : rscs) {
 				if (rsc.equals("wkt") || rsc.equals("sco")) {
 					cnt1++;
-				} else if (rsc.equals("cds")) {
+				} else if (rsc.equals("cds") || rsc.equals("pm")) {
 					cnt2++;
-				} else if (rsc.equals("pm")) {
-					cnt2++;
-				} else if (rsc.equals("mes")) {
-					cnt3++;
-				} else if (rsc.equals("sno")) {
+				} else if (rsc.equals("mes") || rsc.equals("sno")) {
 					cnt3++;
 				}
 			}
 
-			if (cnt1 == 2) {
+			int cnt0 = cnt1 + cnt2 + cnt3;
+
+			if (cnt0 >= 2) {
+				// if (cnt0 == 2 && cnt1 == 2) {
+				// continue;
+				// }
 
 			} else {
 				continue;
@@ -136,6 +137,11 @@ public class UserKeyphraseCollector {
 	}
 
 	public void getSeedKeyphrases() throws Exception {
+
+		// DocumentSearcher ds = new DocumentSearcher(MIRPath.DATA_DIR +
+		// "merged/col/dc/", MIRPath.STOPWORD_INQUERY_FILE);
+		// WordFilter wf = ds.getWordFilter();
+
 		List<String> res = Generics.newLinkedList();
 
 		for (String line : FileUtils.readLinesFromText(MIRPath.DATA_DIR + "phrs/phrs_filtered.txt")) {
@@ -157,22 +163,33 @@ public class UserKeyphraseCollector {
 			for (String rsc : rscs) {
 				if (rsc.equals("wkt") || rsc.equals("sco")) {
 					cnt1++;
-				} else if (rsc.equals("cds")) {
+				} else if (rsc.equals("cds") || rsc.equals("pm")) {
 					cnt2++;
-				} else if (rsc.equals("pm")) {
-					cnt2++;
-				} else if (rsc.equals("mes")) {
-					cnt3++;
-				} else if (rsc.equals("sno")) {
+				} else if (rsc.equals("mes") || rsc.equals("sno")) {
 					cnt3++;
 				}
 			}
 
-			if ((cnt2 + cnt3) >= 3) {
+			if (cnt1 >= 1 && (cnt2 + cnt3) >= 2) {
 
 			} else {
 				continue;
 			}
+
+			// int stopword_cnt = 0;
+			// List<String> words = StrUtils.split(phrs);
+			//
+			// for (String word : words) {
+			// if (wf.filter(word)) {
+			// stopword_cnt++;
+			// }
+			// }
+			//
+			// double ratio = 1d * stopword_cnt / words.size();
+
+			// if (ratio >= 0.5) {
+			// continue;
+			// }
 
 			res.add(line);
 		}

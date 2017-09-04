@@ -232,6 +232,13 @@ public class TermWeighting {
 	public static double idf(double num_docs, double doc_freq) {
 		return Math.log((num_docs + 1) / (doc_freq));
 	}
+	
+	public static void main(String[] args) {
+		double num_docs = 100;
+		double doc_freq = 2;
+		
+		System.out.println(idf(num_docs, doc_freq+2));
+	}
 
 	public static List<SparseVector> invertedIndexDoubleVector(List<SparseVector> docs, int num_terms) {
 		System.out.println("build inverted index.");
