@@ -295,31 +295,35 @@ public class EmbeddingConceptBiasEstimator {
 
 		Indexer<String> phrsIdxer = Generics.newIndexer(phrsDocFreqs.keySet());
 
-		DocumentCollection dc = new DocumentCollection(MIRPath.TREC_CDS_2016_COL_DC_DIR);
-		RandomAccessDenseMatrix E = new RandomAccessDenseMatrix(MIRPath.TREC_CDS_2016_DIR + "emb/glove_ra.ser");
+		// String dir = MIRPath.TREC_CDS_2016_DIR;
+		String dir = MIRPath.DATA_DIR + "merged/";
 
+		RandomAccessDenseMatrix E = new RandomAccessDenseMatrix(dir + "emb/glove_ra.ser");
+		Vocab vocab = DocumentCollection.readVocab(dir + "col/dc/vocab.ser");
 		Set<String> stopwords = FileUtils.readStringSetFromText(MIRPath.STOPWORD_INQUERY_FILE);
-		WordFilter wf = new WordFilter(dc.getVocab(), stopwords);
-		Vocab vocab = dc.getVocab();
+		WordFilter wf = new WordFilter(vocab, stopwords);
 
 		DenseMatrix X = getFeatureMatrix1(E, phrsIdxer, vocab, wf);
 
+		CounterMap<String, String> cm = Generics.newCounterMap();
+
 		for (String type : typeSeeds.keySet()) {
 			List<String> seeds = typeSeeds.get(type);
-			seedPhrsCnts = Generics.newCounter(seeds);
-
-			Indexer<String> seedPhrsIdxer = Generics.newIndexer(seedPhrsCnts.keySet());
+			Indexer<String> seedPhrsIdxer = Generics.newIndexer(seeds);
 
 			DenseVector Y = getFeatureVector(E, seedPhrsIdxer, vocab, wf);
-
-			String outFileName = MIRPath.DATA_DIR + String.format("phrs/phrs_bias_%s.txt", type);
 
 			EmbeddingConceptBiasEstimator pre = new EmbeddingConceptBiasEstimator(phrsIdxer, X, seedPhrsIdxer, Y);
 
 			pre.setThreadSize(8);
 			pre.setTopK(Integer.MAX_VALUE);
-			pre.estimate(outFileName);
+			Counter<String> c = pre.estimate();
+			cm.setCounter(type, c);
 		}
+
+		cm = cm.invert();
+
+		FileUtils.writeStringCounterMapAsText(MIRPath.DATA_DIR + String.format("phrs/phrs_bias_all.txt"), cm);
 
 		System.out.println("process ends.");
 	}
@@ -346,7 +350,7 @@ public class EmbeddingConceptBiasEstimator {
 		this.Y = Y;
 	}
 
-	public void estimate(String outFileName) throws Exception {
+	public Counter<String> estimate() throws Exception {
 		Timer timer = Timer.newTimer();
 
 		phrsBiases = new DenseVector(phrsIdxer.size());
@@ -365,8 +369,7 @@ public class EmbeddingConceptBiasEstimator {
 			fs.get(i).get();
 		}
 		tpe.shutdown();
-
-		FileUtils.writeStringCounterAsText(outFileName, VectorUtils.toCounter(phrsBiases, phrsIdxer));
+		return VectorUtils.toCounter(phrsBiases, phrsIdxer);
 	}
 
 	public void setThreadSize(int thread_size) {

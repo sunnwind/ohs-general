@@ -65,7 +65,8 @@ public class TermWeighting {
 		}
 	}
 
-	public static void bm25(Collection<SparseVector> ds, DenseVector docFreqs, double num_docs, double b, double k1, double sigma) {
+	public static void bm25(Collection<SparseVector> ds, DenseVector docFreqs, double num_docs, double b, double k1,
+			double sigma) {
 		double len_d_avg = 0;
 
 		for (SparseVector x : ds) {
@@ -79,8 +80,8 @@ public class TermWeighting {
 		}
 	}
 
-	public static double bm25(double cnt_w_in_d, double len_d, double len_d_avg, double num_docs, double doc_freq, double b, double k1,
-			double sigma) {
+	public static double bm25(double cnt_w_in_d, double len_d, double len_d_avg, double num_docs, double doc_freq,
+			double b, double k1, double sigma) {
 		double numerator = cnt_w_in_d * (k1 + 1);
 		double denominator = cnt_w_in_d + k1 * (1 - b + b * (len_d / len_d_avg));
 		// double idf = Math.log((num_docs - doc_freq + 0.5) / (doc_freq + 0.5));
@@ -91,9 +92,10 @@ public class TermWeighting {
 
 	/**
 	 * 
-	 * Lv, Y., & Zhai, C. (2011). Lower-bounding term frequency normalization. In Proceedings of the 20th ACM international conference on
-	 * Information and knowledge management - CIKM ’11 (Vol. 51, p. 7). New York, New York, USA: ACM Press.
-	 * http://doi.org/10.1145/2063576.2063584
+	 * Lv, Y., & Zhai, C. (2011). Lower-bounding term frequency normalization. In
+	 * Proceedings of the 20th ACM international conference on Information and
+	 * knowledge management - CIKM ’11 (Vol. 51, p. 7). New York, New York, USA: ACM
+	 * Press. http://doi.org/10.1145/2063576.2063584
 	 * 
 	 * @param cnt_w_in_q
 	 * @param k3
@@ -107,8 +109,8 @@ public class TermWeighting {
 	 * @param sigma
 	 * @return
 	 */
-	public static double bm25(double cnt_w_in_q, double k3, double cnt_w_in_d, double len_d, double len_d_avg, double num_docs,
-			double doc_freq, double b, double k1, double sigma) {
+	public static double bm25(double cnt_w_in_q, double k3, double cnt_w_in_d, double len_d, double len_d_avg,
+			double num_docs, double doc_freq, double b, double k1, double sigma) {
 		double ret = bm25(cnt_w_in_d, len_d, len_d_avg, num_docs, doc_freq, b, k1, sigma);
 		ret *= ((k3 + 1) * cnt_w_in_q) / (k3 + cnt_w_in_q);
 		return ret;
@@ -154,7 +156,8 @@ public class TermWeighting {
 		}
 	}
 
-	public static void bm25(SparseVector d, DenseVector docFreqs, double num_docs, double len_d_avg, double b, double k1, double sigma) {
+	public static void bm25(SparseVector d, DenseVector docFreqs, double num_docs, double len_d_avg, double b,
+			double k1, double sigma) {
 		int w = 0;
 		double cnt_w = 0;
 		double doc_freq = 0;
@@ -195,7 +198,8 @@ public class TermWeighting {
 				norm = tf * CommonMath.log2(posterior / prior);
 				weight = norm * (tf * (-CommonMath.log2(prior * InvPriorCollection)) +
 
-						(tf + 1d) * (+CommonMath.log2(posterior * InvPriorCollection)) + 0.5 * CommonMath.log2(posterior / prior));
+						(tf + 1d) * (+CommonMath.log2(posterior * InvPriorCollection))
+						+ 0.5 * CommonMath.log2(posterior / prior));
 
 				x.setAt(j, weight);
 			}
@@ -230,14 +234,18 @@ public class TermWeighting {
 	}
 
 	public static double idf(double num_docs, double doc_freq) {
-		return Math.log((num_docs + 1) / (doc_freq));
+		double ret = 0;
+		if (num_docs > 0 && doc_freq > 0) {
+			ret = Math.log((num_docs + 1) / (doc_freq));
+		}
+		return ret;
 	}
-	
+
 	public static void main(String[] args) {
 		double num_docs = 100;
 		double doc_freq = 2;
-		
-		System.out.println(idf(num_docs, doc_freq+2));
+
+		System.out.println(idf(num_docs, doc_freq + 2));
 	}
 
 	public static List<SparseVector> invertedIndexDoubleVector(List<SparseVector> docs, int num_terms) {
@@ -330,11 +338,14 @@ public class TermWeighting {
 	}
 
 	/**
-	 * Hiemstra, D., Robertson, S., and Zaragoza, H. 2004. Parsimonious language models for information retrieval. Proceedings of the 27th
-	 * annual international ACM SIGIR conference on Research and development in information retrieval, ACM, 178–185.
+	 * Hiemstra, D., Robertson, S., and Zaragoza, H. 2004. Parsimonious language
+	 * models for information retrieval. Proceedings of the 27th annual
+	 * international ACM SIGIR conference on Research and development in information
+	 * retrieval, ACM, 178–185.
 	 * 
-	 * Na, S.-H., Kang, I.-S., and Lee, J.-H. 2007. Parsimonious translation models for information retrieval. Information Processing &
-	 * Management 43, 1, 121–145.
+	 * Na, S.-H., Kang, I.-S., and Lee, J.-H. 2007. Parsimonious translation models
+	 * for information retrieval. Information Processing & Management 43, 1,
+	 * 121–145.
 	 * 
 	 * @param doc
 	 * @param cnts_w_in_c
@@ -392,7 +403,8 @@ public class TermWeighting {
 		parsimoniousLanguageModels(docs, cnts_w_in_c, 0.5);
 	}
 
-	public static void parsimoniousLanguageModels(Collection<SparseVector> docs, DenseVector cnts_w_in_c, double mixture_jm) {
+	public static void parsimoniousLanguageModels(Collection<SparseVector> docs, DenseVector cnts_w_in_c,
+			double mixture_jm) {
 		for (SparseVector doc : docs) {
 			parsimoniousLanguageModel(doc, cnts_w_in_c, mixture_jm);
 		}
@@ -460,8 +472,10 @@ public class TermWeighting {
 
 	/**
 	 * 
-	 * Zhai, C., & Lafferty, J. (2002). Two-stage language models for information retrieval. In Proceedings of the 25th annual international
-	 * ACM SIGIR conference on Research and development in information retrieval - SIGIR ’02 (p. 49). New York, New York, USA: ACM Press.
+	 * Zhai, C., & Lafferty, J. (2002). Two-stage language models for information
+	 * retrieval. In Proceedings of the 25th annual international ACM SIGIR
+	 * conference on Research and development in information retrieval - SIGIR ’02
+	 * (p. 49). New York, New York, USA: ACM Press.
 	 * http://doi.org/10.1145/564376.564387
 	 * 
 	 * @param doc
@@ -470,8 +484,8 @@ public class TermWeighting {
 	 * @param cnts_w_in_bg
 	 * @param mixture_jm
 	 */
-	public static void twoStageLanguageModel(SparseVector doc, DenseVector cnts_w_in_c, double prior_dir, DenseVector cnts_w_in_bg,
-			double mixture_jm) {
+	public static void twoStageLanguageModel(SparseVector doc, DenseVector cnts_w_in_c, double prior_dir,
+			DenseVector cnts_w_in_bg, double mixture_jm) {
 		double pr_sum = 0;
 
 		for (int j = 0; j < doc.size(); j++) {
@@ -488,23 +502,23 @@ public class TermWeighting {
 		twoStageLanguageModels(docs, cnts_w_in_c, prior_dirichlet, cnts_w_in_c, mixture_jm);
 	}
 
-	public static void twoStageLanguageModels(List<SparseVector> docs, DenseVector cnts_w_in_c, double prior_dir, DenseVector cnts_w_in_bg,
-			double mixture_jm) {
+	public static void twoStageLanguageModels(List<SparseVector> docs, DenseVector cnts_w_in_c, double prior_dir,
+			DenseVector cnts_w_in_bg, double mixture_jm) {
 		for (SparseVector doc : docs) {
 			twoStageLanguageModel(doc, cnts_w_in_c, prior_dir, cnts_w_in_bg, mixture_jm);
 		}
 	}
 
-	public static double twoStageSmoothing(double cnt_w_in_d, double len_d, double pr_w_in_c, double prior_dir, double pr_w_in_bg,
-			double mixture_jm) {
+	public static double twoStageSmoothing(double cnt_w_in_d, double len_d, double pr_w_in_c, double prior_dir,
+			double pr_w_in_bg, double mixture_jm) {
 		double pr_w_in_d = len_d > 0 ? cnt_w_in_d / len_d : 0;
 		double pr_w_in_d_dir = dirichletSmoothing(pr_w_in_d, len_d, pr_w_in_c, prior_dir);
 		double pr_w_in_d_jm = jelinekMercerSmoothing(pr_w_in_d_dir, pr_w_in_bg, mixture_jm);
 		return pr_w_in_d_jm;
 	}
 
-	public static double twoStageSmoothing(int w, SparseVector doc, DenseVector cnts_w_in_c, double prior_dir, DenseVector cnts_w_in_qbg,
-			double mixture_jm) {
+	public static double twoStageSmoothing(int w, SparseVector doc, DenseVector cnts_w_in_c, double prior_dir,
+			DenseVector cnts_w_in_qbg, double mixture_jm) {
 		double cnt_w_in_d = doc.prob(w);
 		double pr_w_in_c = cnts_w_in_c.prob(w);
 		double pr_w_in_qbg = cnts_w_in_qbg.prob(w);

@@ -30,7 +30,6 @@ import ohs.nlp.ling.types.MultiToken;
 import ohs.nlp.ling.types.Token;
 import ohs.types.generic.Counter;
 import ohs.types.generic.Indexer;
-import ohs.types.generic.ListMap;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
 import ohs.types.number.IntegerArrayMatrix;
@@ -40,107 +39,63 @@ import ohs.utils.StrUtils;
 
 public class KPhraseNumberPredictor {
 
-	public static SparseVector extractFeatures(Vocab vocab, MDocument doc) {
+	public static SparseVector extractFeatures(Vocab featIdxer, MDocument doc) {
 
-		Counter<Integer> c = Generics.newCounter();
-		Counter<String> c2 = Generics.newCounter();
-
-		double noun_cnt = 0;
-		double verb_cnt = 0;
+		Counter<Integer> c1 = Generics.newCounter();
+		Counter<Integer> c2 = Generics.newCounter();
 
 		for (MSentence ms : doc) {
 			for (MultiToken mt : ms) {
 				for (Token t : mt) {
 					String word = t.get(0);
 					String pos = t.get(1);
-					String feat = String.format("%s_/_%s", word, pos);
-					int f = vocab.indexOf(feat);
-					if (f < 0) {
-						continue;
-					}
-					c.incrementCount(f, 1);
-					c2.incrementCount(pos, 1);
 
-					if (pos.startsWith("NN")) {
-						noun_cnt++;
+					int f1 = featIdxer.indexOf(word);
+					int f2 = featIdxer.indexOf(pos);
+
+					if (f1 != -1) {
+						c1.incrementCount(f1, 1);
 					}
 
-					if (pos.startsWith("V")) {
-						verb_cnt++;
+					if (f2 != -1) {
+						c2.incrementCount(f2, 1);
 					}
+
 				}
 			}
 		}
 
-		double len_d = c.totalCount();
+		double len_d = c1.totalCount();
 		double norm = 0;
 
-		for (Entry<Integer, Double> e : c.entrySet()) {
+		for (Entry<Integer, Double> e : c1.entrySet()) {
 			int f = e.getKey();
 			double cnt = e.getValue();
-			double tfidf = TermWeighting.tfidf(cnt, vocab.getDocCnt(), vocab.getDocFreq(f));
-			c.setCount(f, tfidf);
+			double tfidf = TermWeighting.tfidf(cnt, featIdxer.getDocCnt(), featIdxer.getDocFreq(f));
+			c1.setCount(f, tfidf);
 			norm += tfidf * tfidf;
 		}
 
-		if (c.size() > 0) {
-			double avg_tfidf = c.average();
-
-			if (norm > 0) {
-				norm = Math.sqrt(norm);
-				c.scale(1f / norm);
-			}
-
-			double noun_ratio = noun_cnt / len_d;
-			double verb_ratio = verb_cnt / len_d;
-
-			c.incrementCount(vocab.indexOf("#len_d"), len_d);
-			c.incrementCount(vocab.indexOf("#avg_idf"), avg_tfidf);
-			c.incrementCount(vocab.indexOf("#noun_ratio"), noun_ratio);
-			c.incrementCount(vocab.indexOf("#verb_ratio"), verb_ratio);
+		if (norm > 0) {
+			norm = Math.sqrt(norm);
+			c1.scale(1f / norm);
 		}
 
-		return new SparseVector(c);
-	}
+		Counter<Integer> c3 = Generics.newCounter();
 
-	public static void generateData() throws Exception {
-		List<String> ins = FileUtils.readLinesFromText(KPPath.KP_DIR + "ext/label_data.txt");
-
-		List<String> outs = Generics.newArrayList(ins.size());
-		Counter<Integer> c = Generics.newCounter();
-
-		ListMap<Integer, Integer> lm = Generics.newListMap();
-
-		for (int i = 0; i < ins.size(); i++) {
-			String line = ins.get(i);
-			List<String> ps = Generics.newArrayList(line.split("\t"));
-			ps = StrUtils.unwrap(ps);
-
-			String kwdStr = ps.get(0);
-			String title = ps.get(1);
-			String abs = ps.get(2);
-
-			int size = kwdStr.split(StrUtils.LINE_REP).length;
-			String[] tmp = new String[] { size + "", title + StrUtils.LINE_REP + abs };
-			tmp = StrUtils.wrap(tmp);
-
-			lm.put(size, outs.size());
-
-			outs.add(StrUtils.join("\t", tmp));
-
-			c.incrementCount(size, 1);
+		if (c1.size() > 0) {
+			c3.incrementAll(c1);
+			c3.incrementAll(c2);
+			c1.incrementCount(featIdxer.indexOf("#len_d"), len_d);
 		}
 
-		FileUtils.writeStringCollectionAsText(KPPath.KP_DIR + "ext/label_data_phrs_number.txt", outs);
-
-		System.out.println(c.toString(c.size()));
+		return new SparseVector(c3);
 	}
 
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 
-		// generateData();
-		// vectorizeData();
+		vectorizeData();
 		trainModel();
 
 		System.out.println("process ends.");
@@ -237,37 +192,95 @@ public class KPhraseNumberPredictor {
 	}
 
 	public static void vectorizeData() throws Exception {
-		Vocab vocab = DocumentCollection.readVocab(KPPath.COL_DC_DIR + "vocab.ser");
-		vocab.add("#len_d");
-		vocab.add("#avg_idf");
-		vocab.add("#noun_ratio");
-		vocab.add("#verb_ratio");
-
-		List<String> ins = FileUtils.readLinesFromText(KPPath.KP_DIR + "ext/label_data_phrs_number.txt");
+		List<String> ins = FileUtils.readLinesFromText(KPPath.KP_DIR + "ext/label_data.txt");
 
 		List<SparseVector> X = Generics.newArrayList(ins.size());
 		List<Integer> Y = Generics.newArrayList(ins.size());
 
+		Counter<String> wordCnts = Generics.newCounter();
+		Counter<String> docFreqs = Generics.newCounter();
+		Counter<String> posCnts = Generics.newCounter();
+
 		for (String line : ins) {
 			String[] ps = line.split("\t");
-			ps = StrUtils.unwrap(ps);
-			int label = Integer.parseInt(ps[0]);
-			String content = ps[1].replace(StrUtils.LINE_REP, "\n");
-			MDocument doc = MDocument.newDocument(content);
-			SparseVector x = extractFeatures(vocab, doc);
+			MDocument md = MDocument.newDocument(ps[2]);
+
+			for (MSentence ms : md) {
+				Counter<String> c = Generics.newCounter();
+				for (Token t : ms.getTokens()) {
+					String word = t.get(0);
+					String pos = t.get(1);
+					c.incrementCount(word, 1);
+					posCnts.incrementCount(pos, 1);
+				}
+				wordCnts.incrementAll(c);
+
+				for (String word : c.keySet()) {
+					docFreqs.incrementCount(word, 1);
+				}
+			}
+		}
+
+		System.out.println(wordCnts.toString());
+		System.out.println(posCnts.toString());
+
+		Vocab featIdxer = new Vocab();
+		featIdxer.addAll(wordCnts.keySet());
+		featIdxer.addAll(posCnts.keySet());
+
+		featIdxer.add("#len_d");
+		featIdxer.add("#avg_idf");
+		featIdxer.add("#noun_ratio");
+		featIdxer.add("#verb_ratio");
+
+		featIdxer.setDocCnt(ins.size());
+
+		featIdxer.setWordCnts(new IntegerArray(new int[featIdxer.size()]));
+		featIdxer.setDocFreqs(new IntegerArray(new int[featIdxer.size()]));
+
+		{
+			IntegerArray cnts = featIdxer.getCounts();
+			IntegerArray freqs = featIdxer.getDocFreqs();
+
+			for (String word : wordCnts.keySet()) {
+				int w = featIdxer.indexOf(word);
+				double cnt = wordCnts.getCount(word);
+				double doc_freq = docFreqs.getCount(word);
+				cnts.set(w, (int) cnt);
+				freqs.set(w, (int) doc_freq);
+			}
+		}
+
+		{
+			IntegerArray cnts = featIdxer.getCounts();
+
+			for (String pos : posCnts.keySet()) {
+				int f = featIdxer.indexOf(pos);
+				double cnt = posCnts.getCount(pos);
+				cnts.set(f, (int) cnt);
+			}
+		}
+
+		for (String line : ins) {
+			String[] ps = line.split("\t");
+			MDocument md1 = MDocument.newDocument(ps[1]);
+			MDocument md2 = MDocument.newDocument(ps[2]);
+			SparseVector x = extractFeatures(featIdxer, md2);
 
 			if (x.size() == 0) {
 				continue;
 			}
 
-			Y.add(label);
+			int phrs_size = md1.size();
+
+			Y.add(phrs_size);
 			X.add(x);
 		}
 
 		new SparseMatrix(X).writeObject(KPPath.KP_DIR + "ext/X_number.ser.gz");
 		new IntegerArray(Y).writeObject(KPPath.KP_DIR + "ext/Y_number.ser.gz");
 
-		DocumentCollectionCreator.writeVocab(vocab, KPPath.KP_DIR + "ext/vocab_num_pred.ser");
+		DocumentCollectionCreator.writeVocab(featIdxer, KPPath.KP_DIR + "ext/vocab_num_pred.ser");
 	}
 
 	public String delim = "  ";

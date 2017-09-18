@@ -1,4 +1,4 @@
-package ohs.eden.keyphrase.kmine;
+package ohs.eden.keyphrase.mine;
 
 import java.util.List;
 import java.util.Map;
@@ -8,7 +8,6 @@ import java.util.Set;
 import ohs.corpus.type.DocumentCollection;
 import ohs.corpus.type.KoreanPosTokenizer;
 import ohs.eden.keyphrase.cluster.KPPath;
-import ohs.eden.keyphrase.mine.PhraseMapper;
 import ohs.io.FileUtils;
 import ohs.io.RandomAccessDenseMatrix;
 import ohs.ir.search.index.InvertedIndex;

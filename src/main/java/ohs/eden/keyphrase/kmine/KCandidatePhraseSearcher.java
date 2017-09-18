@@ -1,4 +1,4 @@
- package ohs.eden.keyphrase.kmine;
+package ohs.eden.keyphrase.kmine;
 
 import java.util.Collection;
 import java.util.List;
@@ -13,6 +13,7 @@ import ohs.types.common.IntPair;
 import ohs.types.generic.ListList;
 import ohs.types.generic.Pair;
 import ohs.utils.Generics;
+import ohs.utils.StrUtils;
 
 public class KCandidatePhraseSearcher {
 
@@ -24,9 +25,20 @@ public class KCandidatePhraseSearcher {
 			List<String> poss = Generics.newArrayList(s.sizeOfTokens());
 
 			for (Token t : s.getTokens()) {
-				poss.add(t.get(TokenAttr.POS));
+				poss.add(t.get(1));
 			}
 
+			Node<String> node = dict.insert(poss);
+			node.setFlag(true);
+		}
+		dict.trimToSize();
+		return new KCandidatePhraseSearcher(dict);
+	}
+
+	public static KCandidatePhraseSearcher newCandidatePhraseSearcher2(Collection<String> pats) {
+		Trie<String> dict = new Trie<String>();
+		for (String pat : pats) {
+			List<String> poss = StrUtils.split(" ", pat);
 			Node<String> node = dict.insert(poss);
 			node.setFlag(true);
 		}
@@ -46,8 +58,8 @@ public class KCandidatePhraseSearcher {
 		this.dict = dict;
 	}
 
-	public ListList<IntPair> search(MDocument d) {
-		ListList<IntPair> ret = Generics.newListList(d.size());
+	public List<List<IntPair>> search(MDocument d) {
+		List<List<IntPair>> ret = Generics.newArrayList(d.size());
 		for (MSentence s : d) {
 			ret.add(search(s));
 		}
@@ -65,7 +77,7 @@ public class KCandidatePhraseSearcher {
 
 			while (j < ts.size()) {
 				Token t = ts.get(j);
-				String pos = t.get(TokenAttr.POS);
+				String pos = t.get(1);
 
 				if (node.hasChild(pos)) {
 					node = node.getChild(pos);

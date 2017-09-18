@@ -6,20 +6,39 @@ import java.util.ArrayList;
 import java.util.List;
 
 import ohs.utils.Generics;
+import ohs.utils.StrUtils;
 
 public class MSentence extends ArrayList<MultiToken> {
 
-	public static final String DELIM_SENT = " __ ";
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = -3571196248876992657L;
 
 	public static MSentence newSentence(String s) {
-		String[] ps = s.split(" __ ");
-		MSentence ret = new MSentence(ps.length);
-		for (int i = 0; i < ps.length; i++) {
-			ret.add(MultiToken.newMultiToken(ps[i]));
+		s = s.replace("<nl>", "\n");
+		String[] lines = s.split("\n");
+		MSentence ret = new MSentence(lines.length);
+
+		int num_attrs = Token.AttributeIndexer.size();
+
+		for (int i = 0; i < lines.length; i++) {
+			List<String> ps = StrUtils.split(lines[i]);
+
+			int min_attrs = Math.min(num_attrs, ps.size());
+			Token t = new Token(min_attrs);
+
+			for (int j = 0; j < min_attrs; j++) {
+				t.add(ps.get(j));
+			}
+
+			if (num_attrs == t.size()) {
+				MultiToken mt = new MultiToken();
+				mt.add(t);
+				ret.add(mt);
+			} else {
+				System.err.printf("missing values found:\t%s\n", ps.toString());
+			}
 		}
 		return ret;
 	}
@@ -70,7 +89,7 @@ public class MSentence extends ArrayList<MultiToken> {
 		for (int i = 0; i < size(); i++) {
 			sb.append(get(i).toString());
 			if (i != size() - 1) {
-				sb.append(DELIM_SENT);
+				sb.append("\n");
 			}
 		}
 		return sb.toString();

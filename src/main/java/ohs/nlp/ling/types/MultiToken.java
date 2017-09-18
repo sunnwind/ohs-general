@@ -5,7 +5,7 @@ import java.util.Collection;
 
 public class MultiToken extends ArrayList<Token> {
 
-	public static final String DELIM = " + ";
+	public static String DELIM = "  ";
 
 	/**
 	 * 
@@ -45,7 +45,7 @@ public class MultiToken extends ArrayList<Token> {
 	public String toString() {
 		StringBuffer sb = new StringBuffer();
 		for (int i = 0; i < size(); i++) {
-			sb.append(get(i).toString());
+			sb.append(get(0).toString());
 			if (i != size() - 1) {
 				sb.append(DELIM);
 			}

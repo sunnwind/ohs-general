@@ -3,20 +3,34 @@ package ohs.nlp.ling.types;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.List;
+
+import ohs.types.generic.Indexer;
+import ohs.utils.Generics;
+import ohs.utils.StrUtils;
 
 public class Token extends ArrayList<String> {
 
-	public static final String DELIM = " / ";
+	public static Indexer<String> AttributeIndexer;
+
+	public static String DELIM = " ";
+
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 7950967445551151259L;
 
+	static {
+		AttributeIndexer = Generics.newIndexer(2);
+		AttributeIndexer.add("WORD");
+		AttributeIndexer.add("POS");
+	}
+
 	public static Token newToken(String s) {
-		String[] ps = s.split(DELIM);
-		Token ret = new Token(ps.length);
-		for (int i = 0; i < ps.length; i++) {
-			ret.add(ps[i]);
+		List<String> ps = StrUtils.split(s);
+		Token ret = new Token(ps.size());
+		for (int i = 0; i < ps.size(); i++) {
+			ret.add(ps.get(i));
 		}
 		return ret;
 	}
@@ -25,6 +39,15 @@ public class Token extends ArrayList<String> {
 
 	public Token() {
 
+	}
+
+	public String get(String attr) {
+		String ret = null;
+		int idx = AttributeIndexer.indexOf(attr);
+		if (idx != -1) {
+			ret = get(idx);
+		}
+		return ret;
 	}
 
 	public Token(int size) {
@@ -72,16 +95,6 @@ public class Token extends ArrayList<String> {
 
 	public String toString(boolean print_attr_names) {
 		StringBuffer sb = new StringBuffer();
-		// if (print_attr_names) {
-		// for (int i = 0; i < size(); i++) {
-		// sb.append(TokenAttr.values()[i]);
-		// if (i != size()) {
-		// sb.append("\t");
-		// }
-		// }
-		// sb.append("\n");
-		// }
-		// sb.append(StrUtils.join("\t", StrUtils.wrap(this)));
 
 		for (int i = 0; i < size(); i++) {
 			sb.append(get(i));

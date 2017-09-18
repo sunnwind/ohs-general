@@ -14,8 +14,8 @@ public class MDocument extends ArrayList<MSentence> {
 	private static final long serialVersionUID = 3622971030346445909L;
 
 	public static MDocument newDocument(String s) {
-		s = s.replace(StrUtils.LINE_REP, "\n");
-		String[] ps = s.split("[\\n]+");
+		s = s.replace("<nl>", "\n");
+		String[] ps = s.split("\n\n");
 		MDocument ret = new MDocument(ps.length);
 		for (int i = 0; i < ps.length; i++) {
 			ret.add(MSentence.newSentence(ps[i]));
@@ -61,7 +61,7 @@ public class MDocument extends ArrayList<MSentence> {
 		for (int i = 0; i < size(); i++) {
 			sb.append(get(i).toString());
 			if (i != size() - 1) {
-				sb.append("\n");
+				sb.append("\n\n");
 			}
 		}
 		return sb.toString();

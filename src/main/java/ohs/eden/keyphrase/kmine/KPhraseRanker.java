@@ -7,7 +7,6 @@ import java.util.Set;
 
 import de.bwaldvogel.liblinear.Linear;
 import ohs.corpus.type.DocumentCollection;
-import ohs.corpus.type.RawDocumentCollection;
 import ohs.eden.keyphrase.cluster.KPPath;
 import ohs.io.FileUtils;
 import ohs.ir.search.index.WordFilter;
@@ -37,93 +36,49 @@ import ohs.utils.StrUtils;
  */
 public class KPhraseRanker {
 
-	private static String LONG_UNDER_BAR = "__";
-
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 
-		Counter<String> phrsBiases = Generics.newCounter();
-
-		{
-			List<String> lines = FileUtils.readLinesFromText(KPPath.KP_DIR + "ext/kphrs.txt");
-			phrsBiases = Generics.newCounter(lines.size());
-
-			for (String line : lines) {
-				String[] ps = line.split("\t");
-				String phrs = ps[0];
-				// MSentence sent = MSentence.newSentence(phrs);
-				//
-				// List<String> l = Generics.newArrayList();
-				//
-				// for (MultiToken mt : sent) {
-				// for (Token t : mt) {
-				// l.add(String.format("%s_/_%s", t.get(TokenAttr.WORD), t.get(TokenAttr.POS)));
-				// }
-				// }
-				//
-				// phrs = StrUtils.join(" ", l);
-
-				double weight = Double.parseDouble(ps[1]);
-				phrsBiases.setCount(phrs, weight);
-			}
-		}
-
-		DocumentCollection dc = new DocumentCollection(KPPath.COL_DC_DIR);
-		RawDocumentCollection rdc = new RawDocumentCollection(KPPath.COL_DC_DIR);
+		Counter<String> phrsCnts = FileUtils.readStringCounterFromText(KPPath.KP_DIR + "ext/phrs.txt");
 
 		List<String> ins = FileUtils.readLinesFromText(KPPath.KP_DIR + "ext/label_data.txt");
 
-		KPhraseRanker pr = new KPhraseRanker(dc, null, phrsBiases);
-		KPhraseNumberPredictor pnp = new KPhraseNumberPredictor(
-				DocumentCollection.readVocab(KPPath.KP_DIR + "ext/vocab_num_pred.ser"),
+		Vocab featIdxer = DocumentCollection.readVocab(KPPath.KP_DIR + "ext/vocab_num_pred.ser");
+
+		KPhraseRanker pr = new KPhraseRanker(featIdxer,
+				KCandidatePhraseSearcher.newCandidatePhraseSearcher(phrsCnts.keySet()));
+
+		KPhraseNumberPredictor pnp = new KPhraseNumberPredictor(featIdxer,
 				Linear.loadModel(new File(KPPath.KP_DIR + "ext/model_num_pred.txt")));
 		int cnt = 0;
 
 		for (String line : ins) {
-			String[] ps = line.split("\t");
-			ps = StrUtils.unwrap(ps);
+			List<String> ps = StrUtils.split("\t", line);
+
 			List<String> ansPhrss = Generics.newArrayList();
 
-			for (String phrs : ps[0].split(StrUtils.LINE_REP)) {
-				ansPhrss.add(phrs);
-			}
+			MDocument md1 = MDocument.newDocument(ps.get(1));
+			MDocument md2 = MDocument.newDocument(ps.get(2));
 
-			String title = ps[1].replace(StrUtils.LINE_REP, "\n");
-			String body = ps[2].replace(StrUtils.LINE_REP, "\n");
-			String content = title + "\n" + body;
-			MDocument doc = MDocument.newDocument(content);
+			Counter<MSentence> phrss = pr.rank(md2);
 
-			StringBuffer sb1 = new StringBuffer();
-
-			for (MSentence ms : doc) {
-				for (MultiToken mt : ms) {
-					for (Token t : mt) {
-						sb1.append(t.get(0));
-					}
-					sb1.append(" ");
-				}
-				sb1.append("\n");
-			}
-
-			Counter<MultiToken> phrss = pr.rank(doc);
-
-			int pred_phrs_size = pnp.predict(doc);
+			int pred_phrs_size = pnp.predict(md2);
 
 			phrss.keepTopNKeys(pred_phrs_size);
 
 			System.out.println("<Input>");
-			System.out.println(sb1.toString());
+			// System.out.println(sb1.toString());
 			System.out.println("<Output>");
 
 			StringBuffer sb2 = new StringBuffer();
 
-			for (MultiToken mt : phrss.getSortedKeys()) {
+			for (MSentence mt : phrss.getSortedKeys()) {
 				StringBuffer sb = new StringBuffer();
 				double score = phrss.getCount(mt);
-				for (Token t : mt) {
+				for (Token t : mt.getTokens()) {
 					sb.append(t.get(0));
 				}
-				
+
 			}
 
 			System.out.println(phrss.toStringSortedByValues(true, true, phrss.size(), "\t"));
@@ -145,94 +100,34 @@ public class KPhraseRanker {
 		System.out.println("process ends.");
 	}
 
-	private DocumentCollection dc;
+	private KCandidatePhraseSearcher cps;
 
-	private Counter<String> dv;
-
-	private Counter<String> phrsBiases;
-
-	private Indexer<String> phrsIdxer;
-
-	private KCandidatePhraseSearcher pm;
-
-	private Vocab vocab;
+	private Vocab featIdxer;
 
 	private WordFilter wf;
 
 	private int window_size = 5;
 
-	public KPhraseRanker(DocumentCollection dc, WordFilter wf, Counter<String> phrsBiases) {
-		this.dc = dc;
-		this.wf = wf;
-		this.vocab = dc.getVocab();
-		this.phrsBiases = phrsBiases;
-
-		phrsIdxer = Generics.newIndexer(phrsBiases.size());
-
-		pm = KCandidatePhraseSearcher.newCandidatePhraseSearcher(phrsBiases.keySet());
-
+	public KPhraseRanker(Vocab featIdxer, KCandidatePhraseSearcher cps) {
+		this.featIdxer = featIdxer;
+		this.cps = cps;
 	}
 
-	private double computeKLDScore(DenseVector q, DenseVector psg, DenseVector d, DenseVector c) {
-		double ret = 0;
-		double prior_dir = 1000;
-		double mixture_jm = 0.5;
-
-		// for (int w = 0; w < q.size(); w++) {
-		// double pr_w_in_q = q.prob(w);
-		// if (pr_w_in_q == 0) {
-		// continue;
-		// }
-		// double cnt_w_in_p = psg.value(w);
-		// double len_p = psg.sum();
-		// double pr_w_in_p = cnt_w_in_p / len_p;
-		// double pr_w_in_c = c.prob(w);
-		// double cnt_w_in_d = d.value(w);
-		// double len_d = d.sum();
-		// // double pr_w_in_d = cnt_w_in_d / len_d;
-		//
-		// double pr_w_in_d = TermWeighting.twoStageSmoothing(cnt_w_in_d, len_d,
-		// pr_w_in_c, prior_dir, pr_w_in_p,
-		// mixture_jm);
-		//
-		// ret += pr_w_in_q * Math.log(pr_w_in_q / pr_w_in_d);
-		// }
-
-		for (int w = 0; w < q.size(); w++) {
-			double pr_w_in_q = q.prob(w);
-			if (pr_w_in_q == 0) {
-				continue;
-			}
-			double cnt_w_in_p = psg.value(w);
-			double len_p = psg.sum();
-			double pr_w_in_p = cnt_w_in_p / len_p;
-
-			double pr_w_in_c = c.prob(w);
-			double cnt_w_in_d = d.value(w);
-			double len_d = d.sum();
-
-			pr_w_in_p = TermWeighting.jelinekMercerSmoothing(pr_w_in_p, pr_w_in_c, mixture_jm);
-
-			ret += pr_w_in_q * Math.log(pr_w_in_q / pr_w_in_p);
-		}
-
-		ret = Math.exp(-ret);
-		return ret;
-	}
-
-	public Counter<String> extract(String d) {
-
-		return null;
-	}
-
-	private Counter<MultiToken> getPhraseCounts(MDocument doc, ListList<IntPair> psData) {
-		Counter<MultiToken> ret = Generics.newCounter();
+	private Counter<MSentence> getPhraseCounts(MDocument doc, List<List<IntPair>> psData) {
+		Counter<MSentence> ret = Generics.newCounter();
 		for (int i = 0; i < doc.size(); i++) {
 			List<Token> ts = doc.get(i).getTokens();
 			List<IntPair> ps = psData.get(i);
 
 			for (IntPair p : ps) {
-				MultiToken phrs = new MultiToken(ts.subList(p.getFirst(), p.getSecond()));
+				MSentence phrs = new MSentence();
+
+				for (int j = p.getFirst(); j < p.getSecond(); j++) {
+					MultiToken mt = new MultiToken();
+					mt.add(ts.get(j));
+					phrs.add(mt);
+				}
+
 				ret.incrementCount(phrs, 1);
 			}
 		}
@@ -240,8 +135,8 @@ public class KPhraseRanker {
 		return ret;
 	}
 
-	private CounterMap<MultiToken, Token> getPhraseToWords(MDocument d, ListList<IntPair> psData) {
-		CounterMap<MultiToken, Token> ret = Generics.newCounterMap();
+	private CounterMap<MSentence, Token> getPhraseToWords(MDocument d, List<List<IntPair>> psData) {
+		CounterMap<MSentence, Token> ret = Generics.newCounterMap();
 
 		for (int i = 0; i < d.size(); i++) {
 			MSentence s = d.get(i);
@@ -254,7 +149,13 @@ public class KPhraseRanker {
 			List<Token> ts = s.getTokens();
 
 			for (IntPair p : ps) {
-				MultiToken phrs = new MultiToken(ts.subList(p.getFirst(), p.getSecond()));
+				MSentence phrs = new MSentence();
+
+				for (int j = p.getFirst(); j < p.getSecond(); j++) {
+					MultiToken mt = new MultiToken();
+					mt.add(ts.get(j));
+					phrs.add(mt);
+				}
 
 				int lower_boud = Math.max(0, p.getFirst() - window_size);
 				int upper_bound = Math.min(p.getSecond() + window_size, ts.size());
@@ -279,27 +180,17 @@ public class KPhraseRanker {
 		return ret;
 	}
 
-	private DenseVector getPhraseWeights(Indexer<MultiToken> phrsIdxer, Indexer<Token> wordIdxer,
+	private DenseVector getPhraseWeights(Indexer<MSentence> phrsIdxer, Indexer<Token> wordIdxer,
 			DenseVector wordWeights) {
 		DenseVector ret = new DenseVector(phrsIdxer.size());
 		for (int p = 0; p < phrsIdxer.size(); p++) {
-			MultiToken phrs = phrsIdxer.getObject(p);
+			MSentence phrs = phrsIdxer.getObject(p);
 			double weight = 0;
-			for (Token t : phrs) {
+			for (Token t : phrs.getTokens()) {
 				int w = wordIdxer.indexOf(t);
 				weight += wordWeights.value(w);
 			}
 			ret.add(p, weight);
-		}
-		return ret;
-	}
-
-	private DenseVector getSubDocumentVector(DenseVector t, DenseVector dv) {
-		DenseVector ret = new DenseVector(dv.size());
-		for (int i = 0; i < t.size(); i++) {
-			if (t.value(i) != 0) {
-				ret.add(i, dv.value(i));
-			}
 		}
 		return ret;
 	}
@@ -347,23 +238,24 @@ public class KPhraseRanker {
 
 		for (int w = 0; w < wordIdxer.size(); w++) {
 			Token t = wordIdxer.getObject(w);
-			String s = String.format("%s_/_%s", t.get(0), t.get(1));
-			double doc_freq = vocab.getDocFreq(s);
+			String word = t.get(0);
+			double doc_freq = featIdxer.getDocFreq(word);
 			double cnt = wordCnts.getCount(t);
 			if (doc_freq == 0) {
-				doc_freq = 1;
+				// doc_freq = 1;
+				doc_freq = featIdxer.getDocCnt();
 			}
-			double tfidf = TermWeighting.tfidf(cnt, vocab.getDocCnt() + 1, doc_freq);
+			double tfidf = TermWeighting.tfidf(cnt, featIdxer.getDocCnt() + 1, doc_freq);
 			ret.add(w, tfidf);
 		}
 		return ret;
 	}
 
-	public Counter<MultiToken> rank(MDocument doc) {
-		ListList<IntPair> ps = pm.search(doc);
-		CounterMap<MultiToken, Token> phrsSims = getPhraseToWords(doc, ps);
+	public Counter<MSentence> rank(MDocument doc) {
+		List<List<IntPair>> pss = cps.search(doc);
+		CounterMap<MSentence, Token> phrsSims = getPhraseToWords(doc, pss);
 		CounterMap<Token, Token> wordSims = getWordToWords(doc);
-		Counter<MultiToken> phrsCnts = getPhraseCounts(doc, ps);
+		Counter<MSentence> phrsCnts = getPhraseCounts(doc, pss);
 		Counter<Token> wordCnts = Generics.newCounter();
 
 		for (List<Token> ts : doc.getTokens()) {
@@ -372,9 +264,7 @@ public class KPhraseRanker {
 			}
 		}
 
-		Counter<String> phrsBiases = Generics.newCounter();
-
-		Indexer<MultiToken> phrsIdxer = Generics.newIndexer(phrsCnts.keySet());
+		Indexer<MSentence> phrsIdxer = Generics.newIndexer(phrsCnts.keySet());
 		Indexer<Token> wordIdxer = Generics.newIndexer(wordCnts.keySet());
 
 		DenseVector wordWeights = getWordWeights(wordIdxer, wordCnts);
@@ -385,7 +275,7 @@ public class KPhraseRanker {
 
 		DenseMatrix T1 = new DenseMatrix(phrsIdxer.size(), wordIdxer.size());
 
-		for (MultiToken phrs : phrsSims.keySet()) {
+		for (MSentence phrs : phrsSims.keySet()) {
 			int p = phrsIdxer.indexOf(phrs);
 			double p_weight = phrsWeights.value(p);
 			Counter<Token> c = phrsSims.getCounter(phrs);
@@ -404,35 +294,6 @@ public class KPhraseRanker {
 		// VectorMath.unitVector(T1, T1);
 
 		DenseMatrix T2 = new DenseMatrix(wordIdxer.size());
-
-		// for (int i = 0; i < T2.rowSize(); i++) {
-		// Token t1 = wordIdxer.getObject(i);
-		// String word1 = t1.get(TokenAttr.WORD);
-		// double weight1 = wordWeights.value(i);
-		// for (int j = i + 1; j < T2.rowSize(); j++) {
-		// Token t2 = wordIdxer.getObject(j);
-		// String word2 = t2.get(TokenAttr.WORD);
-		// double weight2 = wordWeights.value(j);
-		// double ed = StrUtils.editDistance(word1, word2, true);
-		// double sim = 1 - ed;
-		//
-		// if (sim < 0.9) {
-		// continue;
-		// }
-		//
-		// if (T2.value(i, j) == 0) {
-		// T2.add(i, j, 1);
-		// T2.add(j, i, 1);
-		// }
-		//
-		// // System.out.printf("[%s, %s, %f]\n", word1, word2, ed);
-		// // tmp.add(i, j, ed);
-		// // tmp.add(j, i, ed);
-		// }
-		// }
-
-		// System.out.println(VectorUtils.toCounterMap(T2, wordIdxer, wordIdxer));
-		// System.out.println();
 
 		for (Token t1 : wordSims.keySet()) {
 			int w1 = wordIdxer.indexOf(t1);
@@ -467,13 +328,7 @@ public class KPhraseRanker {
 
 		biases.normalize();
 
-		Set<String> mWords = Generics.newHashSet();
-		mWords.add("cancer");
-		mWords.add("cancers");
-		mWords.add("tumor");
-		mWords.add("tumors");
-		mWords.add("breast");
-
+		// for (List<IntPair> ps : pss) {
 		// for (IntPair p : ps) {
 		// String phrs = StrUtils.join(LONG_UNDER_BAR, d.subList(p.getFirst(),
 		// p.getSecond()));
@@ -481,6 +336,8 @@ public class KPhraseRanker {
 		// int pid = phrsIdxer.indexOf(phrs);
 		// biases2.add(pid, 1d / (pos + 1));
 		// }
+		// }
+	
 
 		// ArrayMath.addAfterMultiply(biases.values(), 0.5, biases2.values(), 0.5,
 		// biases2.values());
@@ -490,10 +347,10 @@ public class KPhraseRanker {
 
 		ArrayMath.randomWalk(T4.values(), cents.values(), null, 500, 10);
 
-		Counter<MultiToken> ret = Generics.newCounter();
+		Counter<MSentence> ret = Generics.newCounter();
 
 		for (int w = 0; w < phrsIdxer.size(); w++) {
-			MultiToken phrs = phrsIdxer.getObject(w);
+			MSentence phrs = phrsIdxer.getObject(w);
 			ret.incrementCount(phrs, cents.value(w));
 		}
 

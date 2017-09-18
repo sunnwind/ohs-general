@@ -2,7 +2,7 @@ package ohs.types.generic;
 
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.util.List;
+import java.util.Collection;
 
 import ohs.io.FileUtils;
 import ohs.types.number.IntegerArray;
@@ -66,7 +66,7 @@ public class Vocab extends Indexer<String> {
 		super(size);
 	}
 
-	public Vocab(List<String> words) {
+	public Vocab(Collection<String> words) {
 		super(words, true);
 	}
 
