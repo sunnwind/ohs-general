@@ -289,7 +289,7 @@ public class KKeyphraseExtractor {
 
 		int size = phrsScores.size();
 
-		if (cand_size > 0 && cand_size != Integer.MAX_VALUE) {
+		if (cand_size > 0 && cand_size < Integer.MAX_VALUE) {
 			size = predictor.predict(md);
 		}
 
@@ -315,9 +315,36 @@ public class KKeyphraseExtractor {
 	 * 전북대 형태소 분석기 결과 텍스트
 	 * 
 	 * 
-	 * Word POS CHUNK NER (
 	 * 
-	 * < SS B O p SL I O > SS I O 스위스 NNP I O 취리히 NNP I O 공과 NNG I O 대학 NNG I O
+	 * Word POS CHUNK NER (4개의 필드값)
+	 * 
+	 * 철분 NNG B O
+	 * 
+	 * 흡수 NNG B O
+	 * 
+	 * 를 JKO I O
+	 * 
+	 * 증가 NNG B O
+	 * 
+	 * 시킬 XSV I O
+	 * 
+	 * 수 NNB B O
+	 * 
+	 * 있 VV B O
+	 * 
+	 * 는 ETM I O
+	 * 
+	 * 새로운 VA~ETM B O
+	 * 
+	 * 형태 NNG B O
+	 * 
+	 * 의 JKG I O
+	 * 
+	 * 철 NNG B O
+	 * 
+	 * 나노 NNG B O
+	 * 
+	 * 입자 NNG I O
 	 * 
 	 * 
 	 * @param content
@@ -327,7 +354,7 @@ public class KKeyphraseExtractor {
 		return extract(MDocument.newDocument(content));
 	}
 
-	public int getCand_size() {
+	public int getCandidateSize() {
 		return cand_size;
 	}
 

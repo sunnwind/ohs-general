@@ -37,6 +37,13 @@ import ohs.utils.DataSplitter;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
 
+/**
+ * 
+ * Determine the number of candidate phrases for an input document
+ * 
+ * @author ohs
+ *
+ */
 public class KPhraseNumberPredictor {
 
 	public static SparseVector extractFeatures(Vocab featIdxer, MDocument doc) {

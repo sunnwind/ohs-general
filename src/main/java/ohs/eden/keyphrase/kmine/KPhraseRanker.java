@@ -328,14 +328,13 @@ public class KPhraseRanker {
 
 		biases.normalize();
 
-		// for (List<IntPair> ps : pss) {
-		// for (IntPair p : ps) {
-		// String phrs = StrUtils.join(LONG_UNDER_BAR, d.subList(p.getFirst(),
-		// p.getSecond()));
-		// int pos = p.getFirst();
-		// int pid = phrsIdxer.indexOf(phrs);
-		// biases2.add(pid, 1d / (pos + 1));
-		// }
+//		for (List<IntPair> ps : pss) {
+//			for (IntPair p : ps) {
+//				String phrs = StrUtils.join(LONG_UNDER_BAR, d.subList(p.getFirst(), p.getSecond()));
+//				int pos = p.getFirst();
+//				int pid = phrsIdxer.indexOf(phrs);
+//				biases2.add(pid, 1d / (pos + 1));
+//			}
 		// }
 	
 
