@@ -20,7 +20,7 @@ public class MSentence extends ArrayList<MultiToken> {
 		String[] lines = s.split("\n");
 		MSentence ret = new MSentence(lines.length);
 
-		int num_attrs = Token.AttributeIndexer.size();
+		int num_attrs = Token.INDEXER.size();
 
 		for (int i = 0; i < lines.length; i++) {
 			List<String> ps = StrUtils.split(lines[i]);

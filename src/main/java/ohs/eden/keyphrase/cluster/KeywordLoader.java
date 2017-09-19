@@ -45,26 +45,6 @@ public class KeywordLoader {
 			loader.loadKeywords("Keywords", kwdData, confirmed);
 			// loader.loadKeywordsMap("Keywords_Map", kwdData);
 		}
-		//
-		// {
-		// String tableName = "Keywords_Map_Other3P";
-		// loader.loadKeywordsMap(tableName, KPPath.KYP_DIR + "keyword_other_3p.txt.gz");
-		// }
-		//
-		// {
-		// String tableName = "Keywords_Map_JST";
-		// loader.loadKeywordsMap(tableName, KPPath.KYP_DIR + "keyword_jst_3p.txt.gz");
-		// }
-		//
-		// {
-		// String tableName = "Keywords_Map_Hanlim_KorEng";
-		// loader.loadKeywordsMap(tableName, KPPath.KYP_DIR + "keyword_hanlim-kor-eng_3p.txt.gz");
-		// }
-		//
-		// {
-		// String tableName = "Keywords_Map_Hanlim_EngKor";
-		// loader.loadKeywordsMap(tableName, KPPath.KYP_DIR + "keyword_hanlim-eng-kor_3p.txt.gz");
-		// }
 
 		loader.close();
 		System.out.println("process ends.");

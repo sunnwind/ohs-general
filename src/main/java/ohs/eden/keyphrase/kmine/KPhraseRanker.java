@@ -29,10 +29,12 @@ import ohs.types.generic.Vocab;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
 
+
 /**
+ * Rank candidate phrases using TextRank algorithm
  * 
- * @author Heung-Seon Oh
- * 
+ * @author ohs
+ *
  */
 public class KPhraseRanker {
 

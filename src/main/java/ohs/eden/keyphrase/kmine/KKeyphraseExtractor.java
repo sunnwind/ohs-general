@@ -134,6 +134,8 @@ public class KKeyphraseExtractor {
 	public static void run2() throws Exception {
 		List<String> testData = Generics.newLinkedList();
 
+		
+		String dirPath = "../../data/tmp_data/";
 		{
 			ZipFile zipFile = new ZipFile(new File(KPPath.KP_DIR + "ext/test/contents.zip"));
 
