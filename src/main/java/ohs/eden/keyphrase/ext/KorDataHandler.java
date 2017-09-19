@@ -1,4 +1,4 @@
-package ohs.eden.keyphrase.kmine;
+package ohs.eden.keyphrase.ext;
 
 import java.io.File;
 import java.io.InputStream;

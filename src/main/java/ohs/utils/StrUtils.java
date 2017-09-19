@@ -522,7 +522,8 @@ public class StrUtils {
 	// List<TextSpan> textSpans = extract(text, "KWD", false);
 	//
 	// for (TextSpan span : textSpans) {
-	// System.out.println(span + " -> " + text.substring(span.getStart(), span.getEnd()));
+	// System.out.println(span + " -> " + text.substring(span.getStart(),
+	// span.getEnd()));
 	// }
 	//
 	// // System.out.println(textSpans);
@@ -733,8 +734,8 @@ public class StrUtils {
 		for (int i = 1; i < s.length(); i++) {
 			char prevCh = s.charAt(i - 1);
 			char currCh = s.charAt(i);
-			if (prevCh == '(' || prevCh == ')' || prevCh == '[' || prevCh == ']' || prevCh == '{' || prevCh == '}' || prevCh == '<'
-					|| prevCh == '>') {
+			if (prevCh == '(' || prevCh == ')' || prevCh == '[' || prevCh == ']' || prevCh == '{' || prevCh == '}'
+					|| prevCh == '<' || prevCh == '>') {
 				sb.append(currCh);
 			}
 		}

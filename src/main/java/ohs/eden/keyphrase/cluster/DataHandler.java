@@ -6,8 +6,10 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
+import org.bitbucket.eunjeon.seunjeon.Analyzer;
+import org.bitbucket.eunjeon.seunjeon.LNode;
+import org.bitbucket.eunjeon.seunjeon.Morpheme;
 
-import kr.co.shineware.nlp.komoran.core.analyzer.Komoran;
 import kr.co.shineware.util.common.model.Pair;
 import ohs.corpus.type.DocumentCollection;
 import ohs.io.FileUtils;
@@ -20,9 +22,7 @@ import ohs.ml.glove.GloveParam;
 import ohs.ml.glove.GloveTrainer;
 import ohs.nlp.ling.types.MDocument;
 import ohs.nlp.ling.types.MSentence;
-import ohs.nlp.ling.types.MultiToken;
-import ohs.nlp.ling.types.Token;
-import ohs.nlp.ling.types.TokenAttr;
+import ohs.nlp.ling.types.MToken;
 import ohs.types.common.StrPair;
 import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
@@ -31,6 +31,7 @@ import ohs.types.generic.SetMap;
 import ohs.types.generic.Vocab;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
+import scala.collection.mutable.WrappedArray;
 
 public class DataHandler {
 
@@ -48,7 +49,7 @@ public class DataHandler {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 		DataHandler dh = new DataHandler();
-		// dh.tagPOS();
+		dh.tagPOS();
 
 		// dh.extractNouns();
 		// dh.createNounCollection();
@@ -153,82 +154,6 @@ public class DataHandler {
 		M.writeObject(modelFileName);
 	}
 
-	public void extractNouns() throws Exception {
-		String outDir = KPPath.COL_DIR + "noun/";
-
-		FileUtils.deleteFilesUnder(outDir);
-
-		List<String> res = Generics.newArrayList();
-		int batch_size = 20000;
-		int batch_cnt = 0;
-		DecimalFormat df = new DecimalFormat("000000");
-
-		TextFileReader reader = new TextFileReader(KPPath.COL_DIR + "3p_pos.csv.gz");
-
-		while (reader.hasNext()) {
-			if (reader.getLineCnt() == 1) {
-				continue;
-			}
-			String line = reader.next();
-
-			String[] parts = line.split("\t");
-			parts = StrUtils.unwrap(parts);
-
-			String type = parts[0];
-			String cn = parts[1];
-			String korKwdStr = parts[2].split(" => ")[1];
-
-			korKwdStr = StrUtils.unwrap(korKwdStr);
-			korKwdStr = korKwdStr.replace(";", "");
-
-			String engKwdStr = parts[3];
-			String korTitle = parts[4];
-			String engTitle = parts[5];
-			String korAbs = parts[6];
-			String engAbs = parts[7];
-
-			MDocument d1 = TaggedTextParser.parse(korKwdStr + "\\n" + korTitle + "\\n" + korAbs);
-			List<String> ll = Generics.newArrayList();
-
-			for (int i = 0; i < d1.size(); i++) {
-				MSentence sent = d1.get(i);
-
-				String[][] words = sent.getSub(TokenAttr.WORD);
-				String[][] poss = sent.getSub(TokenAttr.POS);
-
-				List<String> l = Generics.newArrayList();
-
-				for (int j = 0; j < words.length; j++) {
-					for (int k = 0; k < words[j].length; k++) {
-						if (poss[j][k].startsWith("N")) {
-							l.add(words[j][k].trim());
-						} else {
-							l.add("<sto>");
-						}
-					}
-				}
-				ll.add(StrUtils.join(" ", l));
-			}
-
-			String[] vals = new String[] { type, cn, StrUtils.join(StrUtils.LINE_REP, ll) };
-			vals = StrUtils.wrap(vals);
-
-			res.add(StrUtils.join("\t", vals));
-
-			if (res.size() % batch_size == 0) {
-				String outFileName = outDir + String.format("%s.txt.gz", df.format(batch_cnt++));
-				FileUtils.writeStringCollectionAsText(outFileName, res);
-				res.clear();
-			}
-		}
-		reader.close();
-
-		if (res.size() > 0) {
-			String outFileName = outDir + String.format("%s.txt.gz", df.format(batch_cnt++));
-			FileUtils.writeStringCollectionAsText(outFileName, res);
-		}
-	}
-
 	public void extractCNs() throws Exception {
 		TextFileWriter writer = new TextFileWriter(KPPath.KP_DIR + "cn.txt.gz");
 
@@ -308,12 +233,12 @@ public class DataHandler {
 						continue;
 					}
 
-					sb.append(String.format("%s%s%s", f, Token.DELIM, s));
+					sb.append(String.format("%s%s%s", f, MToken.DELIM, s));
 					// sb.append(String.format("%s%s%s", f, "/", s));
 
 					if (k != l.size() - 1) {
 						// sb.append("+");
-						sb.append(MultiToken.DELIM);
+						sb.append(" ");
 					}
 				}
 
@@ -469,13 +394,12 @@ public class DataHandler {
 
 				Counter<String> c = Generics.newCounter();
 
-				MDocument doc = TaggedTextParser.parse(korTitle + "\\n" + korAbs);
+				MDocument doc = null;
 				//
-				for (List<Token> ts : doc.getTokens()) {
-
-					for (Token t : ts) {
-						String word = t.get(TokenAttr.WORD);
-						String pos = t.get(TokenAttr.POS);
+				for (MSentence ts : doc) {
+					for (MToken t : ts) {
+						String word = t.getString(0);
+						String pos = t.getString(1);
 						if (pos.startsWith("N")) {
 							c.incrementCount(word.toLowerCase(), 1);
 						}
@@ -494,15 +418,17 @@ public class DataHandler {
 	}
 
 	public void tagPOS() throws Exception {
-		Komoran komoran = new Komoran("lib/models-full/");
-
 		FileUtils.deleteFilesUnder(KPPath.COL_LINE_POS_DIR);
 
-		for (File file : FileUtils.getFilesUnder(KPPath.COL_LINE_DIR)) {
-			List<String> lines = FileUtils.readLinesFromText(file);
+		int batch_cnt = 0;
+		int batch_size = 20000;
+		List<String> outs = Generics.newArrayList(batch_size);
 
-			for (int i = 0; i < lines.size(); i++) {
-				String line = lines.get(i);
+		for (File file : FileUtils.getFilesUnder(KPPath.COL_LINE_DIR)) {
+			List<String> ins = FileUtils.readLinesFromText(file);
+
+			for (int i = 0; i < ins.size(); i++) {
+				String line = ins.get(i);
 
 				List<String> parts = Generics.newArrayList(line.split("\t"));
 
@@ -517,53 +443,100 @@ public class DataHandler {
 				String korAbs = parts.get(6);
 				String engAbs = parts.get(7);
 
-				// if (!cn.equals("JAKO199910102414471")) {
-				// continue;
-				// }
+				List<String> korKwds = StrUtils.split(StrUtils.LINE_REP, korKwdStr);
+				List<String> engKwds = StrUtils.split(StrUtils.LINE_REP, engKwdStr);
 
-				List<String> korKwds = getKeywords(korKwdStr);
-				List<String> engKwds = getKeywords(engKwdStr);
+				MDocument kps = new MDocument();
+				MDocument title = new MDocument();
+				MDocument abs = new MDocument();
 
 				if (korKwds.size() > 0) {
-					List<String> korKwds2 = Generics.newArrayList(korKwds.size());
 					for (int j = 0; j < korKwds.size(); j++) {
 						String kwd = korKwds.get(j);
-						kwd = getText(komoran.analyze(kwd, 1));
-						korKwds2.add(kwd);
-					}
 
-					parts.add(StrUtils.join(";", korKwds2).replace("\n", StrUtils.LINE_REP));
-				} else {
-					parts.add("");
+						MSentence kp = new MSentence();
+
+						for (LNode node : Analyzer.parseJava(kwd)) {
+							Morpheme m = node.morpheme();
+							WrappedArray<String> fs = m.feature();
+							String[] vals = (String[]) fs.array();
+							String word = m.surface();
+							String pos = vals[0];
+
+							MToken t = new MToken();
+							t.add(word);
+							t.add(pos);
+							kp.add(t);
+						}
+
+						kps.add(kp);
+					}
 				}
 
 				if (korTitle.length() > 0) {
-					String t = getText(komoran.analyze(korTitle, 1));
-					parts.add(t.replace("\n", StrUtils.LINE_REP));
-				} else {
-					parts.add("");
+					MSentence s = new MSentence();
+					for (LNode node : Analyzer.parseJava(korTitle)) {
+						Morpheme m = node.morpheme();
+						WrappedArray<String> fs = m.feature();
+						String[] vals = (String[]) fs.array();
+						String word = m.surface();
+						String pos = vals[0];
+
+						MToken t = new MToken();
+						t.add(word);
+						t.add(pos);
+						s.add(t);
+					}
+					title.add(s);
 				}
 
 				if (korAbs.length() > 0) {
-					StringBuffer sb = new StringBuffer();
-					for (String sent : korAbs.replace(". ", ".\n").split("\n")) {
-						sb.append(getText(komoran.analyze(sent, 1)));
-						sb.append("\n\n");
-					}
+					MSentence s = new MSentence();
+					for (LNode node : Analyzer.parseJava(korAbs)) {
+						Morpheme m = node.morpheme();
+						WrappedArray<String> fs = m.feature();
+						String[] vals = (String[]) fs.array();
+						String word = m.surface();
+						String pos = vals[0];
+						// System.out.println(node);
 
-					String t = sb.toString().trim();
-					parts.add(t.replace("\n", StrUtils.LINE_REP));
-				} else {
-					parts.add("");
+						MToken t = new MToken();
+						t.add(word);
+						t.add(pos);
+						s.add(t);
+					}
+					abs.add(s);
 				}
 
-				parts = StrUtils.wrap(parts);
+				if (title.size() > 0 && abs.size() > 0) {
+					List<String> l = Generics.newArrayList(6);
+					l.add(cn);
+					l.add(type);
+					l.add(kps.toString().replace("\n", "<nl>"));
+					l.add(title.toString().replace("\n", "<nl>"));
+					l.add(abs.toString().replace("\n", "<nl>"));
+					l = StrUtils.wrap(l);
 
-				lines.set(i, StrUtils.join("\t", parts));
+					String out = StrUtils.join("\t", l);
+					outs.add(out);
+				}
+
+				if (outs.size() > 0 && outs.size() % batch_size == 0) {
+					DecimalFormat df = new DecimalFormat("000000");
+					String outFileName = KPPath.COL_LINE_POS_DIR + df.format(batch_cnt++) + ".txt.gz";
+					FileUtils.writeStringCollectionAsText(outFileName, outs);
+					outs.clear();
+				}
 			}
-
-			FileUtils.writeStringCollectionAsText(file.getPath().replace("line", "line_pos"), lines);
 		}
+
+		if (outs.size() > 0) {
+			DecimalFormat df = new DecimalFormat("000000");
+			String outFileName = KPPath.COL_LINE_POS_DIR + df.format(batch_cnt++) + ".txt.gz";
+			FileUtils.writeStringCollectionAsText(outFileName, outs);
+			outs.clear();
+		}
+
 	}
 
 }

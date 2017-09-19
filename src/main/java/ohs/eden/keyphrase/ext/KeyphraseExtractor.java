@@ -1,4 +1,4 @@
-package ohs.eden.keyphrase.kmine;
+package ohs.eden.keyphrase.ext;
 
 import java.io.File;
 import java.io.InputStream;
@@ -29,7 +29,7 @@ import ohs.utils.StrUtils;
  * @author Heung-Seon Oh
  * 
  */
-public class KKeyphraseExtractor {
+public class KeyphraseExtractor {
 
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
@@ -46,13 +46,13 @@ public class KKeyphraseExtractor {
 
 		Vocab featIdxer = DocumentCollection.readVocab(KPPath.KP_DIR + "ext/vocab_num_pred.ser");
 
-		KPhraseRanker pr = new KPhraseRanker(featIdxer,
-				KCandidatePhraseSearcher.newCandidatePhraseSearcher2(phrsPats.keySet()));
+		PhraseRanker pr = new PhraseRanker(featIdxer,
+				CandidatePhraseSearcher.newCandidatePhraseSearcher(phrsPats.keySet()));
 
-		KPhraseNumberPredictor pnp = new KPhraseNumberPredictor(featIdxer,
+		PhraseNumberPredictor pnp = new PhraseNumberPredictor(featIdxer,
 				Linear.loadModel(new File(KPPath.KP_DIR + "ext/model_num_pred.txt")));
 
-		KKeyphraseExtractor ext = new KKeyphraseExtractor(pnp, pr);
+		KeyphraseExtractor ext = new KeyphraseExtractor(pnp, pr);
 
 		List<String> ins = FileUtils.readLinesFromText(KPPath.KP_DIR + "ext/label_data.txt");
 
@@ -202,13 +202,13 @@ public class KKeyphraseExtractor {
 
 		Vocab featIdxer = DocumentCollection.readVocab(KPPath.KP_DIR + "ext/vocab_num_pred.ser");
 
-		KPhraseRanker pr = new KPhraseRanker(featIdxer,
-				KCandidatePhraseSearcher.newCandidatePhraseSearcher2(phrsPats.keySet()));
+		PhraseRanker pr = new PhraseRanker(featIdxer,
+				CandidatePhraseSearcher.newCandidatePhraseSearcher(phrsPats.keySet()));
 
-		KPhraseNumberPredictor pnp = new KPhraseNumberPredictor(featIdxer,
+		PhraseNumberPredictor pnp = new PhraseNumberPredictor(featIdxer,
 				Linear.loadModel(new File(KPPath.KP_DIR + "ext/model_num_pred.txt")));
 
-		KKeyphraseExtractor ext = new KKeyphraseExtractor(pnp, pr);
+		KeyphraseExtractor ext = new KeyphraseExtractor(pnp, pr);
 
 		TextFileWriter writer = new TextFileWriter(KPPath.KP_DIR + "ext/test_res.txt");
 
@@ -276,11 +276,11 @@ public class KKeyphraseExtractor {
 
 	private int cand_size = Integer.MAX_VALUE;
 
-	private KPhraseNumberPredictor predictor;
+	private PhraseNumberPredictor predictor;
 
-	private KPhraseRanker ranker;
+	private PhraseRanker ranker;
 
-	public KKeyphraseExtractor(KPhraseNumberPredictor predictor, KPhraseRanker ranker) {
+	public KeyphraseExtractor(PhraseNumberPredictor predictor, PhraseRanker ranker) {
 		this.predictor = predictor;
 		this.ranker = ranker;
 	}
@@ -359,11 +359,11 @@ public class KKeyphraseExtractor {
 		return cand_size;
 	}
 
-	public KPhraseNumberPredictor getPredictor() {
+	public PhraseNumberPredictor getPredictor() {
 		return predictor;
 	}
 
-	public KPhraseRanker getRanker() {
+	public PhraseRanker getRanker() {
 		return ranker;
 	}
 

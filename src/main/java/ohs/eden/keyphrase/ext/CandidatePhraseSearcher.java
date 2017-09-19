@@ -1,4 +1,4 @@
-package ohs.eden.keyphrase.kmine;
+package ohs.eden.keyphrase.ext;
 
 import java.util.Collection;
 import java.util.List;
@@ -13,27 +13,9 @@ import ohs.types.generic.Pair;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
 
-public class KCandidatePhraseSearcher {
+public class CandidatePhraseSearcher {
 
-	public static KCandidatePhraseSearcher newCandidatePhraseSearcher(Collection<String> phrss) {
-		Trie<String> dict = new Trie<String>();
-		for (String phrs : phrss) {
-			MSentence s = MSentence.newSentence(phrs);
-
-			List<String> poss = Generics.newArrayList(s.size());
-
-			for (MToken t : s) {
-				poss.add(t.getString(1));
-			}
-
-			Node<String> node = dict.insert(poss);
-			node.setFlag(true);
-		}
-		dict.trimToSize();
-		return new KCandidatePhraseSearcher(dict);
-	}
-
-	public static KCandidatePhraseSearcher newCandidatePhraseSearcher2(Collection<String> pats) {
+	public static CandidatePhraseSearcher newCandidatePhraseSearcher(Collection<String> pats) {
 		Trie<String> dict = new Trie<String>();
 		for (String pat : pats) {
 			List<String> poss = StrUtils.split(" ", pat);
@@ -41,7 +23,7 @@ public class KCandidatePhraseSearcher {
 			node.setFlag(true);
 		}
 		dict.trimToSize();
-		return new KCandidatePhraseSearcher(dict);
+		return new CandidatePhraseSearcher(dict);
 	}
 
 	public static void main(String[] args) throws Exception {
@@ -52,7 +34,7 @@ public class KCandidatePhraseSearcher {
 
 	private Trie<String> dict;
 
-	public KCandidatePhraseSearcher(Trie<String> dict) {
+	public CandidatePhraseSearcher(Trie<String> dict) {
 		this.dict = dict;
 	}
 

@@ -6,7 +6,6 @@ import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseVector;
 import ohs.ml.neuralnet.com.NeuralNet;
-import ohs.ml.neuralnet.nonlinearity.ReLU;
 import ohs.utils.Generics;
 
 /**

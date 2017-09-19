@@ -1,14 +1,10 @@
 package ohs.ir.search.model;
 
-import java.util.Map.Entry;
-
-import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
 import ohs.types.generic.ListMap;
 import ohs.types.number.IntegerArray;
 import ohs.types.number.IntegerArrayMatrix;
 import ohs.utils.Generics;
-import ohs.utils.Generics.ListType;
 
 public class WordProximities {
 

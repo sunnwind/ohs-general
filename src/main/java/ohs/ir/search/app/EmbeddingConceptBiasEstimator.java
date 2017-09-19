@@ -1,7 +1,6 @@
 package ohs.ir.search.app;
 
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
@@ -9,11 +8,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.sun.xml.bind.v2.runtime.unmarshaller.StructureLoader;
-
 import ohs.corpus.type.DocumentCollection;
 import ohs.corpus.type.EnglishTokenizer;
-import ohs.corpus.type.StringTokenizer;
 import ohs.io.FileUtils;
 import ohs.io.RandomAccessDenseMatrix;
 import ohs.ir.medical.general.MIRPath;
@@ -29,7 +25,6 @@ import ohs.types.generic.CounterMap;
 import ohs.types.generic.Indexer;
 import ohs.types.generic.ListMap;
 import ohs.types.generic.Vocab;
-import ohs.types.number.IntegerArray;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
 import ohs.utils.Timer;

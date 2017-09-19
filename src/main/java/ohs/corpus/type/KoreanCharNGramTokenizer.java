@@ -2,7 +2,6 @@ package ohs.corpus.type;
 
 import java.util.List;
 
-import ohs.ir.medical.general.NLPUtils;
 import ohs.utils.Generics;
 
 public class KoreanCharNGramTokenizer extends StringTokenizer {

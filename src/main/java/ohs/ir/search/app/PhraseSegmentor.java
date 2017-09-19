@@ -9,7 +9,6 @@ import ohs.ir.search.index.PostingList;
 import ohs.math.CommonMath;
 import ohs.types.generic.Counter;
 import ohs.types.number.IntegerArray;
-import ohs.utils.Generics;
 import ohs.utils.StrUtils;
 
 public class PhraseSegmentor {

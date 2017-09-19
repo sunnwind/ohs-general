@@ -9,8 +9,10 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import kr.co.shineware.nlp.komoran.core.analyzer.Komoran;
-import kr.co.shineware.util.common.model.Pair;
+import org.bitbucket.eunjeon.seunjeon.Analyzer;
+import org.bitbucket.eunjeon.seunjeon.LNode;
+import org.bitbucket.eunjeon.seunjeon.Morpheme;
+
 import ohs.corpus.type.RawDocumentCollection;
 import ohs.io.FileUtils;
 import ohs.io.TextFileWriter;
@@ -19,13 +21,13 @@ import ohs.math.VectorUtils;
 import ohs.matrix.SparseVector;
 import ohs.nlp.ling.types.MDocument;
 import ohs.nlp.ling.types.MSentence;
-import ohs.nlp.ling.types.MultiToken;
-import ohs.nlp.ling.types.Token;
+import ohs.nlp.ling.types.MToken;
 import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
 import ohs.types.generic.Indexer;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
+import scala.collection.mutable.WrappedArray;
 
 public class DataHandler {
 
@@ -35,11 +37,8 @@ public class DataHandler {
 
 		private List<File> files;
 
-		private Komoran komoran;
-
-		public PosTaggingWorker(Komoran komoran, List<File> files, AtomicInteger file_cnt) {
+		public PosTaggingWorker(List<File> files, AtomicInteger file_cnt) {
 			super();
-			this.komoran = komoran;
 			this.files = files;
 			this.file_cnt = file_cnt;
 		}
@@ -78,17 +77,30 @@ public class DataHandler {
 
 					content = content.replace(". ", ".\n\n");
 
-					MDocument taggedTitle = newMDocument(komoran.analyze(title, 1));
+					MDocument doc = new MDocument();
 
-					MDocument taggedContent = new MDocument();
-
-					for (String s : content.split("\n")) {
-						if (s.length() == 0) {
+					for (String str : (title + "\n" + content).split("\n")) {
+						if (str.length() == 0) {
 							continue;
 						}
 
-						taggedContent.addAll(newMDocument(komoran.analyze(s, 1)));
+						MSentence sent = new MSentence();
+
+						for (LNode node : Analyzer.parseJava(str)) {
+							Morpheme m = node.morpheme();
+							WrappedArray<String> fs = m.feature();
+							String[] vals = (String[]) fs.array();
+							String word = m.surface();
+							String pos = vals[0];
+
+							MToken t = new MToken(2);
+							t.add(word);
+							t.add(pos);
+							sent.add(t);
+						}
+						doc.add(sent);
 					}
+					doc.trimToSize();
 
 					// MDocument taggedContent = getText(komoran.analyze(content, 1));
 
@@ -97,8 +109,7 @@ public class DataHandler {
 					ps.add(oid);
 					ps.add(cat);
 					ps.add(date);
-					ps.add(taggedTitle.toString().replace("\n", StrUtils.LINE_REP));
-					ps.add(taggedContent.toString().replace("\n", StrUtils.LINE_REP));
+					ps.add(doc.toString().replace("\n", StrUtils.LINE_REP));
 					ps.add(url);
 
 					ps = StrUtils.wrap(ps);
@@ -116,8 +127,8 @@ public class DataHandler {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 		DataHandler dh = new DataHandler();
-		// dh.tagPOS();
-		dh.extractVocab();
+		dh.tagPOS4NaverNews();
+		// dh.extractVocab();
 
 		System.out.println("process ends.");
 	}
@@ -158,9 +169,9 @@ public class DataHandler {
 
 				StringBuffer sb = new StringBuffer();
 
-				for (Token t : ms.getTokens()) {
-					String word = t.get(0);
-					String pos = t.get(1);
+				for (MToken t : ms) {
+					String word = t.getString(0);
+					String pos = t.getString(1);
 					sb.append(word + " ");
 
 					if (pos.startsWith("N")) {
@@ -214,43 +225,7 @@ public class DataHandler {
 
 	}
 
-	private MDocument newMDocument(List<List<List<Pair<String, String>>>> result) {
-		MDocument md = new MDocument();
-
-		for (int i = 0; i < result.size(); i++) {
-			List<List<Pair<String, String>>> ll = result.get(i);
-
-			MSentence ms = new MSentence();
-
-			for (int j = 0; j < ll.size(); j++) {
-				List<Pair<String, String>> l = ll.get(j);
-
-				MultiToken mt = new MultiToken();
-
-				for (int k = 0; k < l.size(); k++) {
-					Pair<String, String> p = l.get(k);
-					String f = p.getFirst().replace(" ", "_");
-					String s = p.getSecond();
-
-					if (s.length() == 0) {
-						continue;
-					}
-
-					Token t = new Token();
-					t.add(f);
-					t.add(s);
-
-					mt.add(t);
-				}
-				ms.add(mt);
-			}
-			md.add(ms);
-		}
-
-		return md;
-	}
-
-	public void tagPOS() throws Exception {
+	public void tagPOS4NaverNews() throws Exception {
 		FileUtils.deleteFilesUnder(FNPath.FN_COL_LINE_POS_DIR);
 
 		AtomicInteger file_cnt = new AtomicInteger(0);
@@ -264,7 +239,7 @@ public class DataHandler {
 		List<File> files = FileUtils.getFilesUnder(FNPath.FN_COL_LINE_DIR);
 
 		for (int i = 0; i < thread_size; i++) {
-			fs.add(tpe.submit(new PosTaggingWorker(new Komoran("lib/models-full/"), files, file_cnt)));
+			fs.add(tpe.submit(new PosTaggingWorker(files, file_cnt)));
 		}
 
 		for (int i = 0; i < thread_size; i++) {

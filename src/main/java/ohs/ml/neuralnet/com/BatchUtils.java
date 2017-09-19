@@ -7,7 +7,6 @@ import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseVector;
 import ohs.matrix.SparseMatrix;
 import ohs.matrix.SparseVector;
-import ohs.types.generic.ListMap;
 import ohs.types.generic.Pair;
 import ohs.types.number.IntegerArray;
 import ohs.utils.Generics;

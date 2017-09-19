@@ -4,10 +4,6 @@ import java.io.File;
 import java.nio.channels.FileChannel;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-
-import org.apache.xalan.xsltc.compiler.sym;
-
 import java.util.Set;
 
 import ohs.io.ByteArray;
@@ -15,7 +11,6 @@ import ohs.io.ByteArrayMatrix;
 import ohs.io.ByteArrayUtils;
 import ohs.io.ByteBufferWrapper;
 import ohs.io.FileUtils;
-import ohs.ir.medical.general.MIRPath;
 import ohs.math.ArrayMath;
 import ohs.matrix.SparseMatrix;
 import ohs.matrix.SparseVector;
@@ -29,7 +24,6 @@ import ohs.types.number.LongArray;
 import ohs.utils.ByteSize;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
-import ohs.utils.Timer;
 
 public class DocumentCollection {
 

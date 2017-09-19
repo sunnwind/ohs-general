@@ -2,13 +2,11 @@ package ohs.ir.search.app;
 
 import java.util.List;
 
-import ohs.corpus.type.EnglishNormalizer;
 import ohs.corpus.type.EnglishTokenizer;
 import ohs.corpus.type.StringTokenizer;
 import ohs.io.FileUtils;
 import ohs.io.RandomAccessDenseMatrix;
 import ohs.ir.medical.general.MIRPath;
-import ohs.ir.medical.general.NLPUtils;
 import ohs.ir.medical.query.BaseQuery;
 import ohs.ir.medical.query.QueryReader;
 import ohs.ir.medical.query.RelevanceReader;

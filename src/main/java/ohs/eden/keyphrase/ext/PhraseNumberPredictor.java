@@ -1,4 +1,4 @@
-package ohs.eden.keyphrase.kmine;
+package ohs.eden.keyphrase.ext;
 
 import java.io.File;
 import java.util.List;
@@ -42,7 +42,7 @@ import ohs.utils.Generics;
  * @author ohs
  *
  */
-public class KPhraseNumberPredictor {
+public class PhraseNumberPredictor {
 
 	public static SparseVector extractFeatures(Vocab featIdxer, MDocument doc) {
 
@@ -292,7 +292,7 @@ public class KPhraseNumberPredictor {
 
 	private Vocab vocab;
 
-	public KPhraseNumberPredictor(Vocab vocab, Model model) {
+	public PhraseNumberPredictor(Vocab vocab, Model model) {
 		this.vocab = vocab;
 		this.model = model;
 	}

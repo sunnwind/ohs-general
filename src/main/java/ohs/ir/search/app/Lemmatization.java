@@ -1,6 +1,5 @@
 package ohs.ir.search.app;
 
-import java.io.File;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -14,10 +13,8 @@ import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.pipeline.Annotation;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import edu.stanford.nlp.util.CoreMap;
-import ohs.corpus.type.DocumentCollection;
 import ohs.io.FileUtils;
 import ohs.ir.medical.general.MIRPath;
-import ohs.ir.search.index.WordFilter;
 import ohs.utils.Generics;
 
 public class Lemmatization {

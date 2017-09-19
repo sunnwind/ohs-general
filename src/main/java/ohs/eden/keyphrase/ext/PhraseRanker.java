@@ -1,4 +1,4 @@
-package ohs.eden.keyphrase.kmine;
+package ohs.eden.keyphrase.ext;
 
 import java.io.File;
 import java.util.List;
@@ -31,7 +31,7 @@ import ohs.utils.StrUtils;
  * @author ohs
  *
  */
-public class KPhraseRanker {
+public class PhraseRanker {
 
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
@@ -42,10 +42,10 @@ public class KPhraseRanker {
 
 		Vocab featIdxer = DocumentCollection.readVocab(KPPath.KP_DIR + "ext/vocab_num_pred.ser");
 
-		KPhraseRanker pr = new KPhraseRanker(featIdxer,
-				KCandidatePhraseSearcher.newCandidatePhraseSearcher(phrsCnts.keySet()));
+		PhraseRanker pr = new PhraseRanker(featIdxer,
+				CandidatePhraseSearcher.newCandidatePhraseSearcher(phrsCnts.keySet()));
 
-		KPhraseNumberPredictor pnp = new KPhraseNumberPredictor(featIdxer,
+		PhraseNumberPredictor pnp = new PhraseNumberPredictor(featIdxer,
 				Linear.loadModel(new File(KPPath.KP_DIR + "ext/model_num_pred.txt")));
 		int cnt = 0;
 
@@ -97,7 +97,7 @@ public class KPhraseRanker {
 		System.out.println("process ends.");
 	}
 
-	private KCandidatePhraseSearcher cps;
+	private CandidatePhraseSearcher cps;
 
 	private Vocab featIdxer;
 
@@ -105,7 +105,7 @@ public class KPhraseRanker {
 
 	private int window_size = 5;
 
-	public KPhraseRanker(Vocab featIdxer, KCandidatePhraseSearcher cps) {
+	public PhraseRanker(Vocab featIdxer, CandidatePhraseSearcher cps) {
 		this.featIdxer = featIdxer;
 		this.cps = cps;
 	}

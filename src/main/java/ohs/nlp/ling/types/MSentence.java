@@ -8,7 +8,7 @@ import java.util.List;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
 
-public class MSentence extends ArrayList<MultiToken> {
+public class MSentence extends ArrayList<MToken> {
 
 	/**
 	 * 
@@ -20,30 +20,26 @@ public class MSentence extends ArrayList<MultiToken> {
 		String[] lines = s.split("\n");
 		MSentence ret = new MSentence(lines.length);
 
-		int num_attrs = Token.INDEXER.size();
+		int num_attrs = MToken.INDEXER.size();
 
 		for (int i = 0; i < lines.length; i++) {
 			List<String> ps = StrUtils.split(lines[i]);
 
 			int min_attrs = Math.min(num_attrs, ps.size());
-			Token t = new Token(min_attrs);
+			MToken t = new MToken(min_attrs);
 
 			for (int j = 0; j < min_attrs; j++) {
 				t.add(ps.get(j));
 			}
 
 			if (num_attrs == t.size()) {
-				MultiToken mt = new MultiToken();
-				mt.add(t);
-				ret.add(mt);
+				ret.add(t);
 			} else {
 				System.err.printf("missing values found:\t%s\n", ps.toString());
 			}
 		}
 		return ret;
 	}
-
-	private boolean is_multi_tok = false;
 
 	public MSentence() {
 
@@ -53,34 +49,23 @@ public class MSentence extends ArrayList<MultiToken> {
 		super(size);
 	}
 
-	public List<Token> getTokens() {
-		List<Token> ret = Generics.newArrayList(sizeOfTokens());
-		for (MultiToken mt : this) {
-			for (Token t : mt) {
-				ret.add(t);
-			}
+	public MSentence(List<MToken> ret) {
+		super(ret);
+	}
+
+	public List<String> getTokenStrings(int idx) {
+		List<String> ret = Generics.newArrayList(size());
+		for (MToken t : this) {
+			ret.add(t.getString(idx));
 		}
 		return ret;
 	}
 
 	public void readObject(ObjectInputStream ois) throws Exception {
-		is_multi_tok = ois.readBoolean();
-	}
-
-	public int sizeOfTokens() {
-		int ret = 0;
-		for (MultiToken mt : this) {
-			ret += mt.size();
-		}
-		return ret = 0;
 	}
 
 	public MSentence subSentence(int i, int j) {
-		MSentence ret = new MSentence(j - i);
-		for (MultiToken mt : subList(i, j)) {
-			ret.add(mt);
-		}
-		return ret;
+		return new MSentence(subSentence(i, j));
 	}
 
 	@Override
@@ -97,7 +82,6 @@ public class MSentence extends ArrayList<MultiToken> {
 	}
 
 	public void writeObject(ObjectOutputStream oos) throws Exception {
-		oos.writeBoolean(is_multi_tok);
 	}
 
 }

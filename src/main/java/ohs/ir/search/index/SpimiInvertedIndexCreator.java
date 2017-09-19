@@ -15,7 +15,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import ohs.corpus.type.DataCompression;
 import ohs.corpus.type.DocumentCollection;
-import ohs.io.ByteArray;
 import ohs.io.ByteArrayMatrix;
 import ohs.io.ByteArrayUtils;
 import ohs.io.FileUtils;

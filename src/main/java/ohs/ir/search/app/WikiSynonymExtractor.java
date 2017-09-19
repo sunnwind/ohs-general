@@ -3,8 +3,6 @@ package ohs.ir.search.app;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.compress.compressors.snappy.SnappyCompressorInputStream;
-
 import ohs.corpus.type.RawDocumentCollection;
 import ohs.io.FileUtils;
 import ohs.ir.medical.general.MIRPath;

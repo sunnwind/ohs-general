@@ -1,11 +1,8 @@
 package ohs.corpus.type;
 
 import java.io.File;
-import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.text.DecimalFormat;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -14,20 +11,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import ohs.io.ByteArray;
 import ohs.io.ByteArrayMatrix;
-import ohs.io.ByteArrayUtils;
-import ohs.io.ByteBufferWrapper;
 import ohs.io.FileUtils;
 import ohs.ir.medical.general.MIRPath;
 import ohs.ml.neuralnet.com.BatchUtils;
-import ohs.types.generic.Counter;
-import ohs.types.generic.ListList;
 import ohs.types.generic.Pair;
-import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
 import ohs.types.number.LongArray;
-import ohs.utils.ByteSize;
-import ohs.utils.ByteSize.Type;
 import ohs.utils.Generics;
 import ohs.utils.Timer;
 

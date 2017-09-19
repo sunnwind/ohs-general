@@ -5,11 +5,7 @@ import java.io.ObjectOutputStream;
 
 import ohs.math.VectorMath;
 import ohs.matrix.DenseMatrix;
-import ohs.ml.neuralnet.nonlinearity.LeakReLU;
 import ohs.ml.neuralnet.nonlinearity.Nonlinearity;
-import ohs.ml.neuralnet.nonlinearity.ReLU;
-import ohs.ml.neuralnet.nonlinearity.Sigmoid;
-import ohs.ml.neuralnet.nonlinearity.Tanh;
 
 public class NonlinearityLayer extends Layer {
 

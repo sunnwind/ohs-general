@@ -6,9 +6,7 @@ import ohs.corpus.type.DocumentCollection;
 import ohs.math.ArrayMath;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
-import ohs.matrix.SparseMatrix;
 import ohs.matrix.SparseVector;
-import ohs.types.generic.Counter;
 
 /**
  * This class provides parsimonious language model (PLM) estimation methods.

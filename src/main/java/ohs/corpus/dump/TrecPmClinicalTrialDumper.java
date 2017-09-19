@@ -1,34 +1,21 @@
 package ohs.corpus.dump;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.text.DecimalFormat;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.zip.GZIPInputStream;
 
-import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.jsoup.Jsoup;
-import org.jsoup.helper.StringUtil;
 import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.nodes.Node;
-import org.jsoup.nodes.TextNode;
 import org.jsoup.parser.Parser;
 import org.jsoup.select.Elements;
-import org.jsoup.select.NodeTraversor;
-import org.jsoup.select.NodeVisitor;
 
 import ohs.io.FileUtils;
-import ohs.io.TextFileReader;
 import ohs.ir.medical.general.MIRPath;
 import ohs.ml.neuralnet.com.BatchUtils;
 import ohs.utils.Generics;

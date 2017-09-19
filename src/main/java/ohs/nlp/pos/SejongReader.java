@@ -7,9 +7,7 @@ import java.util.Set;
 import ohs.io.TextFileReader;
 import ohs.nlp.ling.types.MDocument;
 import ohs.nlp.ling.types.MSentence;
-import ohs.nlp.ling.types.MultiToken;
-import ohs.nlp.ling.types.Token;
-import ohs.nlp.ling.types.TokenAttr;
+import ohs.nlp.ling.types.MToken;
 import ohs.utils.Generics;
 
 public class SejongReader implements Iterator<MDocument> {
@@ -52,18 +50,12 @@ public class SejongReader implements Iterator<MDocument> {
 	private void filter(MDocument doc) {
 		List<MSentence> sents = Generics.newArrayList();
 
-		for (MSentence sent : doc.getSentences()) {
+		for (MSentence sent : doc) {
 			boolean isValid = true;
-			for (Token tok : sent.getTokens()) {
-				MultiToken mt = (MultiToken) tok;
-				for (Token t : mt.getTokens()) {
-					String pos = t.get(TokenAttr.POS);
-					if (!posSet.contains(pos)) {
-						isValid = false;
-						break;
-					}
-				}
-				if (!isValid) {
+			for (MToken tok : sent) {
+				String pos = tok.getString(1);
+				if (!posSet.contains(pos)) {
+					isValid = false;
 					break;
 				}
 			}
@@ -72,7 +64,9 @@ public class SejongReader implements Iterator<MDocument> {
 				sents.add(sent);
 			}
 		}
-		doc.setSentences(sents.toArray(new MSentence[sents.size()]));
+		doc.clear();
+		
+		doc.addAll(sents);
 
 		SejongParser.enumerateStarts(doc);
 	}

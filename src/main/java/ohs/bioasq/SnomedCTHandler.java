@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import ohs.corpus.type.EnglishNormalizer;
 import ohs.corpus.type.EnglishTokenizer;
 import ohs.corpus.type.StringTokenizer;
 import ohs.io.FileUtils;

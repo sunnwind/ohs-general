@@ -1,7 +1,6 @@
 package ohs.ir.search.app;
 
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;

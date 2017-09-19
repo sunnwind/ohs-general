@@ -2,7 +2,6 @@ package ohs.corpus.type;
 
 import org.tartarus.snowball.ext.PorterStemmer;
 
-import ohs.ir.medical.general.NLPUtils;
 import ohs.utils.StrUtils;
 
 public class EnglishNormalizer extends StringNormalizer {

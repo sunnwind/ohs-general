@@ -12,7 +12,7 @@ public class MDocumentCollection extends ArrayList<MDocument> {
 	 */
 	private static final long serialVersionUID = 8530460881325620209L;
 
-	public List<MSentence> getSentences() {
+	public MDocument getSentences() {
 		int size = 0;
 		for (MDocument d : this) {
 			size += d.size();
@@ -24,7 +24,22 @@ public class MDocumentCollection extends ArrayList<MDocument> {
 				ret.add(s);
 			}
 		}
+		return new MDocument(ret);
+	}
 
+	public MSentence getTokens() {
+		List<MToken> ret = Generics.newArrayList(sizeOfTokens());
+		for (MDocument d : this) {
+			ret.addAll(d.getTokens());
+		}
+		return new MSentence(ret);
+	}
+
+	public int sizeOfTokens() {
+		int ret = 0;
+		for (MDocument d : this) {
+			ret += d.sizeOfTokens();
+		}
 		return ret;
 	}
 

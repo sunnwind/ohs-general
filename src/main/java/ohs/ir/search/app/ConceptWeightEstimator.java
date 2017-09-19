@@ -12,8 +12,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.xalan.xsltc.compiler.sym;
-
 import ohs.corpus.type.DocumentCollection;
 import ohs.io.FileUtils;
 import ohs.io.TextFileWriter;
@@ -21,7 +19,6 @@ import ohs.ir.medical.general.MIRPath;
 import ohs.ir.search.index.WordFilter;
 import ohs.ir.search.model.WordProximities;
 import ohs.ir.weight.TermWeighting;
-import ohs.math.ArrayMath;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.DenseVector;
@@ -36,7 +33,6 @@ import ohs.types.generic.SetMap;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
 import ohs.utils.Generics;
-import ohs.utils.Generics.ListType;
 import ohs.utils.StrUtils;
 import ohs.utils.Timer;
 

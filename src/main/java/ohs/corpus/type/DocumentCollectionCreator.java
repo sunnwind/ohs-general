@@ -12,13 +12,11 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import ohs.eden.keyphrase.cluster.KPPath;
-import ohs.fake.FNPath;
 import ohs.io.ByteArray;
 import ohs.io.ByteArrayMatrix;
 import ohs.io.ByteArrayUtils;
 import ohs.io.ByteBufferWrapper;
 import ohs.io.FileUtils;
-import ohs.ir.medical.general.MIRPath;
 import ohs.ml.neuralnet.com.BatchUtils;
 import ohs.types.common.IntPair;
 import ohs.types.generic.Counter;

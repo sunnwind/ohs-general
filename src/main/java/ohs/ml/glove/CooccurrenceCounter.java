@@ -1,7 +1,6 @@
 package ohs.ml.glove;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.text.DecimalFormat;
 import java.util.List;

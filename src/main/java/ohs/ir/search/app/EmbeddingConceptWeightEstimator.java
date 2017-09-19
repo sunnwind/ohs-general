@@ -1,30 +1,17 @@
 package ohs.ir.search.app;
 
-import java.io.File;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import javax.swing.text.Position.Bias;
-
-import org.apache.xalan.xsltc.compiler.sym;
 
 import ohs.corpus.type.DocumentCollection;
 import ohs.io.FileUtils;
-import ohs.io.RandomAccessDenseMatrix;
-import ohs.io.TextFileWriter;
 import ohs.ir.medical.general.MIRPath;
 import ohs.ir.search.index.WordFilter;
-import ohs.ir.search.model.WordProximities;
 import ohs.ir.weight.TermWeighting;
-import ohs.math.ArrayMath;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.DenseVector;
@@ -35,11 +22,8 @@ import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
 import ohs.types.generic.Indexer;
 import ohs.types.generic.ListMap;
-import ohs.types.generic.SetMap;
 import ohs.types.generic.Vocab;
-import ohs.types.number.IntegerArray;
 import ohs.utils.Generics;
-import ohs.utils.Generics.ListType;
 import ohs.utils.StrUtils;
 import ohs.utils.Timer;
 

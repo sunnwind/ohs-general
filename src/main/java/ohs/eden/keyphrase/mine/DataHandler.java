@@ -25,8 +25,7 @@ import ohs.ml.glove.GloveModel;
 import ohs.ml.glove.GloveParam;
 import ohs.ml.glove.GloveTrainer;
 import ohs.ml.neuralnet.com.BatchUtils;
-import ohs.nlp.ling.types.MultiToken;
-import ohs.nlp.ling.types.Token;
+import ohs.nlp.ling.types.MToken;
 import ohs.tree.trie.hash.Trie;
 import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
@@ -244,7 +243,8 @@ public class DataHandler {
 				int prog = BatchUtils.progress(j, pc.size());
 
 				if (prog > 0) {
-					System.out.printf("[%d percent, %d/%d, %s, %s]\n", prog, j, pc.size(), new ByteSize(len).toString(), timer.stop());
+					System.out.printf("[%d percent, %d/%d, %s, %s]\n", prog, j, pc.size(), new ByteSize(len).toString(),
+							timer.stop());
 				}
 			}
 		}
@@ -296,7 +296,8 @@ public class DataHandler {
 	}
 
 	public void getPaperKeywords() throws Exception {
-		String[] dirs = { MIRPath.TREC_CDS_2014_COL_DC_DIR, MIRPath.TREC_CDS_2016_COL_DC_DIR, MIRPath.DATA_DIR + "scopus/col/dc/" };
+		String[] dirs = { MIRPath.TREC_CDS_2014_COL_DC_DIR, MIRPath.TREC_CDS_2016_COL_DC_DIR,
+				MIRPath.DATA_DIR + "scopus/col/dc/" };
 
 		for (int i = 0; i < dirs.length; i++) {
 			String dir = dirs[i];
@@ -505,12 +506,12 @@ public class DataHandler {
 						continue;
 					}
 
-					sb.append(String.format("%s%s%s", f, Token.DELIM, s));
+					sb.append(String.format("%s%s%s", f, MToken.DELIM, s));
 					// sb.append(String.format("%s%s%s", f, "/", s));
 
 					if (k != l.size() - 1) {
 						// sb.append("+");
-						sb.append(MultiToken.DELIM);
+						sb.append(" ");
 					}
 				}
 
@@ -629,8 +630,8 @@ public class DataHandler {
 
 	public void mergeKeywords() throws Exception {
 		String[] dirs = { MIRPath.DATA_DIR + "trec_cds/2016/phrs/kwds.txt", MIRPath.DATA_DIR + "scopus/phrs/kwds.txt",
-				MIRPath.DATA_DIR + "mesh/phrss.txt", MIRPath.DATA_DIR + "snomed_ct/phrss.txt", MIRPath.DATA_DIR + "wiki/phrs_title.txt",
-				MIRPath.DATA_DIR + "wiki/phrs_link.txt" };
+				MIRPath.DATA_DIR + "mesh/phrss.txt", MIRPath.DATA_DIR + "snomed_ct/phrss.txt",
+				MIRPath.DATA_DIR + "wiki/phrs_title.txt", MIRPath.DATA_DIR + "wiki/phrs_link.txt" };
 		String[] names = { "cds", "sco", "mes", "sno", "wkt", "wkt" };
 
 		CounterMap<String, String> cm = Generics.newCounterMap(2000000);
@@ -678,8 +679,10 @@ public class DataHandler {
 			res.add(phrs + "\t" + len + "\t" + StrUtils.join("\t", rs));
 		}
 
-		// FileUtils.writeStringCounterMapAsText("../../data/medical_ir/trec_cds/2016/phrs/cpts.txt", cm);
-		// FileUtils.writeStringCollectionAsText("../../data/medical_ir/trec_cds/2016/phrs/cpts.txt", res);
+		// FileUtils.writeStringCounterMapAsText("../../data/medical_ir/trec_cds/2016/phrs/cpts.txt",
+		// cm);
+		// FileUtils.writeStringCollectionAsText("../../data/medical_ir/trec_cds/2016/phrs/cpts.txt",
+		// res);
 	}
 
 	public void getMedicalPhrases() throws Exception {

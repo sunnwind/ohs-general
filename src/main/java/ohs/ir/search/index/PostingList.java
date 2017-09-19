@@ -1,7 +1,6 @@
 package ohs.ir.search.index;
 
 import java.nio.channels.FileChannel;
-import java.util.List;
 
 import ohs.io.ByteArray;
 import ohs.io.ByteArrayMatrix;
@@ -11,7 +10,6 @@ import ohs.math.ArrayMath;
 import ohs.types.number.IntegerArray;
 import ohs.types.number.IntegerArrayMatrix;
 import ohs.utils.ByteSize;
-import ohs.utils.Generics;
 
 public class PostingList {
 

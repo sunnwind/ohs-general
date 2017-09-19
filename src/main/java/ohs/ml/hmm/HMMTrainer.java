@@ -14,9 +14,7 @@ import ohs.matrix.DenseVector;
 import ohs.nlp.ling.types.MDocument;
 import ohs.nlp.ling.types.MDocumentCollection;
 import ohs.nlp.ling.types.MSentence;
-import ohs.nlp.ling.types.MultiToken;
-import ohs.nlp.ling.types.Token;
-import ohs.nlp.ling.types.TokenAttr;
+import ohs.nlp.ling.types.MToken;
 import ohs.nlp.pos.NLPPath;
 import ohs.nlp.pos.SejongReader;
 import ohs.types.generic.CounterMap;
@@ -32,8 +30,8 @@ public class HMMTrainer {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 
-		test01();
-		// test02();
+		// test01();
+		test02();
 
 		System.out.println("process ends.");
 	}
@@ -96,9 +94,9 @@ public class HMMTrainer {
 		r.close();
 
 		for (MDocument doc : coll) {
-			for (List<Token> ts : doc.getTokens()) {
-				for (Token t : ts) {
-					String text = t.get(0);
+			for (MSentence ts : doc) {
+				for (MToken t : ts) {
+					String text = t.getString(0);
 					String text2 = UnicodeUtils.decomposeToJamoStr(text);
 
 					System.out.println(text + "\t" + text2 + "\t" + String.valueOf(text2.getBytes()));
@@ -127,15 +125,13 @@ public class HMMTrainer {
 		for (int i = 0; i < sents.size(); i++) {
 			MSentence sent = sents.get(i);
 
-			List<Token> ts = sent.getTokens();
+			int[] ws = ArrayUtils.range(sent.size());
+			int[] pos = ArrayUtils.range(sent.size());
 
-			int[] ws = ArrayUtils.range(ts.size());
-			int[] pos = ArrayUtils.range(ts.size());
-
-			for (int j = 0; j < ts.size(); j++) {
-				Token t = ts.get(j);
-				ws[j] = wordIndexer.getIndex(t.get(TokenAttr.WORD));
-				pos[j] = posIndexer.getIndex(t.get(TokenAttr.POS));
+			for (int j = 0; j < sent.size(); j++) {
+				MToken t = sent.get(j);
+				ws[j] = wordIndexer.getIndex(t.getString(0));
+				pos[j] = posIndexer.getIndex(t.getString(1));
 			}
 
 			wss.add(new IntegerArray(ws));

@@ -5,14 +5,12 @@ import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import ohs.corpus.type.EnglishNormalizer;
 import ohs.corpus.type.EnglishTokenizer;
 import ohs.corpus.type.StringTokenizer;
 import ohs.io.FileUtils;
 import ohs.io.TextFileReader;
 import ohs.io.TextFileWriter;
 import ohs.ir.medical.general.MIRPath;
-import ohs.ir.medical.general.NLPUtils;
 import ohs.ir.search.index.WordFilter;
 import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;

@@ -2,8 +2,8 @@ package ohs.nlp.pos;
 
 import ohs.nlp.ling.types.MDocument;
 import ohs.nlp.ling.types.MSentence;
+import ohs.nlp.ling.types.MToken;
 import ohs.nlp.ling.types.MultiToken;
-import ohs.nlp.ling.types.Token;
 import ohs.nlp.ling.types.TokenAttr;
 import ohs.utils.StrUtils;
 
@@ -14,7 +14,7 @@ public class SejongParser {
 
 		String surface = two[0];
 		String[] parts = two[1].split(MultiToken.DELIM.replace("+", "\\+"));
-		Token[] toks = new Token[parts.length];
+		MToken[] toks = new MToken[parts.length];
 		for (int i = 0; i < parts.length; i++) {
 			toks[i] = parseToken(parts[i]);
 		}
@@ -39,7 +39,7 @@ public class SejongParser {
 	}
 
 	public static void enumerateStarts(MDocument doc) {
-		Token[] mts = doc.toMultiTokens();
+		MToken[] mts = doc.toMultiTokens();
 		for (int i = 0, loc = 0; i < mts.length; i++) {
 			MultiToken mt = (MultiToken) mts[i];
 			mt.setStart(loc);
@@ -62,12 +62,12 @@ public class SejongParser {
 		return new MSentence(mts);
 	}
 
-	public static Token parseToken(String s) {
+	public static MToken parseToken(String s) {
 		String[] values = new String[TokenAttr.size()];
 
-		StrUtils.copy(s.split(Token.DELIM), values);
+		StrUtils.copy(s.split(MToken.DELIM), values);
 
-		Token ret = new Token();
+		MToken ret = new MToken();
 		for (TokenAttr attr : TokenAttr.values()) {
 			ret.set(attr, values[attr.ordinal()]);
 		}

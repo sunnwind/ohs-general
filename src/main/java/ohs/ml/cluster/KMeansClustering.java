@@ -13,7 +13,6 @@ import ohs.ir.weight.TermWeighting;
 import ohs.math.ArrayMath;
 import ohs.math.ArrayUtils;
 import ohs.math.VectorMath;
-import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseVector;
 import ohs.matrix.SparseMatrix;
 import ohs.matrix.SparseVector;

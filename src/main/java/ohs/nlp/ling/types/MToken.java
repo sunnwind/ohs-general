@@ -9,7 +9,7 @@ import ohs.types.generic.Indexer;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
 
-public class Token extends ArrayList<String> {
+public class MToken extends ArrayList<Object> {
 
 	public static String DELIM = " ";
 
@@ -26,9 +26,9 @@ public class Token extends ArrayList<String> {
 		INDEXER.add("POS");
 	}
 
-	public static Token newToken(String s) {
+	public static MToken newToken(String s) {
 		List<String> ps = StrUtils.split(s);
-		Token ret = new Token(ps.size());
+		MToken ret = new MToken(ps.size());
 		for (int i = 0; i < ps.size(); i++) {
 			ret.add(ps.get(i));
 		}
@@ -37,17 +37,21 @@ public class Token extends ArrayList<String> {
 
 	protected int start = 0;
 
-	public Token(int size) {
+	public MToken() {
+		super();
+	}
+
+	public MToken(int size) {
 		super(size);
 	}
 
-	public Token(int start, String word) {
+	public MToken(int start, String word) {
 		this.start = start;
 		add(word);
 	}
 
-	public String get(String attr) {
-		String ret = null;
+	public Object get(String attr) {
+		Object ret = null;
 		int idx = INDEXER.indexOf(attr);
 		if (idx != -1) {
 			ret = get(idx);
@@ -57,6 +61,18 @@ public class Token extends ArrayList<String> {
 
 	public int getStart() {
 		return start;
+	}
+
+	public String getString(int i) {
+		return get(i).toString();
+	}
+
+	public List<String> getStrings(int i, int j) {
+		List<String> ret = Generics.newArrayList(j - i);
+		for (int k = i; k < j; k++) {
+			ret.add(getString(k));
+		}
+		return ret;
 	}
 
 	public void readObject(ObjectInputStream ois) throws Exception {

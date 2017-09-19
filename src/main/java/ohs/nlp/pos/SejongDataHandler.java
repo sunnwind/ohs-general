@@ -13,8 +13,8 @@ import ohs.io.FileUtils;
 import ohs.io.TextFileWriter;
 import ohs.nlp.ling.types.MDocument;
 import ohs.nlp.ling.types.MSentence;
+import ohs.nlp.ling.types.MToken;
 import ohs.nlp.ling.types.MultiToken;
-import ohs.nlp.ling.types.Token;
 import ohs.nlp.ling.types.TokenAttr;
 import ohs.types.generic.CounterMap;
 import ohs.types.generic.Triple;
@@ -136,7 +136,7 @@ public class SejongDataHandler {
 							}
 
 							if (start > -1 && end - start != 0) {
-								String str1 = StrUtils.join(Token.DELIM, MultiToken.DELIM, words, poss, start, end + 1);
+								String str1 = StrUtils.join(MToken.DELIM, MultiToken.DELIM, words, poss, start, end + 1);
 								String str2 = StrUtils.join("", words, start, end + 1);
 
 								int size = ts.size();
@@ -212,10 +212,10 @@ public class SejongDataHandler {
 			MDocument doc = reader.next();
 
 			for (MSentence sent : doc.getSentences()) {
-				for (Token tok : sent.getTokens()) {
+				for (MToken tok : sent.getTokens()) {
 					MultiToken mt = (MultiToken) tok;
 
-					for (Token t : mt.getTokens()) {
+					for (MToken t : mt.getTokens()) {
 						cm.incrementCount(t.get(TokenAttr.WORD), t.get(TokenAttr.POS), 1);
 					}
 				}
@@ -254,18 +254,18 @@ public class SejongDataHandler {
 				for (MultiToken mt : sent.toMultiTokens()) {
 
 					if (mt.size() > 0) {
-						Token t = mt.getToken(0);
+						MToken t = mt.getToken(0);
 						String word = t.get(TokenAttr.WORD);
 						String pos = t.get(TokenAttr.POS);
 						cm2.incrementCount(word, pos, 1);
 					}
 
 					for (int i = 1; i < mt.size(); i++) {
-						Token t1 = mt.getToken(i - 1);
+						MToken t1 = mt.getToken(i - 1);
 						String word1 = t1.get(TokenAttr.WORD);
 						String pos1 = t1.get(TokenAttr.POS);
 
-						Token t2 = mt.getToken(i);
+						MToken t2 = mt.getToken(i);
 						String word2 = t2.get(TokenAttr.WORD);
 						String pos2 = t2.get(TokenAttr.POS);
 
@@ -325,7 +325,7 @@ public class SejongDataHandler {
 								String[] two = StrUtils.split2Two("/", subparts[j]);
 								String word = two[0];
 								String pos = two[1];
-								subparts[j] = word + Token.DELIM + pos;
+								subparts[j] = word + MToken.DELIM + pos;
 							}
 
 							parts[2] = StrUtils.join(MultiToken.DELIM, subparts);

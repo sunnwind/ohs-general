@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import ohs.utils.Generics;
-import ohs.utils.StrUtils;
 
 public class MDocument extends ArrayList<MSentence> {
 
@@ -31,28 +30,28 @@ public class MDocument extends ArrayList<MSentence> {
 		super(size);
 	}
 
-	public List<List<Token>> getTokens() {
-		List<List<Token>> ret = Generics.newArrayList(size());
-		for (MSentence sent : this) {
-			ret.add(sent.getTokens());
-		}
-		return ret;
+	public MDocument(List<MSentence> s) {
+		super(s);
 	}
 
-	public int sizeOfMultiTokens() {
-		int ret = 0;
-		for (MSentence sent : this) {
-			ret += sent.size();
+	public MSentence getTokens() {
+		List<MToken> ret = Generics.newArrayList(sizeOfTokens());
+		for (MSentence s : this) {
+			ret.addAll(s);
 		}
-		return ret = 0;
+		return new MSentence(ret);
 	}
 
 	public int sizeOfTokens() {
 		int ret = 0;
 		for (MSentence sent : this) {
-			ret += sent.sizeOfTokens();
+			ret += sent.size();
 		}
-		return ret = 0;
+		return ret;
+	}
+
+	public MDocument subDocument(int i, int j) {
+		return new MDocument(subList(i, j));
 	}
 
 	@Override

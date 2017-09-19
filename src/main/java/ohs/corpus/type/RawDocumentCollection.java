@@ -3,7 +3,6 @@ package ohs.corpus.type;
 import java.io.File;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,14 +15,11 @@ import ohs.io.ByteBufferWrapper;
 import ohs.io.FileUtils;
 import ohs.ir.medical.general.MIRPath;
 import ohs.math.ArrayMath;
-import ohs.types.generic.Counter;
 import ohs.types.generic.ListList;
 import ohs.types.number.IntegerArray;
 import ohs.types.number.IntegerArrayMatrix;
 import ohs.types.number.LongArray;
-import ohs.types.number.ShortArray;
 import ohs.utils.Generics;
-import ohs.utils.StrUtils;
 
 public class RawDocumentCollection {
 
