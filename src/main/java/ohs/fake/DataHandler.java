@@ -54,17 +54,8 @@ public class DataHandler {
 				for (int i = 0; i < lines.size(); i++) {
 					String line = lines.get(i);
 
-					List<String> ps = Generics.newArrayList(line.split("\t"));
-
+					List<String> ps = StrUtils.split("\t", line);
 					ps = StrUtils.unwrap(ps);
-
-					// vals.add(id);
-					// vals.add(oid);
-					// vals.add(cat);
-					// vals.add(date);
-					// vals.add(title);
-					// vals.add(content);
-					// vals.add(url);
 
 					int j = 0;
 					String id = ps.get(j++);

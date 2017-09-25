@@ -16,6 +16,7 @@ import ohs.ml.eval.PerformanceEvaluator;
 import ohs.ml.neuralnet.cost.CrossEntropyCostFunction;
 import ohs.ml.neuralnet.layer.BatchNormalizationLayer;
 import ohs.ml.neuralnet.layer.BidirectionalRecurrentLayer;
+import ohs.ml.neuralnet.layer.ConvLayer;
 import ohs.ml.neuralnet.layer.DropoutLayer;
 import ohs.ml.neuralnet.layer.EmbeddingLayer;
 import ohs.ml.neuralnet.layer.FullyConnectedLayer;
@@ -88,42 +89,81 @@ public class NeuralNetTrainer {
 					pu.update();
 				}
 			} else {
-				int data_loc = 0;
-				int batch_size = param.getBatchSize();
-				IntegerArrayMatrix Xm = (IntegerArrayMatrix) X;
-				IntegerArrayMatrix Ym = (IntegerArrayMatrix) Y;
 
-				IntegerArray xm = new IntegerArray();
-				IntegerArray ym = new IntegerArray();
+				if (Y instanceof IntegerArray) {
+					int data_loc = 0;
+					int batch_size = param.getBatchSize();
+					IntegerArrayMatrix Xm = (IntegerArrayMatrix) X;
+					IntegerArray Ym = (IntegerArray) Y;
 
-				while ((data_loc = range_cnt.getAndIncrement()) < data_locs.length) {
-					int loc = data_locs[data_loc];
-					IntegerArray x = Xm.get(loc);
-					IntegerArray y = Ym.get(loc);
+					IntegerArray xm = new IntegerArray();
+					IntegerArray ym = new IntegerArray();
 
-					int[][] ranges = BatchUtils.getBatchRanges(x.size(), batch_size);
+					while ((data_loc = range_cnt.getAndIncrement()) < data_locs.length) {
+						int loc = data_locs[data_loc];
+						IntegerArray x = Xm.get(loc);
 
-					for (int j = 0; j < ranges.length; j++) {
-						xm.clear();
-						ym.clear();
+						int[][] ranges = BatchUtils.getBatchRanges(x.size(), batch_size);
 
-						int[] range = ranges[j];
+						for (int j = 0; j < ranges.length; j++) {
+							xm.clear();
+							ym.clear();
 
-						for (int k = range[0]; k < range[1]; k++) {
-							xm.add(x.get(k));
-							ym.add(y.get(k));
+							int[] range = ranges[j];
+
+							for (int k = range[0]; k < range[1]; k++) {
+								xm.add(x.get(k));
+								ym.add(Ym.get(k));
+							}
+
+							DenseMatrix Yh = (DenseMatrix) nn.forward(xm);
+							DenseMatrix D = cf.evaluate(Yh, ym);
+
+							cost += cf.getCost();
+							correct_cnt += cf.getCorrectCnt();
+
+							nn.backward(D);
+
+							pu.update();
 						}
+					}
+				} else {
+					int data_loc = 0;
+					int batch_size = param.getBatchSize();
+					IntegerArrayMatrix Xm = (IntegerArrayMatrix) X;
+					IntegerArrayMatrix Ym = (IntegerArrayMatrix) Y;
 
-						DenseMatrix Yh = (DenseMatrix) nn.forward(xm);
-						DenseMatrix D = cf.evaluate(Yh, ym);
+					IntegerArray xm = new IntegerArray();
+					IntegerArray ym = new IntegerArray();
 
-						cost += cf.getCost();
-						correct_cnt += cf.getCorrectCnt();
+					while ((data_loc = range_cnt.getAndIncrement()) < data_locs.length) {
+						int loc = data_locs[data_loc];
+						IntegerArray x = Xm.get(loc);
+						IntegerArray y = Ym.get(loc);
 
-						nn.backward(D);
+						int[][] ranges = BatchUtils.getBatchRanges(x.size(), batch_size);
 
-						pu.update();
+						for (int j = 0; j < ranges.length; j++) {
+							xm.clear();
+							ym.clear();
 
+							int[] range = ranges[j];
+
+							for (int k = range[0]; k < range[1]; k++) {
+								xm.add(x.get(k));
+								ym.add(y.get(k));
+							}
+
+							DenseMatrix Yh = (DenseMatrix) nn.forward(xm);
+							DenseMatrix D = cf.evaluate(Yh, ym);
+
+							cost += cf.getCost();
+							correct_cnt += cf.getCorrectCnt();
+
+							nn.backward(D);
+
+							pu.update();
+						}
 					}
 				}
 			}
@@ -176,6 +216,9 @@ public class NeuralNetTrainer {
 			} else if (l instanceof LstmLayer) {
 				LstmLayer n = (LstmLayer) l;
 				ret.add(new LstmLayer(n.getWxh(), n.getWhh(), n.getB().row(0), n.getNonlinearity()));
+			} else if (l instanceof ConvLayer) {
+				ConvLayer n = (ConvLayer) l;
+				ret.add(new ConvLayer(n.getEmbeddingSize(), n.getWindowSize(), n.getFilterSize()));
 			} else if (l instanceof BidirectionalRecurrentLayer) {
 				BidirectionalRecurrentLayer n = (BidirectionalRecurrentLayer) l;
 				Layer fwd2 = null;
@@ -184,8 +227,10 @@ public class NeuralNetTrainer {
 				if (n.getForwardLayer() instanceof RnnLayer) {
 					RnnLayer fwd1 = (RnnLayer) n.getForwardLayer();
 					RnnLayer bwd1 = (RnnLayer) n.getBackwardLayer();
-					fwd2 = new RnnLayer(fwd1.getWxh(), fwd1.getWhh(), fwd1.getB().row(0), fwd1.getBpttSize(), fwd1.getNonlinearity());
-					bwd2 = new RnnLayer(bwd1.getWxh(), bwd1.getWhh(), bwd1.getB().row(0), bwd1.getBpttSize(), bwd1.getNonlinearity());
+					fwd2 = new RnnLayer(fwd1.getWxh(), fwd1.getWhh(), fwd1.getB().row(0), fwd1.getBpttSize(),
+							fwd1.getNonlinearity());
+					bwd2 = new RnnLayer(bwd1.getWxh(), bwd1.getWhh(), bwd1.getB().row(0), bwd1.getBpttSize(),
+							bwd1.getNonlinearity());
 				} else if (n.getForwardLayer() instanceof LstmLayer) {
 					LstmLayer fwd1 = (LstmLayer) n.getForwardLayer();
 					LstmLayer bwd1 = (LstmLayer) n.getBackwardLayer();
@@ -194,7 +239,8 @@ public class NeuralNetTrainer {
 				}
 				ret.add(new BidirectionalRecurrentLayer(fwd2, bwd2));
 			} else {
-				System.err.println("unknown layer");
+
+				System.err.printf("unknown layer - [%s]\n", l.getClass().getName());
 				System.exit(0);
 			}
 		}
@@ -248,7 +294,8 @@ public class NeuralNetTrainer {
 
 	private Timer timer1 = Timer.newTimer();
 
-	public NeuralNetTrainer(NeuralNet nn, NeuralNetParams param, int data_size, Indexer<String> labelIndexer) throws Exception {
+	public NeuralNetTrainer(NeuralNet nn, NeuralNetParams param, int data_size, Indexer<String> labelIndexer)
+			throws Exception {
 		prepare(nn, param, data_size, labelIndexer);
 	}
 
@@ -260,7 +307,8 @@ public class NeuralNetTrainer {
 		VectorUtils.copy(W_best, W);
 	}
 
-	public void prepare(NeuralNet nn, NeuralNetParams param, int data_size, Indexer<String> labelIndexer) throws Exception {
+	public void prepare(NeuralNet nn, NeuralNetParams param, int data_size, Indexer<String> labelIndexer)
+			throws Exception {
 		this.nn = nn;
 		this.param = param;
 		this.data_size = data_size;
@@ -290,7 +338,8 @@ public class NeuralNetTrainer {
 		}
 	}
 
-	// public void train(NeuralNetParams param, NeuralNet nn, Object X, Object Y, Object Xt, Object Yt, int max_iter,
+	// public void train(NeuralNetParams param, NeuralNet nn, Object X, Object Y,
+	// Object Xt, Object Yt, int max_iter,
 	// Indexer<String> labelIndexer) throws Exception {
 	// Timer timer1 = Timer.newTimer();
 	// this.param = param;
@@ -328,7 +377,8 @@ public class NeuralNetTrainer {
 	// DenseMatrix W_best = W.copy(true);
 	// DenseMatrix W_no_bias = nn.getW();
 	//
-	// ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
+	// ThreadPoolExecutor tpe = (ThreadPoolExecutor)
+	// Executors.newFixedThreadPool(thread_size);
 	//
 	// List<Worker> ws = Generics.newArrayList(thread_size);
 	//
@@ -365,7 +415,9 @@ public class NeuralNetTrainer {
 	// }
 	//
 	// if (param.getRegLambda() > 0) {
-	// cost += CrossEntropyCostFunction.getL2RegularizationTerm(param.getRegLambda(), W_no_bias, data_size);
+	// cost +=
+	// CrossEntropyCostFunction.getL2RegularizationTerm(param.getRegLambda(),
+	// W_no_bias, data_size);
 	// }
 	//
 	// double acc = 1f * cor_cnt / data_size;
@@ -379,7 +431,8 @@ public class NeuralNetTrainer {
 	// }
 	//
 	// double norm = VectorMath.normL2(W_no_bias);
-	// System.out.printf("%dth, cost: %f, acc: %f (%d/%d), time: %s (%s), norm: %f, learn-rate: %f\n", iter, cost, acc, cor_cnt,
+	// System.out.printf("%dth, cost: %f, acc: %f (%d/%d), time: %s (%s), norm: %f,
+	// learn-rate: %f\n", iter, cost, acc, cor_cnt,
 	// data_size, timer2.stop(), timer1.stop(), norm, param.getLearningRate());
 	//
 	// if (Xt != null && Yt != null) {
@@ -489,8 +542,8 @@ public class NeuralNetTrainer {
 			}
 
 			double norm = VectorMath.normL2(W_no_bias);
-			System.out.printf("%dth, cost: %f, acc: %f (%d/%d), time: %s (%s), norm: %f, learn-rate: %f\n", i, cost, acc, cor_cnt,
-					data_size, timer2.stop(), timer1.stop(), norm, param.getLearnRate());
+			System.out.printf("%dth, cost: %f, acc: %f (%d/%d), time: %s (%s), norm: %f, learn-rate: %f\n", i, cost,
+					acc, cor_cnt, data_size, timer2.stop(), timer1.stop(), norm, param.getLearnRate());
 
 			if (Xt != null && Yt != null) {
 				nn.setIsTesting(true);

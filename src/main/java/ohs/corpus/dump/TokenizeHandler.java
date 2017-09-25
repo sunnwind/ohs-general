@@ -141,9 +141,11 @@ public class TokenizeHandler {
 		// th.tokenize(MIRPath.BIOASQ_COL_LINE_DIR, new int[] { 4, 5 }, MIRPath.BIOASQ_COL_TOK_DIR, false);
 		// th.tokenize("../../data/medical_ir/scopus/col/line/", new int[] { 1, 2, 3 }, "../../data/medical_ir/scopus/col/tok/", true);
 
-		th.tokenize(MIRPath.TREC_PM_2017_COL_MEDLINE_LINE_DIR, new int[] { 2, 3, 4 }, MIRPath.TREC_PM_2017_COL_MEDLINE_TOK_DIR, true);
-		th.tokenize(MIRPath.TREC_PM_2017_COL_CLINICAL_LINE_DIR, new int[] { 1, 2, 2, 3, 4, 5 }, MIRPath.TREC_PM_2017_COL_CLINICAL_TOK_DIR,
-				true);
+		// th.tokenize(MIRPath.TREC_PM_2017_COL_MEDLINE_LINE_DIR, new int[] { 2, 3, 4 },
+		// MIRPath.TREC_PM_2017_COL_MEDLINE_TOK_DIR, true);
+		// th.tokenize(MIRPath.TREC_PM_2017_COL_CLINICAL_LINE_DIR, new int[] { 1, 2, 2,
+		// 3, 4, 5 }, MIRPath.TREC_PM_2017_COL_CLINICAL_TOK_DIR,
+		// true);
 
 		System.out.println("process ends.");
 	}

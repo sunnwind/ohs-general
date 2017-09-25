@@ -3,6 +3,7 @@ package ohs.eden.keyphrase.ext;
 import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.text.DecimalFormat;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
@@ -11,7 +12,10 @@ import java.util.Scanner;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-import kr.co.shineware.nlp.komoran.core.analyzer.Komoran;
+import org.bitbucket.eunjeon.seunjeon.Analyzer;
+import org.bitbucket.eunjeon.seunjeon.LNode;
+import org.bitbucket.eunjeon.seunjeon.Morpheme;
+
 import kr.co.shineware.util.common.model.Pair;
 import ohs.corpus.type.DocumentCollection;
 import ohs.corpus.type.RawDocumentCollection;
@@ -31,6 +35,7 @@ import ohs.types.generic.Counter;
 import ohs.types.generic.Vocab;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
+import scala.collection.mutable.WrappedArray;
 
 public class KorDataHandler {
 
@@ -397,15 +402,18 @@ public class KorDataHandler {
 	}
 
 	public void tagPOS() throws Exception {
-		Komoran komoran = new Komoran("lib/models-full/");
-
 		FileUtils.deleteFilesUnder(KPPath.COL_LINE_POS_DIR);
 
-		for (File file : FileUtils.getFilesUnder(KPPath.COL_LINE_DIR)) {
-			List<String> lines = FileUtils.readLinesFromText(file);
+		int batch_size = 20000;
+		int batch_cnt = 0;
 
-			for (int i = 0; i < lines.size(); i++) {
-				String line = lines.get(i);
+		List<String> outs = Generics.newArrayList(batch_size);
+
+		for (File file : FileUtils.getFilesUnder(KPPath.COL_LINE_DIR)) {
+			List<String> ins = FileUtils.readLinesFromText(file);
+
+			for (int i = 0; i < ins.size(); i++) {
+				String line = ins.get(i);
 
 				List<String> parts = Generics.newArrayList(line.split("\t"));
 
@@ -423,48 +431,74 @@ public class KorDataHandler {
 				List<String> korKwds = StrUtils.split(StrUtils.LINE_REP, korKwdStr);
 				List<String> engKwds = StrUtils.split(StrUtils.LINE_REP, engKwdStr);
 
+				MDocument kps = new MDocument();
+				MDocument content = new MDocument();
+
 				if (korKwds.size() > 0) {
-					List<String> korKwds2 = Generics.newArrayList(korKwds.size());
-					for (int j = 0; j < korKwds.size(); j++) {
-						String kwd = korKwds.get(j);
-						kwd = getText(komoran.analyze(kwd, 1));
-						korKwds2.add(kwd);
-					}
+					for (String kwd : korKwds) {
+						MSentence kp = new MSentence();
+						for (LNode node : Analyzer.parseJava(kwd)) {
+							Morpheme m = node.morpheme();
+							WrappedArray<String> fs = m.feature();
+							String[] vals = (String[]) fs.array();
+							String word = m.surface();
+							String pos = vals[0];
 
-					parts.add(StrUtils.join(StrUtils.LINE_REP, korKwds2));
-				} else {
-					parts.add("");
+							MToken t = new MToken(2);
+							t.add(word);
+							t.add(pos);
+							kp.add(t);
+						}
+						kps.add(kp);
+					}
 				}
 
-				if (korTitle.length() > 0) {
+				if (korTitle.length() > 0 && korAbs.length() > 0) {
+					for (String str : (korTitle + "\n" + korAbs).split("\n")) {
+						if (str.length() == 0) {
+							continue;
+						}
+						MSentence sent = new MSentence();
+						for (LNode node : Analyzer.parseJava(str)) {
+							Morpheme m = node.morpheme();
+							WrappedArray<String> fs = m.feature();
+							String[] vals = (String[]) fs.array();
+							String word = m.surface();
+							String pos = vals[0];
+
+							MToken t = new MToken(2);
+							t.add(word);
+							t.add(pos);
+							sent.add(t);
+						}
+						content.add(sent);
+					}
+				}
+
+				if (kps.size() > 0 && content.size() > 0) {
 					List<String> l = Generics.newArrayList();
-					for (String sent : korTitle.replace(". ", ".\n").split("\n")) {
-						l.add(getText(komoran.analyze(sent, 1)));
-					}
-					parts.add(StrUtils.join(StrUtils.LINE_REP, l));
-				} else {
-					parts.add("");
+					l.add(cn);
+					l.add(type);
+					l.add(content.toString().replace("\n", StrUtils.LINE_REP));
+					l = StrUtils.wrap(l);
+
+					outs.add(StrUtils.join("\t", l));
 				}
 
-				if (korAbs.length() > 0) {
-
-					List<String> l = Generics.newArrayList();
-					for (String sent : korAbs.replace(". ", ".\n").split("\n")) {
-						List<List<List<Pair<String, String>>>> rs = komoran.analyze(sent, 1);
-						l.add(getText(rs));
-					}
-
-					parts.add(StrUtils.join(StrUtils.LINE_REP, l));
-				} else {
-					parts.add("");
+				if (outs.size() > 0 && outs.size() % batch_size == 0) {
+					DecimalFormat df = new DecimalFormat("000000");
+					String outFileName = KPPath.COL_LINE_POS_DIR + String.format("%s.txt.gz", df.format(batch_cnt++));
+					FileUtils.writeStringCollectionAsText(outFileName, outs);
+					outs.clear();
 				}
-
-				parts = StrUtils.wrap(parts);
-
-				lines.set(i, StrUtils.join("\t", parts));
 			}
+		}
 
-			FileUtils.writeStringCollectionAsText(file.getPath().replace("line", "line_pos"), lines);
+		if (outs.size() > 0) {
+			DecimalFormat df = new DecimalFormat("000000");
+			String outFileName = KPPath.COL_LINE_POS_DIR + String.format("%s.txt.gz", df.format(batch_cnt++));
+			FileUtils.writeStringCollectionAsText(outFileName, outs);
+			outs.clear();
 		}
 	}
 

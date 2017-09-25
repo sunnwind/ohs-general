@@ -9,6 +9,10 @@ import java.util.Scanner;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+
 import de.bwaldvogel.liblinear.Linear;
 import ohs.corpus.type.DocumentCollection;
 import ohs.eden.keyphrase.cluster.KPPath;
@@ -35,9 +39,45 @@ public class KeyphraseExtractor {
 		System.out.println("process begins.");
 
 		// run1();
-		run2();
+		// run2();
+		run3();
 
 		System.out.println("process ends.");
+	}
+
+	public static MDocument newDocumentFromJsonString(String s) throws Exception {
+		JSONParser p = new JSONParser();
+		JSONObject jdoc = (JSONObject) p.parse(s);
+		JSONArray jsents = null;
+
+		{
+			JSONObject o = (JSONObject) jdoc.get("result");
+			jsents = (JSONArray) o.get("sentences");
+		}
+
+		MDocument ret = new MDocument();
+
+		for (int i = 0; i < jsents.size(); i++) {
+			JSONObject o = (JSONObject) jsents.get(i);
+			JSONArray ja = (JSONArray) o.get("morphemeSets");
+
+			MSentence sent = new MSentence();
+
+			for (int j = 0; j < ja.size(); j++) {
+				JSONObject o2 = (JSONObject) ja.get(j);
+
+				String word = (String) o2.get("morpheme");
+				String pos = (String) o2.get("morphemeType");
+
+				MToken t = new MToken();
+				t.add(word);
+				t.add(pos);
+				sent.add(t);
+			}
+			ret.add(sent);
+		}
+
+		return ret;
 	}
 
 	public static void run1() throws Exception {
@@ -274,6 +314,55 @@ public class KeyphraseExtractor {
 		System.out.printf("f1:\t%f\n", f1);
 	}
 
+	public static void run3() throws Exception {
+		List<String> testData = Generics.newLinkedList();
+
+		Counter<String> phrsPats = FileUtils.readStringCounterFromText(KPPath.KP_DIR + "ext/phrs_pat.txt");
+
+		{
+			Counter<String> c = Generics.newCounter();
+			for (String pat : phrsPats.keySet()) {
+				double cnt = phrsPats.getCount(pat);
+				if (cnt < 3) {
+					continue;
+				}
+
+				List<String> poss = StrUtils.split(pat);
+
+				if (!poss.get(poss.size() - 1).startsWith("NN")) {
+					continue;
+				}
+
+				if (poss.get(0).startsWith("J")) {
+					continue;
+				}
+
+				c.setCount(pat, cnt);
+			}
+			phrsPats = c;
+		}
+
+		Vocab featIdxer = DocumentCollection.readVocab(KPPath.KP_DIR + "ext/vocab_num_pred.ser");
+
+		PhraseRanker pr = new PhraseRanker(featIdxer,
+				CandidatePhraseSearcher.newCandidatePhraseSearcher(phrsPats.keySet()));
+
+		PhraseNumberPredictor pnp = new PhraseNumberPredictor(featIdxer,
+				Linear.loadModel(new File(KPPath.KP_DIR + "ext/model_num_pred.txt")));
+
+		KeyphraseExtractor ext = new KeyphraseExtractor(pnp, pr);
+
+		String jsonStr = FileUtils.readFromText(KPPath.KP_DIR + "ext/json.txt");
+		
+		System.out.printf("<Input>\n%s\n\n", jsonStr);
+
+		Counter<String> phrsScores = ext.extractFromJsonString(jsonStr);
+
+		System.out.println("<Output>");
+		System.out.println(phrsScores.toStringSortedByValues(true, true, phrsScores.size(), "\t"));
+
+	}
+
 	private int cand_size = Integer.MAX_VALUE;
 
 	private PhraseNumberPredictor predictor;
@@ -290,7 +379,7 @@ public class KeyphraseExtractor {
 
 		int size = phrsScores.size();
 
-		if (cand_size > 0 && cand_size < Integer.MAX_VALUE) {
+		if (cand_size == Integer.MAX_VALUE) {
 			size = predictor.predict(md);
 		}
 
@@ -348,11 +437,22 @@ public class KeyphraseExtractor {
 	 * 입자 NNG I O
 	 * 
 	 * 
-	 * @param content
+	 * @param s
 	 * @return 핵심구과 확률값을 가지고 있는 Counter
 	 */
-	public Counter<String> extract(String content) {
-		return extract(MDocument.newDocument(content));
+	public Counter<String> extract(String s) {
+		return extract(MDocument.newDocument(s));
+	}
+
+	/**
+	 * json string outputed using open api
+	 * 
+	 * @param s
+	 * @return
+	 * @throws Exception
+	 */
+	public Counter<String> extractFromJsonString(String s) throws Exception {
+		return extract(newDocumentFromJsonString(s));
 	}
 
 	public int getCandidateSize() {

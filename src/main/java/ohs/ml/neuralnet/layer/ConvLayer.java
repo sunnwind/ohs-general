@@ -5,6 +5,7 @@ import java.util.List;
 import ohs.math.VectorMath;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseVector;
+import ohs.ml.neuralnet.com.ParameterInitializer;
 import ohs.utils.Generics;
 
 /**
@@ -26,7 +27,7 @@ public class ConvLayer extends Layer {
 
 	private int window_size;
 
-	private int embedding_size;
+	private int emb_size;
 
 	/**
 	 * filters x feature maps
@@ -50,27 +51,35 @@ public class ConvLayer extends Layer {
 
 	private DenseMatrix C;
 
-	private int padding_size = 0;
+	private int pad_size = 0;
 
-	private int concat_embedding_size = 0;
+	private int concat_emb_size = 0;
 
 	private boolean use_padding = false;
 
 	private DenseMatrix P;
 
-	public ConvLayer(DenseMatrix W, DenseVector b, int window_size, int embedding_size) {
+	public int getWindowSize() {
+		return window_size;
+	}
+
+	public int getFilterSize() {
+		return W.rowSize();
+	}
+
+	public ConvLayer(DenseMatrix W, DenseVector b, int window_size, int embed_size) {
 		this.W = W;
 		this.b = b;
 		this.window_size = window_size;
-		this.embedding_size = embedding_size;
-		padding_size = window_size - 1;
-		concat_embedding_size = embedding_size * window_size;
+		this.emb_size = embed_size;
+		pad_size = window_size - 1;
+		concat_emb_size = embed_size * window_size;
 
-		P = new DenseMatrix(padding_size, embedding_size);
+		P = new DenseMatrix(1, embed_size);
 	}
 
-	public ConvLayer(int embedding_size, int window_size, int filter_size) {
-		this(new DenseMatrix(filter_size, window_size * embedding_size), new DenseVector(filter_size), window_size, embedding_size);
+	public ConvLayer(int emb_size, int window_size, int num_filters) {
+		this(new DenseMatrix(num_filters, window_size * emb_size), new DenseVector(num_filters), window_size, emb_size);
 	}
 
 	@Override
@@ -85,45 +94,31 @@ public class ConvLayer extends Layer {
 		this.fwd_X = X;
 
 		int data_size = X.rowSize();
-		int padded_data_size = data_size + padding_size;
+		int feat_map_size = data_size - window_size + 1;
 
 		DenseMatrix Xp = null;
 
-		{
-			List<DenseVector> l = Generics.newArrayList(padded_data_size);
-
-			for (DenseVector p : P) {
-				l.add(p);
-			}
-
-			for (DenseVector x : X) {
-				l.add(x);
-			}
-
-			Xp = new DenseMatrix(l);
+		if (tmp_Xc == null || tmp_Xc.rowSize() < feat_map_size) {
+			tmp_Xc = new DenseMatrix(feat_map_size, concat_emb_size);
 		}
 
-		if (tmp_Xc == null || tmp_Xc.rowSize() < data_size) {
-			tmp_Xc = new DenseMatrix(data_size, concat_embedding_size);
-		}
-		
 		/*
-		 * Xc = data x concatenated embeddings
+		 * Xc = feature_map_size x concatenated embeddings
 		 */
 
-		Xc = tmp_Xc.rowsAsMatrix(data_size);
+		Xc = tmp_Xc.rowsAsMatrix(feat_map_size);
 		Xc.setAll(0);
 
-		for (int i = 0; i < data_size; i++) {
+		for (int i = 0; i < feat_map_size; i++) {
 			int start = i;
 			int end = i + window_size;
 
 			DenseVector xc = Xc.row(i);
 
-			for (int j = start, k = 0; j < end; j++) {
-				DenseVector x = Xp.row(j);
-				for (int l = 0; l < x.size(); l++) {
-					xc.add(k++, x.value(l));
+			for (int j = start, loc = 0; j < end; j++) {
+				DenseVector x = X.row(j);
+				for (int k = 0; k < x.size(); k++) {
+					xc.add(loc++, x.value(k));
 				}
 			}
 		}
@@ -162,7 +157,12 @@ public class ConvLayer extends Layer {
 	}
 
 	public int getEmbeddingSize() {
-		return embedding_size;
+		return emb_size;
+	}
+
+	@Override
+	public void init() {
+		ParameterInitializer.init2(W);
 	}
 
 	@Override
@@ -181,18 +181,9 @@ public class ConvLayer extends Layer {
 	}
 
 	@Override
-	public void init() {
-		if (is_testing) {
-
-		} else {
-			VectorMath.random(0, 1, W);
-			W.add(-0.5);
-			W.multiply(1f / W.colSize());
-
-			dW = W.copy(true);
-			db = b.copy(true);
-		}
-
+	public void prepare() {
+		dW = W.copy(true);
+		db = b.copy(true);
 	}
 
 	public void usePadding(boolean use_padding) {

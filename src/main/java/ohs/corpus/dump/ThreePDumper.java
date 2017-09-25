@@ -50,6 +50,10 @@ public class ThreePDumper extends TextDumper {
 			String fileName = inFile.getName();
 			String type = "";
 
+			if (!fileName.contains("_2")) {
+				continue;
+			}
+
 			if (fileName.contains("paper")) {
 				type = "paper";
 			} else if (fileName.contains("report")) {
@@ -57,6 +61,10 @@ public class ThreePDumper extends TextDumper {
 			} else if (fileName.contains("patent")) {
 				type = "patent";
 			}
+
+			// if (!type.equalsIgnoreCase("patent")) {
+			// continue;
+			// }
 
 			// TextFileWriter writer = new
 			// TextFileWriter(KPPath.SINGLE_DUMP_FILE);
@@ -75,61 +83,65 @@ public class ThreePDumper extends TextDumper {
 
 			while (reader.hasNext()) {
 				String line = reader.next();
-				String[] parts = line.split("\t");
+				String[] ps = line.split("\t");
 
 				// System.out.println(line);
 
 				if (reader.getLineCnt() == 1) {
-					parts = StrUtils.unwrap(parts);
+					ps = StrUtils.unwrap(ps);
 
-					for (String p : parts) {
+					for (String p : ps) {
 						labels.add(p);
 					}
 				} else {
-					if (parts.length != labels.size()) {
+					if (ps.length != labels.size()) {
 						System.out.println(line);
 						continue;
 					}
 
-					parts = StrUtils.unwrap(parts);
+					ps = StrUtils.unwrap(ps);
 
-					String cn = parts[0];
+					String cn = ps[0];
 					String korTitle = "";
 					String engTitle = "";
 					String korAbs = "";
 					String engAbs = "";
 					String korKwdStr = "";
 					String engKwdStr = "";
+					String date = "";
 
 					if (type.equals("paper")) {
-						korTitle = parts[1];
-						engTitle = parts[2];
-						korAbs = parts[5];
-						engAbs = parts[6];
-						korKwdStr = parts[3];
-						engKwdStr = parts[4];
+						korTitle = ps[1];
+						engTitle = ps[2];
+						korAbs = ps[5];
+						engAbs = ps[6];
+						korKwdStr = ps[3];
+						engKwdStr = ps[4];
+						date = ps[7];
 					} else if (type.equals("report")) {
-						korTitle = parts[1];
-						engTitle = parts[2];
-						korAbs = parts[5];
-						engAbs = parts[6];
-						korKwdStr = parts[3];
-						engKwdStr = parts[4];
+						korTitle = ps[1];
+						engTitle = ps[2];
+						korAbs = ps[5];
+						engAbs = ps[6];
+						korKwdStr = ps[3];
+						engKwdStr = ps[4];
+						date = ps[7];
 					} else if (type.equals("patent")) {
-						String applno = parts[0];
-						korTitle = parts[1];
-						engTitle = parts[2];
-						cn = parts[3];
-						korAbs = parts[4];
+						String applno = ps[0];
+						korTitle = ps[1];
+						engTitle = ps[2];
+						cn = ps[3];
+						korAbs = ps[4];
+						date = ps[5];
 					}
 
 					List<String> korKwds = getKeywords(korKwdStr);
 					List<String> engKwds = getKeywords(engKwdStr);
 
-					parts = new String[] { type, cn, StrUtils.join(StrUtils.LINE_REP, korKwds), StrUtils.join(StrUtils.LINE_REP, engKwds),
-							korTitle, engTitle, korAbs, engAbs };
+					ps = new String[] { type, cn, StrUtils.join(StrUtils.LINE_REP, korKwds),
+							StrUtils.join(StrUtils.LINE_REP, engKwds), korTitle, engTitle, korAbs, engAbs, date };
 
-					res.add(StrUtils.join("\t", StrUtils.wrap(parts)));
+					res.add(StrUtils.join("\t", StrUtils.wrap(ps)));
 
 					if (res.size() % batch_size == 0) {
 						DecimalFormat df = new DecimalFormat("000000");

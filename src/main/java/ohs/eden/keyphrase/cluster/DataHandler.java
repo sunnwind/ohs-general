@@ -451,11 +451,8 @@ public class DataHandler {
 				MDocument abs = new MDocument();
 
 				if (korKwds.size() > 0) {
-					for (int j = 0; j < korKwds.size(); j++) {
-						String kwd = korKwds.get(j);
-
-						MSentence kp = new MSentence();
-
+					for (String kwd : korKwds) {
+						MSentence s = new MSentence();
 						for (LNode node : Analyzer.parseJava(kwd)) {
 							Morpheme m = node.morpheme();
 							WrappedArray<String> fs = m.feature();
@@ -466,10 +463,9 @@ public class DataHandler {
 							MToken t = new MToken();
 							t.add(word);
 							t.add(pos);
-							kp.add(t);
+							s.add(t);
 						}
-
-						kps.add(kp);
+						kps.add(s);
 					}
 				}
 
@@ -492,20 +488,24 @@ public class DataHandler {
 
 				if (korAbs.length() > 0) {
 					MSentence s = new MSentence();
-					for (LNode node : Analyzer.parseJava(korAbs)) {
-						Morpheme m = node.morpheme();
-						WrappedArray<String> fs = m.feature();
-						String[] vals = (String[]) fs.array();
-						String word = m.surface();
-						String pos = vals[0];
-						// System.out.println(node);
+					korAbs = korAbs.replaceAll("(\\. )", ".\n");
+					
+					for (String str : korAbs.split("\n")) {
+						for (LNode node : Analyzer.parseJava(str)) {
+							Morpheme m = node.morpheme();
+							WrappedArray<String> fs = m.feature();
+							String[] vals = (String[]) fs.array();
+							String word = m.surface();
+							String pos = vals[0];
+							// System.out.println(node);
 
-						MToken t = new MToken();
-						t.add(word);
-						t.add(pos);
-						s.add(t);
+							MToken t = new MToken();
+							t.add(word);
+							t.add(pos);
+							s.add(t);
+						}
+						abs.add(s);
 					}
-					abs.add(s);
 				}
 
 				if (title.size() > 0 && abs.size() > 0) {

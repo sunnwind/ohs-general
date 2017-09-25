@@ -50,16 +50,17 @@ public class EntityContextGenerator {
 
 				ELPath.ENTITY_CONTEXT_FILE.replace(".ser", "_title.ser"), };
 
-		IndexSearcher is = SearcherUtils.getIndexSearcher(MIRPath.WIKI_INDEX_DIR);
-
-		for (int i = 0; i < inputFileNames.length; i++) {
-
-			EntityLinker el = new EntityLinker();
-			el.read(inputFileNames[i]);
-
-			EntityContextGenerator ecg = new EntityContextGenerator(el, is, outputFileNames[i]);
-			ecg.generate();
-		}
+		// IndexSearcher is = SearcherUtils.getIndexSearcher(MIRPath.WIKI_INDEX_DIR);
+		//
+		// for (int i = 0; i < inputFileNames.length; i++) {
+		//
+		// EntityLinker el = new EntityLinker();
+		// el.read(inputFileNames[i]);
+		//
+		// EntityContextGenerator ecg = new EntityContextGenerator(el, is,
+		// outputFileNames[i]);
+		// ecg.generate();
+		// }
 
 		System.out.println("process ends.");
 	}

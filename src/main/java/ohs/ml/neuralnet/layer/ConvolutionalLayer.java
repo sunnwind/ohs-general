@@ -18,19 +18,29 @@ import ohs.utils.Generics;
  */
 public class ConvolutionalLayer extends Layer {
 
-	private List<NeuralNet> conns;
+	private Layer conv;
+
+	private Layer nl;
+
+	private Layer pl;
 
 	private int output_size;
 
 	private DenseVector y;
 
-	private int num_filters;
+	private int filter_size;
 
-	public ConvolutionalLayer(int embedding_size, int[] window_sizes, int num_filters) {
-		this.num_filters = num_filters;
-		this.output_size = window_sizes.length * num_filters;
+	public ConvolutionalLayer(Layer conv, Layer nl, Layer pl) {
+		this.conv = conv;
+		this.nl = nl;
+		this.pl = pl;
+	}
 
-		conns = Generics.newArrayList(window_sizes.length);
+	public ConvolutionalLayer(int emb_size, int[] window_sizes, int filter_size) {
+		this.filter_size = filter_size;
+		this.output_size = window_sizes.length * filter_size;
+
+		conv = new ConvLayer(emb_size, 3, filter_size);
 
 		// for (int i = 0; i < window_sizes.length; i++) {
 		// NeuralNet nn = new NeuralNet();
@@ -51,14 +61,6 @@ public class ConvolutionalLayer extends Layer {
 	@Override
 	public Object forward(Object I) {
 		DenseMatrix X = (DenseMatrix) I;
-		List<DenseVector> ys = Generics.newArrayList();
-		for (int i = 0; i < conns.size(); i++) {
-			NeuralNet nn = conns.get(i);
-			DenseVector y = (DenseVector) nn.forward(X);
-			ys.add(y);
-		}
-
-		VectorUtils.copyRows(new DenseMatrix(ys), 0, ys.size(), y);
 		return y.toDenseMatrix();
 	}
 
@@ -79,7 +81,7 @@ public class ConvolutionalLayer extends Layer {
 
 	@Override
 	public int getInputSize() {
-		return num_filters;
+		return filter_size;
 	}
 
 	@Override
@@ -94,9 +96,6 @@ public class ConvolutionalLayer extends Layer {
 
 	@Override
 	public void init() {
-		for (NeuralNet nn : conns) {
-			nn.init();
-		}
 	}
 
 }
