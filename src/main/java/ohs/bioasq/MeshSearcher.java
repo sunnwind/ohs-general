@@ -17,7 +17,7 @@ import ohs.types.generic.ListMap;
 import ohs.types.generic.Pair;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
 import ohs.utils.Timer;
@@ -127,7 +127,7 @@ public class MeshSearcher {
 					int docseq = scores.indexAt(k);
 					double score = scores.valueAt(k);
 
-					Pair<String, IntegerArrayMatrix> t = ds.getDocumentCollection().getSents(docseq);
+					Pair<String, IntegerMatrix> t = ds.getDocumentCollection().getSents(docseq);
 
 					String[] items2 = t.getThird().split("\t");
 					items2 = StrUtils.unwrap(items2);

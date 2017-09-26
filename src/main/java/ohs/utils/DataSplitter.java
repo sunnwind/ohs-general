@@ -7,12 +7,12 @@ import ohs.math.ArrayMath;
 import ohs.math.ArrayUtils;
 import ohs.types.generic.ListMap;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.utils.Generics.ListType;
 
 public class DataSplitter {
 
-	public static IntegerArrayMatrix group(IntegerArray x) {
+	public static IntegerMatrix group(IntegerArray x) {
 		ListMap<Integer, Integer> lm = Generics.newListMap(ListType.LINKED_LIST);
 		for (int i = 0; i < x.size(); i++) {
 			lm.put(x.get(i), i);
@@ -21,7 +21,7 @@ public class DataSplitter {
 		IntegerArray ls = new IntegerArray(lm.keySet());
 		ls.sort(false);
 
-		IntegerArrayMatrix ret = new IntegerArrayMatrix(ls.size());
+		IntegerMatrix ret = new IntegerMatrix(ls.size());
 
 		for (int l : ls) {
 			ret.add(new IntegerArray(lm.get(l)));
@@ -29,13 +29,13 @@ public class DataSplitter {
 		return ret;
 	}
 
-	public static IntegerArrayMatrix split(IntegerArray x, double[] props) {
+	public static IntegerMatrix split(IntegerArray x, double[] props) {
 		double[] foldMaxIdxs = ArrayUtils.copy(props);
 		int fold_size = foldMaxIdxs.length;
 
 		ArrayMath.cumulate(foldMaxIdxs, foldMaxIdxs);
 
-		IntegerArrayMatrix ret = new IntegerArrayMatrix(fold_size);
+		IntegerMatrix ret = new IntegerMatrix(fold_size);
 		ret.ensure(fold_size - 1);
 
 		for (int i = 0; i < fold_size; i++) {
@@ -52,9 +52,9 @@ public class DataSplitter {
 		return ret;
 	}
 
-	public static IntegerArrayMatrix split(IntegerArray x, int group_size) {
+	public static IntegerMatrix split(IntegerArray x, int group_size) {
 		int group_cnt = (x.size() / group_size) + 1;
-		IntegerArrayMatrix ret = new IntegerArrayMatrix(group_cnt);
+		IntegerMatrix ret = new IntegerMatrix(group_cnt);
 		int i = 0;
 		while (i < x.size()) {
 			int j = Math.min(x.size(), i + group_size);
@@ -64,10 +64,10 @@ public class DataSplitter {
 		return ret;
 	}
 
-	public static IntegerArrayMatrix split(IntegerArray x, int[] cnts) {
+	public static IntegerMatrix split(IntegerArray x, int[] cnts) {
 		int fold_size = cnts.length;
 
-		IntegerArrayMatrix ret = new IntegerArrayMatrix();
+		IntegerMatrix ret = new IntegerMatrix();
 		ret.ensure(fold_size - 1);
 
 		for (int i = 0, k = 0; i < fold_size; i++) {
@@ -83,16 +83,16 @@ public class DataSplitter {
 		return splitInOrder(ids, ArrayMath.array(num_folds, 1f / num_folds));
 	}
 
-	public static IntegerArrayMatrix splitGroups(IntegerArrayMatrix G, double[] props) {
+	public static IntegerMatrix splitGroups(IntegerMatrix G, double[] props) {
 		int label_size = G.size();
 		int fold_size = props.length;
 
-		IntegerArrayMatrix ret = new IntegerArrayMatrix();
+		IntegerMatrix ret = new IntegerMatrix();
 		ret.ensure(G.size() - 1);
 
 		for (int i = 0; i < label_size; i++) {
 			IntegerArray g = G.get(i);
-			IntegerArrayMatrix S = split(g, props);
+			IntegerMatrix S = split(g, props);
 
 			for (int j = 0; j < fold_size; j++) {
 				ret.get(j).addAll(S.get(j));
@@ -102,15 +102,15 @@ public class DataSplitter {
 		return ret;
 	}
 
-	public static IntegerArrayMatrix splitGroups(IntegerArrayMatrix G, int[] cnts) {
+	public static IntegerMatrix splitGroups(IntegerMatrix G, int[] cnts) {
 		int label_size = G.size();
 		int fold_size = cnts.length;
 
-		IntegerArrayMatrix ret = new IntegerArrayMatrix();
+		IntegerMatrix ret = new IntegerMatrix();
 		ret.ensure(fold_size - 1);
 
 		for (int i = 0; i < label_size; i++) {
-			IntegerArrayMatrix S = split(G.get(i), cnts);
+			IntegerMatrix S = split(G.get(i), cnts);
 
 			for (int j = 0; j < fold_size; j++) {
 				ret.get(j).addAll(S.get(j));

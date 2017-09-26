@@ -57,7 +57,7 @@ import ohs.types.generic.ListMap;
 import ohs.types.generic.Pair;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
 
@@ -294,7 +294,7 @@ public class ExperimentsOld {
 			for (int r : ranks) {
 				int docseq = rankToDoc.get(r);
 				double rel = docRels.getCount(idToSeq.getKey(docseq));
-				IntegerArrayMatrix doc = ds.getDocumentCollection().getSents(docseq).getSecond();
+				IntegerMatrix doc = ds.getDocumentCollection().getSents(docseq).getSecond();
 				SparseVector dv = ds.getDocumentCollection().getDocVector(docseq);
 
 				Counter<String> c = Generics.newCounter();

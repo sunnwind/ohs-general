@@ -135,8 +135,8 @@ public class RnnLayer extends Layer {
 			tmp_dA = new DenseMatrix(data_size, hidden_size);
 		}
 
-		DenseMatrix dX = tmp_dX.rowsAsMatrix(data_size);
-		DenseMatrix dA = tmp_dA.rowsAsMatrix(data_size);
+		DenseMatrix dX = tmp_dX.rows(data_size);
+		DenseMatrix dA = tmp_dA.rows(data_size);
 
 		non.backward(H, dA);
 
@@ -199,7 +199,7 @@ public class RnnLayer extends Layer {
 			h0_prev = h0.copy(true);
 		}
 
-		H = tmp_H.rowsAsMatrix(data_size);
+		H = tmp_H.rows(data_size);
 		H.setAll(0);
 
 		for (int t = 0; t < data_size; t++) {
@@ -253,11 +253,11 @@ public class RnnLayer extends Layer {
 		int size = dWxh.rowSize() + dWhh.rowSize();
 		List<DenseVector> ws = Generics.newArrayList(size);
 
-		for (DenseVector w : dWxh.rows()) {
+		for (DenseVector w : dWxh) {
 			ws.add(w);
 		}
 
-		for (DenseVector w : dWhh.rows()) {
+		for (DenseVector w : dWhh) {
 			ws.add(w);
 		}
 		return new DenseMatrix(ws);
@@ -286,11 +286,11 @@ public class RnnLayer extends Layer {
 		int size = Wxh.rowSize() + Whh.rowSize();
 		List<DenseVector> ws = Generics.newArrayList(size);
 
-		for (DenseVector w : Wxh.rows()) {
+		for (DenseVector w : Wxh) {
 			ws.add(w);
 		}
 
-		for (DenseVector w : Whh.rows()) {
+		for (DenseVector w : Whh) {
 			ws.add(w);
 		}
 

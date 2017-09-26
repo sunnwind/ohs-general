@@ -76,7 +76,7 @@ public class FullyConnectedLayer extends Layer {
 			if (tmp_dX == null || tmp_dX.rowSize() < dY.rowSize()) {
 				tmp_dX = new DenseMatrix(data_size, input_size);
 			}
-			dX = tmp_dX.rowsAsMatrix(data_size);
+			dX = tmp_dX.rows(data_size);
 			VectorMath.productRows(dY, W, dX, false);
 		} else {
 			IntegerArray X = (IntegerArray) fwd_I;
@@ -103,7 +103,7 @@ public class FullyConnectedLayer extends Layer {
 			tmp_Y = new DenseMatrix(data_size, output_size);
 		}
 
-		DenseMatrix Y = tmp_Y.rowsAsMatrix(data_size);
+		DenseMatrix Y = tmp_Y.rows(data_size);
 
 		if (I instanceof DenseMatrix) {
 			DenseMatrix X = (DenseMatrix) I;

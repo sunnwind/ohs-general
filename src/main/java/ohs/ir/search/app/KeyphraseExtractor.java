@@ -26,7 +26,7 @@ import ohs.types.generic.Indexer;
 import ohs.types.generic.Pair;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
 
@@ -63,7 +63,7 @@ public class KeyphraseExtractor {
 
 		Pair<String, IntegerArray> p = dc.get(dseq);
 
-		IntegerArrayMatrix d = DocumentCollection.toMultiSentences(p.getSecond());
+		IntegerMatrix d = DocumentCollection.toMultiSentences(p.getSecond());
 
 		List<List<String>> doc = Generics.newArrayList();
 

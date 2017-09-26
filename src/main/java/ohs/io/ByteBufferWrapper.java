@@ -6,7 +6,7 @@ import java.util.List;
 
 import ohs.types.number.DoubleArray;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.types.number.LongArray;
 import ohs.types.number.ShortArray;
 import ohs.utils.Generics;
@@ -128,9 +128,9 @@ public class ByteBufferWrapper {
 		return ret;
 	}
 
-	public List<IntegerArrayMatrix> readByteArrayMatrixList() {
+	public List<IntegerMatrix> readByteArrayMatrixList() {
 		int size = bb.getInt();
-		List<IntegerArrayMatrix> ret = Generics.newArrayList(size);
+		List<IntegerMatrix> ret = Generics.newArrayList(size);
 		for (int i = 0; i < size; i++) {
 			ret.add(readIntegerArrayMatrix());
 		}
@@ -163,9 +163,9 @@ public class ByteBufferWrapper {
 		return new IntegerArray(ret);
 	}
 
-	public IntegerArrayMatrix readIntegerArrayMatrix() {
+	public IntegerMatrix readIntegerArrayMatrix() {
 		int size = bb.getInt();
-		IntegerArrayMatrix ret = new IntegerArrayMatrix(size);
+		IntegerMatrix ret = new IntegerMatrix(size);
 		for (int i = 0; i < size; i++) {
 			ret.add(readIntegerArray());
 		}
@@ -264,7 +264,7 @@ public class ByteBufferWrapper {
 		}
 	}
 
-	public void write(IntegerArrayMatrix a) {
+	public void write(IntegerMatrix a) {
 		int size = ByteArrayUtils.sizeOfByteBuffer(a);
 		ensureCapacity(bb.position() + size);
 		bb.putInt(a.size());
@@ -273,10 +273,10 @@ public class ByteBufferWrapper {
 		}
 	}
 
-	public void write(List<IntegerArrayMatrix> a) {
+	public void write(List<IntegerMatrix> a) {
 		ensureCapacity(bb.position() + Integer.BYTES);
 		bb.putInt(a.size());
-		for (IntegerArrayMatrix b : a) {
+		for (IntegerMatrix b : a) {
 			write(b);
 		}
 	}

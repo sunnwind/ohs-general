@@ -15,7 +15,7 @@ import ohs.io.FileUtils;
 import ohs.math.ArrayMath;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.types.number.LongArray;
 import ohs.utils.Generics;
 import ohs.utils.Timer;
@@ -95,7 +95,7 @@ public class DiskInvertedIndex extends InvertedIndex {
 	public PostingList getPostingList(int w) throws Exception {
 		Timer timer = Timer.newTimer();
 
-		PostingList ret = new PostingList(-1, new IntegerArray(), new IntegerArrayMatrix());
+		PostingList ret = new PostingList(-1, new IntegerArray(), new IntegerMatrix());
 
 		boolean is_cached = false;
 

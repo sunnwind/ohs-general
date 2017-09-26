@@ -33,7 +33,7 @@ import ohs.types.generic.Counter;
 import ohs.types.generic.Pair;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
 import ohs.utils.Timer;
@@ -139,9 +139,9 @@ public class DocumentSearcher {
 			int dseq = scores.indexAt(i);
 			double score = scores.valueAt(i);
 
-			Pair<String, IntegerArrayMatrix> p = ds.getDocumentCollection().getSents(dseq);
+			Pair<String, IntegerMatrix> p = ds.getDocumentCollection().getSents(dseq);
 			String did = p.getFirst();
-			IntegerArrayMatrix doc = p.getSecond();
+			IntegerMatrix doc = p.getSecond();
 			SparseVector dv = ds.getDocumentCollection().getDocVector(dseq);
 			Counter<Integer> c = Generics.newCounter();
 
@@ -149,7 +149,7 @@ public class DocumentSearcher {
 				c.setCount(w, dv.value(w));
 			}
 
-			IntegerArrayMatrix subdoc = doc.subMatrix(0, Math.min(doc.size(), 5));
+			IntegerMatrix subdoc = doc.subMatrix(0, Math.min(doc.size(), 5));
 
 			String text = DocumentCollection.toText(ds.getVocab(), subdoc);
 
@@ -309,7 +309,7 @@ public class DocumentSearcher {
 
 	public String getDocumentText(IntegerArray Q, int docseq) throws Exception {
 		Pair<String, IntegerArray> p = dc.get(docseq);
-		IntegerArrayMatrix doc = DocumentCollection.toMultiSentences(p.getSecond());
+		IntegerMatrix doc = DocumentCollection.toMultiSentences(p.getSecond());
 
 		StringBuffer sb = new StringBuffer();
 		sb.append("<-");

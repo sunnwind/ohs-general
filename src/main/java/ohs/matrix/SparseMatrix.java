@@ -399,35 +399,12 @@ public class SparseMatrix extends ArrayList<SparseVector> implements Matrix {
 	}
 
 	@Override
-	public Vector[] rows() {
-		return this.toArray(new SparseVector[size()]);
+	public SparseMatrix rows(int size) {
+		return rows(0, size);
 	}
 
 	@Override
-	public Vector[] rows(int start, int size) {
-		SparseVector[] ret = new SparseVector[size];
-		for (int i = start, j = 0; i < start + size; i++) {
-			ret[j] = get(i);
-		}
-		return ret;
-	}
-
-	@Override
-	public SparseVector[] rows(int[] locs) {
-		SparseVector[] ret = new SparseVector[locs.length];
-		for (int i = 0; i < locs.length; i++) {
-			ret[i] = get(locs[i]);
-		}
-		return ret;
-	}
-
-	@Override
-	public SparseMatrix rowsAsMatrix(int size) {
-		return rowsAsMatrix(0, size);
-	}
-
-	@Override
-	public SparseMatrix rowsAsMatrix(int start, int size) {
+	public SparseMatrix rows(int start, int size) {
 		int[] idxs = new int[size];
 		SparseVector[] rows = new SparseVector[size];
 		int loc = 0;
@@ -440,7 +417,7 @@ public class SparseMatrix extends ArrayList<SparseVector> implements Matrix {
 	}
 
 	@Override
-	public Matrix rowsAsMatrix(int[] is) {
+	public SparseMatrix rows(int[] is) {
 		int[] idxs = new int[is.length];
 		SparseVector[] rows = new SparseVector[is.length];
 		int loc = 0;

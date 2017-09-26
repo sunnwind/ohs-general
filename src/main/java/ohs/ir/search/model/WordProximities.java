@@ -3,7 +3,7 @@ package ohs.ir.search.model;
 import ohs.types.generic.CounterMap;
 import ohs.types.generic.ListMap;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.utils.Generics;
 
 public class WordProximities {
@@ -31,7 +31,7 @@ public class WordProximities {
 		return ret;
 	}
 
-	public static CounterMap<Integer, Integer> hal(IntegerArrayMatrix d, int window_size, boolean symmetric) {
+	public static CounterMap<Integer, Integer> hal(IntegerMatrix d, int window_size, boolean symmetric) {
 		CounterMap<Integer, Integer> cm = Generics.newCounterMap();
 		for (IntegerArray s : d) {
 			cm.incrementAll(hal(s, window_size, symmetric));

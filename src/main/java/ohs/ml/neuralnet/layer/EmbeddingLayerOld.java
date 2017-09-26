@@ -6,7 +6,7 @@ import ohs.matrix.DenseMatrix;
 import ohs.ml.neuralnet.com.ParameterInitializer;
 import ohs.types.number.IntegerArray;
 
-public class EmbeddingLayer extends Layer {
+public class EmbeddingLayerOld extends Layer {
 
 	/**
 	 * 
@@ -25,12 +25,12 @@ public class EmbeddingLayer extends Layer {
 
 	private DenseMatrix Y;
 
-	public EmbeddingLayer(DenseMatrix W, boolean learn_embedding) {
+	public EmbeddingLayerOld(DenseMatrix W, boolean learn_embedding) {
 		this.W = W;
 		this.learn_embedding = learn_embedding;
 	}
 
-	public EmbeddingLayer(int vocab_size, int emb_size, boolean learn_embedding) {
+	public EmbeddingLayerOld(int vocab_size, int emb_size, boolean learn_embedding) {
 		this(new DenseMatrix(vocab_size, emb_size), learn_embedding);
 	}
 

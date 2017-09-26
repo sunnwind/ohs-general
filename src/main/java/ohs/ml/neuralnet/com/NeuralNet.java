@@ -76,7 +76,7 @@ public class NeuralNet extends ArrayList<Layer> {
 		List<DenseVector> rows = Generics.newLinkedList();
 		for (Layer l : this) {
 			if (l.getB() != null) {
-				for (DenseVector b : l.getB().rows()) {
+				for (DenseVector b : l.getB()) {
 					rows.add(b);
 				}
 			}
@@ -88,7 +88,7 @@ public class NeuralNet extends ArrayList<Layer> {
 		List<DenseVector> rows = Generics.newLinkedList();
 		for (Layer l : this) {
 			if (l.getDB() != null) {
-				for (DenseVector db : l.getDB().rows()) {
+				for (DenseVector db : l.getDB()) {
 					rows.add(db);
 				}
 			}
@@ -101,13 +101,13 @@ public class NeuralNet extends ArrayList<Layer> {
 		for (Layer l : this) {
 			if (l instanceof EmbeddingLayer) {
 				if (((EmbeddingLayer) l).isLearnEmbedding()) {
-					for (DenseVector row : l.getDW().rows()) {
+					for (DenseVector row : l.getDW()) {
 						rows.add(row);
 					}
 				}
 			} else {
 				if (l.getDW() != null) {
-					for (DenseVector row : l.getDW().rows()) {
+					for (DenseVector row : l.getDW()) {
 						rows.add(row);
 					}
 				}
@@ -118,10 +118,10 @@ public class NeuralNet extends ArrayList<Layer> {
 
 	public DenseMatrix getGradients() {
 		List<DenseVector> rows = Generics.newLinkedList();
-		for (DenseVector row : getDW().rows()) {
+		for (DenseVector row : getDW()) {
 			rows.add(row);
 		}
-		for (DenseVector row : getDB().rows()) {
+		for (DenseVector row : getDB()) {
 			rows.add(row);
 		}
 		return new DenseMatrix(rows);
@@ -137,10 +137,10 @@ public class NeuralNet extends ArrayList<Layer> {
 
 	public DenseMatrix getParameters() {
 		List<DenseVector> rows = Generics.newLinkedList();
-		for (DenseVector row : getW().rows()) {
+		for (DenseVector row : getW()) {
 			rows.add(row);
 		}
-		for (DenseVector row : getB().rows()) {
+		for (DenseVector row : getB()) {
 			rows.add(row);
 		}
 		return new DenseMatrix(rows);
@@ -151,13 +151,13 @@ public class NeuralNet extends ArrayList<Layer> {
 		for (Layer l : this) {
 			if (l instanceof EmbeddingLayer) {
 				if (((EmbeddingLayer) l).isLearnEmbedding()) {
-					for (DenseVector row : l.getW().rows()) {
+					for (DenseVector row : l.getW()) {
 						rows.add(row);
 					}
 				}
 			} else {
 				if (l.getW() != null) {
-					for (DenseVector row : l.getW().rows()) {
+					for (DenseVector row : l.getW()) {
 						rows.add(row);
 					}
 				}

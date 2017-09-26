@@ -25,7 +25,7 @@ import ohs.types.generic.ListMapMap;
 import ohs.types.generic.Pair;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.types.number.LongArray;
 import ohs.utils.Generics;
 import ohs.utils.Timer;
@@ -46,13 +46,13 @@ public class SpimiInvertedIndexCreator {
 
 		private AtomicInteger doc_cnt;
 
-		private IntegerArrayMatrix ranges;
+		private IntegerMatrix ranges;
 
 		private Timer timer;
 
 		private DocumentCollection dc;
 
-		public PostingWorker(DocumentCollection dc, AtomicInteger range_cnt, AtomicInteger doc_cnt, IntegerArrayMatrix ranges,
+		public PostingWorker(DocumentCollection dc, AtomicInteger range_cnt, AtomicInteger doc_cnt, IntegerMatrix ranges,
 				Timer timer) {
 			super();
 			this.dc = dc;
@@ -69,7 +69,7 @@ public class SpimiInvertedIndexCreator {
 			while ((rloc = range_cnt.getAndIncrement()) < ranges.size()) {
 				IntegerArray range = ranges.get(rloc);
 				int batch_size = range.get(1) - range.get(0);
-				IntegerArrayMatrix subranges = new IntegerArrayMatrix(BatchUtils.getBatchRanges(batch_size, num_docs_in_file));
+				IntegerMatrix subranges = new IntegerMatrix(BatchUtils.getBatchRanges(batch_size, num_docs_in_file));
 				File outDir = new File(tmpDir, new DecimalFormat(DIGIT_PATTERN).format(range.get(0) / num_files_in_dir));
 
 				for (int m = 0; m < subranges.size(); m++) {
@@ -121,7 +121,7 @@ public class SpimiInvertedIndexCreator {
 				IntegerArray dseqs = new IntegerArray(lm.keySet());
 				dseqs.sort(false);
 
-				IntegerArrayMatrix posData = new IntegerArrayMatrix(dseqs.size());
+				IntegerMatrix posData = new IntegerMatrix(dseqs.size());
 				int max_poss_len = 0;
 
 				for (int dseq : dseqs) {
@@ -248,7 +248,7 @@ public class SpimiInvertedIndexCreator {
 
 		tmpDir.mkdirs();
 
-		IntegerArrayMatrix ranges = new IntegerArrayMatrix(BatchUtils.getBatchRanges(dc.size(), num_files_in_dir));
+		IntegerMatrix ranges = new IntegerMatrix(BatchUtils.getBatchRanges(dc.size(), num_files_in_dir));
 
 		AtomicInteger range_cnt = new AtomicInteger(0);
 

@@ -27,7 +27,7 @@ import ohs.types.generic.CounterMap;
 import ohs.types.generic.ListMap;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.utils.DataSplitter;
 import ohs.utils.Generics;
 import ohs.utils.Generics.ListType;
@@ -281,7 +281,7 @@ public class PhraseClassification {
 	public void generateData() throws Exception {
 		List<String> lines = FileUtils.readLinesFromText(KPPath.KP_DIR + "phrs_3p_label.txt.gz");
 
-		IntegerArrayMatrix I = new IntegerArrayMatrix();
+		IntegerMatrix I = new IntegerMatrix();
 		IntegerArray L = new IntegerArray();
 
 		Vocab vocab = new Vocab();
@@ -318,7 +318,7 @@ public class PhraseClassification {
 		int train_size = 1000;
 		int test_size = 20000;
 
-		IntegerArrayMatrix D = DataSplitter.splitGroups(I, new int[] { train_size, test_size });
+		IntegerMatrix D = DataSplitter.splitGroups(I, new int[] { train_size, test_size });
 
 		CounterMap<String, String> cm = Generics.newCounterMap();
 
@@ -385,7 +385,7 @@ public class PhraseClassification {
 		DenseMatrix DE = new DenseMatrix(doc_size, hidden_size);
 
 		for (int i = 0, j = 0; i < ldc.size(); i++) {
-			IntegerArrayMatrix doc = ldc.getSents(i).getSecond();
+			IntegerMatrix doc = ldc.getSents(i).getSecond();
 			DenseVector de = DE.row(j++);
 			int word_cnt = 0;
 
@@ -579,7 +579,7 @@ public class PhraseClassification {
 		int test_size = 2000;
 
 		{
-			IntegerArrayMatrix G = DataSplitter.group(YD);
+			IntegerMatrix G = DataSplitter.group(YD);
 
 			for (int i = 0; i < G.size(); i++) {
 				IntegerArray locs = G.get(i);
@@ -642,7 +642,7 @@ public class PhraseClassification {
 
 		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, XD.rowSize(), null);
 
-		IntegerArrayMatrix G = DataSplitter.group(Y);
+		IntegerMatrix G = DataSplitter.group(Y);
 		IntegerArray negLocs = G.get(0);
 		IntegerArray posLocs = G.get(1);
 
@@ -667,7 +667,7 @@ public class PhraseClassification {
 
 				locs.trimToSize();
 
-				DenseMatrix Xs = X.rowsAsMatrix(locs.values());
+				DenseMatrix Xs = X.rows(locs.values());
 				IntegerArray Ys = Y.subArray(locs.values());
 				trainer.train(Xs, Ys, Xt, Yt, 1);
 			}
@@ -691,7 +691,7 @@ public class PhraseClassification {
 		int test_size = 2000;
 
 		{
-			IntegerArrayMatrix G = DataSplitter.group(YD);
+			IntegerMatrix G = DataSplitter.group(YD);
 
 			for (int i = 0; i < G.size(); i++) {
 				IntegerArray locs = G.get(i);
@@ -754,7 +754,7 @@ public class PhraseClassification {
 
 		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, XD.rowSize(), null);
 
-		IntegerArrayMatrix G = DataSplitter.group(Y);
+		IntegerMatrix G = DataSplitter.group(Y);
 		IntegerArray negLocs = G.get(0);
 		IntegerArray posLocs = G.get(1);
 
@@ -777,7 +777,7 @@ public class PhraseClassification {
 
 				locs.trimToSize();
 
-				DenseMatrix Xs = X.rowsAsMatrix(locs.values());
+				DenseMatrix Xs = X.rows(locs.values());
 				IntegerArray Ys = Y.subArray(locs.values());
 				trainer.train(Xs, Ys, Xt, Yt, 1);
 			}

@@ -6,7 +6,7 @@ import java.util.Set;
 import ohs.types.generic.Counter;
 import ohs.types.generic.Indexer;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.utils.Generics;
 
 public class PerformanceEvaluator {
@@ -115,7 +115,7 @@ public class PerformanceEvaluator {
 		return p;
 	}
 
-	public Performance evalute(IntegerArrayMatrix Y, IntegerArrayMatrix Yh, int label_size) {
+	public Performance evalute(IntegerMatrix Y, IntegerMatrix Yh, int label_size) {
 		Counter<Integer> corCnts = Generics.newCounter();
 		Counter<Integer> predCnts = Generics.newCounter();
 		Counter<Integer> ansCnts = Generics.newCounter();
@@ -150,7 +150,7 @@ public class PerformanceEvaluator {
 		return new Performance(ans_cnts, pred_cnts, cor_cnts);
 	}
 
-	public Performance evaluteSequences(IntegerArrayMatrix Y, IntegerArrayMatrix Yh, Indexer<String> bioIndexer) {
+	public Performance evaluteSequences(IntegerMatrix Y, IntegerMatrix Yh, Indexer<String> bioIndexer) {
 		Counter<Integer> corCnts = Generics.newCounter();
 		Counter<Integer> predCnts = Generics.newCounter();
 		Counter<Integer> ansCnts = Generics.newCounter();

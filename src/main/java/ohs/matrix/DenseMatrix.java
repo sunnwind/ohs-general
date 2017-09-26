@@ -222,7 +222,6 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 	@Override
 	public DenseVector row(int i) {
 		checkRange(i);
-
 		return get(i);
 	}
 
@@ -238,42 +237,27 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 	}
 
 	@Override
-	public DenseVector[] rows() {
-		return this.toArray(new DenseVector[size()]);
+	public DenseMatrix rows(int size) {
+		return new DenseMatrix(rows(0, size));
 	}
 
 	@Override
-	public DenseVector[] rows(int start, int size) {
+	public DenseMatrix rows(int start, int size) {
 		DenseVector[] ret = new DenseVector[size];
 		for (int i = start, j = 0; i < start + size; i++, j++) {
 			ret[j] = get(i);
 		}
-		return ret;
+		return new DenseMatrix(ret);
 	}
 
 	@Override
-	public DenseVector[] rows(int[] is) {
+	public DenseMatrix rows(int[] is) {
 		DenseVector[] ret = new DenseVector[is.length];
 		for (int i = 0; i < is.length; i++) {
 			int loc = is[i];
 			ret[i] = get(loc);
 		}
-		return ret;
-	}
-
-	@Override
-	public DenseMatrix rowsAsMatrix(int size) {
-		return new DenseMatrix(rows(0, size));
-	}
-
-	@Override
-	public DenseMatrix rowsAsMatrix(int start, int size) {
-		return new DenseMatrix(rows(start, size));
-	}
-
-	@Override
-	public DenseMatrix rowsAsMatrix(int[] is) {
-		return new DenseMatrix(rows(is));
+		return new DenseMatrix(ret);
 	}
 
 	@Override

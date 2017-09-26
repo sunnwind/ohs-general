@@ -46,17 +46,11 @@ public interface Matrix extends Serializable {
 
 	public int[] rowIndexes();
 
-	public Vector[] rows();
+	public Matrix rows(int size);
 
-	public Vector[] rows(int start, int size);
+	public Matrix rows(int start, int size);
 
-	public Vector[] rows(int[] is);
-
-	public Matrix rowsAsMatrix(int size);
-
-	public Matrix rowsAsMatrix(int start, int size);
-
-	public Matrix rowsAsMatrix(int[] is);
+	public Matrix rows(int[] is);
 
 	public int rowSize();
 

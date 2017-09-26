@@ -16,7 +16,7 @@ import ohs.types.generic.ListMap;
 import ohs.types.generic.ListMapMap;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
 
@@ -72,7 +72,7 @@ public class WeightedMRFScorer extends MarkovRandomFieldsScorer {
 			IntegerArray dseqs = new IntegerArray(lm.keySet());
 			dseqs.sort(false);
 
-			IntegerArrayMatrix posData = new IntegerArrayMatrix(dseqs.size());
+			IntegerMatrix posData = new IntegerMatrix(dseqs.size());
 
 			for (int dseq : dseqs) {
 				IntegerArray poss = new IntegerArray(lm.get(dseq));

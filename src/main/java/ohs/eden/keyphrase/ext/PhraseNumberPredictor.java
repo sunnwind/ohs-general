@@ -31,7 +31,7 @@ import ohs.types.generic.Counter;
 import ohs.types.generic.Indexer;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.utils.DataSplitter;
 import ohs.utils.Generics;
 
@@ -117,7 +117,7 @@ public class PhraseNumberPredictor {
 		int test_size = 1000;
 
 		{
-			IntegerArrayMatrix G = DataSplitter.group(YD);
+			IntegerMatrix G = DataSplitter.group(YD);
 
 			for (int i = 0; i < G.size(); i++) {
 				IntegerArray locs = G.get(i);

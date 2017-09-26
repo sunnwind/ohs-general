@@ -39,7 +39,7 @@ public class CrossEntropyCostFunction implements CostFunction {
 			tmp_D = Yh.copy(true);
 		}
 
-		DenseMatrix D = tmp_D.rowsAsMatrix(Yh.rowSize());
+		DenseMatrix D = tmp_D.rows(Yh.rowSize());
 
 		for (int i = 0; i < Yh.rowSize(); i++) {
 			DenseVector yh = Yh.row(i);

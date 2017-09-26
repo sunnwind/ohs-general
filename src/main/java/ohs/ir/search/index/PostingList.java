@@ -8,7 +8,7 @@ import ohs.io.ByteArrayUtils;
 import ohs.io.FileUtils;
 import ohs.math.ArrayMath;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.utils.ByteSize;
 
 public class PostingList {
@@ -57,7 +57,7 @@ public class PostingList {
 	public static ByteArrayMatrix toByteArrayMatrix(PostingList pl) throws Exception {
 		int w = pl.getWord();
 		IntegerArray dseqs = pl.getDocSeqs().clone();
-		IntegerArrayMatrix posData = pl.getPosData();
+		IntegerMatrix posData = pl.getPosData();
 
 		checkEncoding(dseqs);
 
@@ -81,7 +81,7 @@ public class PostingList {
 		int pl_size = ByteArrayUtils.toInteger(data.get(i++));
 
 		IntegerArray dseqs = new IntegerArray(new int[pl_size]);
-		IntegerArrayMatrix posData = new IntegerArrayMatrix(pl_size);
+		IntegerMatrix posData = new IntegerMatrix(pl_size);
 
 		decode(data.get(i++), dseqs);
 
@@ -106,20 +106,20 @@ public class PostingList {
 
 	private IntegerArray cnts;
 
-	private IntegerArrayMatrix posData;
+	private IntegerMatrix posData;
 
-	private IntegerArrayMatrix endPosData;
+	private IntegerMatrix endPosData;
 
 	private int total_cnt;
 
-	public PostingList(int w, IntegerArray dseqs, IntegerArray cnts, IntegerArrayMatrix posData) {
+	public PostingList(int w, IntegerArray dseqs, IntegerArray cnts, IntegerMatrix posData) {
 		this.w = w;
 		this.dseqs = dseqs;
 		this.cnts = cnts;
 		this.posData = posData;
 	}
 
-	public PostingList(int w, IntegerArray dseqs, IntegerArrayMatrix posData) {
+	public PostingList(int w, IntegerArray dseqs, IntegerMatrix posData) {
 		this.w = w;
 		this.dseqs = dseqs;
 		this.posData = posData;
@@ -166,11 +166,11 @@ public class PostingList {
 		return dseqs;
 	}
 
-	public IntegerArrayMatrix getEndPosData() {
+	public IntegerMatrix getEndPosData() {
 		return endPosData;
 	}
 
-	public IntegerArrayMatrix getPosData() {
+	public IntegerMatrix getPosData() {
 		return posData;
 	}
 
@@ -196,11 +196,11 @@ public class PostingList {
 		return result;
 	}
 
-	public void setEndPosData(IntegerArrayMatrix starts) {
+	public void setEndPosData(IntegerMatrix starts) {
 		this.endPosData = starts;
 	}
 
-	public void setPosData(IntegerArrayMatrix posData) {
+	public void setPosData(IntegerMatrix posData) {
 		this.posData = posData;
 	}
 

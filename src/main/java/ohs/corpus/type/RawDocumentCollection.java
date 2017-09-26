@@ -17,7 +17,7 @@ import ohs.ir.medical.general.MIRPath;
 import ohs.math.ArrayMath;
 import ohs.types.generic.ListList;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.types.number.LongArray;
 import ohs.utils.Generics;
 
@@ -409,8 +409,8 @@ public class RawDocumentCollection {
 		return sb.toString();
 	}
 
-	public IntegerArrayMatrix getTypeRanges() {
-		IntegerArrayMatrix ret = new IntegerArrayMatrix(sizes.size());
+	public IntegerMatrix getTypeRanges() {
+		IntegerMatrix ret = new IntegerMatrix(sizes.size());
 		int s = 0;
 		for (int i = 0; i < sizes.size(); i++) {
 			int e = s + sizes.get(i);

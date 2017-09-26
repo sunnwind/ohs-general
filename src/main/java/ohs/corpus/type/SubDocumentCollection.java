@@ -8,11 +8,11 @@ import java.util.List;
 import ohs.io.FileUtils;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.utils.ByteSize;
 import ohs.utils.StrUtils;
 
-public class SubDocumentCollection extends ArrayList<IntegerArrayMatrix> {
+public class SubDocumentCollection extends ArrayList<IntegerMatrix> {
 
 	/**
 	 * 
@@ -53,7 +53,7 @@ public class SubDocumentCollection extends ArrayList<IntegerArrayMatrix> {
 		ensureCapacity(docs.length);
 
 		for (int i = 0; i < docs.length; i++) {
-			add(new IntegerArrayMatrix(docs[i]));
+			add(new IntegerMatrix(docs[i]));
 			docseqs.add(start_doc_seq + i);
 		}
 
@@ -63,15 +63,15 @@ public class SubDocumentCollection extends ArrayList<IntegerArrayMatrix> {
 	public SentenceCollection asSentenceCollection() {
 		int sent_size = 0;
 
-		for (IntegerArrayMatrix doc : this) {
+		for (IntegerMatrix doc : this) {
 			sent_size += doc.size();
 		}
 
-		IntegerArrayMatrix sents = new IntegerArrayMatrix(sent_size);
+		IntegerMatrix sents = new IntegerMatrix(sent_size);
 		IntegerArray docToSentCnt = new IntegerArray(size());
 
 		for (int i = 0; i < size(); i++) {
-			IntegerArrayMatrix doc = get(i);
+			IntegerMatrix doc = get(i);
 			docToSentCnt.add(doc.size());
 
 			for (int j = 0; j < doc.size(); j++) {
@@ -88,7 +88,7 @@ public class SubDocumentCollection extends ArrayList<IntegerArrayMatrix> {
 		len = 0;
 
 		for (int i = 0; i < size(); i++) {
-			IntegerArrayMatrix doc = get(i);
+			IntegerMatrix doc = get(i);
 			int len = doc.sizeOfEntries();
 			len += len;
 			len_min = Math.min(len_min, len);
@@ -128,7 +128,7 @@ public class SubDocumentCollection extends ArrayList<IntegerArrayMatrix> {
 	}
 
 	public String getText(int i) {
-		IntegerArrayMatrix doc = get(i);
+		IntegerMatrix doc = get(i);
 		StringBuffer sb = new StringBuffer();
 		for (int j = 0; j < doc.size(); j++) {
 			IntegerArray sent = doc.get(j);
@@ -166,7 +166,7 @@ public class SubDocumentCollection extends ArrayList<IntegerArrayMatrix> {
 		ensureCapacity(size);
 
 		for (int i = 0; i < size(); i++) {
-			add(new IntegerArrayMatrix(ois));
+			add(new IntegerMatrix(ois));
 		}
 		computeLengths();
 		System.out.println(info());
@@ -189,7 +189,7 @@ public class SubDocumentCollection extends ArrayList<IntegerArrayMatrix> {
 		FileUtils.writeStringCollection(oos, items);
 
 		oos.writeInt(size());
-		for (IntegerArrayMatrix a : this) {
+		for (IntegerMatrix a : this) {
 			a.writeObject(oos);
 		}
 	}

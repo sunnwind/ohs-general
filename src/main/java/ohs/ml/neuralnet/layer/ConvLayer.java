@@ -2,7 +2,9 @@ package ohs.ml.neuralnet.layer;
 
 import java.util.List;
 
+import ohs.math.ArrayUtils;
 import ohs.math.VectorMath;
+import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseVector;
 import ohs.ml.neuralnet.com.ParameterInitializer;
@@ -25,55 +27,47 @@ public class ConvLayer extends Layer {
 	 */
 	private static final long serialVersionUID = -997396529874765085L;
 
-	private int window_size;
-
-	private int emb_size;
-
-	/**
-	 * filters x feature maps
-	 */
-	private DenseMatrix W;
-
 	/**
 	 * filter biases
 	 */
-	private DenseVector b;
-
-	private DenseMatrix dW;
+	private DenseVector B;
 
 	private DenseVector db;
 
-	private DenseMatrix tmp_Xc;
+	private DenseMatrix dW;
 
-	private DenseMatrix Xc;
+	private int emb_size;
+
+	private int filter_size = 0;
 
 	private DenseMatrix fwd_X;
 
-	private DenseMatrix C;
+	private DenseMatrix P;
 
 	private int pad_size = 0;
 
-	private int concat_emb_size = 0;
+	private DenseMatrix T;
+
+	private DenseMatrix tmp_Xc;
 
 	private boolean use_padding = false;
 
-	private DenseMatrix P;
+	/**
+	 * filters x filter size
+	 */
+	private DenseMatrix W;
 
-	public int getWindowSize() {
-		return window_size;
-	}
+	private int window_size;
 
-	public int getFilterSize() {
-		return W.rowSize();
-	}
+	private DenseMatrix Xc;
 
 	public ConvLayer(DenseMatrix W, DenseVector b, int window_size, int embed_size) {
 		this.W = W;
-		this.b = b;
+		this.B = b;
 		this.window_size = window_size;
 		this.emb_size = embed_size;
 		pad_size = window_size - 1;
-		concat_emb_size = embed_size * window_size;
+		filter_size = embed_size * window_size;
 
 		P = new DenseMatrix(1, embed_size);
 	}
@@ -87,6 +81,13 @@ public class ConvLayer extends Layer {
 		return null;
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * T: filters X feature maps
+	 * 
+	 * @see ohs.ml.neuralnet.layer.Layer#forward(java.lang.Object)
+	 */
 	@Override
 	public DenseMatrix forward(Object I) {
 		DenseMatrix X = (DenseMatrix) I;
@@ -94,56 +95,50 @@ public class ConvLayer extends Layer {
 		this.fwd_X = X;
 
 		int data_size = X.rowSize();
-		int feat_map_size = data_size - window_size + 1;
+		int num_feature_maps = data_size - window_size + 1;
+		int num_filters = W.rowSize();
 
-		DenseMatrix Xp = null;
-
-		if (tmp_Xc == null || tmp_Xc.rowSize() < feat_map_size) {
-			tmp_Xc = new DenseMatrix(feat_map_size, concat_emb_size);
+		if (tmp_Xc == null || tmp_Xc.rowSize() < num_feature_maps) {
+			tmp_Xc = new DenseMatrix(num_feature_maps, filter_size);
 		}
 
 		/*
-		 * Xc = feature_map_size x concatenated embeddings
+		 * Xc = feature maps x filter size (size of concatenated embeddings)
 		 */
 
-		Xc = tmp_Xc.rowsAsMatrix(feat_map_size);
+		Xc = tmp_Xc.rows(num_feature_maps);
 		Xc.setAll(0);
 
-		for (int i = 0; i < feat_map_size; i++) {
-			int start = i;
-			int end = i + window_size;
-
+		for (int i = 0; i < num_feature_maps; i++) {
 			DenseVector xc = Xc.row(i);
-
-			for (int j = start, loc = 0; j < end; j++) {
-				DenseVector x = X.row(j);
-				for (int k = 0; k < x.size(); k++) {
-					xc.add(loc++, x.value(k));
-				}
+			
+			try {
+				VectorUtils.copyRows(X, i, i + window_size, xc);
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
 		}
 
 		/*
-		 * C = filter x concatenated embeddings
+		 * T = filters X feature maps
 		 */
 
-		DenseMatrix C = new DenseMatrix(W.rowSize(), Xc.rowSize());
-		VectorMath.productRows(W, Xc, C, false);
+		T = new DenseMatrix(num_filters, num_feature_maps);
 
-		for (int i = 0; i < C.rowSize(); i++) {
-			DenseVector c = C.row(i);
-			double bias = b.value(i);
-			for (int j = 0; j < c.size(); j++) {
-				c.add(j, bias);
-			}
+		VectorMath.productRows(W, Xc, T, false);
+
+		for (int i = 0; i < T.rowSize(); i++) {
+			DenseVector t = T.row(i);
+			t.add(B.value(i));
+
 		}
 
-		return C;
+		return T;
 	}
 
 	@Override
 	public DenseMatrix getB() {
-		return b.toDenseMatrix();
+		return B.toDenseMatrix();
 	}
 
 	@Override
@@ -156,8 +151,23 @@ public class ConvLayer extends Layer {
 		return dW;
 	}
 
-	public int getEmbeddingSize() {
+	@Override
+	public int getInputSize() {
 		return emb_size;
+	}
+
+	@Override
+	public int getOutputSize() {
+		return filter_size;
+	}
+
+	@Override
+	public DenseMatrix getW() {
+		return W;
+	}
+
+	public int getWindowSize() {
+		return window_size;
 	}
 
 	@Override
@@ -166,24 +176,9 @@ public class ConvLayer extends Layer {
 	}
 
 	@Override
-	public int getInputSize() {
-		return W.rowSize();
-	}
-
-	@Override
-	public int getOutputSize() {
-		return W.colSize();
-	}
-
-	@Override
-	public DenseMatrix getW() {
-		return W;
-	}
-
-	@Override
 	public void prepare() {
 		dW = W.copy(true);
-		db = b.copy(true);
+		db = B.copy(true);
 	}
 
 	public void usePadding(boolean use_padding) {

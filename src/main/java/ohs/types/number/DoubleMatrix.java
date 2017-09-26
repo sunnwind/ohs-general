@@ -8,38 +8,45 @@ import java.util.Collection;
 import ohs.io.FileUtils;
 import ohs.utils.ByteSize;
 
-public class DoubleArrayMatrix extends ArrayList<DoubleArray> {
+public class DoubleMatrix extends ArrayList<DoubleArray> {
 
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 3358006286038663771L;
 
-	public DoubleArrayMatrix(Collection<DoubleArray> a) {
+	public DoubleMatrix() {
+	}
+
+	public DoubleMatrix(Collection<DoubleArray> a) {
 		addAll(a);
 	}
 
-	public DoubleArrayMatrix(double[][] a) {
+	public DoubleMatrix(double[][] a) {
 		ensureCapacity(a.length);
 		for (int i = 0; i < a.length; i++) {
 			add(new DoubleArray(a[i]));
 		}
 	}
 
-	public DoubleArrayMatrix(int size) {
+	public DoubleMatrix(int size) {
 		super(size);
 	}
 
-	public DoubleArrayMatrix(ObjectInputStream ois) throws Exception {
+	public DoubleMatrix(ObjectInputStream ois) throws Exception {
 		readObject(ois);
+	}
+
+	public void add(int i, double v) {
+		ensure(i).add(v);
 	}
 
 	public ByteSize byteSize() {
 		return new ByteSize(Double.BYTES * sizeOfEntries());
 	}
 
-	public DoubleArrayMatrix clone() {
-		DoubleArrayMatrix ret = new DoubleArrayMatrix(size());
+	public DoubleMatrix clone() {
+		DoubleMatrix ret = new DoubleMatrix(size());
 		for (DoubleArray a : this) {
 			ret.add(a.clone());
 		}
@@ -52,6 +59,16 @@ public class DoubleArrayMatrix extends ArrayList<DoubleArray> {
 			ret[i] = get(i).values();
 		}
 		return ret;
+	}
+
+	public DoubleArray ensure(int i) {
+		if (i >= size()) {
+			int new_size = (i - size()) + 1;
+			for (int k = 0; k < new_size; k++) {
+				add(new DoubleArray());
+			}
+		}
+		return get(i);
 	}
 
 	public String info() {
@@ -85,8 +102,8 @@ public class DoubleArrayMatrix extends ArrayList<DoubleArray> {
 		return ret;
 	}
 
-	public DoubleArrayMatrix subMatrix(int i, int j) {
-		return new DoubleArrayMatrix(subList(i, j));
+	public DoubleMatrix subMatrix(int i, int j) {
+		return new DoubleMatrix(subList(i, j));
 	}
 
 	public DoubleArray toDoubleArray() {
@@ -118,6 +135,14 @@ public class DoubleArrayMatrix extends ArrayList<DoubleArray> {
 		for (DoubleArray a : this) {
 			a.trimToSize();
 		}
+	}
+
+	public double[][] values() {
+		double[][] ret = new double[size()][];
+		for (int i = 0; i < size(); i++) {
+			ret[i] = get(i).values();
+		}
+		return ret;
 	}
 
 	public void writeObject(ObjectOutputStream oos) throws Exception {

@@ -13,7 +13,7 @@ import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.utils.Generics;
 
 public class TranslationModelBuilder {
@@ -46,7 +46,7 @@ public class TranslationModelBuilder {
 		return buildTranslatedModel(dc.getSents(dseq).getSecond(), dc.getDocVector(dseq));
 	}
 
-	public SparseVector buildTranslatedModel(IntegerArrayMatrix doc, SparseVector dv) throws Exception {
+	public SparseVector buildTranslatedModel(IntegerMatrix doc, SparseVector dv) throws Exception {
 		SparseMatrix T = getTranslationModel(getProximities(doc), dv);
 		SparseVector lm_d = dv.copy();
 		lm_d.normalize();
@@ -95,7 +95,7 @@ public class TranslationModelBuilder {
 		return ret;
 	}
 
-	public CounterMap<Integer, Integer> getProximities(IntegerArrayMatrix doc) throws Exception {
+	public CounterMap<Integer, Integer> getProximities(IntegerMatrix doc) throws Exception {
 		CounterMap<Integer, Integer> cm = Generics.newCounterMap();
 
 		for (IntegerArray sent : doc) {

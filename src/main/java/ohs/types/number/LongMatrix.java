@@ -8,67 +8,67 @@ import java.util.Collection;
 import ohs.io.FileUtils;
 import ohs.utils.ByteSize;
 
-public class IntegerArrayMatrix extends ArrayList<IntegerArray> {
+public class LongMatrix extends ArrayList<LongArray> {
 
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = -1810717124466759948L;
 
-	public IntegerArrayMatrix() {
+	public LongMatrix() {
 		super();
 	}
 
-	public IntegerArrayMatrix(Collection<IntegerArray> a) {
+	public LongMatrix(Collection<LongArray> a) {
 		addAll(a);
 	}
 
-	public IntegerArrayMatrix(int size) {
+	public LongMatrix(int size) {
 		super(size);
 	}
 
-	public IntegerArrayMatrix(int[][] a) {
+	public LongMatrix(long[][] a) {
 		ensureCapacity(a.length);
 		for (int i = 0; i < a.length; i++) {
-			add(new IntegerArray(a[i]));
+			add(new LongArray(a[i]));
 		}
 	}
 
-	public IntegerArrayMatrix(ObjectInputStream ois) throws Exception {
+	public LongMatrix(ObjectInputStream ois) throws Exception {
 		readObject(ois);
 	}
 
-	public void add(int i, int j) {
-		ensure(i);
-		get(i).add(j);
+	public void add(int i, long v) {
+		ensure(i).add(v);
 	}
 
 	public ByteSize byteSize() {
 		return new ByteSize(Integer.BYTES * sizeOfEntries());
 	}
 
-	public IntegerArrayMatrix clone() {
-		IntegerArrayMatrix ret = new IntegerArrayMatrix(size());
-		for (IntegerArray a : this) {
+	public LongMatrix clone() {
+		LongMatrix ret = new LongMatrix(size());
+		for (LongArray a : this) {
 			ret.add(a.clone());
 		}
 		return ret;
 	}
 
-	public void ensure(int i) {
+	public LongArray ensure(int i) {
 		if (i >= size()) {
 			int new_size = (i - size()) + 1;
 			for (int k = 0; k < new_size; k++) {
-				add(new IntegerArray());
+				add(new LongArray());
 			}
 		}
+		return get(i);
 	}
 
 	public String info() {
 		int min = Integer.MAX_VALUE;
 		int max = -Integer.MAX_VALUE;
 
-		for (IntegerArray a : this) {
+		for (LongArray a : this) {
 			min = Math.min(min, a.size());
 			max = Math.max(max, a.size());
 		}
@@ -87,7 +87,7 @@ public class IntegerArrayMatrix extends ArrayList<IntegerArray> {
 		int size = ois.readInt();
 		ensureCapacity(size);
 		for (int i = 0; i < size; i++) {
-			add(new IntegerArray(ois));
+			add(new LongArray(ois));
 		}
 	}
 
@@ -99,19 +99,19 @@ public class IntegerArrayMatrix extends ArrayList<IntegerArray> {
 
 	public int sizeOfEntries() {
 		int ret = 0;
-		for (IntegerArray a : this) {
+		for (LongArray a : this) {
 			ret += a.size();
 		}
 		return ret;
 	}
 
-	public IntegerArrayMatrix subMatrix(int i, int j) {
-		return new IntegerArrayMatrix(subList(i, j));
+	public LongMatrix subMatrix(int i, int j) {
+		return new LongMatrix(subList(i, j));
 	}
 
-	public IntegerArray toIntegerArray() {
-		IntegerArray ret = new IntegerArray(sizeOfEntries());
-		for (IntegerArray a : this) {
+	public LongArray toLongArray() {
+		LongArray ret = new LongArray(sizeOfEntries());
+		for (LongArray a : this) {
 			ret.addAll(a);
 		}
 		return ret;
@@ -136,13 +136,13 @@ public class IntegerArrayMatrix extends ArrayList<IntegerArray> {
 	public void trimToSize() {
 		super.trimToSize();
 
-		for (IntegerArray a : this) {
+		for (LongArray a : this) {
 			a.trimToSize();
 		}
 	}
 
-	public int[][] values() {
-		int[][] ret = new int[size()][];
+	public long[][] values() {
+		long[][] ret = new long[size()][];
 		for (int i = 0; i < size(); i++) {
 			ret[i] = get(i).values();
 		}

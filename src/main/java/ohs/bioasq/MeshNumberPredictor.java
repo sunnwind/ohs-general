@@ -23,7 +23,7 @@ import ohs.types.generic.Counter;
 import ohs.types.generic.Indexer;
 import ohs.types.generic.Pair;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.utils.Generics;
 
 public class MeshNumberPredictor {
@@ -46,7 +46,7 @@ public class MeshNumberPredictor {
 
 	private IntegerArray Y;
 
-	public Pair<DenseMatrix, IntegerArray> buildDocumentEmbeddings(IntegerArrayMatrix docData, Map<Integer, DenseVector> docToEmb) {
+	public Pair<DenseMatrix, IntegerArray> buildDocumentEmbeddings(IntegerMatrix docData, Map<Integer, DenseVector> docToEmb) {
 		List<DenseVector> X = Generics.newArrayList(docData.size());
 		IntegerArray Y = new IntegerArray(X.size());
 		int label = 0;
@@ -61,7 +61,7 @@ public class MeshNumberPredictor {
 		return Generics.newPair(new DenseMatrix(X), Y);
 	}
 
-	public IntegerArrayMatrix getBinaryData(int target, Map<Integer, IntegerArray> topToDoc, boolean balanced) {
+	public IntegerMatrix getBinaryData(int target, Map<Integer, IntegerArray> topToDoc, boolean balanced) {
 		Set<Integer> posSet = Generics.newHashSet();
 		Set<Integer> negSet = Generics.newHashSet();
 
@@ -79,7 +79,7 @@ public class MeshNumberPredictor {
 			}
 		}
 
-		IntegerArrayMatrix ret = new IntegerArrayMatrix(2);
+		IntegerMatrix ret = new IntegerMatrix(2);
 		ret.add(new IntegerArray(posSet));
 		ret.add(new IntegerArray(negSet));
 

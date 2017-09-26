@@ -99,14 +99,14 @@ public class BatchNormalizationLayer extends Layer {
 
 		VectorMath.sumColumns(dY, dbeta);
 
-		DenseMatrix T = tmp_T.rowsAsMatrix(data_size);
+		DenseMatrix T = tmp_T.rows(data_size);
 		VectorMath.multiply(xn, dY, T);
 		VectorMath.sumColumns(T, dgamma);
 
-		DenseMatrix dxn = tmp_dxn.rowsAsMatrix(data_size);
+		DenseMatrix dxn = tmp_dxn.rows(data_size);
 		VectorMath.multiply(dY, gamma, dxn);
 
-		DenseMatrix dxc = tmp_dxc.rowsAsMatrix(data_size);
+		DenseMatrix dxc = tmp_dxc.rows(data_size);
 		VectorMath.divide(dxn, std, dxc);
 
 		VectorMath.multiply(dxn, xc, T);
@@ -129,7 +129,7 @@ public class BatchNormalizationLayer extends Layer {
 		DenseVector dmu = gamma.copy(true);
 		VectorMath.meanColumns(dxc, dmu);
 
-		DenseMatrix dX = tmp_dX.rowsAsMatrix(data_size);
+		DenseMatrix dX = tmp_dX.rows(data_size);
 		VectorMath.subtract(dxc, dmu, dX);
 
 		return dX;
@@ -143,7 +143,7 @@ public class BatchNormalizationLayer extends Layer {
 			tmp_Y = X.copy(true);
 		}
 
-		DenseMatrix Y = tmp_Y.rowsAsMatrix(X.rowSize());
+		DenseMatrix Y = tmp_Y.rows(X.rowSize());
 
 		if (is_testing) {
 			DenseVector std = runVars.copy();
@@ -168,9 +168,9 @@ public class BatchNormalizationLayer extends Layer {
 			}
 
 			int data_size = X.rowSize();
-			DenseMatrix T = tmp_T.rowsAsMatrix(data_size);
-			xc = tmp_xc.rowsAsMatrix(data_size);
-			xn = tmp_xn.rowsAsMatrix(data_size);
+			DenseMatrix T = tmp_T.rows(data_size);
+			xc = tmp_xc.rows(data_size);
+			xn = tmp_xn.rows(data_size);
 
 			/*
 			 * step 1: calculate mean

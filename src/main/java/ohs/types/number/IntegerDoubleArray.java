@@ -14,8 +14,8 @@ import ohs.math.ArrayUtils;
 public class IntegerDoubleArray implements RandomAccess, Cloneable, Serializable {
 
 	public static class Pair {
-		private int i;
 		private double d;
+		private int i;
 
 		public Pair(int i, double d) {
 			this.i = i;
@@ -36,21 +36,11 @@ public class IntegerDoubleArray implements RandomAccess, Cloneable, Serializable
 	}
 
 	/**
-	 * 
-	 */
-	private static final long serialVersionUID = -2818757791807086957L;
-
-	/**
 	 * Default initial capacity.
 	 */
 	private static final int DEFAULT_CAPACITY = 10;
 
-	/**
-	 * Shared empty array instance used for empty instances.
-	 */
-	private static final int[] EMPTY_INTEGER_DATA = {};
-
-	private static final double[] EMPTY_DOUBLE_DATA = {};
+	private static final double[] DEFAULTCAPACITY_EMPTY_DOUBLE = {};
 
 	/**
 	 * Shared empty array instance used for default sized empty instances. We distinguish this from EMPTY_INTEGER_DATA to know how much to
@@ -58,7 +48,12 @@ public class IntegerDoubleArray implements RandomAccess, Cloneable, Serializable
 	 */
 	private static final int[] DEFAULTCAPACITY_EMPTY_INTEGER = {};
 
-	private static final double[] DEFAULTCAPACITY_EMPTY_DOUBLE = {};
+	private static final double[] EMPTY_DOUBLE_DATA = {};
+
+	/**
+	 * Shared empty array instance used for empty instances.
+	 */
+	private static final int[] EMPTY_INTEGER_DATA = {};
 
 	/**
 	 * The maximum size of array to allocate. Some VMs reserve some header words in an array. Attempts to allocate larger arrays may result
@@ -66,11 +61,20 @@ public class IntegerDoubleArray implements RandomAccess, Cloneable, Serializable
 	 */
 	private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
 
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -2818757791807086957L;
+
 	private static int hugeCapacity(int minCapacity) {
 		if (minCapacity < 0) // overflow
 			throw new OutOfMemoryError();
 		return (minCapacity > MAX_ARRAY_SIZE) ? Integer.MAX_VALUE : MAX_ARRAY_SIZE;
 	}
+
+	private boolean autoGrowth = false;
+
+	transient double[] dvs;
 
 	/**
 	 * The array buffer into which the elements of the ArrayList are stored. The capacity of the ArrayList ivs the length of this array
@@ -78,15 +82,6 @@ public class IntegerDoubleArray implements RandomAccess, Cloneable, Serializable
 	 * added.
 	 */
 	transient int[] ivs; // non-private to simplify nested class access
-
-	transient double[] dvs;
-
-	/**
-	 * The size of the ArrayList (the number of elements it contains).
-	 *
-	 * @serial
-	 */
-	private int size;
 
 	/**
 	 * The number of times this list has been <i>structurally modified</i>. Structural modifications are those that change the size of the
@@ -108,7 +103,12 @@ public class IntegerDoubleArray implements RandomAccess, Cloneable, Serializable
 	 */
 	private int modCount = 0;
 
-	private boolean autoGrowth = false;
+	/**
+	 * The size of the ArrayList (the number of elements it contains).
+	 *
+	 * @serial
+	 */
+	private int size;
 
 	/**
 	 * Constructs an empty list with an initial capacity of ten.

@@ -27,7 +27,7 @@ import ohs.types.generic.SetMap;
 import ohs.types.generic.Triple;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
 import ohs.utils.Timer;
@@ -124,7 +124,7 @@ public class DataHandler {
 
 		for (int i = 0; i < docseqs.size(); i++) {
 			int docseq = docseqs.get(i);
-			Pair<String, IntegerArrayMatrix> t = ds.getDocumentCollection().getSents(docseq);
+			Pair<String, IntegerMatrix> t = ds.getDocumentCollection().getSents(docseq);
 			String s = t.getThird();
 
 			String[] items = StrUtils.unwrap(s.split("\t"));
@@ -176,7 +176,7 @@ public class DataHandler {
 					System.out.printf("[%d/%d, %s]\n", i + 1, store.getBytes(), timer.stop());
 				}
 
-				Triple<String, IntegerArrayMatrix, String> t = store.getSents(i);
+				Triple<String, IntegerMatrix, String> t = store.getSents(i);
 				String s = t.getThird();
 
 				String[] items = StrUtils.unwrap(s.split("\t"));
@@ -282,7 +282,7 @@ public class DataHandler {
 				System.out.printf("[%d/%d]\n", i + 1, store.getBytes());
 			}
 
-			Triple<String, IntegerArrayMatrix, String> t = store.getSents(i);
+			Triple<String, IntegerMatrix, String> t = store.getSents(i);
 			String s = t.getThird();
 
 			String[] items = s.split("\t");
@@ -333,7 +333,7 @@ public class DataHandler {
 
 		String dir = MIRPath.BIOASQ_DIR + "doc-class/year/";
 
-		IntegerArrayMatrix m = new IntegerArrayMatrix();
+		IntegerMatrix m = new IntegerMatrix();
 		m.add(new IntegerArray(dir + "2014.ser.gz"));
 		m.add(new IntegerArray(dir + "2015.ser.gz"));
 		m.add(new IntegerArray(dir + "2016.ser.gz"));
@@ -345,7 +345,7 @@ public class DataHandler {
 		for (IntegerArray docseqs : m) {
 			for (int docseq : docseqs) {
 
-				Triple<String, IntegerArrayMatrix, String> t = ds.getDocumentCollection().getSents(docseq);
+				Triple<String, IntegerMatrix, String> t = ds.getDocumentCollection().getSents(docseq);
 				String s = t.getThird();
 
 				String[] items = s.split("\t");
@@ -399,7 +399,7 @@ public class DataHandler {
 				System.out.printf("[%d/%d]\n", i + 1, store.getBytes());
 			}
 
-			Triple<String, IntegerArrayMatrix, String> t = store.getSents(i);
+			Triple<String, IntegerMatrix, String> t = store.getSents(i);
 			String s = t.getThird();
 
 			String[] items = s.split("\t");

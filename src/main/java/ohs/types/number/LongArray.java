@@ -43,10 +43,10 @@ public class LongArray implements RandomAccess, Cloneable, java.io.Serializable,
 		 * most of these streamlinings.
 		 */
 
-		private final LongArray list;
-		private int index; // current index, modified on advance/split
-		private int fence; // -1 until used; then one past last index
 		private int expectedModCount; // initialized when fence set
+		private int fence; // -1 until used; then one past last index
+		private int index; // current index, modified on advance/split
+		private final LongArray list;
 
 		/** Create new spliterator covering the given range */
 		ArrayListSpliterator(LongArray list, int origin, int fence, int expectedModCount) {
@@ -131,8 +131,8 @@ public class LongArray implements RandomAccess, Cloneable, java.io.Serializable,
 	 */
 	private class Itr implements Iterator<Long> {
 		int cursor; // index of next element to return
-		int lastRet = -1; // index of last element returned; -1 if no such
 		int expectedModCount = modCount;
+		int lastRet = -1; // index of last element returned; -1 if no such
 
 		final void checkForComodification() {
 			if (modCount != expectedModCount)
@@ -254,17 +254,10 @@ public class LongArray implements RandomAccess, Cloneable, java.io.Serializable,
 		}
 	}
 
-	private static final long serialVersionUID = 8683452581122892189L;
-
 	/**
 	 * Default initial capacity.
 	 */
 	private static final int DEFAULT_CAPACITY = 10;
-
-	/**
-	 * Shared empty array instance used for empty instances.
-	 */
-	private static final long[] EMPTY_ELEMENTDATA = {};
 
 	/**
 	 * Shared empty array instance used for default sized empty instances. We distinguish this from EMPTY_ELEMENTDATA to know how much to
@@ -273,10 +266,17 @@ public class LongArray implements RandomAccess, Cloneable, java.io.Serializable,
 	private static final long[] DEFAULTCAPACITY_EMPTY_ELEMENTDATA = {};
 
 	/**
+	 * Shared empty array instance used for empty instances.
+	 */
+	private static final long[] EMPTY_ELEMENTDATA = {};
+
+	/**
 	 * The maximum size of array to allocate. Some VMs reserve some header words in an array. Attempts to allocate larger arrays may result
 	 * in OutOfMemoryError: Requested array size exceeds VM limit
 	 */
 	private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
+
+	private static final long serialVersionUID = 8683452581122892189L;
 
 	private static int hugeCapacity(int minCapacity) {
 		if (minCapacity < 0) // overflow
@@ -293,12 +293,7 @@ public class LongArray implements RandomAccess, Cloneable, java.io.Serializable,
 			throw new IllegalArgumentException("fromIndex(" + fromIndex + ") > toIndex(" + toIndex + ")");
 	}
 
-	/**
-	 * The array buffer into which the elements of the ArrayList are stored. The capacity of the ArrayList is the length of this array
-	 * buffer. Any empty ArrayList with vals == DEFAULTCAPACITY_EMPTY_ELEMENTDATA will be expanded to DEFAULT_CAPACITY when the first
-	 * element is added.
-	 */
-	transient long[] vals; // non-private to simplify nested class access
+	private int modCount = 0;
 
 	/**
 	 * The size of the ArrayList (the number of elements it contains).
@@ -307,7 +302,12 @@ public class LongArray implements RandomAccess, Cloneable, java.io.Serializable,
 	 */
 	private int size;
 
-	private int modCount = 0;
+	/**
+	 * The array buffer into which the elements of the ArrayList are stored. The capacity of the ArrayList is the length of this array
+	 * buffer. Any empty ArrayList with vals == DEFAULTCAPACITY_EMPTY_ELEMENTDATA will be expanded to DEFAULT_CAPACITY when the first
+	 * element is added.
+	 */
+	transient long[] vals; // non-private to simplify nested class access
 
 	/**
 	 * Constructs an empty list with an initial capacity of ten.

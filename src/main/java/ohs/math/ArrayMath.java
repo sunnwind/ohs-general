@@ -3192,10 +3192,6 @@ public class ArrayMath {
 		return sum;
 	}
 
-	public static void randomWalk(double[][] T, double[] cents, double[] biases, int max_iter, int thread_size) {
-		randomWalk(T, cents, biases, max_iter, 0.0000001, 0.85, thread_size);
-	}
-
 	/**
 	 * http://people.revoledu.com/kardi/tutorial/PageRank/Page-Rank-Computation.html
 	 * 
@@ -3267,8 +3263,8 @@ public class ArrayMath {
 		}
 	}
 
-	public static void randomWalk(double[][] T, double[] cents, int max_iter, int thread_size) {
-		randomWalk(T, cents, max_iter, 0.0000001, 0.85, thread_size);
+	public static void randomWalk(double[][] T, double[] cents, double[] biases, int max_iter, int thread_size) {
+		randomWalk(T, cents, biases, max_iter, 0.0000001, 0.85, thread_size);
 	}
 
 	/**
@@ -3285,6 +3281,10 @@ public class ArrayMath {
 	public static void randomWalk(double[][] T, double[] cents, int max_iter, double min_dist, double damping_factor,
 			int thread_size) {
 		randomWalk(T, cents, null, max_iter, min_dist, damping_factor, thread_size);
+	}
+
+	public static void randomWalk(double[][] T, double[] cents, int max_iter, int thread_size) {
+		randomWalk(T, cents, max_iter, 0.0000001, 0.85, thread_size);
 	}
 
 	public static double reLU(double[] a, double[] b) {
@@ -3640,6 +3640,14 @@ public class ArrayMath {
 	}
 
 	public static double sum(double[] x) {
+		double ret = 0;
+		for (int i = 0; i < x.length; i++) {
+			ret += x[i];
+		}
+		return ret;
+	}
+	
+	public static double sum(float[] x) {
 		double ret = 0;
 		for (int i = 0; i < x.length; i++) {
 			ret += x[i];

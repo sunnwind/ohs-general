@@ -16,12 +16,12 @@ import ohs.types.generic.Counter;
 import ohs.types.generic.Vocab;
 import ohs.types.number.DoubleArray;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.utils.Generics;
 
 public class PassageScorer extends Scorer {
 
-	private WeakHashMap<Integer, IntegerArrayMatrix> cache = Generics.newWeakHashMap();
+	private WeakHashMap<Integer, IntegerMatrix> cache = Generics.newWeakHashMap();
 
 	private DocumentCollection dc;
 
@@ -42,12 +42,12 @@ public class PassageScorer extends Scorer {
 
 	}
 
-	public IntegerArrayMatrix getPassages(int docseq) throws Exception {
-		IntegerArrayMatrix ret = cache.get(docseq);
+	public IntegerMatrix getPassages(int docseq) throws Exception {
+		IntegerMatrix ret = cache.get(docseq);
 
 		if (ret == null) {
-			ret = new IntegerArrayMatrix();
-			IntegerArrayMatrix doc = dc.getSents(docseq).getSecond();
+			ret = new IntegerMatrix();
+			IntegerMatrix doc = dc.getSents(docseq).getSecond();
 			int len_d = doc.sizeOfEntries();
 			int loc = 0;
 			IntegerArray psg = new IntegerArray(len_psg_fix);
@@ -69,7 +69,7 @@ public class PassageScorer extends Scorer {
 	}
 
 	public List<SparseVector> getPassageVectors(int docseq) throws Exception {
-		IntegerArrayMatrix psgs = getPassages(docseq);
+		IntegerMatrix psgs = getPassages(docseq);
 		List<SparseVector> ret = Generics.newArrayList(psgs.size());
 		for (IntegerArray psg : psgs) {
 			Counter<Integer> c = Generics.newCounter(psg.size());

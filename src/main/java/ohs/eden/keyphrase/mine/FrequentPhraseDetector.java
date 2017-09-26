@@ -30,7 +30,7 @@ import ohs.types.generic.ListMap;
 import ohs.types.generic.Pair;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.types.number.LongArray;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
@@ -380,7 +380,7 @@ public class FrequentPhraseDetector {
 				IntegerArray dseqs = new IntegerArray(docToLocs.keySet());
 				dseqs.sort(false);
 
-				IntegerArrayMatrix locData = new IntegerArrayMatrix(dseqs.size());
+				IntegerMatrix locData = new IntegerMatrix(dseqs.size());
 				for (int dseq : dseqs) {
 					IntegerArray wlocs = new IntegerArray(docToLocs.get(dseq));
 					wlocs.sort(false);

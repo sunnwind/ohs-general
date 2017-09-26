@@ -19,7 +19,7 @@ import ohs.types.generic.Counter;
 import ohs.types.generic.Pair;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.types.number.LongArray;
 import ohs.utils.ByteSize;
 import ohs.utils.Generics;
@@ -173,7 +173,7 @@ public class DocumentCollection {
 		return new SparseVector(c);
 	}
 
-	public static SparseVector toDocVector(IntegerArrayMatrix d) {
+	public static SparseVector toDocVector(IntegerMatrix d) {
 		Counter<Integer> c = Generics.newCounter(d.size());
 		for (IntegerArray s : d) {
 			for (int w : s) {
@@ -183,7 +183,7 @@ public class DocumentCollection {
 		return new SparseVector(c);
 	}
 
-	public static IntegerArrayMatrix toMultiSentences(IntegerArray d) {
+	public static IntegerMatrix toMultiSentences(IntegerArray d) {
 		List<Integer> cnts = Generics.newArrayList(d.size());
 		int w_cnt = 0;
 		for (int w : d) {
@@ -196,7 +196,7 @@ public class DocumentCollection {
 		}
 		cnts.add(w_cnt);
 
-		IntegerArrayMatrix ret = new IntegerArrayMatrix(cnts.size());
+		IntegerMatrix ret = new IntegerMatrix(cnts.size());
 
 		for (int cnt : cnts) {
 			ret.add(new IntegerArray(cnt));
@@ -214,7 +214,7 @@ public class DocumentCollection {
 		return ret;
 	}
 
-	public static IntegerArray toSingleSentence(IntegerArrayMatrix d) {
+	public static IntegerArray toSingleSentence(IntegerMatrix d) {
 		IntegerArray ret = new IntegerArray(d.sizeOfEntries() + d.size());
 		for (int i = 0; i < d.size(); i++) {
 			IntegerArray sent = d.get(i);
@@ -229,7 +229,7 @@ public class DocumentCollection {
 		return ret;
 	}
 
-	public static String toText(Vocab vocab, IntegerArrayMatrix doc) {
+	public static String toText(Vocab vocab, IntegerMatrix doc) {
 		StringBuffer sb = new StringBuffer();
 		for (int i = 0; i < doc.size(); i++) {
 			IntegerArray sent = doc.get(i);
@@ -540,7 +540,7 @@ public class DocumentCollection {
 		return getRange(range[0], range[1], true);
 	}
 
-	public Pair<String, IntegerArrayMatrix> getSents(int i) throws Exception {
+	public Pair<String, IntegerMatrix> getSents(int i) throws Exception {
 		Pair<String, IntegerArray> p = get(i);
 		return Generics.newPair(p.getFirst(), toMultiSentences(p.getSecond()));
 	}
@@ -551,7 +551,7 @@ public class DocumentCollection {
 
 	public Pair<String, String> getText(int i) throws Exception {
 		Pair<String, IntegerArray> p = get(i);
-		IntegerArrayMatrix doc = toMultiSentences(get(i).getSecond());
+		IntegerMatrix doc = toMultiSentences(get(i).getSecond());
 
 		StringBuffer sb = new StringBuffer();
 		for (int j = 0; j < doc.size(); j++) {
@@ -567,7 +567,7 @@ public class DocumentCollection {
 	public List<Pair<String, String>> getText(int i, int j) throws Exception {
 		List<Pair<String, String>> ret = Generics.newArrayList(j - i);
 		for (Pair<String, IntegerArray> p : getRange(i, j, true)) {
-			IntegerArrayMatrix doc = toMultiSentences(p.getSecond());
+			IntegerMatrix doc = toMultiSentences(p.getSecond());
 			StringBuffer sb = new StringBuffer();
 			for (int k = 0; k < doc.size(); k++) {
 				IntegerArray sent = doc.get(k);

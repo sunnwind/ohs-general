@@ -45,7 +45,7 @@ public class WindowLayer extends Layer {
 			tmp_dX = new DenseMatrix(data_size, embedding_size);
 		}
 
-		DenseMatrix dX = tmp_dX.rowsAsMatrix(data_size);
+		DenseMatrix dX = tmp_dX.rows(data_size);
 
 		for (int i = 0; i < data_size; i++) {
 			
@@ -62,7 +62,7 @@ public class WindowLayer extends Layer {
 			tmp_Y = new DenseMatrix(X.rowSize(), output_size);
 		}
 
-		DenseMatrix Y = tmp_Y.rowsAsMatrix(X.rowSize());
+		DenseMatrix Y = tmp_Y.rows(X.rowSize());
 
 		for (int i = 0; i < X.rowSize(); i++) {
 			DenseVector y = Y.row(i);

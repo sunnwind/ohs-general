@@ -29,7 +29,7 @@ import ohs.types.generic.Pair;
 import ohs.types.generic.Triple;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.utils.DataSplitter;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
@@ -56,12 +56,12 @@ public class Apps {
 		param.setBatchSize(10);
 		param.setLearnRate(0.001);
 		param.setRegLambda(0.01);
-		param.setThreadSize(3);
+		param.setThreadSize(1);
 		param.setBpttSize(10);
 
-		IntegerArrayMatrix X = new IntegerArrayMatrix();
+		IntegerMatrix X = new IntegerMatrix();
 		IntegerArray Y = new IntegerArray();
-		IntegerArrayMatrix Xt = new IntegerArrayMatrix();
+		IntegerMatrix Xt = new IntegerMatrix();
 		IntegerArray Yt = new IntegerArray();
 
 		Vocab vocab = new Vocab();
@@ -77,8 +77,7 @@ public class Apps {
 				sents.add(s + "\tneg");
 			}
 
-
-			IntegerArrayMatrix M = new IntegerArrayMatrix();
+			IntegerMatrix M = new IntegerMatrix();
 			IntegerArray N = new IntegerArray();
 
 			for (int i = 0; i < sents.size(); i++) {
@@ -90,7 +89,7 @@ public class Apps {
 				N.add(label);
 			}
 
-			IntegerArrayMatrix T = DataSplitter.splitGroups(M, new int[] { 5000, 500 });
+			IntegerMatrix T = DataSplitter.splitGroups(M, new int[] { 5000, 500 });
 
 			for (int i = 0; i < T.size(); i++) {
 				IntegerArray L = T.get(i);
@@ -160,9 +159,9 @@ public class Apps {
 			nn.add(new EmbeddingLayer(vocab_size, emb_size, true));
 			nn.add(new ConvLayer(emb_size, 3, filter_size));
 			nn.add(new NonlinearityLayer(l2_size, new ReLU()));
-//			nn.add(new MaxPoolingLayer(filter_size));
-//			nn.add(new FullyConnectedLayer(filter_size, output_size));
-//			nn.add(new SoftmaxLayer(output_size));
+			nn.add(new MaxPoolingLayer(filter_size));
+			// nn.add(new FullyConnectedLayer(filter_size, output_size));
+			// nn.add(new SoftmaxLayer(output_size));
 			nn.prepare();
 			nn.init();
 
@@ -186,19 +185,19 @@ public class Apps {
 
 		// Triple<IntegerArrayMatrix, IntegerArrayMatrix, Vocab> train =
 		// DataReader.readCapitalData(300);
-		Triple<IntegerArrayMatrix, IntegerArrayMatrix, Vocab> data = DataReader
+		Triple<IntegerMatrix, IntegerMatrix, Vocab> data = DataReader
 				.readLines("../../data/ml_data/warpeace_input.txt", 1000);
 
-		IntegerArrayMatrix X = new IntegerArrayMatrix();
-		IntegerArrayMatrix Y = new IntegerArrayMatrix();
-		IntegerArrayMatrix Xt = new IntegerArrayMatrix();
-		IntegerArrayMatrix Yt = new IntegerArrayMatrix();
+		IntegerMatrix X = new IntegerMatrix();
+		IntegerMatrix Y = new IntegerMatrix();
+		IntegerMatrix Xt = new IntegerMatrix();
+		IntegerMatrix Yt = new IntegerMatrix();
 		Vocab vocab = data.getThird();
 
 		{
 
-			IntegerArrayMatrix rX = data.getFirst();
-			IntegerArrayMatrix rY = data.getSecond();
+			IntegerMatrix rX = data.getFirst();
+			IntegerMatrix rY = data.getSecond();
 
 			double test_portion = 0.3;
 			int test_size = (int) (1f * rX.size() * test_portion);
@@ -391,18 +390,18 @@ public class Apps {
 		param.setThreadSize(5);
 		param.setBpttSize(0);
 
-		IntegerArrayMatrix X = null;
-		IntegerArrayMatrix Y = null;
+		IntegerMatrix X = null;
+		IntegerMatrix Y = null;
 		Vocab vocab = null;
 		Indexer<String> labelIndexer = null;
-		IntegerArrayMatrix Xt = null;
-		IntegerArrayMatrix Yt = null;
+		IntegerMatrix Xt = null;
+		IntegerMatrix Yt = null;
 
 		{
 
 			Object[] objs = DataReader.readNerTrainData("../../data/ml_data/conll2003.bio2/train.dat");
-			X = (IntegerArrayMatrix) objs[0];
-			Y = (IntegerArrayMatrix) objs[1];
+			X = (IntegerMatrix) objs[0];
+			Y = (IntegerMatrix) objs[1];
 			vocab = (Vocab) objs[2];
 			labelIndexer = (Indexer<String>) objs[3];
 		}
@@ -410,8 +409,8 @@ public class Apps {
 		{
 			Object[] objs = DataReader.readNerTestData("../../data/ml_data/conll2003.bio2/test.dat", vocab,
 					labelIndexer);
-			Xt = (IntegerArrayMatrix) objs[0];
-			Yt = (IntegerArrayMatrix) objs[1];
+			Xt = (IntegerMatrix) objs[0];
+			Yt = (IntegerMatrix) objs[1];
 		}
 
 		System.out.println(vocab.info());
@@ -482,8 +481,8 @@ public class Apps {
 
 				for (int j = 0; j < ranges.length; j++) {
 					int[] range = ranges[j];
-					IntegerArrayMatrix Xsub = new IntegerArrayMatrix(range[1] - range[0]);
-					IntegerArrayMatrix Ysub = new IntegerArrayMatrix(range[1] - range[0]);
+					IntegerMatrix Xsub = new IntegerMatrix(range[1] - range[0]);
+					IntegerMatrix Ysub = new IntegerMatrix(range[1] - range[0]);
 
 					for (int k = range[0]; k < range[1]; k++) {
 						int loc = locs.get(k);

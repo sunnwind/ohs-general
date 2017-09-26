@@ -20,7 +20,7 @@ import ohs.nlp.pos.SejongReader;
 import ohs.types.generic.CounterMap;
 import ohs.types.generic.Indexer;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.utils.Conditions;
 import ohs.utils.Generics;
 import ohs.utils.UnicodeUtils;
@@ -119,8 +119,8 @@ public class HMMTrainer {
 
 		List<MSentence> sents = coll.getSentences();
 
-		IntegerArrayMatrix wss = new IntegerArrayMatrix(sents.size());
-		IntegerArrayMatrix poss = new IntegerArrayMatrix(sents.size());
+		IntegerMatrix wss = new IntegerMatrix(sents.size());
+		IntegerMatrix poss = new IntegerMatrix(sents.size());
 
 		for (int i = 0; i < sents.size(); i++) {
 			MSentence sent = sents.get(i);
@@ -324,7 +324,7 @@ public class HMMTrainer {
 		M.print();
 	}
 
-	public void trainSupervised(HMM M, IntegerArrayMatrix X, IntegerArrayMatrix Y) {
+	public void trainSupervised(HMM M, IntegerMatrix X, IntegerMatrix Y) {
 		this.M = M;
 
 		DenseVector phi = M.getPhi();
@@ -374,7 +374,7 @@ public class HMMTrainer {
 		VectorMath.addAfterMultiply(b, 0.5, wordPrs, 0.5, b);
 	}
 
-	public void trainUnsupervised(HMM M, IntegerArrayMatrix X, int iter) {
+	public void trainUnsupervised(HMM M, IntegerMatrix X, int iter) {
 		this.M = M;
 
 		this.N = M.getN();

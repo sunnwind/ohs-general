@@ -8,77 +8,91 @@ import java.util.Collection;
 import ohs.io.FileUtils;
 import ohs.utils.ByteSize;
 
-public class LongArrayMatrix extends ArrayList<LongArray> {
+public class DoubleTensor extends ArrayList<DoubleMatrix> {
 
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = -1810717124466759948L;
 
-	public LongArrayMatrix() {
+	public DoubleTensor() {
 		super();
 	}
 
-	public LongArrayMatrix(Collection<LongArray> a) {
+	public DoubleTensor(Collection<DoubleMatrix> a) {
 		addAll(a);
 	}
 
-	public LongArrayMatrix(int size) {
-		super(size);
-	}
-	
-	public LongArrayMatrix(long[][] a) {
+	public DoubleTensor(double[][][] a) {
 		ensureCapacity(a.length);
 		for (int i = 0; i < a.length; i++) {
-			add(new LongArray(a[i]));
+			add(new DoubleMatrix(a[i]));
 		}
 	}
 
-	public LongArrayMatrix(ObjectInputStream ois) throws Exception {
+	public DoubleTensor(int size) {
+		super(size);
+	}
+
+	public DoubleTensor(ObjectInputStream ois) throws Exception {
 		readObject(ois);
 	}
 
-	public void add(int i, int j) {
-		ensure(i);
-		get(i).add(j);
+	public void add(int i, int j, double k) {
+		ensure(i).ensure(j).add(k);
 	}
 
 	public ByteSize byteSize() {
 		return new ByteSize(Integer.BYTES * sizeOfEntries());
 	}
 
-	public LongArrayMatrix clone() {
-		LongArrayMatrix ret = new LongArrayMatrix(size());
-		for (LongArray a : this) {
+	public DoubleTensor clone() {
+		DoubleTensor ret = new DoubleTensor(size());
+		for (DoubleMatrix a : this) {
 			ret.add(a.clone());
 		}
 		return ret;
 	}
 
-	public void ensure(int i) {
+	public DoubleMatrix ensure(int i) {
 		if (i >= size()) {
 			int new_size = (i - size()) + 1;
 			for (int k = 0; k < new_size; k++) {
-				add(new LongArray());
+				add(new DoubleMatrix());
 			}
 		}
+		return get(i);
 	}
 
 	public String info() {
-		int min = Integer.MAX_VALUE;
-		int max = -Integer.MAX_VALUE;
 
-		for (LongArray a : this) {
-			min = Math.min(min, a.size());
-			max = Math.max(max, a.size());
+		IntegerArray minSizes = new IntegerArray(3);
+		IntegerArray maxSizes = new IntegerArray(3);
+
+		minSizes.add(size());
+		maxSizes.add(size());
+
+		int min2 = Integer.MAX_VALUE;
+		int min3 = Integer.MAX_VALUE;
+
+		int max2 = -Integer.MAX_VALUE;
+		int max3 = -Integer.MAX_VALUE;
+
+		for (DoubleMatrix a : this) {
+			min2 = Math.min(min2, a.size());
+			max2 = Math.max(max2, a.size());
+
+			for (DoubleArray b : a) {
+				min3 = Math.min(min3, b.size());
+				max3 = Math.max(max3, b.size());
+			}
 		}
 
 		StringBuffer sb = new StringBuffer();
 		sb.append("[Info]\n");
-		sb.append(String.format("size:\t%d\n", size()));
+		sb.append(String.format("min size:\t%d\n", minSizes.toString()));
+		sb.append(String.format("max size:\t%d\n", maxSizes.toString()));
 		sb.append(String.format("entry size:\t%d\n", sizeOfEntries()));
-		sb.append(String.format("min array size:\t%d\n", min));
-		sb.append(String.format("max array size:\t%d\n", max));
 		sb.append(String.format("mem:\t%s", byteSize().toString()));
 		return sb.toString();
 	}
@@ -87,7 +101,7 @@ public class LongArrayMatrix extends ArrayList<LongArray> {
 		int size = ois.readInt();
 		ensureCapacity(size);
 		for (int i = 0; i < size; i++) {
-			add(new LongArray(ois));
+			add(new DoubleMatrix(ois));
 		}
 	}
 
@@ -99,20 +113,30 @@ public class LongArrayMatrix extends ArrayList<LongArray> {
 
 	public int sizeOfEntries() {
 		int ret = 0;
-		for (LongArray a : this) {
-			ret += a.size();
+		for (DoubleMatrix a : this) {
+			ret += a.sizeOfEntries();
 		}
 		return ret;
 	}
 
-	public LongArrayMatrix subMatrix(int i, int j) {
-		return new LongArrayMatrix(subList(i, j));
+	public DoubleTensor subTensor(int i, int j) {
+		return new DoubleTensor(subList(i, j));
 	}
 
-	public LongArray toLongArray() {
-		LongArray ret = new LongArray(sizeOfEntries());
-		for (LongArray a : this) {
-			ret.addAll(a);
+	public DoubleTensor subTensor(int[] is) {
+		DoubleTensor ret = new DoubleTensor(is.length);
+		for (int i : is) {
+			ret.add(get(i));
+		}
+		return ret;
+	}
+
+	public DoubleArray toDoubleArray() {
+		DoubleArray ret = new DoubleArray(sizeOfEntries());
+		for (DoubleMatrix a : this) {
+			for (DoubleArray b : a) {
+				ret.addAll(b);
+			}
 		}
 		return ret;
 	}
@@ -135,14 +159,13 @@ public class LongArrayMatrix extends ArrayList<LongArray> {
 
 	public void trimToSize() {
 		super.trimToSize();
-
-		for (LongArray a : this) {
+		for (DoubleMatrix a : this) {
 			a.trimToSize();
 		}
 	}
 
-	public long[][] values() {
-		long[][] ret = new long[size()][];
+	public double[][][] values() {
+		double[][][] ret = new double[size()][][];
 		for (int i = 0; i < size(); i++) {
 			ret[i] = get(i).values();
 		}

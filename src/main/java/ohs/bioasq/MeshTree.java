@@ -13,7 +13,7 @@ import ohs.types.generic.BidMap;
 import ohs.types.generic.CounterMap;
 import ohs.types.generic.Indexer;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.utils.Generics;
 
 public class MeshTree {
@@ -162,7 +162,7 @@ public class MeshTree {
 		return idxToName.getValue(idx);
 	}
 
-	public IntegerArrayMatrix getNodesAtLevels() {
+	public IntegerMatrix getNodesAtLevels() {
 		CounterMap<Integer, Integer> cm = Generics.newCounterMap();
 
 		for (int leaf : leaves) {
@@ -174,7 +174,7 @@ public class MeshTree {
 			}
 		}
 
-		IntegerArrayMatrix ret = new IntegerArrayMatrix();
+		IntegerMatrix ret = new IntegerMatrix();
 
 		for (int i = 0; i < depth; i++) {
 			int level = i + 1;
@@ -199,8 +199,8 @@ public class MeshTree {
 		return parentToChild;
 	}
 
-	public IntegerArrayMatrix getPaths(int child) {
-		IntegerArrayMatrix paths = new IntegerArrayMatrix();
+	public IntegerMatrix getPaths(int child) {
+		IntegerMatrix paths = new IntegerMatrix();
 
 		IntegerArray prev = new IntegerArray();
 		prev.add(child);
@@ -227,7 +227,7 @@ public class MeshTree {
 		return paths;
 	}
 
-	private void getPaths(IntegerArray prev, IntegerArrayMatrix paths) {
+	private void getPaths(IntegerArray prev, IntegerMatrix paths) {
 		int child = prev.get(prev.size() - 1);
 
 		if (child == 0) {
@@ -278,7 +278,7 @@ public class MeshTree {
 
 	private void postprocess() {
 		for (int leaf : leaves) {
-			IntegerArrayMatrix paths = getPaths(leaf);
+			IntegerMatrix paths = getPaths(leaf);
 
 			for (IntegerArray path : paths) {
 				depth = Math.max(depth, path.size());

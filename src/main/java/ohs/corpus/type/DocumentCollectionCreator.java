@@ -24,7 +24,7 @@ import ohs.types.generic.ListList;
 import ohs.types.generic.Pair;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.types.number.LongArray;
 import ohs.utils.ByteSize;
 import ohs.utils.ByteSize.Type;
@@ -39,7 +39,7 @@ public class DocumentCollectionCreator {
 
 		private AtomicInteger range_cnt;
 
-		private IntegerArrayMatrix ranges;
+		private IntegerMatrix ranges;
 
 		private RawDocumentCollection rdc;
 
@@ -49,7 +49,7 @@ public class DocumentCollectionCreator {
 
 		private Timer timer;
 
-		public CountWorker(RawDocumentCollection rdc, IntegerArrayMatrix ranges, AtomicInteger range_cnt,
+		public CountWorker(RawDocumentCollection rdc, IntegerMatrix ranges, AtomicInteger range_cnt,
 				AtomicInteger file_cnt, Counter<String> wordCnts, Counter<String> docFreqs, Timer timer) {
 			this.rdc = rdc;
 			this.ranges = ranges;
@@ -133,7 +133,7 @@ public class DocumentCollectionCreator {
 
 		private Vocab vocab;
 
-		private IntegerArrayMatrix ranges;
+		private IntegerMatrix ranges;
 
 		private AtomicInteger range_cnt;
 
@@ -147,7 +147,7 @@ public class DocumentCollectionCreator {
 
 		private ByteBufferWrapper buf = new ByteBufferWrapper(FileUtils.DEFAULT_BUF_SIZE);
 
-		public IndexWorker(RawDocumentCollection rdc, Vocab vocab, IntegerArrayMatrix ranges, AtomicInteger range_cnt,
+		public IndexWorker(RawDocumentCollection rdc, Vocab vocab, IntegerMatrix ranges, AtomicInteger range_cnt,
 				AtomicInteger doc_cnt, AtomicInteger file_cnt, Timer timer) {
 			this.rdc = rdc;
 			this.vocab = vocab;
@@ -168,7 +168,7 @@ public class DocumentCollectionCreator {
 
 			while ((range_loc = range_cnt.getAndIncrement()) < ranges.size()) {
 				IntegerArray range = ranges.get(range_loc);
-				IntegerArrayMatrix subranges = new IntegerArrayMatrix(
+				IntegerMatrix subranges = new IntegerMatrix(
 						BatchUtils.getBatchRanges(range.get(1) - range.get(0), 100));
 
 				File outFile = new File(tmpDir, new DecimalFormat("00000000").format(range_loc) + ".ser");
@@ -201,7 +201,7 @@ public class DocumentCollectionCreator {
 								sents.add(sent);
 							}
 						}
-						IntegerArrayMatrix doc = new IntegerArrayMatrix(sents);
+						IntegerMatrix doc = new IntegerMatrix(sents);
 						IntegerArray d = DocumentCollection.toSingleSentence(doc);
 
 						int len_d = doc.sizeOfEntries();
@@ -376,7 +376,7 @@ public class DocumentCollectionCreator {
 
 	private boolean encode = false;
 
-	private IntegerArrayMatrix target_loc_data;
+	private IntegerMatrix target_loc_data;
 
 	private int counting_thread_size = 5;
 
@@ -422,7 +422,7 @@ public class DocumentCollectionCreator {
 
 		this.dataDir = new File(dataDir);
 		this.docid_locs = new IntegerArray(new int[] { docid_loc });
-		this.target_loc_data = new IntegerArrayMatrix();
+		this.target_loc_data = new IntegerMatrix();
 		this.target_loc_data.add(new IntegerArray(target_locs));
 
 		this.tmpDir = new File(dataDir, "tmp/");
@@ -451,7 +451,7 @@ public class DocumentCollectionCreator {
 
 		this.dataDir = new File(dataDir);
 		this.docid_locs = new IntegerArray(docid_locs);
-		this.target_loc_data = new IntegerArrayMatrix(target_locs);
+		this.target_loc_data = new IntegerMatrix(target_locs);
 		this.tmpDir = new File(dataDir, "tmp/");
 
 		rdc = new RawDocumentCollection(dataDir);
@@ -483,7 +483,7 @@ public class DocumentCollectionCreator {
 		AtomicInteger doc_cnt = new AtomicInteger(0);
 		Timer timer = Timer.newTimer();
 
-		IntegerArrayMatrix ranges = getRanges(batch_size);
+		IntegerMatrix ranges = getRanges(batch_size);
 		AtomicInteger range_cnt = new AtomicInteger(0);
 
 		int init_size = 1000000;
@@ -558,8 +558,8 @@ public class DocumentCollectionCreator {
 		return vocab;
 	}
 
-	private IntegerArrayMatrix getRanges(int batch_size) {
-		IntegerArrayMatrix trs = rdc.getTypeRanges();
+	private IntegerMatrix getRanges(int batch_size) {
+		IntegerMatrix trs = rdc.getTypeRanges();
 		List<IntPair> tmp = Generics.newArrayList(rdc.size() / batch_size);
 		int dseq = 0;
 
@@ -580,7 +580,7 @@ public class DocumentCollectionCreator {
 			IntPair p = tmp.get(i);
 			ret[i] = new int[] { p.getFirst(), p.getSecond() };
 		}
-		return new IntegerArrayMatrix(ret);
+		return new IntegerMatrix(ret);
 	}
 
 	private int index_batch_size = 10000;
@@ -595,7 +595,7 @@ public class DocumentCollectionCreator {
 
 		List<Future<Integer>> fs = Generics.newArrayList(indexing_thread_size);
 
-		IntegerArrayMatrix ranges = getRanges(100000);
+		IntegerMatrix ranges = getRanges(100000);
 
 		AtomicInteger range_cnt = new AtomicInteger(0);
 

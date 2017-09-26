@@ -8,10 +8,10 @@ import ohs.math.ArrayMath;
 import ohs.math.ArrayUtils;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.utils.ByteSize;
 
-public class SentenceCollection extends IntegerArrayMatrix {
+public class SentenceCollection extends IntegerMatrix {
 
 	/**
 	 * 
@@ -48,7 +48,7 @@ public class SentenceCollection extends IntegerArrayMatrix {
 		readObject(ois);
 	}
 
-	public SentenceCollection(Vocab vocab, IntegerArrayMatrix sents, IntegerArray docToSentCnt) {
+	public SentenceCollection(Vocab vocab, IntegerMatrix sents, IntegerArray docToSentCnt) {
 		this.vocab = vocab;
 		this.docToSentCnt = docToSentCnt;
 

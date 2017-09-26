@@ -52,7 +52,7 @@ public class DropoutLayer extends Layer {
 		if (tmp_dX == null || tmp_dX.rowSize() < dY.rowSize()) {
 			tmp_dX = dY.copy(true);
 		}
-		DenseMatrix dX = tmp_dX.rowsAsMatrix(dY.rowSize());
+		DenseMatrix dX = tmp_dX.rows(dY.rowSize());
 		VectorUtils.copy(dY, dX);
 		return dX;
 	}
@@ -66,7 +66,7 @@ public class DropoutLayer extends Layer {
 			tmp_Y = X.copy(true);
 		}
 
-		DenseMatrix Y = tmp_Y.rowsAsMatrix(X.rowSize());
+		DenseMatrix Y = tmp_Y.rows(X.rowSize());
 
 		if (is_testing) {
 			VectorUtils.copy(X, Y);
@@ -76,7 +76,7 @@ public class DropoutLayer extends Layer {
 				tmp_Y = X.copy(true);
 			}
 
-			M = tmp_M.rowsAsMatrix(X.rowSize());
+			M = tmp_M.rows(X.rowSize());
 
 			VectorMath.random(0, 1, M);
 			VectorMath.mask(M, p);

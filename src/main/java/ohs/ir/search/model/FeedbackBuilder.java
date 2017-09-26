@@ -21,7 +21,7 @@ import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.utils.Generics;
 
 public class FeedbackBuilder {
@@ -1177,9 +1177,9 @@ public class FeedbackBuilder {
 		return mixture_jm;
 	}
 
-	public IntegerArrayMatrix getPassages(int dseq) throws Exception {
-		IntegerArrayMatrix ret = new IntegerArrayMatrix();
-		IntegerArrayMatrix doc = DocumentCollection.toMultiSentences(dc.get(dseq).getSecond());
+	public IntegerMatrix getPassages(int dseq) throws Exception {
+		IntegerMatrix ret = new IntegerMatrix();
+		IntegerMatrix doc = DocumentCollection.toMultiSentences(dc.get(dseq).getSecond());
 		int len_d = doc.sizeOfEntries();
 
 		IntegerArray d = new IntegerArray(len_d);
@@ -1213,7 +1213,7 @@ public class FeedbackBuilder {
 	}
 
 	public SparseMatrix getPassageVectors(int docseq) throws Exception {
-		IntegerArrayMatrix psgs = getPassages(docseq);
+		IntegerMatrix psgs = getPassages(docseq);
 		List<SparseVector> rows = Generics.newArrayList(psgs.size());
 		List<Integer> rowIdxs = Generics.newArrayList();
 		for (IntegerArray psg : psgs) {

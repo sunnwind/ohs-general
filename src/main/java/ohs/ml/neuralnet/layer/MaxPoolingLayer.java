@@ -11,20 +11,17 @@ public class MaxPoolingLayer extends Layer {
 	 */
 	private static final long serialVersionUID = -5068216034849402227L;
 
-	private DenseVector Y;
-
-	private DenseMatrix X;
-
 	private IntegerArray L;
 
 	private DenseMatrix tmp_dX;
 
-	public MaxPoolingLayer(int filter_size) {
-		Y = new DenseVector(filter_size);
-		L = new IntegerArray(filter_size);
-		for (int i = 0; i < filter_size; i++) {
-			L.add(0);
-		}
+	private DenseMatrix X;
+
+	private DenseVector Y;
+
+	public MaxPoolingLayer(int num_filters) {
+		Y = new DenseVector(num_filters);
+		L = new IntegerArray(new int[num_filters]);
 	}
 
 	@Override
@@ -37,7 +34,7 @@ public class MaxPoolingLayer extends Layer {
 			tmp_dX = new DenseMatrix(data_size, X.colSize());
 		}
 
-		DenseMatrix dX = tmp_dX.rowsAsMatrix(data_size);
+		DenseMatrix dX = tmp_dX.rows(data_size);
 		dX.setAll(0);
 
 		for (int i = 0; i < X.rowSize(); i++) {
@@ -53,7 +50,7 @@ public class MaxPoolingLayer extends Layer {
 	@Override
 	public Object forward(Object I) {
 		/*
-		 * X = num_filters x feature map
+		 * X = filters x feature maps
 		 */
 		DenseMatrix X = (DenseMatrix) I;
 		this.X = X;
@@ -62,12 +59,13 @@ public class MaxPoolingLayer extends Layer {
 
 		for (int i = 0; i < X.rowSize(); i++) {
 			DenseVector x = X.row(i);
-			int max_idx = x.argMax();
-			double max_value = x.value(max_idx);
+			int max_j = x.argMax();
+			double max = x.value(max_j);
 
-			L.set(i, max_idx);
-			Y.add(i, max_value);
+			L.set(i, max_j);
+			Y.add(i, max);
 		}
+
 		return new DenseMatrix(new DenseVector[] { Y });
 	}
 

@@ -27,7 +27,7 @@ import ohs.types.generic.Pair;
 import ohs.types.generic.Vocab;
 import ohs.types.number.DoubleArray;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.utils.Generics;
 import ohs.utils.Timer;
 
@@ -41,13 +41,13 @@ public class CooccurrenceCounter {
 
 		private DenseVector outSizes;
 
-		private IntegerArrayMatrix ranges;
+		private IntegerMatrix ranges;
 
 		private AtomicInteger range_cnt;
 
 		private Timer timer;
 
-		public CountWorker(DocumentCollection dc, List<File> outFiles, DenseVector outSizes, IntegerArrayMatrix ranges,
+		public CountWorker(DocumentCollection dc, List<File> outFiles, DenseVector outSizes, IntegerMatrix ranges,
 				AtomicInteger range_cnt, Timer timer) {
 			super();
 			this.dc = dc;
@@ -83,7 +83,7 @@ public class CooccurrenceCounter {
 				CounterMap<Integer, Integer> cm1 = Generics.newCounterMap();
 
 				for (int i = 0; i < ps.size(); i++) {
-					IntegerArrayMatrix doc = DocumentCollection.toMultiSentences(ps.get(i).getSecond());
+					IntegerMatrix doc = DocumentCollection.toMultiSentences(ps.get(i).getSecond());
 					CounterMap<Integer, Integer> cm2 = Generics.newCounterMap();
 
 					for (IntegerArray sent : doc) {
@@ -331,7 +331,7 @@ public class CooccurrenceCounter {
 
 		List<Future<Integer>> fs = Generics.newArrayList();
 
-		IntegerArrayMatrix ranges = new IntegerArrayMatrix(BatchUtils.getBatchRanges(dc.size(), batch_size));
+		IntegerMatrix ranges = new IntegerMatrix(BatchUtils.getBatchRanges(dc.size(), batch_size));
 
 		AtomicInteger range_cnt = new AtomicInteger();
 

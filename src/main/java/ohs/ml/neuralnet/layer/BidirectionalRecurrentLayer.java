@@ -77,7 +77,7 @@ public class BidirectionalRecurrentLayer extends Layer {
 		DenseMatrix dX1 = (DenseMatrix) fwd.backward(I);
 		DenseMatrix dX2 = (DenseMatrix) bwd.backward(I2);
 
-		DenseMatrix dX = tmp_dX.rowsAsMatrix(data_size);
+		DenseMatrix dX = tmp_dX.rows(data_size);
 		dX.setAll(0);
 
 		for (int i = 0; i < data_size; i++) {
@@ -102,7 +102,7 @@ public class BidirectionalRecurrentLayer extends Layer {
 			tmp_H = new DenseMatrix(data_size, output_size);
 		}
 
-		H = tmp_H.rowsAsMatrix(data_size);
+		H = tmp_H.rows(data_size);
 		H.setAll(0);
 
 		for (int i = 0; i < data_size; i++) {

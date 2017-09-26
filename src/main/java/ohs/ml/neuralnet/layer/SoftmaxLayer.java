@@ -37,7 +37,7 @@ public class SoftmaxLayer extends Layer {
 		if (tmp_Y == null || tmp_Y.rowSize() < data_size) {
 			tmp_Y = X.copy(true);
 		}
-		DenseMatrix Y = tmp_Y.rowsAsMatrix(data_size);
+		DenseMatrix Y = tmp_Y.rows(data_size);
 		VectorMath.softmax(X, Y);
 		return Y;
 	}

@@ -16,7 +16,7 @@ import ohs.matrix.SparseVector;
 import ohs.ml.neuralnet.com.BatchUtils;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.utils.Generics;
 import ohs.utils.Timer;
 
@@ -35,7 +35,7 @@ public class DocumentPriorEstimator {
 
 		private AtomicInteger range_cnt;
 
-		private IntegerArrayMatrix ranges;
+		private IntegerMatrix ranges;
 
 		private DocumentCollection dc;
 
@@ -43,7 +43,7 @@ public class DocumentPriorEstimator {
 
 		private DenseVector priors;
 
-		public Worker(DocumentCollection dc, IntegerArrayMatrix ranges, AtomicInteger range_cnt, DenseVector priors, Timer timer) {
+		public Worker(DocumentCollection dc, IntegerMatrix ranges, AtomicInteger range_cnt, DenseVector priors, Timer timer) {
 			this.dc = dc;
 			this.ranges = ranges;
 			this.range_cnt = range_cnt;
@@ -121,7 +121,7 @@ public class DocumentPriorEstimator {
 			dss.add(dc.copyShallow());
 		}
 
-		IntegerArrayMatrix ranges = new IntegerArrayMatrix(BatchUtils.getBatchRanges(dc.size(), batch_size));
+		IntegerMatrix ranges = new IntegerMatrix(BatchUtils.getBatchRanges(dc.size(), batch_size));
 
 		AtomicInteger range_cnt = new AtomicInteger(0);
 

@@ -16,7 +16,7 @@ import ohs.types.generic.CounterMap;
 import ohs.types.generic.Indexer;
 import ohs.types.number.DoubleArray;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.utils.Generics;
 
 public class VectorUtils {
@@ -102,11 +102,11 @@ public class VectorUtils {
 	public static DenseMatrix joinColumns(DenseMatrix a, DenseMatrix b) {
 		List<DenseVector> rows = Generics.newArrayList(a.rowSize() + b.rowSize());
 
-		for (Vector row : a.rows()) {
+		for (Vector row : a) {
 			rows.add((DenseVector) row);
 		}
 
-		for (Vector row : b.rows()) {
+		for (Vector row : b) {
 			rows.add((DenseVector) row);
 		}
 
@@ -207,7 +207,7 @@ public class VectorUtils {
 		return ret;
 	}
 
-	public static Counter<Integer> toCounter(IntegerArrayMatrix X) {
+	public static Counter<Integer> toCounter(IntegerMatrix X) {
 		Counter<Integer> ret = Generics.newCounter();
 		for (int i = 0; i < X.size(); i++) {
 			IntegerArray x = X.get(i);

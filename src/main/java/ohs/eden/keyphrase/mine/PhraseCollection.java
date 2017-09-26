@@ -12,7 +12,7 @@ import ohs.io.ByteBufferWrapper;
 import ohs.io.FileUtils;
 import ohs.ir.medical.general.MIRPath;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.types.number.LongArray;
 import ohs.utils.Generics;
 
@@ -51,7 +51,7 @@ public class PhraseCollection {
 			int len_phrs = phrs.split("_").length;
 
 			IntegerArray dseqs = pl.getDocseqs();
-			IntegerArrayMatrix posData = pl.getPosData();
+			IntegerMatrix posData = pl.getPosData();
 
 			// for (int j = 0; j < pl.size(); j++) {
 			// Posting p = pl.getPosting(j);

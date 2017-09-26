@@ -20,7 +20,7 @@ import ohs.ml.neuralnet.com.BatchUtils;
 import ohs.types.generic.Counter;
 import ohs.types.generic.Pair;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.utils.DataSplitter;
 import ohs.utils.Generics;
 import ohs.utils.Timer;
@@ -205,7 +205,7 @@ public class KMeansClustering extends Clustering {
 
 			ArrayUtils.copy(Y.values(), Yo.values());
 
-			IntegerArrayMatrix G = DataSplitter.group(Y);
+			IntegerMatrix G = DataSplitter.group(Y);
 			Counter<Integer> dataCnts = Generics.newCounter();
 
 			DenseVector nc = new DenseVector(feat_size);

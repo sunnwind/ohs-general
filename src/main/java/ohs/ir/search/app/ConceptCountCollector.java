@@ -21,7 +21,7 @@ import ohs.types.generic.Indexer;
 import ohs.types.generic.Pair;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
 import ohs.utils.Timer;
@@ -47,11 +47,11 @@ public class ConceptCountCollector {
 
 		private AtomicInteger range_cnt;
 
-		private IntegerArrayMatrix ranges;
+		private IntegerMatrix ranges;
 
 		private Timer timer;
 
-		public Worker(DocumentCollection dc, IntegerArrayMatrix ranges, AtomicInteger range_cnt,
+		public Worker(DocumentCollection dc, IntegerMatrix ranges, AtomicInteger range_cnt,
 				Indexer<String> phrsIndexer, PhraseMapper<Integer> pm, Counter<Integer> phrsCnts,
 				Counter<Integer> phrsFreqs, Timer timer) {
 			this.dc = dc;
@@ -175,7 +175,7 @@ public class ConceptCountCollector {
 	public DenseVector collect(String outFileName) throws Exception {
 		Timer timer = Timer.newTimer();
 
-		IntegerArrayMatrix ranges = new IntegerArrayMatrix(BatchUtils.getBatchRanges(dc.size(), batch_size));
+		IntegerMatrix ranges = new IntegerMatrix(BatchUtils.getBatchRanges(dc.size(), batch_size));
 
 		AtomicInteger range_cnt = new AtomicInteger(0);
 

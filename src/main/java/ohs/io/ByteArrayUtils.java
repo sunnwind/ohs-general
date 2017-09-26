@@ -8,9 +8,9 @@ import java.nio.ShortBuffer;
 import java.util.List;
 
 import ohs.types.number.DoubleArray;
-import ohs.types.number.DoubleArrayMatrix;
+import ohs.types.number.DoubleMatrix;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.types.number.LongArray;
 import ohs.types.number.ShortArray;
 import ohs.utils.ByteSize;
@@ -67,14 +67,14 @@ public class ByteArrayUtils {
 	}
 
 	public static int sizeOfByteBuffer(double[][] a) {
-		return sizeOfByteBuffer(new DoubleArrayMatrix(a));
+		return sizeOfByteBuffer(new DoubleMatrix(a));
 	}
 
 	public static int sizeOfByteBuffer(DoubleArray a) {
 		return Integer.BYTES + Double.BYTES * a.size();
 	}
 
-	public static int sizeOfByteBuffer(DoubleArrayMatrix a) {
+	public static int sizeOfByteBuffer(DoubleMatrix a) {
 		int ret = Integer.BYTES;
 		for (DoubleArray b : a) {
 			ret += sizeOfByteBuffer(b);
@@ -87,14 +87,14 @@ public class ByteArrayUtils {
 	}
 
 	public static int sizeOfByteBuffer(int[][] a) {
-		return sizeOfByteBuffer(new IntegerArrayMatrix(a));
+		return sizeOfByteBuffer(new IntegerMatrix(a));
 	}
 
 	public static int sizeOfByteBuffer(IntegerArray a) {
 		return Integer.BYTES * (1 + a.size());
 	}
 
-	public static int sizeOfByteBuffer(IntegerArrayMatrix a) {
+	public static int sizeOfByteBuffer(IntegerMatrix a) {
 		int ret = Integer.BYTES;
 		for (IntegerArray b : a) {
 			ret += sizeOfByteBuffer(b);

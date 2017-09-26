@@ -7,12 +7,12 @@ import java.util.Map;
 import ohs.math.ArrayMath;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.utils.Generics;
 
 public abstract class InvertedIndex {
 
-	public static IntegerArrayMatrix findCollocations(IntegerArray poss_x, IntegerArray poss_y, boolean keep_order,
+	public static IntegerMatrix findCollocations(IntegerArray poss_x, IntegerArray poss_y, boolean keep_order,
 			int window_size) {
 		List<IntegerArray> ret = Generics.newArrayList(Math.min(poss_x.size(), poss_y.size()));
 		int i = 0;
@@ -43,16 +43,16 @@ public abstract class InvertedIndex {
 				i++;
 			}
 		}
-		return new IntegerArrayMatrix(ret);
+		return new IntegerMatrix(ret);
 	}
 
 	public static PostingList findCollocations(PostingList pl_x, PostingList pl_y, boolean keep_order, int window_size)
 			throws Exception {
 		IntegerArray dseqs_x = pl_x.getDocSeqs();
 		IntegerArray dseqs_y = pl_y.getDocSeqs();
-		IntegerArrayMatrix posData_x = pl_x.getPosData();
-		IntegerArrayMatrix posData_y = pl_y.getPosData();
-		IntegerArrayMatrix posData_x_min = pl_x.getEndPosData();
+		IntegerMatrix posData_x = pl_x.getPosData();
+		IntegerMatrix posData_y = pl_y.getPosData();
+		IntegerMatrix posData_x_min = pl_x.getEndPosData();
 
 		int size = Math.min(pl_x.size(), pl_y.size());
 
@@ -72,7 +72,7 @@ public abstract class InvertedIndex {
 				IntegerArray poss_y = posData_y.get(j);
 				IntegerArray poss_x_min = posData_x_min == null ? new IntegerArray() : posData_x_min.get(i);
 
-				IntegerArrayMatrix ps = findCollocations(poss_x, poss_y, keep_order, window_size);
+				IntegerMatrix ps = findCollocations(poss_x, poss_y, keep_order, window_size);
 
 				if (ps.size() > 0) {
 					Map<Integer, Integer> posToMin = Generics.newHashMap(poss_x.size());
@@ -125,9 +125,9 @@ public abstract class InvertedIndex {
 		}
 
 		PostingList ret = new PostingList(pl_y.getWord(), new IntegerArray(dseqs_xy),
-				new IntegerArrayMatrix(posData_xy));
+				new IntegerMatrix(posData_xy));
 
-		IntegerArrayMatrix m = new IntegerArrayMatrix(posData_xy_min);
+		IntegerMatrix m = new IntegerMatrix(posData_xy_min);
 		ret.setEndPosData(m);
 		return ret;
 	}
@@ -203,8 +203,8 @@ public abstract class InvertedIndex {
 		if (i == Q.size() && i > 1) {
 			pl_y.setWord(-1);
 
-			IntegerArrayMatrix posData_min = pl_y.getEndPosData();
-			IntegerArrayMatrix posData = pl_y.getPosData();
+			IntegerMatrix posData_min = pl_y.getEndPosData();
+			IntegerMatrix posData = pl_y.getPosData();
 
 			pl_y.setPosData(posData_min);
 			pl_y.setEndPosData(posData);
@@ -241,8 +241,8 @@ public abstract class InvertedIndex {
 				ret = pl_x;
 				ret.setWord(-1);
 
-				IntegerArrayMatrix posData_min = ret.getEndPosData();
-				IntegerArrayMatrix posData = ret.getPosData();
+				IntegerMatrix posData_min = ret.getEndPosData();
+				IntegerMatrix posData = ret.getPosData();
 
 				ret.setPosData(posData_min);
 				ret.setEndPosData(posData);

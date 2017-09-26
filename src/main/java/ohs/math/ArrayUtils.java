@@ -30,16 +30,6 @@ public class ArrayUtils {
 		return argMinMaxLength(a)[0];
 	}
 
-	public static long getSingleIndex(long i, long max_i, long j) {
-		return i * max_i + j;
-	}
-
-	public static long[] getTwoIndexes(long k, long max_i) {
-		long i = (k / max_i);
-		long j = (k % max_i);
-		return new long[] { i, j };
-	}
-
 	public static int[] argMinMaxLength(int[][] a) {
 		int max = -Integer.MAX_VALUE;
 		int max_loc = 0;
@@ -77,12 +67,8 @@ public class ArrayUtils {
 	}
 
 	public static double copy(double[] a, double[] b) {
-		double sum = 0;
-		for (int i = 0; i < a.length; i++) {
-			b[i] = a[i];
-			sum += b[i];
-		}
-		return sum;
+		System.arraycopy(a, 0, b, 0, a.length);
+		return ArrayMath.sum(b);
 	}
 
 	public static double[] copy(double[] a, int start, int end) {
@@ -96,12 +82,14 @@ public class ArrayUtils {
 		if (size > b.length) {
 			throw new IllegalArgumentException();
 		}
-		double sum = 0;
-		for (int i = start, j = 0; i < end; i++, j++) {
-			b[j] = a[i];
-			sum += b[j];
-		}
-		return sum;
+		// double sum = 0;
+		// for (int i = start, j = 0; i < end; i++, j++) {
+		// b[j] = a[i];
+		// sum += b[j];
+		// }
+
+		System.arraycopy(a, start, b, 0, size);
+		return ArrayMath.sum(b);
 	}
 
 	public static int copy(double[] a, int[] b) {
@@ -150,12 +138,8 @@ public class ArrayUtils {
 	}
 
 	public static double copy(float[] a, float[] b) {
-		double sum = 0;
-		for (int i = 0; i < a.length; i++) {
-			b[i] = a[i];
-			sum += b[i];
-		}
-		return sum;
+		System.arraycopy(a, 0, b, 0, b.length);
+		return ArrayMath.sum(b);
 	}
 
 	public static int[] copy(int[] a) {
@@ -185,21 +169,13 @@ public class ArrayUtils {
 		if (size > b.length) {
 			throw new IllegalArgumentException();
 		}
-		int sum = 0;
-		for (int i = start, j = 0; i < end; i++, j++) {
-			b[j] = a[i];
-			sum += b[j];
-		}
-		return sum;
+		System.arraycopy(a, start, b, 0, size);
+		return ArrayMath.sum(b);
 	}
 
 	public static int copy(int[] a, int[] b) {
-		int sum = 0;
-		for (int i = 0; i < a.length; i++) {
-			b[i] = a[i];
-			sum += b[i];
-		}
-		return sum;
+		System.arraycopy(a, 0, b, 0, b.length);
+		return ArrayMath.sum(b);
 	}
 
 	public static int copy(int[] a, List<Integer> b) {
@@ -347,10 +323,10 @@ public class ArrayUtils {
 		return copy(a[ai], b[bi]);
 	}
 
-	public static double copyRows(double[][] a, int start, int end, double[] b) {
+	public static double copyRows(double[][] a, int i, int j, double[] b) {
 		int size = 0;
-		for (int i = start; i < end; i++) {
-			size += a[i].length;
+		for (int k = i; k < j; k++) {
+			size += a[k].length;
 		}
 
 		if (size != b.length) {
@@ -358,15 +334,11 @@ public class ArrayUtils {
 		}
 
 		double sum = 0;
-		int loc = 0;
-
-		for (int i = start; i < end; i++) {
-			double[] c = a[i];
-			for (int j = 0; j < c.length; j++) {
-				b[loc] = c[j];
-				sum += b[loc];
-				loc++;
-			}
+		for (int k = i, m = 0; k < j; k++) {
+			double[] c = a[k];
+			System.arraycopy(c, 0, b, m, c.length);
+			m += c.length;
+			sum += ArrayMath.sum(c);
 		}
 		return sum;
 	}
@@ -420,6 +392,16 @@ public class ArrayUtils {
 		ret.setMinimumFractionDigits(0);
 		ret.setGroupingUsed(false);
 		return ret;
+	}
+
+	public static long getSingleIndex(long i, long max_i, long j) {
+		return i * max_i + j;
+	}
+
+	public static long[] getTwoIndexes(long k, long max_i) {
+		long i = (k / max_i);
+		long j = (k % max_i);
+		return new long[] { i, j };
 	}
 
 	public static int[] indexesOfZero(double[] x) {
@@ -486,6 +468,16 @@ public class ArrayUtils {
 
 	public static void main(String[] args) {
 		System.out.println("process begins.");
+
+		{
+			double[][] a = { { 1, 2, 3 }, { 4, 5, 6 } };
+			double[] b = new double[6];
+
+			copyRows(a, 0, 2, b);
+
+			System.exit(0);
+		}
+
 		{
 			int[] a = range(20);
 
@@ -549,7 +541,6 @@ public class ArrayUtils {
 		{
 
 			double[] a = ArrayMath.random(0f, 1f, 10000000);
-
 		}
 
 		System.out.println("process ends.");
@@ -1172,7 +1163,8 @@ public class ArrayUtils {
 		return toString(label, x, x.length, false, false, getDoubleNumberFormat(5));
 	}
 
-	public static String toString(String label, double[] x, int len, boolean sparse, boolean vertical, NumberFormat nf) {
+	public static String toString(String label, double[] x, int len, boolean sparse, boolean vertical,
+			NumberFormat nf) {
 		StringBuffer sb = new StringBuffer();
 
 		String delim = Conditions.value(vertical, "\t", "\n");

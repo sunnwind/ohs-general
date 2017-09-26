@@ -25,7 +25,7 @@ import ohs.types.generic.ListMapMap;
 import ohs.types.generic.Pair;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.types.number.LongArray;
 import ohs.utils.Generics;
 import ohs.utils.Timer;
@@ -76,7 +76,7 @@ public class TermBlockInvertedIndexCreator {
 
 						int w = buf.readInteger();
 						IntegerArray dseqs = buf.readIntegerArray();
-						IntegerArrayMatrix posData = buf.readIntegerArrayMatrix();
+						IntegerMatrix posData = buf.readIntegerArrayMatrix();
 
 						ListMap<Integer, Integer> lm = lmm2.get(w, true);
 
@@ -112,7 +112,7 @@ public class TermBlockInvertedIndexCreator {
 					IntegerArray dseqs = new IntegerArray(lm.keySet());
 					dseqs.sort(false);
 
-					IntegerArrayMatrix posData = new IntegerArrayMatrix(dseqs.size());
+					IntegerMatrix posData = new IntegerMatrix(dseqs.size());
 
 					for (int dseq : dseqs) {
 						IntegerArray poss = new IntegerArray(lm.get(dseq));
@@ -154,7 +154,7 @@ public class TermBlockInvertedIndexCreator {
 
 		private AtomicInteger doc_cnt;
 
-		private IntegerArrayMatrix ranges;
+		private IntegerMatrix ranges;
 
 		private Timer timer;
 
@@ -162,7 +162,7 @@ public class TermBlockInvertedIndexCreator {
 
 		private List<File> outFiles;
 
-		public PostingWorker(DocumentCollection dc, AtomicInteger range_cnt, AtomicInteger doc_cnt, IntegerArrayMatrix ranges,
+		public PostingWorker(DocumentCollection dc, AtomicInteger range_cnt, AtomicInteger doc_cnt, IntegerMatrix ranges,
 				List<File> outFiles, Timer timer) {
 			super();
 			this.dc = dc;
@@ -232,7 +232,7 @@ public class TermBlockInvertedIndexCreator {
 					IntegerArray dseqs = new IntegerArray(lm.keySet());
 					dseqs.sort(false);
 
-					IntegerArrayMatrix posData = new IntegerArrayMatrix(dseqs.size());
+					IntegerMatrix posData = new IntegerMatrix(dseqs.size());
 					int size = Integer.BYTES * 3;
 					size += (dseqs.size() + 1) * Integer.BYTES;
 
@@ -330,7 +330,7 @@ public class TermBlockInvertedIndexCreator {
 
 		tmpDir.mkdirs();
 
-		IntegerArrayMatrix ranges = new IntegerArrayMatrix(BatchUtils.getBatchRanges(dc.size(), batch_size));
+		IntegerMatrix ranges = new IntegerMatrix(BatchUtils.getBatchRanges(dc.size(), batch_size));
 
 		AtomicInteger range_cnt = new AtomicInteger(0);
 

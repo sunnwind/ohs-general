@@ -12,7 +12,7 @@ import ohs.types.generic.Counter;
 import ohs.types.generic.SetMap;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
 
@@ -57,7 +57,7 @@ public class LemmaExpander {
 		Q = Q.copy();
 		Q.normalize();
 
-		IntegerArrayMatrix wordToVars = mapWordToVariants(Q);
+		IntegerMatrix wordToVars = mapWordToVariants(Q);
 		Counter<Integer> c = Generics.newCounter();
 		for (int i = 0; i < Q.size(); i++) {
 			int w = Q.indexAt(i);
@@ -81,13 +81,13 @@ public class LemmaExpander {
 	}
 
 	public void generate(SparseVector Q) {
-		IntegerArrayMatrix varData = mapWordToVariants(Q);
-		IntegerArrayMatrix allPaths = new IntegerArrayMatrix();
+		IntegerMatrix varData = mapWordToVariants(Q);
+		IntegerMatrix allPaths = new IntegerMatrix();
 
 		generate(varData, 0, new IntegerArray(), allPaths);
 	}
 
-	public void generate(IntegerArrayMatrix varData, int i, IntegerArray path, IntegerArrayMatrix allPaths) {
+	public void generate(IntegerMatrix varData, int i, IntegerArray path, IntegerMatrix allPaths) {
 		IntegerArray vars = varData.get(i);
 
 		for (int j = 0; j < vars.size(); j++) {
@@ -106,8 +106,8 @@ public class LemmaExpander {
 		}
 	}
 
-	public IntegerArrayMatrix mapWordToVariants(SparseVector Q) {
-		IntegerArrayMatrix ret = new IntegerArrayMatrix(Q.size());
+	public IntegerMatrix mapWordToVariants(SparseVector Q) {
+		IntegerMatrix ret = new IntegerMatrix(Q.size());
 		for (int j = 0; j < Q.size(); j++) {
 			int w = Q.indexAt(j);
 			Integer lemma = wordToLemma.get(w);

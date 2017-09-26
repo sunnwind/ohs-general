@@ -44,7 +44,7 @@ public class NonlinearityLayer extends Layer {
 
 		non.backward(Y, Y);
 
-		DenseMatrix dX = tmp_dX.rowsAsMatrix(data_size);
+		DenseMatrix dX = tmp_dX.rows(data_size);
 		VectorMath.multiply(dY, Y, dX);
 		return dX;
 	}
@@ -57,7 +57,7 @@ public class NonlinearityLayer extends Layer {
 			tmp_Y = X.copy(true);
 		}
 
-		Y = tmp_Y.rowsAsMatrix(data_size);
+		Y = tmp_Y.rows(data_size);
 		non.forward(X, Y);
 		return Y;
 	}

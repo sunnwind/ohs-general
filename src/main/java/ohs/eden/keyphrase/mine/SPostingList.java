@@ -11,12 +11,12 @@ import ohs.io.FileUtils;
 import ohs.ir.search.index.Posting;
 import ohs.math.ArrayMath;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.utils.Generics;
 
 public class SPostingList {
 
-	private static IntegerArrayMatrix partition(IntegerArray a, int chunk_size) {
+	private static IntegerMatrix partition(IntegerArray a, int chunk_size) {
 		int window_size = chunk_size / Integer.BYTES;
 		List<IntegerArray> ret = Generics.newLinkedList();
 		int s = 0;
@@ -25,7 +25,7 @@ public class SPostingList {
 			ret.add(a.subArray(s, e));
 			s = e;
 		}
-		return new IntegerArrayMatrix(ret);
+		return new IntegerMatrix(ret);
 	}
 
 	public static SPostingList readPostingList(FileChannel fc, boolean encode) throws Exception {
@@ -55,7 +55,7 @@ public class SPostingList {
 	public static ByteArrayMatrix toByteArrayMatrix(SPostingList pl, boolean encode) throws Exception {
 		String phrs = pl.getPhrase();
 		IntegerArray dseqs = pl.getDocseqs();
-		IntegerArrayMatrix posData = pl.getPosData();
+		IntegerMatrix posData = pl.getPosData();
 
 		int min_encode_len = 20;
 
@@ -118,7 +118,7 @@ public class SPostingList {
 			data.add(ByteArrayUtils.toByteArray(dseqs.size()));
 
 			{
-				IntegerArrayMatrix b = partition(dseqs, max_buf_size);
+				IntegerMatrix b = partition(dseqs, max_buf_size);
 				data.add(ByteArrayUtils.toByteArray(b.size()));
 
 				for (IntegerArray c : b) {
@@ -139,7 +139,7 @@ public class SPostingList {
 	public static SPostingList toPostingList(ByteArrayMatrix data, boolean encode) throws Exception {
 		String phrs = "";
 		IntegerArray dseqs = null;
-		IntegerArrayMatrix posData = null;
+		IntegerMatrix posData = null;
 
 		if (encode) {
 			int i = 0;
@@ -148,7 +148,7 @@ public class SPostingList {
 			int pl_size = ByteArrayUtils.toInteger(data.get(i++));
 
 			dseqs = new IntegerArray(pl_size);
-			posData = new IntegerArrayMatrix(pl_size);
+			posData = new IntegerMatrix(pl_size);
 
 			if (encode_seqs == 1) {
 				dseqs.addAll(DataCompression.decodeToIntegerArray(data.get(i++)));
@@ -176,7 +176,7 @@ public class SPostingList {
 			int pl_size = ByteArrayUtils.toInteger(data.get(i++));
 
 			dseqs = new IntegerArray(pl_size);
-			posData = new IntegerArrayMatrix(pl_size);
+			posData = new IntegerMatrix(pl_size);
 
 			{
 				int size = ByteArrayUtils.toInteger(data.get(i++));
@@ -211,9 +211,9 @@ public class SPostingList {
 
 	private IntegerArray cnts;
 
-	private IntegerArrayMatrix posData;
+	private IntegerMatrix posData;
 
-	public SPostingList(String phrs, IntegerArray dseqs, IntegerArrayMatrix posData) {
+	public SPostingList(String phrs, IntegerArray dseqs, IntegerMatrix posData) {
 		this.phrs = phrs;
 		this.dseqs = dseqs;
 		this.posData = posData;
@@ -241,7 +241,7 @@ public class SPostingList {
 		return phrs;
 	}
 
-	public IntegerArrayMatrix getPosData() {
+	public IntegerMatrix getPosData() {
 		return posData;
 	}
 

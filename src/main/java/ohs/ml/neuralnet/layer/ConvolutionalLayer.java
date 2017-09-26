@@ -6,6 +6,7 @@ import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseVector;
 import ohs.ml.neuralnet.com.NeuralNet;
+import ohs.ml.neuralnet.nonlinearity.ReLU;
 import ohs.utils.Generics;
 
 /**
@@ -18,37 +19,41 @@ import ohs.utils.Generics;
  */
 public class ConvolutionalLayer extends Layer {
 
-	private Layer conv;
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 3645948244034058451L;
 
-	private Layer nl;
+	private ConvLayer conv;
 
-	private Layer pl;
+	private NonlinearityLayer nl;
+
+	private int num_filters;
 
 	private int output_size;
 
+	private int emb_size;
+
+	private MaxPoolingLayer pl;
+
 	private DenseVector y;
 
-	private int filter_size;
-
-	public ConvolutionalLayer(Layer conv, Layer nl, Layer pl) {
+	public ConvolutionalLayer(ConvLayer conv, NonlinearityLayer nl, MaxPoolingLayer pl) {
 		this.conv = conv;
 		this.nl = nl;
 		this.pl = pl;
 	}
 
-	public ConvolutionalLayer(int emb_size, int[] window_sizes, int filter_size) {
-		this.filter_size = filter_size;
-		this.output_size = window_sizes.length * filter_size;
+	public ConvolutionalLayer(int emb_size, int[] window_sizes, int num_filters) {
+		this.emb_size = emb_size;
+		this.num_filters = num_filters;
+		this.output_size = window_sizes.length * num_filters;
 
-		conv = new ConvLayer(emb_size, 3, filter_size);
+		conv = new ConvLayer(emb_size, 3, num_filters);
 
-		// for (int i = 0; i < window_sizes.length; i++) {
-		// NeuralNet nn = new NeuralNet();
-		// nn.add(new ConvLayer(embedding_size, window_sizes[i], num_filters));
-		// nn.add(new NonlinearityLayer(0, new ReLU()));
-		// nn.add(new MaxPoolingLayer(num_filters));
-		// conns.add(nn);
-		// }
+		nl = new NonlinearityLayer(output_size, new ReLU());
+
+		pl = new MaxPoolingLayer(num_filters);
 
 		y = new DenseVector(output_size);
 	}
@@ -61,6 +66,11 @@ public class ConvolutionalLayer extends Layer {
 	@Override
 	public Object forward(Object I) {
 		DenseMatrix X = (DenseMatrix) I;
+
+		DenseMatrix T1 = (DenseMatrix) conv.forward(X);
+		DenseMatrix T2 = (DenseMatrix) nl.forward(T1);
+		DenseMatrix T3 = (DenseMatrix) pl.forward(T2);
+
 		return y.toDenseMatrix();
 	}
 
@@ -81,7 +91,7 @@ public class ConvolutionalLayer extends Layer {
 
 	@Override
 	public int getInputSize() {
-		return filter_size;
+		return emb_size;
 	}
 
 	@Override

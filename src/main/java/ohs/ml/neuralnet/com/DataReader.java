@@ -12,13 +12,13 @@ import ohs.types.generic.Triple;
 import ohs.types.generic.Vocab;
 import ohs.types.number.DoubleArray;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
 
 public class DataReader {
 
-	public static Triple<IntegerArrayMatrix, IntegerArrayMatrix, Vocab> readCapitalData(int size) throws Exception {
+	public static Triple<IntegerMatrix, IntegerMatrix, Vocab> readCapitalData(int size) throws Exception {
 		List<String> lines = Generics.newLinkedList();
 		for (String line : FileUtils.readLinesFromText("capitals.txt")) {
 			String[] parts = line.split("\t");
@@ -57,7 +57,7 @@ public class DataReader {
 			Y.add(new IntegerArray(y));
 		}
 
-		return Generics.newTriple(new IntegerArrayMatrix(X), new IntegerArrayMatrix(Y), vocab);
+		return Generics.newTriple(new IntegerMatrix(X), new IntegerMatrix(Y), vocab);
 	}
 
 	public static Pair<SparseMatrix, IntegerArray> readFromSvmFormat(String fileName) throws Exception {
@@ -92,7 +92,7 @@ public class DataReader {
 		return Generics.newPair(new SparseMatrix(rowIdxs, rows), labels);
 	}
 
-	public static Triple<IntegerArrayMatrix, IntegerArrayMatrix, Vocab> readLines(String fileName, int size) throws Exception {
+	public static Triple<IntegerMatrix, IntegerMatrix, Vocab> readLines(String fileName, int size) throws Exception {
 		List<String> lines = Generics.newLinkedList();
 		for (String line : FileUtils.readLinesFromText(fileName)) {
 			if (lines.size() == size) {
@@ -131,7 +131,7 @@ public class DataReader {
 			Y.add(y);
 		}
 
-		return Generics.newTriple(new IntegerArrayMatrix(X), new IntegerArrayMatrix(Y), vocab);
+		return Generics.newTriple(new IntegerMatrix(X), new IntegerMatrix(Y), vocab);
 	}
 
 	public static Object[] readNerTestData(String fileName, Vocab vocab, Indexer<String> labelIndexer) throws Exception {
@@ -157,7 +157,7 @@ public class DataReader {
 			X.add(x);
 			Y.add(y);
 		}
-		return new Object[] { new IntegerArrayMatrix(X), new IntegerArrayMatrix(Y) };
+		return new Object[] { new IntegerMatrix(X), new IntegerMatrix(Y) };
 	}
 
 	public static Object[] readNerTrainData(String fileName) throws Exception {
@@ -207,7 +207,7 @@ public class DataReader {
 			Y.add(y);
 		}
 
-		return new Object[] { new IntegerArrayMatrix(X), new IntegerArrayMatrix(Y), vocab, labelIndexer };
+		return new Object[] { new IntegerMatrix(X), new IntegerMatrix(Y), vocab, labelIndexer };
 	}
 
 }

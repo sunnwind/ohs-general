@@ -5,7 +5,7 @@ import java.util.Map;
 
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.utils.Generics;
 import ohs.utils.Timer;
 
@@ -35,7 +35,7 @@ public class MemoryInvertedIndex extends InvertedIndex {
 		}
 
 		if (ret == null) {
-			ret = new PostingList(-1, new IntegerArray(), new IntegerArrayMatrix());
+			ret = new PostingList(-1, new IntegerArray(), new IntegerMatrix());
 		}
 
 		return ret;

@@ -7,68 +7,69 @@ import java.util.Collection;
 
 import ohs.io.FileUtils;
 import ohs.utils.ByteSize;
+import scala.collection.generic.BitOperations.Int;
 
-public class ShortArrayMatrix extends ArrayList<ShortArray> {
+public class IntegerMatrix extends ArrayList<IntegerArray> {
 
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = -1810717124466759948L;
 
-	public ShortArrayMatrix() {
+	public IntegerMatrix() {
 		super();
 	}
 
-	public ShortArrayMatrix(Collection<ShortArray> a) {
+	public IntegerMatrix(Collection<IntegerArray> a) {
 		addAll(a);
 	}
 
-	public ShortArrayMatrix(int size) {
+	public IntegerMatrix(int size) {
 		super(size);
 	}
 
-	public ShortArrayMatrix(ObjectInputStream ois) throws Exception {
-		readObject(ois);
-	}
-
-	public ShortArrayMatrix(short[][] a) {
+	public IntegerMatrix(int[][] a) {
 		ensureCapacity(a.length);
 		for (int i = 0; i < a.length; i++) {
-			add(new ShortArray(a[i]));
+			add(new IntegerArray(a[i]));
 		}
 	}
 
-	public void add(int i, short j) {
-		ensure(i);
-		get(i).add(j);
+	public IntegerMatrix(ObjectInputStream ois) throws Exception {
+		readObject(ois);
+	}
+
+	public void add(int i, int v) {
+		ensure(i).add(v);
 	}
 
 	public ByteSize byteSize() {
-		return new ByteSize(Short.BYTES * sizeOfEntries());
+		return new ByteSize(Integer.BYTES * sizeOfEntries());
 	}
 
-	public ShortArrayMatrix clone() {
-		ShortArrayMatrix ret = new ShortArrayMatrix(size());
-		for (ShortArray a : this) {
+	public IntegerMatrix clone() {
+		IntegerMatrix ret = new IntegerMatrix(size());
+		for (IntegerArray a : this) {
 			ret.add(a.clone());
 		}
 		return ret;
 	}
 
-	public void ensure(int i) {
+	public IntegerArray ensure(int i) {
 		if (i >= size()) {
 			int new_size = (i - size()) + 1;
 			for (int k = 0; k < new_size; k++) {
-				add(new ShortArray());
+				add(new IntegerArray());
 			}
 		}
+		return get(i);
 	}
 
 	public String info() {
 		int min = Integer.MAX_VALUE;
 		int max = -Integer.MAX_VALUE;
 
-		for (ShortArray a : this) {
+		for (IntegerArray a : this) {
 			min = Math.min(min, a.size());
 			max = Math.max(max, a.size());
 		}
@@ -87,7 +88,7 @@ public class ShortArrayMatrix extends ArrayList<ShortArray> {
 		int size = ois.readInt();
 		ensureCapacity(size);
 		for (int i = 0; i < size; i++) {
-			add(new ShortArray(ois));
+			add(new IntegerArray(ois));
 		}
 	}
 
@@ -99,15 +100,27 @@ public class ShortArrayMatrix extends ArrayList<ShortArray> {
 
 	public int sizeOfEntries() {
 		int ret = 0;
-		for (ShortArray a : this) {
+		for (IntegerArray a : this) {
 			ret += a.size();
 		}
 		return ret;
 	}
 
-	public ShortArray toShortArray() {
-		ShortArray ret = new ShortArray(sizeOfEntries());
-		for (ShortArray a : this) {
+	public IntegerMatrix subMatrix(int i, int j) {
+		return new IntegerMatrix(subList(i, j));
+	}
+
+	public IntegerMatrix subMatrix(int[] is) {
+		IntegerMatrix ret = new IntegerMatrix(is.length);
+		for (int i : is) {
+			ret.add(get(i));
+		}
+		return ret;
+	}
+
+	public IntegerArray toIntegerArray() {
+		IntegerArray ret = new IntegerArray(sizeOfEntries());
+		for (IntegerArray a : this) {
 			ret.addAll(a);
 		}
 		return ret;
@@ -132,13 +145,13 @@ public class ShortArrayMatrix extends ArrayList<ShortArray> {
 	public void trimToSize() {
 		super.trimToSize();
 
-		for (ShortArray a : this) {
+		for (IntegerArray a : this) {
 			a.trimToSize();
 		}
 	}
 
-	public short[][] values() {
-		short[][] ret = new short[size()][];
+	public int[][] values() {
+		int[][] ret = new int[size()][];
 		for (int i = 0; i < size(); i++) {
 			ret[i] = get(i).values();
 		}

@@ -84,8 +84,8 @@ public class GruLayer extends Layer {
 	}
 
 	public GruLayer(int input_size, int hidden_size, Nonlinearity non) {
-		this(new DenseMatrix(input_size, hidden_size * 3), new DenseMatrix(hidden_size, hidden_size * 3), new DenseVector(hidden_size * 3),
-				non);
+		this(new DenseMatrix(input_size, hidden_size * 3), new DenseMatrix(hidden_size, hidden_size * 3),
+				new DenseVector(hidden_size * 3), non);
 	}
 
 	@Override
@@ -113,8 +113,8 @@ public class GruLayer extends Layer {
 
 		dh_prev.setAll(0);
 
-		DenseMatrix dX = tmp_dX.rowsAsMatrix(data_size);
-		DenseMatrix dC = tmp_dC.rowsAsMatrix(data_size);
+		DenseMatrix dX = tmp_dX.rows(data_size);
+		DenseMatrix dC = tmp_dC.rows(data_size);
 
 		dC.setAll(0);
 
@@ -154,10 +154,10 @@ public class GruLayer extends Layer {
 			a2 = a1.copy(true);
 		}
 
-		H = tmp_H.rowsAsMatrix(data_size);
-		M = tmp_M.rowsAsMatrix(data_size);
-		U = tmp_U.rowsAsMatrix(data_size);
-		R = tmp_R.rowsAsMatrix(data_size);
+		H = tmp_H.rows(data_size);
+		M = tmp_M.rows(data_size);
+		U = tmp_U.rows(data_size);
+		R = tmp_R.rows(data_size);
 
 		for (int t = 0; t < data_size; t++) {
 			DenseVector x = X.row(t);
@@ -214,11 +214,11 @@ public class GruLayer extends Layer {
 		int size = dWxh.rowSize() + dWhh.rowSize();
 		List<DenseVector> ws = Generics.newArrayList(size);
 
-		for (DenseVector w : dWxh.rows()) {
+		for (DenseVector w : dWxh) {
 			ws.add(w);
 		}
 
-		for (DenseVector w : dWhh.rows()) {
+		for (DenseVector w : dWhh) {
 			ws.add(w);
 		}
 		return new DenseMatrix(ws);
@@ -247,11 +247,11 @@ public class GruLayer extends Layer {
 		int size = Wxh.rowSize() + Whh.rowSize();
 		List<DenseVector> ws = Generics.newArrayList(size);
 
-		for (DenseVector w : Wxh.rows()) {
+		for (DenseVector w : Wxh) {
 			ws.add(w);
 		}
 
-		for (DenseVector w : Whh.rows()) {
+		for (DenseVector w : Whh) {
 			ws.add(w);
 		}
 

@@ -25,7 +25,7 @@ import ohs.types.generic.Counter;
 import ohs.types.generic.Indexer;
 import ohs.types.generic.Pair;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerArrayMatrix;
+import ohs.types.number.IntegerMatrix;
 import ohs.utils.Generics;
 
 public class TopMeshClassifier {
@@ -49,7 +49,7 @@ public class TopMeshClassifier {
 
 	private MeshTree mt;
 
-	public IntegerArrayMatrix getBinaryData(int target, Map<Integer, IntegerArray> topToDoc, boolean balanced) {
+	public IntegerMatrix getBinaryData(int target, Map<Integer, IntegerArray> topToDoc, boolean balanced) {
 		Set<Integer> posSet = Generics.newHashSet();
 		Set<Integer> negSet = Generics.newHashSet();
 
@@ -67,7 +67,7 @@ public class TopMeshClassifier {
 			}
 		}
 
-		IntegerArrayMatrix ret = new IntegerArrayMatrix(2);
+		IntegerMatrix ret = new IntegerMatrix(2);
 		ret.add(new IntegerArray(posSet));
 		ret.add(new IntegerArray(negSet));
 
@@ -90,7 +90,7 @@ public class TopMeshClassifier {
 		return ret;
 	}
 
-	public Pair<DenseMatrix, IntegerArray> getDocumentEmbeddings(IntegerArrayMatrix docData, Map<Integer, DenseVector> docToEmb) {
+	public Pair<DenseMatrix, IntegerArray> getDocumentEmbeddings(IntegerMatrix docData, Map<Integer, DenseVector> docToEmb) {
 		List<DenseVector> X = Generics.newArrayList(docData.size());
 		IntegerArray Y = new IntegerArray(X.size());
 		int label = 0;
