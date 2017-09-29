@@ -74,11 +74,11 @@ public class GloveModel {
 	private void createW() {
 		List<DenseVector> rows = Generics.newArrayList();
 
-		for (Vector row : W1.rows()) {
+		for (Vector row : W1) {
 			rows.add((DenseVector) row);
 		}
 
-		for (Vector row : W2.rows()) {
+		for (Vector row : W2) {
 			rows.add((DenseVector) row);
 		}
 

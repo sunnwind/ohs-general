@@ -4,6 +4,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
 import ohs.math.VectorMath;
+import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
 
 public class SoftmaxLayer extends Layer {
@@ -15,7 +16,7 @@ public class SoftmaxLayer extends Layer {
 
 	private int output_size;
 
-	private DenseMatrix tmp_Y;
+	private DenseMatrix tmp_Y = new DenseMatrix(0);
 
 	public SoftmaxLayer(int output_size) {
 		this.output_size = output_size;
@@ -31,12 +32,17 @@ public class SoftmaxLayer extends Layer {
 	}
 
 	@Override
+	public Layer copy() {
+		return new SoftmaxLayer(output_size);
+	}
+
+	@Override
 	public Object forward(Object I) {
 		DenseMatrix X = (DenseMatrix) I;
 		int data_size = X.rowSize();
-		if (tmp_Y == null || tmp_Y.rowSize() < data_size) {
-			tmp_Y = X.copy(true);
-		}
+
+		VectorUtils.enlarge(tmp_Y, data_size, X.colSize());
+
 		DenseMatrix Y = tmp_Y.rows(data_size);
 		VectorMath.softmax(X, Y);
 		return Y;

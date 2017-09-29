@@ -177,7 +177,8 @@ public class EmbeddingConceptWeightEstimator {
 				phrsWeights.add(p, weight);
 			}
 
-			CounterMap<String, String> cm = FileUtils.readStringCounterMapFromText(MIRPath.PHRS_DIR + "phrs_sim.txt");
+			CounterMap<String, String> cm = FileUtils.readStringCounterMapFromText(MIRPath.PHRS_DIR + "phrs_sim.txt",
+					false);
 			CounterMap<Integer, Integer> cm2 = Generics.newCounterMap(cm.size());
 
 			for (String phrs1 : Generics.newArrayList(cm.keySet())) {

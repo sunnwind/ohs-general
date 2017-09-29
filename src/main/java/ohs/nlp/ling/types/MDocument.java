@@ -17,6 +17,10 @@ public class MDocument extends ArrayList<MSentence> {
 		String[] ps = s.split("\n\n");
 		MDocument ret = new MDocument(ps.length);
 		for (int i = 0; i < ps.length; i++) {
+			ps[i] = ps[i].trim();
+			if (ps[i].length() == 0) {
+				continue;
+			}
 			ret.add(MSentence.newSentence(ps[i]));
 		}
 		return ret;

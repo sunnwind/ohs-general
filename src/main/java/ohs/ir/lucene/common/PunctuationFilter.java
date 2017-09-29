@@ -20,9 +20,9 @@ package ohs.ir.lucene.common;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.lucene.analysis.FilteringTokenFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
-import org.apache.lucene.analysis.util.FilteringTokenFilter;
 import org.apache.lucene.util.Version;
 
 /**
@@ -30,9 +30,11 @@ import org.apache.lucene.util.Version;
  * 
  * <a name="version"/>
  * <p>
- * You must specify the required {@link Version} compatibility when creating NoiseFilter:
+ * You must specify the required {@link Version} compatibility when creating
+ * NoiseFilter:
  * <ul>
- * <li>As of 3.1, NoiseFilter correctly handles Unicode 4.0 supplementary characters in stopwords and position increments are preserved
+ * <li>As of 3.1, NoiseFilter correctly handles Unicode 4.0 supplementary
+ * characters in stopwords and position increments are preserved
  * </ul>
  */
 

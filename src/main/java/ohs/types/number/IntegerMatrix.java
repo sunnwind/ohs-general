@@ -28,6 +28,10 @@ public class IntegerMatrix extends ArrayList<IntegerArray> {
 		super(size);
 	}
 
+	public IntegerMatrix(int row_size, int col_size) {
+		this(new int[row_size][col_size]);
+	}
+
 	public IntegerMatrix(int[][] a) {
 		ensureCapacity(a.length);
 		for (int i = 0; i < a.length; i++) {
@@ -113,6 +117,14 @@ public class IntegerMatrix extends ArrayList<IntegerArray> {
 	public IntegerMatrix subMatrix(int[] is) {
 		IntegerMatrix ret = new IntegerMatrix(is.length);
 		for (int i : is) {
+			ret.add(get(i));
+		}
+		return ret;
+	}
+
+	public IntegerMatrix subMatrix(int size) {
+		IntegerMatrix ret = new IntegerMatrix(size());
+		for (int i = 0; i < size; i++) {
 			ret.add(get(i));
 		}
 		return ret;

@@ -16,7 +16,8 @@ import ohs.utils.Generics;
 /**
  *
  * 
- * Sutskever, I. (2013). Training Recurrent neural Networks. PhD thesis. University of Toronto.
+ * Sutskever, I. (2013). Training Recurrent neural Networks. PhD thesis.
+ * University of Toronto.
  * 
  * https://jramapuram.github.io/ramblings/rnn-backrpop/
  * 
@@ -39,51 +40,51 @@ public class RnnLayer extends Layer {
 	 */
 	private static final long serialVersionUID = 2848535801786544922L;
 
-	/**
-	 * input to hidden
-	 */
-	private DenseMatrix Wxh;
+	private DenseVector b;
+
+	private int bptt_size = 5;
+
+	private DenseVector db;
+
+	private DenseVector dh_prev;
+
+	private DenseVector dh_raw;
+
+	private DenseMatrix dWhh;
+
+	private DenseMatrix dWxh;
+
+	private Object fwd_I;
+
+	private DenseMatrix H;
+
+	private DenseVector h0;
+
+	private DenseVector h0_prev;
+
+	private int hidden_size;
+
+	private int input_size;
+
+	private Nonlinearity non;
+
+	private DenseVector tmp;
+
+	private DenseMatrix tmp_dA;
+
+	private DenseMatrix tmp_dX;
+
+	private DenseMatrix tmp_H;
 
 	/**
 	 * hidden to hidden
 	 */
 	private DenseMatrix Whh;
 
-	private DenseMatrix dWxh;
-
-	private DenseMatrix dWhh;
-
-	private Object fwd_I;
-
-	private int bptt_size = 5;
-
-	private Nonlinearity non;
-
-	private DenseVector b;
-
-	private DenseVector db;
-
-	private DenseVector dh_raw;
-
-	private DenseVector dh_prev;
-
-	private DenseMatrix tmp_H;
-
-	private DenseMatrix tmp_dX;
-
-	private int input_size;
-
-	private int hidden_size;
-
-	private DenseVector h0;
-
-	private DenseMatrix H;
-
-	private DenseVector h0_prev;
-
-	private DenseMatrix tmp_dA;
-
-	private DenseVector tmp;
+	/**
+	 * input to hidden
+	 */
+	private DenseMatrix Wxh;
 
 	public RnnLayer(DenseMatrix Wxh, DenseMatrix Whh, DenseVector bh, int bptt_size, Nonlinearity non) {
 		super();
@@ -98,8 +99,8 @@ public class RnnLayer extends Layer {
 	}
 
 	public RnnLayer(int input_size, int hidden_size, int bptt_size, Nonlinearity non) {
-		this(new DenseMatrix(input_size, hidden_size), new DenseMatrix(hidden_size, hidden_size), new DenseVector(hidden_size), bptt_size,
-				non);
+		this(new DenseMatrix(input_size, hidden_size), new DenseMatrix(hidden_size, hidden_size),
+				new DenseVector(hidden_size), bptt_size, non);
 	}
 
 	@Override
@@ -108,7 +109,8 @@ public class RnnLayer extends Layer {
 	}
 
 	/**
-	 * Sutskever, I. (2013). Training Recurrent neural Networks. PhD thesis. University of Toronto.
+	 * Sutskever, I. (2013). Training Recurrent neural Networks. PhD thesis.
+	 * University of Toronto.
 	 * 
 	 * 
 	 * http://www.wildml.com/2015/10/recurrent-neural-networks-tutorial-part-3-backpropagation-through-time-and-vanishing-gradients/
@@ -187,6 +189,11 @@ public class RnnLayer extends Layer {
 	}
 
 	@Override
+	public Layer copy() {
+		return new RnnLayer(Wxh, Whh, b, bptt_size, non);
+	}
+
+	@Override
 	public DenseMatrix forward(Object I) {
 		int data_size = I instanceof IntegerArray ? ((IntegerArray) I).size() : ((DenseMatrix) I).rowSize();
 
@@ -232,7 +239,7 @@ public class RnnLayer extends Layer {
 
 	@Override
 	public DenseMatrix getB() {
-		return new DenseMatrix(new DenseVector[] { b });
+		return b.toDenseMatrix();
 	}
 
 	public DenseVector getBh() {
@@ -245,7 +252,7 @@ public class RnnLayer extends Layer {
 
 	@Override
 	public DenseMatrix getDB() {
-		return new DenseMatrix(new DenseVector[] { db });
+		return db.toDenseMatrix();
 	}
 
 	@Override

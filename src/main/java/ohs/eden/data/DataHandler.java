@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.text.DecimalFormat;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -38,8 +39,14 @@ import org.bitbucket.eunjeon.seunjeon.Morpheme;
 
 import ohs.eden.keyphrase.cluster.KPPath;
 import ohs.io.FileUtils;
+import ohs.io.TextFileWriter;
+import ohs.ir.weight.TermWeighting;
+import ohs.nlp.ling.types.MDocument;
 import ohs.nlp.ling.types.MSentence;
 import ohs.nlp.ling.types.MToken;
+import ohs.types.common.IntPair;
+import ohs.types.generic.Counter;
+import ohs.types.generic.CounterMap;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
 import scala.collection.mutable.WrappedArray;
@@ -55,13 +62,220 @@ public class DataHandler {
 		// dh.search();
 
 		// dh.extractExcelFiles();
-		// dh.extractText();
-		dh.tokenize();
+		// dh.extractNtisText();
+		// dh.tokenize();
+
+		// dh.extractKeywords();
+		// dh.mapKeywords();
+		dh.format();
 
 		System.out.println("process ends.");
 	}
 
-	public void extractText() throws Exception {
+	public void extractKeywords() throws Exception {
+		String[] dirNames = { "paper", "ntis" };
+
+		Counter<String> c = Generics.newCounter();
+
+		for (String dirName : dirNames) {
+			for (File file : FileUtils.getFilesUnder(KPPath.COL_DIR + "line_2/" + dirName)) {
+				List<String> lines = FileUtils.readLinesFromText(file);
+				for (String line : lines) {
+					List<String> ps = StrUtils.split("\t", line);
+
+					if (ps.size() != 9) {
+						continue;
+					}
+
+					ps = StrUtils.unwrap(ps);
+
+					String kwdStr = ps.get(2);
+
+					if (kwdStr.length() == 0) {
+						continue;
+					}
+
+					for (String kwd : kwdStr.split("<nl>")) {
+						kwd = kwd.replace(".", "");
+						kwd = StrUtils.normalizeSpaces(kwd);
+
+						try {
+							kwd = StrUtils.normalizePunctuations(kwd);
+						} catch (Exception e) {
+							continue;
+						}
+
+						if (kwd.length() > 0) {
+							c.incrementCount(kwd, 1);
+						}
+					}
+				}
+			}
+		}
+
+		FileUtils.writeStringCounterAsText(KPPath.DATA_DIR + "scenario/kwds.txt", c);
+	}
+
+	public void mapKeywords() throws Exception {
+		Counter<String> c = FileUtils.readStringCounterFromText(KPPath.DATA_DIR + "scenario/kwds.txt");
+		// c.pruneKeysBelowThreshold(10);
+
+		CandidatePhraseSearcher cps = CandidatePhraseSearcher.newCandidatePhraseSearcher(c.keySet());
+
+		CounterMap<String, String> kwdTypeDocFreqs = Generics.newCounterMap();
+		CounterMap<String, String> kwdTypeCnts = Generics.newCounterMap();
+		CounterMap<String, String> kwdYearCnts = Generics.newCounterMap();
+
+		Counter<String> numDocs = Generics.newCounter();
+
+		for (File file : FileUtils.getFilesUnder(KPPath.COL_DIR + "line_2/paper")) {
+			for (String line : FileUtils.readLinesFromText(file)) {
+				List<String> ps = StrUtils.split("\t", line);
+
+				if (ps.size() != 9) {
+					continue;
+				}
+
+				ps = StrUtils.unwrap(ps);
+
+				String type = ps.get(0);
+				String title = ps.get(4);
+				String abs = ps.get(5);
+				String date = ps.get(8).trim();
+
+				if (date.length() == 8) {
+
+				} else if (date.length() == 6) {
+					date = date + "00";
+				} else if (date.length() == 4) {
+					date = date + "0000";
+				} else {
+					date = date.replace("-", "");
+				}
+
+				if (date.length() == 0 || !date.matches("^\\d+$") || date.equals("0000")) {
+					continue;
+				}
+
+				String content = title + "<nl>" + abs;
+
+				MDocument d = new MDocument();
+
+				for (String sent : content.split("<nl>")) {
+					MSentence s = new MSentence();
+
+					for (String word : StrUtils.split(sent)) {
+						MToken t = new MToken();
+						t.add(word);
+						s.add(t);
+					}
+					d.add(s);
+				}
+
+				List<List<IntPair>> locData = cps.search(d);
+
+				Counter<String> cc = Generics.newCounter();
+
+				for (int i = 0; i < locData.size(); i++) {
+					MSentence s = d.get(i);
+					List<IntPair> locs = locData.get(i);
+
+					for (IntPair p : locs) {
+						String kwd = StrUtils.join(" ", s.subSentence(p.getFirst(), p.getSecond()).getTokenStrings(0));
+						cc.incrementCount(kwd, 1);
+					}
+				}
+
+				for (String kwd : cc.keySet()) {
+					kwdTypeCnts.incrementCount(kwd, type, cc.getCount(kwd));
+					kwdTypeDocFreqs.incrementCount(kwd, type, 1);
+					if (date.length() > 4) {
+						kwdYearCnts.incrementCount(kwd, date.substring(0, 4), cc.getCount(kwd));
+					}
+				}
+
+				numDocs.incrementCount(type, 1);
+
+			}
+		}
+
+		String[] colTypes = { "paper", "patent", "ntis" };
+
+		CounterMap<String, String> cm4 = Generics.newCounterMap();
+
+		for (String kwd : kwdTypeDocFreqs.keySet()) {
+			Counter<String> cnts = kwdTypeCnts.getCounter(kwd);
+			Counter<String> docFreqs = kwdTypeDocFreqs.getCounter(kwd);
+
+			for (String type : colTypes) {
+				double num_docs = numDocs.getCount(type) + 1;
+				double doc_freq = docFreqs.getCount(type) + 1;
+				double cnt = cnts.getCount(type) + 1;
+				double tfidf = TermWeighting.tfidf(cnt, num_docs, doc_freq);
+				cm4.setCount(kwd, type, tfidf);
+			}
+		}
+
+		FileUtils.writeStringCounterMapAsText(KPPath.DATA_DIR + "scenario/kwds_cnt.txt", kwdTypeCnts);
+		FileUtils.writeStringCounterMapAsText(KPPath.DATA_DIR + "scenario/kwds_tfidf.txt", cm4);
+		FileUtils.writeStringCounterMapAsText(KPPath.DATA_DIR + "scenario/kwds_cnt_year.txt", kwdYearCnts);
+	}
+
+	public void format() throws Exception {
+		CounterMap<String, String> kwdTypeWeights = FileUtils
+				.readStringCounterMapFromText(KPPath.DATA_DIR + "scenario/kwds_tfidf.txt", false);
+		CounterMap<String, String> kwdYearCnts = FileUtils
+				.readStringCounterMapFromText(KPPath.DATA_DIR + "scenario/kwds_cnt_year.txt", false);
+
+		// List<String> years = Generics.newArrayList(kwdYearCnts.innerKeySet());
+		// Collections.sort(years);
+
+		List<String> years = Generics.newArrayList();
+		int base = 2007;
+
+		for (int i = 0; i < 10; i++) {
+			int y = base + i;
+			years.add(y + "");
+		}
+		
+		
+
+		List<String> kwds = Generics.newArrayList();
+		
+		{
+			Counter<String> c1 = kwdYearCnts.getOutKeyCountSums();
+			
+			c1.pruneKeysBelowThreshold(10);
+			
+			Counter<String> c2 = kwdTypeWeights.getOutKeyCountSums();
+			c2.pruneExcept(c1.keySet());
+			
+			kwds = c2.getSortedKeys();
+		}
+
+		TextFileWriter writer = new TextFileWriter(KPPath.DATA_DIR + "scenario/kwds_cnt_year_2.txt");
+		writer.write("KWD\t" + StrUtils.join("\t", years));
+
+		for (int i = 0; i < kwds.size(); i++) {
+			String kwd = kwds.get(i);
+			Counter<String> c = kwdYearCnts.getCounter(kwd);
+
+			StringBuffer sb = new StringBuffer();
+			sb.append(kwd);
+
+			for (int j = 0; j < years.size(); j++) {
+				String year = years.get(j);
+				int cnt = (int) c.getCount(year);
+				sb.append(String.format("\t%d", cnt));
+			}
+			writer.write("\n" + sb.toString());
+		}
+		writer.close();
+	}
+
+	public void extractNtisText() throws Exception {
+
+		FileUtils.deleteFilesUnder(KPPath.COL_LINE_DIR + "ntis/");
 
 		List<String> targets = Generics.newArrayList();
 		targets.add("국문과제명");
@@ -76,7 +290,7 @@ public class DataHandler {
 		int batch_size = 20000;
 		int batch_cnt = 0;
 
-		for (File file : FileUtils.getFilesUnder(KPPath.COL_DB_DIR + "ntis/ntis_과제정보")) {
+		for (File file : FileUtils.getFilesUnder(KPPath.COL_DB_DIR + "ntis/NTIS_과제정보")) {
 			if (!file.getName().endsWith("txt")) {
 				continue;
 			}
@@ -144,7 +358,14 @@ public class DataHandler {
 
 				String[] ps = new String[] { type, cn, korKwdStr, engKwdStr, korTitle, engTitle, korAbs, engAbs, date };
 				ps = StrUtils.wrap(ps);
-				outs.add(StrUtils.join("\t", ps));
+
+				String out = StrUtils.join("\t", ps);
+
+				if (StrUtils.split("\t", out).size() != 9) {
+					continue;
+				}
+
+				outs.add(out);
 
 				if (outs.size() % batch_size == 0) {
 					DecimalFormat df = new DecimalFormat("000000");
@@ -163,11 +384,10 @@ public class DataHandler {
 			FileUtils.writeStringCollectionAsText(outFileName, outs);
 			outs.clear();
 		}
-
 	}
 
 	public void extractExcelFiles() throws Exception {
-		for (File file : FileUtils.getFilesUnder(KPPath.COL_DB_DIR + "ntis/ntis_과제정보")) {
+		for (File file : FileUtils.getFilesUnder(KPPath.COL_DB_DIR + "ntis/NTIS_과제정보")) {
 			if (!file.getName().endsWith("xlsx")) {
 				continue;
 			}
@@ -237,10 +457,11 @@ public class DataHandler {
 		List<File> files = FileUtils.getFilesUnder(KPPath.COL_LINE_DIR);
 
 		for (File file : files) {
-			List<String> lines = FileUtils.readLinesFromText(file);
+			List<String> ins = FileUtils.readLinesFromText(file);
+			List<String> outs = Generics.newArrayList(ins.size());
 
-			for (int u = 0; u < lines.size(); u++) {
-				String line = lines.get(u);
+			for (int u = 0; u < ins.size(); u++) {
+				String line = ins.get(u);
 				List<String> ps = StrUtils.split("\t", line);
 				ps = StrUtils.unwrap(ps);
 
@@ -267,19 +488,19 @@ public class DataHandler {
 					date = ps.get(i++);
 				}
 
-//				if (date.length() == 0) {
-//					continue;
-//				}
-//
-//				if (date.length() == 8) {
-//
-//				} else if (date.length() == 6) {
-//					date = date + "00";
-//				} else if (date.length() == 4) {
-//					date = date + "0000";
-//				} else {
-//					date = date.replace("-", "");
-//				}
+				// if (date.length() == 0) {
+				// continue;
+				// }
+				//
+				// if (date.length() == 8) {
+				//
+				// } else if (date.length() == 6) {
+				// date = date + "00";
+				// } else if (date.length() == 4) {
+				// date = date + "0000";
+				// } else {
+				// date = date.replace("-", "");
+				// }
 
 				if (korTitle.length() == 0 && korAbs.length() == 0) {
 					continue;
@@ -303,10 +524,18 @@ public class DataHandler {
 				ps.set(4, korTitle);
 				ps.set(6, korAbs);
 
-				lines.set(u, StrUtils.join("\t", ps));
+				ps = StrUtils.wrap(ps);
+
+				String out = StrUtils.join("\t", ps);
+
+				if (ps.size() != 9) {
+					continue;
+				}
+
+				outs.add(out);
 			}
 
-			FileUtils.writeStringCollectionAsText(file.getPath().replace("line", "line_2"), lines);
+			FileUtils.writeStringCollectionAsText(file.getPath().replace("line", "line_2"), outs);
 		}
 
 	}

@@ -1,27 +1,24 @@
 package ohs.ml.neuralnet.com;
 
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
 import ohs.io.FileUtils;
 import ohs.math.ArrayUtils;
-import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.SparseMatrix;
 import ohs.ml.neuralnet.layer.BatchNormalizationLayer;
 import ohs.ml.neuralnet.layer.BidirectionalRecurrentLayer;
 import ohs.ml.neuralnet.layer.BidirectionalRecurrentLayer.Type;
-import ohs.ml.neuralnet.layer.ConvLayer;
+import ohs.ml.neuralnet.layer.ConvolutionalLayer;
 import ohs.ml.neuralnet.layer.EmbeddingLayer;
 import ohs.ml.neuralnet.layer.FullyConnectedLayer;
 import ohs.ml.neuralnet.layer.LstmLayer;
 import ohs.ml.neuralnet.layer.MaxPoolingLayer;
+import ohs.ml.neuralnet.layer.MultiWindowConvolutionalLayer;
 import ohs.ml.neuralnet.layer.NonlinearityLayer;
 import ohs.ml.neuralnet.layer.RnnLayer;
 import ohs.ml.neuralnet.layer.SoftmaxLayer;
-import ohs.ml.neuralnet.layer.WindowLayer;
 import ohs.ml.neuralnet.nonlinearity.ReLU;
 import ohs.ml.neuralnet.nonlinearity.Tanh;
 import ohs.types.generic.Indexer;
@@ -56,7 +53,7 @@ public class Apps {
 		param.setBatchSize(10);
 		param.setLearnRate(0.001);
 		param.setRegLambda(0.01);
-		param.setThreadSize(1);
+		param.setThreadSize(4);
 		param.setBpttSize(10);
 
 		IntegerMatrix X = new IntegerMatrix();
@@ -146,7 +143,7 @@ public class Apps {
 		int emb_size = 200;
 		int l1_size = 100;
 		int l2_size = 20;
-		int output_size = vocab.size();
+		int output_size = 2;
 		int type = 0;
 
 		System.out.println(vocab.info());
@@ -154,14 +151,19 @@ public class Apps {
 		NeuralNet nn = new NeuralNet();
 
 		if (type == 0) {
-			int filter_size = 12;
+			int num_filters = 12;
+			int window_size = 2;
+			int[] window_sizes = new int[] { 2 };
 
 			nn.add(new EmbeddingLayer(vocab_size, emb_size, true));
-			nn.add(new ConvLayer(emb_size, 3, filter_size));
-			nn.add(new NonlinearityLayer(l2_size, new ReLU()));
-			nn.add(new MaxPoolingLayer(filter_size));
-			// nn.add(new FullyConnectedLayer(filter_size, output_size));
-			// nn.add(new SoftmaxLayer(output_size));
+
+			// nn.add(new MultiWindowConvolutionalLayer(emb_size, window_sizes,
+			// num_filters));
+			nn.add(new ConvolutionalLayer(emb_size, window_size, num_filters));
+			nn.add(new NonlinearityLayer(new ReLU()));
+			nn.add(new MaxPoolingLayer(num_filters));
+			nn.add(new FullyConnectedLayer(num_filters, output_size));
+			nn.add(new SoftmaxLayer(output_size));
 			nn.prepare();
 			nn.init();
 
@@ -185,8 +187,8 @@ public class Apps {
 
 		// Triple<IntegerArrayMatrix, IntegerArrayMatrix, Vocab> train =
 		// DataReader.readCapitalData(300);
-		Triple<IntegerMatrix, IntegerMatrix, Vocab> data = DataReader
-				.readLines("../../data/ml_data/warpeace_input.txt", 1000);
+		Triple<IntegerMatrix, IntegerMatrix, Vocab> data = DataReader.readLines("../../data/ml_data/warpeace_input.txt",
+				1000);
 
 		IntegerMatrix X = new IntegerMatrix();
 		IntegerMatrix Y = new IntegerMatrix();
@@ -241,8 +243,8 @@ public class Apps {
 			int filter_size = 12;
 
 			nn.add(new EmbeddingLayer(vocab_size, emb_size, true));
-			nn.add(new ConvLayer(emb_size, 3, filter_size));
-			nn.add(new NonlinearityLayer(l2_size, new ReLU()));
+			nn.add(new ConvolutionalLayer(emb_size, 3, filter_size));
+			nn.add(new NonlinearityLayer(new ReLU()));
 			nn.add(new MaxPoolingLayer(filter_size));
 			nn.add(new FullyConnectedLayer(filter_size, output_size));
 			nn.add(new SoftmaxLayer(output_size));
@@ -255,10 +257,10 @@ public class Apps {
 		} else if (type == 1) {
 			nn.add(new EmbeddingLayer(vocab_size, emb_size, false));
 			nn.add(new FullyConnectedLayer(emb_size, l1_size));
-			nn.add(new NonlinearityLayer(l1_size, new Tanh()));
+			nn.add(new NonlinearityLayer(new Tanh()));
 			// nn.add(new DropoutLayer(l1_size));
 			nn.add(new FullyConnectedLayer(l1_size, l2_size));
-			nn.add(new NonlinearityLayer(l2_size, new Tanh()));
+			nn.add(new NonlinearityLayer(new Tanh()));
 			nn.add(new FullyConnectedLayer(l2_size, output_size));
 			nn.add(new SoftmaxLayer(output_size));
 			nn.prepare();
@@ -320,7 +322,7 @@ public class Apps {
 			trainer.finish();
 		} else if (type == 5) {
 			nn.add(new EmbeddingLayer(vocab_size, emb_size, true));
-			nn.add(new ConvLayer(emb_size, 3, 5));
+			nn.add(new ConvolutionalLayer(emb_size, 3, 5));
 			nn.add(new FullyConnectedLayer(l1_size, output_size));
 			nn.add(new SoftmaxLayer(output_size));
 			nn.prepare();
@@ -364,11 +366,11 @@ public class Apps {
 		NeuralNet nn = new NeuralNet();
 		nn.add(new FullyConnectedLayer(vocab_size, l1_size));
 		// nn.add(new BatchNormalizationLayer(l1_size));
-		nn.add(new NonlinearityLayer(l1_size, new Tanh()));
+		nn.add(new NonlinearityLayer(new Tanh()));
 		// nn.add(new DropoutLayer(l1_size));
 		nn.add(new FullyConnectedLayer(l1_size, l2_size));
 		nn.add(new BatchNormalizationLayer(l2_size));
-		nn.add(new NonlinearityLayer(l2_size, new Tanh()));
+		nn.add(new NonlinearityLayer(new Tanh()));
 		nn.add(new FullyConnectedLayer(l2_size, output_size));
 		nn.add(new SoftmaxLayer(output_size));
 		nn.prepare();
@@ -429,12 +431,9 @@ public class Apps {
 
 		if (type == 0) {
 			nn.add(new EmbeddingLayer(vocab_size, embedding_size, false));
-			// nn.add(new ConvolutionalLayer(embedding_size, new int[] { 2, 3 },
-			// 100));
-			nn.add(new WindowLayer(window_size, embedding_size));
 			nn.add(new FullyConnectedLayer(nn.last().getOutputSize(), l1_size));
 			nn.add(new BatchNormalizationLayer(l1_size));
-			nn.add(new NonlinearityLayer(nn.last().getOutputSize(), new Tanh()));
+			nn.add(new NonlinearityLayer(new Tanh()));
 			// nn.add(new DropoutLayer(l1_size));
 			nn.add(new FullyConnectedLayer(nn.last().getOutputSize(), output_size));
 			nn.add(new SoftmaxLayer(output_size));
@@ -447,10 +446,10 @@ public class Apps {
 		} else if (type == 1) {
 			nn.add(new EmbeddingLayer(vocab_size, embedding_size, true));
 			nn.add(new FullyConnectedLayer(embedding_size, l1_size));
-			nn.add(new NonlinearityLayer(l1_size, new Tanh()));
+			nn.add(new NonlinearityLayer(new Tanh()));
 			// nn.add(new DropoutLayer(l1_size));
 			nn.add(new FullyConnectedLayer(l1_size, l2_size));
-			nn.add(new NonlinearityLayer(l2_size, new Tanh()));
+			nn.add(new NonlinearityLayer(new Tanh()));
 			nn.add(new FullyConnectedLayer(l2_size, output_size));
 			nn.add(new SoftmaxLayer(output_size));
 			nn.prepare();

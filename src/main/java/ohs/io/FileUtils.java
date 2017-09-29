@@ -1105,7 +1105,8 @@ public class FileUtils {
 		return ret;
 	}
 
-	public static CounterMap<String, String> readStringCounterMapFromText(String fileName) throws Exception {
+	public static CounterMap<String, String> readStringCounterMapFromText(String fileName, boolean read_pairs)
+			throws Exception {
 		CounterMap<String, String> ret = Generics.newCounterMap();
 
 		BufferedReader br = openBufferedReader(fileName);
@@ -1122,7 +1123,7 @@ public class FileUtils {
 		while ((line = br.readLine()) != null) {
 			String[] ps = line.split("\t");
 
-			if (ps.length == 3) {
+			if (read_pairs) {
 				ret.setCount(ps[0], ps[1], Double.parseDouble(ps[2]));
 				size++;
 			} else {
@@ -1585,7 +1586,7 @@ public class FileUtils {
 			if (val - tmp == 0) {
 				output = String.format("\n%s\t%d", key, tmp);
 			} else {
-//				output = String.format("\n%s\t%f", key, val);
+				// output = String.format("\n%s\t%f", key, val);
 				output = String.format("\n%s\t%s", key, val + "");
 			}
 			bw.write(output);

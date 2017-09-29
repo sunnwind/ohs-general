@@ -14,20 +14,9 @@ import ohs.matrix.DenseMatrix;
 import ohs.ml.eval.Performance;
 import ohs.ml.eval.PerformanceEvaluator;
 import ohs.ml.neuralnet.cost.CrossEntropyCostFunction;
-import ohs.ml.neuralnet.layer.BatchNormalizationLayer;
-import ohs.ml.neuralnet.layer.BidirectionalRecurrentLayer;
-import ohs.ml.neuralnet.layer.ConvLayer;
-import ohs.ml.neuralnet.layer.ConvolutionalLayer;
-import ohs.ml.neuralnet.layer.DropoutLayer;
-import ohs.ml.neuralnet.layer.EmbeddingLayer;
-import ohs.ml.neuralnet.layer.FullyConnectedLayer;
 import ohs.ml.neuralnet.layer.Layer;
 import ohs.ml.neuralnet.layer.LstmLayer;
-import ohs.ml.neuralnet.layer.MaxPoolingLayer;
-import ohs.ml.neuralnet.layer.NonlinearityLayer;
 import ohs.ml.neuralnet.layer.RnnLayer;
-import ohs.ml.neuralnet.layer.SoftmaxLayer;
-import ohs.ml.neuralnet.layer.WindowLayer;
 import ohs.types.generic.Indexer;
 import ohs.types.generic.Pair;
 import ohs.types.number.IntegerArray;
@@ -48,11 +37,11 @@ public class NeuralNetTrainer {
 
 	public class Worker implements Callable<Pair<Double, Integer>> {
 
+		private CrossEntropyCostFunction cf;
+
 		private NeuralNet nn;
 
 		private ParameterUpdater pu;
-
-		private CrossEntropyCostFunction cf;
 
 		public Worker(NeuralNet nn) {
 			this.nn = nn;
@@ -90,10 +79,9 @@ public class NeuralNetTrainer {
 
 					pu.update();
 				}
-			} else {
+			} else if (X instanceof IntegerMatrix) {
 				if (Y instanceof IntegerArray) {
 					int range_loc = 0;
-					int batch_size = param.getBatchSize();
 					IntegerMatrix X_ = (IntegerMatrix) X;
 					IntegerArray Y_ = (IntegerArray) Y;
 
@@ -101,50 +89,47 @@ public class NeuralNetTrainer {
 						int[] range = ranges[range_loc];
 						int[] locs = BatchUtils.getIndexes(data_locs, range);
 
-						for (int loc : locs) {
-							IntegerArray xm = X_.get(loc);
-							int ym = Y_.get(loc);
+						IntegerMatrix Xm = X_.subMatrix(locs);
+						IntegerArray Ym = Y_.subArray(locs);
 
-							DenseMatrix Yh = (DenseMatrix) nn.forward(xm);
-							DenseMatrix D = cf.evaluate(Yh, Ym);
-						}
+						DenseMatrix Yh = (DenseMatrix) nn.forward(Xm);
+						DenseMatrix D = cf.evaluate(Yh, Ym);
 
 						cost += cf.getCost();
 						correct_cnt += cf.getCorrectCnt();
 
 						nn.backward(D);
-
 						pu.update();
 					}
-				} else {
+				} else if (Y instanceof IntegerMatrix) {
 					int data_loc = 0;
 					int batch_size = param.getBatchSize();
-					IntegerMatrix Xm = (IntegerMatrix) X;
-					IntegerMatrix Ym = (IntegerMatrix) Y;
+					IntegerMatrix X_ = (IntegerMatrix) X;
+					IntegerMatrix Y_ = (IntegerMatrix) Y;
 
-					IntegerArray xm = new IntegerArray();
-					IntegerArray ym = new IntegerArray();
+					IntegerArray Xm = new IntegerArray();
+					IntegerArray Ym = new IntegerArray();
 
 					while ((data_loc = range_cnt.getAndIncrement()) < data_locs.length) {
 						int loc = data_locs[data_loc];
-						IntegerArray x = Xm.get(loc);
-						IntegerArray y = Ym.get(loc);
+						IntegerArray x = X_.get(loc);
+						IntegerArray y = Y_.get(loc);
 
 						int[][] ranges = BatchUtils.getBatchRanges(x.size(), batch_size);
 
-						for (int j = 0; j < ranges.length; j++) {
-							xm.clear();
-							ym.clear();
+						for (int i = 0; i < ranges.length; i++) {
+							Xm.clear();
+							Ym.clear();
 
-							int[] range = ranges[j];
+							int[] range = ranges[i];
 
-							for (int k = range[0]; k < range[1]; k++) {
-								xm.add(x.get(k));
-								ym.add(y.get(k));
+							for (int j = range[0]; j < range[1]; j++) {
+								Xm.add(x.get(j));
+								Ym.add(y.get(j));
 							}
 
-							DenseMatrix Yh = (DenseMatrix) nn.forward(xm);
-							DenseMatrix D = cf.evaluate(Yh, ym);
+							DenseMatrix Yh = (DenseMatrix) nn.forward(Xm);
+							DenseMatrix D = cf.evaluate(Yh, Ym);
 
 							cost += cf.getCost();
 							correct_cnt += cf.getCorrectCnt();
@@ -178,65 +163,7 @@ public class NeuralNetTrainer {
 	public static NeuralNet copy(NeuralNet nn) {
 		NeuralNet ret = new NeuralNet();
 		for (Layer l : nn) {
-			if (l instanceof FullyConnectedLayer) {
-				FullyConnectedLayer n = (FullyConnectedLayer) l;
-				ret.add(new FullyConnectedLayer(n.getW(), n.getB().row(0)));
-			} else if (l instanceof SoftmaxLayer) {
-				SoftmaxLayer n = (SoftmaxLayer) l;
-				ret.add(new SoftmaxLayer(n.getOutputSize()));
-			} else if (l instanceof DropoutLayer) {
-				DropoutLayer n = (DropoutLayer) l;
-				ret.add(new DropoutLayer(n.getOutputSize(), n.getP()));
-			} else if (l instanceof BatchNormalizationLayer) {
-				BatchNormalizationLayer n = (BatchNormalizationLayer) l;
-				ret.add(new BatchNormalizationLayer(n.getRunMeans(), n.getRunVars(), n.getGamma(), n.getBeta()));
-			} else if (l instanceof NonlinearityLayer) {
-				NonlinearityLayer n = (NonlinearityLayer) l;
-				ret.add(new NonlinearityLayer(n.getOutputSize(), n.getNonlinearity()));
-			} else if (l instanceof EmbeddingLayer) {
-				EmbeddingLayer n = (EmbeddingLayer) l;
-				ret.add(new EmbeddingLayer(n.getW(), n.isLearnEmbedding()));
-			} else if (l instanceof WindowLayer) {
-				WindowLayer n = (WindowLayer) l;
-				ret.add(new WindowLayer(n.getWindowSize(), n.getEmbeddingSize()));
-			} else if (l instanceof RnnLayer) {
-				RnnLayer n = (RnnLayer) l;
-				ret.add(new RnnLayer(n.getWxh(), n.getWhh(), n.getB().row(0), n.getBpttSize(), n.getNonlinearity()));
-			} else if (l instanceof LstmLayer) {
-				LstmLayer n = (LstmLayer) l;
-				ret.add(new LstmLayer(n.getWxh(), n.getWhh(), n.getB().row(0), n.getNonlinearity()));
-			} else if (l instanceof ConvLayer) {
-				ConvLayer n = (ConvLayer) l;
-				ret.add(new ConvLayer(n.getW(), n.getB().get(0), n.getWindowSize(), n.getInputSize()));
-			} else if (l instanceof MaxPoolingLayer) {
-				MaxPoolingLayer n = (MaxPoolingLayer) l;
-				ret.add(new MaxPoolingLayer(n.getInputSize()));
-			} else if (l instanceof ConvolutionalLayer) {
-
-			} else if (l instanceof BidirectionalRecurrentLayer) {
-				BidirectionalRecurrentLayer n = (BidirectionalRecurrentLayer) l;
-				Layer fwd2 = null;
-				Layer bwd2 = null;
-
-				if (n.getForwardLayer() instanceof RnnLayer) {
-					RnnLayer fwd1 = (RnnLayer) n.getForwardLayer();
-					RnnLayer bwd1 = (RnnLayer) n.getBackwardLayer();
-					fwd2 = new RnnLayer(fwd1.getWxh(), fwd1.getWhh(), fwd1.getB().row(0), fwd1.getBpttSize(),
-							fwd1.getNonlinearity());
-					bwd2 = new RnnLayer(bwd1.getWxh(), bwd1.getWhh(), bwd1.getB().row(0), bwd1.getBpttSize(),
-							bwd1.getNonlinearity());
-				} else if (n.getForwardLayer() instanceof LstmLayer) {
-					LstmLayer fwd1 = (LstmLayer) n.getForwardLayer();
-					LstmLayer bwd1 = (LstmLayer) n.getBackwardLayer();
-					fwd2 = new LstmLayer(fwd1.getWxh(), fwd1.getWhh(), fwd1.getB().row(0), fwd1.getNonlinearity());
-					bwd2 = new LstmLayer(bwd1.getWxh(), bwd1.getWhh(), bwd1.getB().row(0), bwd1.getNonlinearity());
-				}
-				ret.add(new BidirectionalRecurrentLayer(fwd2, bwd2));
-			} else {
-
-				System.err.printf("unknown layer - [%s]\n", l.getClass().getName());
-				System.exit(0);
-			}
+			ret.add(l.copy());
 		}
 		return ret;
 
@@ -250,43 +177,43 @@ public class NeuralNetTrainer {
 		return ret;
 	}
 
-	public int pad_label = -1;
+	private int[] data_locs;
+
+	private int data_size;
+
+	private PerformanceEvaluator eval = new PerformanceEvaluator();
+
+	private Indexer<String> labelIndexer;
 
 	private NeuralNet nn;
 
+	public int pad_label = -1;
+
 	private NeuralNetParams param;
 
-	private DenseMatrix W;
+	private AtomicInteger range_cnt;
+
+	private int[][] ranges;
 
 	private DenseMatrix rW1;
 
 	private DenseMatrix rW2;
 
+	private Timer timer1 = Timer.newTimer();
+
+	private ThreadPoolExecutor tpe;
+
+	private DenseMatrix W;
+
 	private DenseMatrix W_best;
 
 	private DenseMatrix W_no_bias;
 
-	private AtomicInteger range_cnt;
-
-	private int data_size;
-
-	private int[] data_locs;
-
-	private int[][] ranges;
+	private List<Worker> ws;
 
 	private Object X;
 
 	private Object Y;
-
-	private ThreadPoolExecutor tpe;
-
-	private List<Worker> ws;
-
-	private Indexer<String> labelIndexer;
-
-	private PerformanceEvaluator eval = new PerformanceEvaluator();
-
-	private Timer timer1 = Timer.newTimer();
 
 	public NeuralNetTrainer(NeuralNet nn, NeuralNetParams param, int data_size, Indexer<String> labelIndexer)
 			throws Exception {
@@ -491,12 +418,8 @@ public class NeuralNetTrainer {
 				data_size = ((IntegerMatrix) X).size();
 				data_locs = ArrayUtils.range(data_size);
 				ranges = BatchUtils.getBatchRanges(data_size, param.getBatchSize());
-			} else {
-				IntegerMatrix X_ = ((IntegerMatrix) X);
-				for (IntegerArray x : X_) {
-					data_size += x.size();
-				}
-				data_locs = ArrayUtils.range(X_.size());
+			} else if (Y instanceof IntegerMatrix) {
+				data_locs = ArrayUtils.range(((IntegerMatrix) X).sizeOfEntries());
 			}
 		}
 

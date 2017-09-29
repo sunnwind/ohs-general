@@ -65,7 +65,7 @@ public class MSentence extends ArrayList<MToken> {
 	}
 
 	public MSentence subSentence(int i, int j) {
-		return new MSentence(subSentence(i, j));
+		return new MSentence(subList(i, j));
 	}
 
 	@Override

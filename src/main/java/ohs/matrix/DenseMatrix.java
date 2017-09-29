@@ -3,6 +3,7 @@ package ohs.matrix;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import ohs.io.FileUtils;
@@ -303,13 +304,17 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 	}
 
 	@Override
-	public void setRows(Vector[] rows) {
+	public void setRows(List<Vector> rows) {
 		this.clear();
-		this.ensureCapacity(rows.length);
+		this.ensureCapacity(rows.size());
 
-		for (Vector row : rows) {
-			add((DenseVector) row);
-		}
+		// for (Vector row : rows) {
+		// add((DenseVector) row);
+		// }
+
+		addAll((Collection<? extends DenseVector>) rows);
+
+		unwrapValues();
 	}
 
 	public int sizeOfEntries() {
@@ -318,6 +323,16 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 			ret += row.size();
 		}
 		return ret;
+	}
+
+	public void setValues(double[][] vals) {
+		clear();
+		ensureCapacity(vals.length);
+
+		this.vals = vals;
+		for (int i = 0; i < vals.length; i++) {
+			add(new DenseVector(vals[i]));
+		}
 	}
 
 	@Override

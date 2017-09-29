@@ -6,10 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import ohs.io.FileUtils;
-import ohs.math.ArrayMath;
-import ohs.math.ArrayUtils;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerMatrix;
 import ohs.utils.ByteSize;
 
 public class DenseTensor extends ArrayList<DenseMatrix> {
@@ -76,9 +73,9 @@ public class DenseTensor extends ArrayList<DenseMatrix> {
 		readObject(fileName);
 	}
 
-	public void add(double value) {
+	public void add(double v) {
 		for (int i = 0; i < size(); i++) {
-			get(i).add(value);
+			get(i).add(v);
 		}
 	}
 
@@ -125,10 +122,16 @@ public class DenseTensor extends ArrayList<DenseMatrix> {
 			}
 		}
 
+		minSizes.add(min2);
+		minSizes.add(min3);
+
+		maxSizes.add(max2);
+		maxSizes.add(max3);
+
 		StringBuffer sb = new StringBuffer();
 		sb.append("[DenseTensor Info]\n");
-		sb.append(String.format("min size:\t%d\n", minSizes.toString()));
-		sb.append(String.format("max size:\t%d\n", maxSizes.toString()));
+		sb.append(String.format("min size:\t(%d, %d, %d)\n", minSizes.get(0), minSizes.get(1), minSizes.get(2)));
+		sb.append(String.format("max size:\t(%d, %d, %d)\n", maxSizes.get(0), maxSizes.get(1), maxSizes.get(2)));
 		sb.append(String.format("entry size:\t%d\n", sizeOfEntries()));
 		sb.append(String.format("mem:\t%s", byteSize().toString()));
 		return sb.toString();
@@ -172,10 +175,18 @@ public class DenseTensor extends ArrayList<DenseMatrix> {
 		return size();
 	}
 
+	public int sizeOfInnerVectors() {
+		int ret = 0;
+		for (DenseMatrix a : this) {
+			ret += a.rowSize();
+		}
+		return ret;
+	}
+
 	public int sizeOfEntries() {
 		int ret = 0;
-		for (DenseMatrix row : this) {
-			ret += row.sizeOfEntries();
+		for (DenseMatrix a : this) {
+			ret += a.sizeOfEntries();
 		}
 		return ret;
 	}
@@ -183,9 +194,43 @@ public class DenseTensor extends ArrayList<DenseMatrix> {
 	public void swapRows(int i, int j) {
 		DenseMatrix a = get(i);
 		DenseMatrix b = get(j);
-
 		set(i, b);
 		set(j, a);
+	}
+
+	@Override
+	public String toString() {
+		StringBuffer sb = new StringBuffer();
+		sb.append(info());
+
+		int size1 = 10;
+		int size3 = 10;
+
+		for (int i = 0; i < size() && i < size1; i++) {
+			DenseMatrix dm = get(i);
+
+			for (int j = 0; j < dm.rowSize(); j++) {
+				DenseVector dv = dm.row(j);
+				sb.append(String.format("\n(%d, %d, %d)\t[", i, j, dv.size()));
+
+				for (int k = 0; k < dv.size(); k++) {
+					sb.append(Double.toString(dv.value(k)));
+
+					if (k == size3) {
+						sb.append(" ...");
+						break;
+					}
+
+					if (k != dv.size() - 1) {
+						sb.append(" ");
+					}
+				}
+				sb.append("]");
+			}
+
+		}
+
+		return sb.toString();
 	}
 
 	public void unwrapValues() {

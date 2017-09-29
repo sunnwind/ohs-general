@@ -20,24 +20,21 @@ public class DropoutLayer extends Layer {
 
 	private DenseMatrix M;
 
-	private DenseMatrix tmp_M;
-
-	private DenseMatrix tmp_Y;
-
-	private DenseMatrix tmp_dX;
+	private int output_size;
 
 	private double p = 0.5;
 
-	private int input_size;
+	private DenseMatrix tmp_dX;
 
-	private int output_size;
+	private DenseMatrix tmp_M;
+
+	private DenseMatrix tmp_Y;
 
 	public DropoutLayer(int output_size) {
 		this(output_size, 0.5);
 	}
 
 	public DropoutLayer(int output_size, double p) {
-		this.input_size = output_size;
 		this.output_size = output_size;
 		this.p = p;
 	}
@@ -55,6 +52,11 @@ public class DropoutLayer extends Layer {
 		DenseMatrix dX = tmp_dX.rows(dY.rowSize());
 		VectorUtils.copy(dY, dX);
 		return dX;
+	}
+
+	@Override
+	public Layer copy() {
+		return new DropoutLayer(output_size, output_size);
 	}
 
 	@Override

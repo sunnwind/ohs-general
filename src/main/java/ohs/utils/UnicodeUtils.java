@@ -289,7 +289,7 @@ public class UnicodeUtils {
 				if (dist > 1) {
 					int[] subcps = new int[3];
 
-					ArrayUtils.copy(cps, i, end + 1, subcps);
+					ArrayUtils.copy(cps, i, subcps, 0, end + 1 - i);
 
 					int rcp = fromAnalyzedJAMO(subcps);
 
@@ -329,7 +329,7 @@ public class UnicodeUtils {
 				if (dist > 1) {
 					int[] subcps = new int[3];
 
-					ArrayUtils.copy(cps, i, end + 1, subcps);
+					ArrayUtils.copy(cps, i, subcps, 0, end + 1 - i);
 
 					subcps = mapCJJCodes(subcps);
 

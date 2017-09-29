@@ -64,6 +64,11 @@ public class DataSplitter {
 		return ret;
 	}
 
+	/**
+	 * @param x
+	 * @param cnts
+	 * @return
+	 */
 	public static IntegerMatrix split(IntegerArray x, int[] cnts) {
 		int fold_size = cnts.length;
 

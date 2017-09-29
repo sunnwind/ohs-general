@@ -17,8 +17,13 @@ import ohs.math.ThreadWokers.SetAllWorker;
 import ohs.utils.ByteSize;
 import ohs.utils.Conditions;
 import ohs.utils.Generics;
+import ohs.utils.Timer;
 
 public class ArrayUtils {
+
+	public static int DOUBLE_ARRAY_COPY_THRESHOLD = 5000;
+
+	public static int INTEGER_ARRAY_COPY_THRESHOLD = DOUBLE_ARRAY_COPY_THRESHOLD * 2;
 
 	public static int THREAD_SIZE = 5;
 
@@ -67,29 +72,38 @@ public class ArrayUtils {
 	}
 
 	public static double copy(double[] a, double[] b) {
-		System.arraycopy(a, 0, b, 0, a.length);
-		return ArrayMath.sum(b);
+		return copy(a, 0, b, 0, a.length);
 	}
 
-	public static double[] copy(double[] a, int start, int end) {
-		double[] b = new double[end - start];
-		copy(a, start, end, b);
-		return b;
-	}
-
-	public static double copy(double[] a, int start, int end, double[] b) {
-		int size = end - start;
-		if (size > b.length) {
-			throw new IllegalArgumentException();
+	/**
+	 * @param a
+	 * @param m
+	 *            start of a
+	 * @param b
+	 * @param n
+	 *            start of b
+	 * @param size
+	 * @return
+	 */
+	public static double copy(double[] a, int m, double[] b, int n, int size) {
+		double sum = 0;
+		if (size <= DOUBLE_ARRAY_COPY_THRESHOLD) {
+			System.arraycopy(a, m, b, n, size);
+			sum = ArrayMath.sum(b);
+		} else {
+			for (int i = m; i < m + size; i++) {
+				b[n] = a[i];
+				sum += b[n];
+				n++;
+			}
 		}
-		// double sum = 0;
-		// for (int i = start, j = 0; i < end; i++, j++) {
-		// b[j] = a[i];
-		// sum += b[j];
-		// }
+		return sum;
+	}
 
-		System.arraycopy(a, start, b, 0, size);
-		return ArrayMath.sum(b);
+	public static double[] copy(double[] a, int m, int size) {
+		double[] b = new double[size];
+		copy(a, m, b, 0, size);
+		return b;
 	}
 
 	public static int copy(double[] a, int[] b) {
@@ -137,9 +151,43 @@ public class ArrayUtils {
 		return sum;
 	}
 
+	public static double[][][] copy(double[][][] a) {
+		double[][][] b = new double[a.length][][];
+		for (int i = 0; i < a.length; i++) {
+			b[i] = new double[a[i].length][];
+			for (int j = 0; j < a[i].length; j++) {
+				b[i][j] = new double[a[i][j].length];
+			}
+		}
+		copy(a, b);
+		return b;
+	}
+
+	public static double copy(double[][][] a, double[][][] b) {
+		double sum = 0;
+		for (int i = 0; i < a.length; i++) {
+			sum += copy(a[i], b[i]);
+		}
+		return sum;
+	}
+
 	public static double copy(float[] a, float[] b) {
-		System.arraycopy(a, 0, b, 0, b.length);
-		return ArrayMath.sum(b);
+		return copy(a, 0, b, 0, a.length);
+	}
+
+	public static double copy(float[] a, int m, float[] b, int n, int size) {
+		double sum = 0;
+		if (size <= DOUBLE_ARRAY_COPY_THRESHOLD) {
+			System.arraycopy(a, m, b, n, size);
+			sum = ArrayMath.sum(b);
+		} else {
+			for (int i = m; i < m + size; i++) {
+				b[n] = a[i];
+				sum += b[n];
+				n++;
+			}
+		}
+		return sum;
 	}
 
 	public static int[] copy(int[] a) {
@@ -149,6 +197,9 @@ public class ArrayUtils {
 	}
 
 	public static double copy(int[] a, double[] b) {
+		if (!ArrayChecker.isEqualSize(a, b)) {
+			throw new IllegalArgumentException();
+		}
 		double sum = 0;
 		for (int i = 0; i < a.length; i++) {
 			b[i] = a[i];
@@ -157,25 +208,29 @@ public class ArrayUtils {
 		return sum;
 	}
 
-	public static int[] copy(int[] a, int start, int end) {
-		int size = end - start;
-		int[] ret = new int[size];
-		copy(a, start, end, ret);
-		return ret;
+	public static int[] copy(int[] a, int m, int size) {
+		int[] b = new int[size];
+		copy(a, m, b, 0, size);
+		return b;
 	}
 
-	public static int copy(int[] a, int start, int end, int[] b) {
-		int size = end - start;
-		if (size > b.length) {
-			throw new IllegalArgumentException();
+	public static int copy(int[] a, int m, int[] b, int n, int size) {
+		int sum = 0;
+		if (size <= DOUBLE_ARRAY_COPY_THRESHOLD) {
+			System.arraycopy(a, m, b, n, size);
+			sum = ArrayMath.sum(b);
+		} else {
+			for (int i = m; i < m + size; i++) {
+				b[n] = a[i];
+				sum += b[n];
+				n++;
+			}
 		}
-		System.arraycopy(a, start, b, 0, size);
-		return ArrayMath.sum(b);
+		return sum;
 	}
 
 	public static int copy(int[] a, int[] b) {
-		System.arraycopy(a, 0, b, 0, b.length);
-		return ArrayMath.sum(b);
+		return copy(a, 0, b, 0, a.length);
 	}
 
 	public static int copy(int[] a, List<Integer> b) {
@@ -207,6 +262,25 @@ public class ArrayUtils {
 		return sum;
 	}
 
+	public static long copy(long[] a, int m, long[] b, int n, int size) {
+		long sum = 0;
+		if (size <= DOUBLE_ARRAY_COPY_THRESHOLD) {
+			System.arraycopy(a, m, b, n, size);
+			sum = ArrayMath.sum(b);
+		} else {
+			for (int i = m; i < m + size; i++) {
+				b[n] = a[i];
+				sum += b[n];
+				n++;
+			}
+		}
+		return sum;
+	}
+
+	public static long copy(long[] a, long[] b) {
+		return copy(a, 0, b, 0, a.length);
+	}
+
 	public static double copyColumn(double[] a, double[][] b, int bj) {
 		int[] dims = dimensions(b);
 		double sum = 0;
@@ -233,6 +307,45 @@ public class ArrayUtils {
 		for (int i = 0; i < a.length; i++) {
 			b[i] = a[i][j];
 			sum += b[i];
+		}
+		return sum;
+	}
+
+	/**
+	 * @param a
+	 *            N
+	 * @param b
+	 *            M
+	 * @param c
+	 *            N + M
+	 * @return
+	 */
+	public static double concatenate(double[] a, double[] b, double[] c) {
+		if (a.length + b.length != c.length) {
+			throw new IllegalArgumentException();
+		}
+		double sum = 0;
+		sum += copy(a, 0, c, 0, a.length);
+		sum += copy(b, 0, c, a.length, b.length);
+		return sum;
+	}
+
+	/**
+	 * @param a
+	 *            K x N
+	 * @param b
+	 *            K x M
+	 * @param c
+	 *            K x (N + M)
+	 * @return
+	 */
+	public static double concatenate(double[][] a, double[][] b, double[][] c) {
+		if (a.length + b.length != c.length) {
+			throw new IllegalArgumentException();
+		}
+		double sum = 0;
+		for (int i = 0; i < a.length; i++) {
+			sum += concatenate(a[i], b[i], c[i]);
 		}
 		return sum;
 	}
@@ -325,8 +438,12 @@ public class ArrayUtils {
 
 	public static double copyRows(double[][] a, int i, int j, double[] b) {
 		int size = 0;
-		for (int k = i; k < j; k++) {
-			size += a[k].length;
+		try {
+			for (int m = i; m < j; m++) {
+				size += a[m].length;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 
 		if (size != b.length) {
@@ -334,11 +451,18 @@ public class ArrayUtils {
 		}
 
 		double sum = 0;
-		for (int k = i, m = 0; k < j; k++) {
-			double[] c = a[k];
-			System.arraycopy(c, 0, b, m, c.length);
-			m += c.length;
-			sum += ArrayMath.sum(c);
+		for (int m = i, l = 0; m < j; m++) {
+			double[] c = a[m];
+			if (c.length < DOUBLE_ARRAY_COPY_THRESHOLD) {
+				System.arraycopy(c, 0, b, l, c.length);
+				l += c.length;
+				sum += ArrayMath.sum(c);
+			} else {
+				for (int n = 0; n < c.length; n++) {
+					b[l++] = c[n];
+					sum += c[n];
+				}
+			}
 		}
 		return sum;
 	}
@@ -470,10 +594,27 @@ public class ArrayUtils {
 		System.out.println("process begins.");
 
 		{
-			double[][] a = { { 1, 2, 3 }, { 4, 5, 6 } };
-			double[] b = new double[6];
+			int size = 5000;
+			double[] a = new double[size];
+			double[] b = new double[a.length];
+			int iters = 10000;
+			Timer timer = Timer.newTimer();
 
-			copyRows(a, 0, 2, b);
+			for (int i = 0; i < iters; i++) {
+				System.arraycopy(a, 0, b, 0, a.length);
+			}
+
+			System.out.println(timer.stop());
+
+			timer = Timer.newTimer();
+
+			for (int i = 0; i < iters; i++) {
+				for (int j = 0; j < a.length; j++) {
+					b[j] = a[j];
+				}
+			}
+
+			System.out.println(timer.stop());
 
 			System.exit(0);
 		}

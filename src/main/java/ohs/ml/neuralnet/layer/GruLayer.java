@@ -25,52 +25,52 @@ public class GruLayer extends Layer {
 	 */
 	private static final long serialVersionUID = 2848535801786544922L;
 
+	private DenseVector a;
+	private DenseVector a1;
+	private DenseVector a2;
+
+	private DenseVector bh;
+	private DenseVector da;
+	private DenseVector dbh;
+
+	private DenseVector df;
+
+	private DenseVector dg;
+	private DenseVector dh_prev;
+
+	private DenseVector di;
+	private DenseVector doo;
+
+	private DenseMatrix dWhh;
+	private DenseMatrix dWxh;
+	private DenseMatrix H;
+
+	private DenseVector h0;
+	private DenseVector h0_prev;
+	private int hidden_size;
+
+	private int input_size;
+	private DenseMatrix M;
+	private Nonlinearity non;
+	private DenseMatrix R;
+	private DenseVector tmp;
+	private DenseMatrix tmp_dC;
+
+	private DenseMatrix tmp_dX;
+	private DenseMatrix tmp_H;
+	private DenseMatrix tmp_M;
+
+	private DenseMatrix tmp_R;
+	private DenseMatrix tmp_U;
+	private DenseMatrix U;
+	private DenseMatrix Whh;
+
 	/**
 	 * input to hidden
 	 */
 	private DenseMatrix Wxh;
-	private DenseMatrix Whh;
-	private DenseVector bh;
 
-	private DenseMatrix dWxh;
-	private DenseMatrix dWhh;
-	private DenseVector dbh;
-
-	private Nonlinearity non;
-
-	private int input_size;
-	private int hidden_size;
-
-	private DenseMatrix U;
-	private DenseMatrix R;
-
-	private DenseMatrix H;
-	private DenseMatrix M;
 	private DenseMatrix X;
-
-	private DenseVector h0;
-	private DenseVector h0_prev;
-	private DenseVector a;
-
-	private DenseVector dh_prev;
-	private DenseVector di;
-	private DenseVector df;
-	private DenseVector doo;
-	private DenseVector dg;
-	private DenseVector da;
-
-	private DenseMatrix tmp_dX;
-	private DenseMatrix tmp_U;
-	private DenseMatrix tmp_R;
-
-	private DenseMatrix tmp_H;
-	private DenseMatrix tmp_M;
-	private DenseMatrix tmp_dC;
-	private DenseVector tmp;
-
-	private DenseVector a1;
-
-	private DenseVector a2;
 
 	public GruLayer(DenseMatrix Wxh, DenseMatrix Whh, DenseVector bh, Nonlinearity non) {
 		super();

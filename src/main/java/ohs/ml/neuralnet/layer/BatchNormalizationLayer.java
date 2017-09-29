@@ -26,45 +26,45 @@ public class BatchNormalizationLayer extends Layer {
 	 */
 	private static final long serialVersionUID = 3632625740730865189L;
 
+	private DenseVector beta;
+
+	private DenseVector dbeta;
+
+	private DenseVector dgamma;
+
+	private double eps = 0.00000001;
+
+	private DenseVector gamma;
+
+	private double momentum = 0.9;
+
+	private DenseVector mu;
+
 	private DenseVector runMeans;
 
 	private DenseVector runVars;
 
-	private double momentum = 0.9;
-
-	private double eps = 0.00000001;
-
-	private DenseVector mu;
-
-	private DenseMatrix xc;
-
-	private DenseVector var;
-
-	private DenseMatrix xn;
-
-	private DenseVector gamma;
-
-	private DenseVector beta;
-
-	private DenseVector dgamma;
-
-	private DenseVector dbeta;
-
 	private DenseVector std;
-
-	private DenseMatrix tmp_T;
-
-	private DenseMatrix tmp_Y;
 
 	private DenseMatrix tmp_dX;
 
-	private DenseMatrix tmp_dxn;
-
 	private DenseMatrix tmp_dxc;
 
-	private DenseMatrix tmp_xc;
+	private DenseMatrix tmp_dxn = new DenseMatrix(0);
 
-	private DenseMatrix tmp_xn;
+	private DenseMatrix tmp_T = new DenseMatrix(0);
+
+	private DenseMatrix tmp_xc = new DenseMatrix(0);
+
+	private DenseMatrix tmp_xn = new DenseMatrix(0);
+
+	private DenseMatrix tmp_Y = new DenseMatrix(0);
+
+	private DenseVector var;
+
+	private DenseMatrix xc;
+
+	private DenseMatrix xn;
 
 	public BatchNormalizationLayer(DenseVector runMeans, DenseVector runVars, DenseVector gamma, DenseVector beta) {
 		this.runMeans = runMeans;
@@ -74,7 +74,8 @@ public class BatchNormalizationLayer extends Layer {
 	}
 
 	public BatchNormalizationLayer(int output_size) {
-		this(new DenseVector(output_size), new DenseVector(output_size), new DenseVector(output_size), new DenseVector(output_size));
+		this(new DenseVector(output_size), new DenseVector(output_size), new DenseVector(output_size),
+				new DenseVector(output_size));
 	}
 
 	public BatchNormalizationLayer(ObjectInputStream ois) throws Exception {
@@ -91,7 +92,7 @@ public class BatchNormalizationLayer extends Layer {
 
 		int data_size = dY.rowSize();
 
-		if (tmp_dxn == null || tmp_dxn.rowSize() < data_size) {
+		if (tmp_dxn.rowSize() < data_size) {
 			tmp_dxc = dY.copy(true);
 			tmp_dxn = dY.copy(true);
 			tmp_dX = dY.copy(true);
@@ -136,10 +137,15 @@ public class BatchNormalizationLayer extends Layer {
 	}
 
 	@Override
+	public Layer copy() {
+		return new BatchNormalizationLayer(runMeans, runVars, dgamma, beta);
+	}
+
+	@Override
 	public Object forward(Object I) {
 		DenseMatrix X = (DenseMatrix) I;
 
-		if (tmp_Y == null || tmp_Y.rowSize() < X.rowSize()) {
+		if (tmp_Y.rowSize() < X.rowSize()) {
 			tmp_Y = X.copy(true);
 		}
 

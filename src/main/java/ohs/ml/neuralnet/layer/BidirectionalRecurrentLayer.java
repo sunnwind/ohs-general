@@ -14,14 +14,15 @@ import ohs.utils.Generics;
 
 /**
  * 
- * Graves, A. (2012). Supervised Sequence Labelling with Recurrent Neural Networks. http://doi.org/10.1007/978-3-642-24797-2
+ * Graves, A. (2012). Supervised Sequence Labelling with Recurrent Neural
+ * Networks. http://doi.org/10.1007/978-3-642-24797-2
  * 
  * @author ohs
  */
 public class BidirectionalRecurrentLayer extends Layer {
 
 	public static enum Type {
-		RNN, LSTM
+		LSTM, RNN
 	}
 
 	/**
@@ -29,19 +30,19 @@ public class BidirectionalRecurrentLayer extends Layer {
 	 */
 	private static final long serialVersionUID = -8764635726766071893L;
 
-	private Layer fwd;
-
 	private Layer bwd;
 
-	private DenseMatrix tmp_H;
-
-	private DenseMatrix tmp_dX;
+	private Layer fwd;
 
 	private DenseMatrix H;
 
 	private int input_size;
 
 	private int output_size;
+
+	private DenseMatrix tmp_dX;
+
+	private DenseMatrix tmp_H;
 
 	public BidirectionalRecurrentLayer(Layer fwd, Layer bwd) {
 		super();
@@ -91,6 +92,11 @@ public class BidirectionalRecurrentLayer extends Layer {
 	}
 
 	@Override
+	public Layer copy() {
+		return new BidirectionalRecurrentLayer(fwd.copy(), bwd.copy());
+	}
+
+	@Override
 	public Object forward(Object I) {
 		int data_size = I instanceof IntegerArray ? ((IntegerArray) I).size() : ((DenseMatrix) I).rowSize();
 		Object I2 = reverse(I);
@@ -109,7 +115,7 @@ public class BidirectionalRecurrentLayer extends Layer {
 			DenseVector o1 = O1.row(i);
 			DenseVector o2 = O2.row(data_size - i - 1);
 			DenseVector o3 = H.row(i);
-			
+
 			try {
 				VectorMath.add(o1, o2, o3);
 			} catch (Exception e) {

@@ -205,6 +205,11 @@ public class LstmLayer extends Layer {
 	}
 
 	@Override
+	public Layer copy() {
+		return new LstmLayer(Wxh, Whh, bh, non);
+	}
+
+	@Override
 	public DenseMatrix forward(Object IN) {
 		X = (DenseMatrix) IN;
 		int data_size = X.rowSize();

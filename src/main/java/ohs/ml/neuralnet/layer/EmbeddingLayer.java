@@ -1,10 +1,11 @@
 package ohs.ml.neuralnet.layer;
 
 import ohs.math.VectorMath;
-import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
+import ohs.matrix.DenseTensor;
 import ohs.ml.neuralnet.com.ParameterInitializer;
 import ohs.types.number.IntegerArray;
+import ohs.types.number.IntegerMatrix;
 
 public class EmbeddingLayer extends Layer {
 
@@ -13,17 +14,18 @@ public class EmbeddingLayer extends Layer {
 	 */
 	private static final long serialVersionUID = -428617482088657354L;
 
-	private DenseMatrix W;
-
 	private DenseMatrix dW;
-
-	private DenseMatrix tmp_Y;
 
 	private boolean learn_embedding = true;
 
-	private IntegerArray X;
+	/**
+	 * words x embedding size
+	 */
+	private DenseMatrix W;
 
-	private DenseMatrix Y;
+	private Object X;
+
+	private Object Y;
 
 	public EmbeddingLayer(DenseMatrix W, boolean learn_embedding) {
 		this.W = W;
@@ -37,32 +39,57 @@ public class EmbeddingLayer extends Layer {
 	@Override
 	public Object backward(Object I) {
 		if (I != null && learn_embedding) {
-			DenseMatrix dY = (DenseMatrix) I;
-			for (int i = 0; i < X.size(); i++) {
-				int w = X.get(i);
-				VectorMath.add(dY.row(i), dW.row(w));
+			if (I instanceof DenseMatrix) {
+				IntegerArray X = (IntegerArray) this.X;
+				DenseMatrix dY = (DenseMatrix) I;
+				for (int i = 0; i < X.size(); i++) {
+					int w = X.get(i);
+					VectorMath.add(dY.row(i), dW.row(w));
+				}
+			} else if (I instanceof DenseTensor) {
+				IntegerMatrix X = (IntegerMatrix) this.X;
+				DenseTensor dY = (DenseTensor) I;
+				for (int i = 0; i < X.size(); i++) {
+					IntegerArray Xm = X.get(i);
+					DenseMatrix dYm = dY.get(i);
+
+					for (int j = 0; j < Xm.size(); j++) {
+						int w = Xm.get(j);
+						try {
+							VectorMath.add(dYm.row(j), dW.row(w));
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+					}
+				}
 			}
 		}
 		return null;
 	}
 
+	public Layer copy() {
+		return new EmbeddingLayer(W, learn_embedding);
+	}
+
 	@Override
 	public Object forward(Object I) {
-		X = (IntegerArray) I;
+		this.X = I;
 
-		int data_size = X.size();
-		int emb_size = W.colSize();
+		if (I instanceof IntegerArray) {
+			IntegerArray X = (IntegerArray) I;
+			DenseMatrix Y = W.rows(X.values());
+			this.Y = Y;
+		} else if (I instanceof IntegerMatrix) {
+			IntegerMatrix X = (IntegerMatrix) I;
+			DenseTensor Y = new DenseTensor();
+			Y.ensureCapacity(X.size());
 
-		if (tmp_Y == null || tmp_Y.rowSize() < data_size) {
-			tmp_Y = new DenseMatrix(data_size, emb_size);
+			for (IntegerArray Xm : X) {
+				Y.add(W.rows(Xm.values()));
+			}
+			this.Y = Y;
 		}
 
-		Y = tmp_Y.rows(data_size);
-
-		for (int i = 0; i < data_size; i++) {
-			int w = X.get(i);
-			VectorUtils.copy(W.row(w), Y.row(i));
-		}
 		return Y;
 	}
 

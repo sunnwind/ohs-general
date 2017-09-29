@@ -19,6 +19,10 @@ public abstract class Layer implements Serializable {
 		return null;
 	}
 
+	public Layer copy() {
+		throw new NullPointerException("copy is not defined.");
+	}
+
 	public Object forward(Object I) {
 		return null;
 	}

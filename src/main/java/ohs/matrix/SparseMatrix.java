@@ -4,6 +4,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -480,14 +481,17 @@ public class SparseMatrix extends ArrayList<SparseVector> implements Matrix {
 	}
 
 	@Override
-	public void setRows(Vector[] rows) {
+	public void setRows(List<Vector> rows) {
 		this.clear();
-		this.ensureCapacity(rows.length);
-		;
+		this.ensureCapacity(rows.size());
 
-		for (Vector row : rows) {
-			add((SparseVector) row);
-		}
+		// for (Vector row : rows) {
+		// add((SparseVector) row);
+		// }
+
+		addAll((Collection<? extends SparseVector>) rows);
+
+		unwrapValues();
 	}
 
 	@Override

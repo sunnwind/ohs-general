@@ -23,26 +23,28 @@ public class FullyConnectedLayer extends Layer {
 	 */
 	private static final long serialVersionUID = 3286065471918528100L;
 
-	private DenseMatrix W;
-
 	private DenseVector b;
-
-	private DenseMatrix dW;
 
 	private DenseVector db;
 
-	/**
-	 * input of this layer
-	 */
-	private Object fwd_I;
-
-	private DenseMatrix tmp_Y;
-
-	private DenseMatrix tmp_dX;
+	private DenseMatrix dW;
 
 	private int input_size;
 
 	private int output_size;
+
+	private DenseMatrix tmp_dX = new DenseMatrix(0);
+
+	private DenseMatrix tmp_Y = new DenseMatrix(0);
+
+	private DenseMatrix W;
+
+	/**
+	 * input of this layer
+	 */
+	private Object X;
+
+	private DenseMatrix Y;
 
 	public FullyConnectedLayer(DenseMatrix W, DenseVector b) {
 		this.W = W;
@@ -64,44 +66,50 @@ public class FullyConnectedLayer extends Layer {
 	public DenseMatrix backward(Object I) {
 		DenseMatrix dY = (DenseMatrix) I;
 		DenseMatrix dX = null;
-		int data_size = dY.rowSize();
 
-		if (fwd_I instanceof DenseMatrix) {
-			DenseMatrix X = (DenseMatrix) fwd_I;
+		if (X instanceof DenseMatrix) {
+			int data_size = dY.rowSize();
+			DenseMatrix X = (DenseMatrix) this.X;
+
 			for (int i = 0; i < X.rowSize(); i++) {
-
 				VectorMath.outerProduct(X.row(i), dY.row(i), dW, true);
 				VectorMath.add(dY.row(i), db);
 			}
-			if (tmp_dX == null || tmp_dX.rowSize() < dY.rowSize()) {
-				tmp_dX = new DenseMatrix(data_size, input_size);
-			}
+
+			VectorUtils.enlarge(tmp_dX, data_size, input_size);
+
 			dX = tmp_dX.rows(data_size);
 			VectorMath.productRows(dY, W, dX, false);
-		} else {
-			IntegerArray X = (IntegerArray) fwd_I;
+
+		} else if (X instanceof IntegerArray) {
+			IntegerArray X = (IntegerArray) this.X;
+
 			for (int i = 0; i < X.size(); i++) {
 				int idx = X.get(i);
 				DenseVector dw = dW.row(idx);
 				VectorMath.add(dw, dY.row(i), dw);
 			}
+
 		}
 		return dX;
 	}
 
-	public void computeDB() {
-		// VectorMath.sumColumns(dW, db);
+	@Override
+	public Layer copy() {
+		return new FullyConnectedLayer(W, b);
 	}
 
 	@Override
 	public DenseMatrix forward(Object I) {
-		this.fwd_I = I;
+		this.X = I;
 
 		int data_size = I instanceof DenseMatrix ? ((DenseMatrix) I).rowSize() : ((IntegerArray) I).size();
 
-		if (tmp_Y == null || tmp_Y.rowSize() < data_size) {
-			tmp_Y = new DenseMatrix(data_size, output_size);
-		}
+		// if (tmp_Y.rowSize() < data_size) {
+		// tmp_Y = new DenseMatrix(data_size, output_size);
+		// }
+
+		VectorUtils.enlarge(tmp_Y, data_size, output_size);
 
 		DenseMatrix Y = tmp_Y.rows(data_size);
 
@@ -109,7 +117,7 @@ public class FullyConnectedLayer extends Layer {
 			DenseMatrix X = (DenseMatrix) I;
 			VectorMath.product(X, W, Y, false);
 			VectorMath.add(Y, b, Y);
-		} else {
+		} else if (I instanceof IntegerArray) {
 			IntegerArray X = (IntegerArray) I;
 			for (int i = 0; i < X.size(); i++) {
 				int idx = X.get(i);
@@ -117,6 +125,8 @@ public class FullyConnectedLayer extends Layer {
 			}
 			VectorMath.add(Y, b, Y);
 		}
+		this.Y = Y;
+
 		return Y;
 	}
 

@@ -3,6 +3,7 @@ package ohs.matrix;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.util.List;
 
 import ohs.utils.ByteSize;
 
@@ -62,7 +63,7 @@ public interface Matrix extends Serializable {
 
 	public void setRowAt(int loc, Vector x);
 
-	public void setRows(Vector[] rows);
+	public void setRows(List<Vector> rows);
 
 	public int sizeOfEntries();
 

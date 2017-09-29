@@ -3646,7 +3646,15 @@ public class ArrayMath {
 		}
 		return ret;
 	}
-	
+
+	public static long sum(long[] x) {
+		long ret = 0;
+		for (int i = 0; i < x.length; i++) {
+			ret += x[i];
+		}
+		return ret;
+	}
+
 	public static double sum(float[] x) {
 		double ret = 0;
 		for (int i = 0; i < x.length; i++) {

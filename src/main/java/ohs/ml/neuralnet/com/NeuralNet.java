@@ -150,7 +150,8 @@ public class NeuralNet extends ArrayList<Layer> {
 		List<DenseVector> rows = Generics.newLinkedList();
 		for (Layer l : this) {
 			if (l instanceof EmbeddingLayer) {
-				if (((EmbeddingLayer) l).isLearnEmbedding()) {
+				EmbeddingLayer n = (EmbeddingLayer) l;
+				if (n.isLearnEmbedding()) {
 					for (DenseVector row : l.getW()) {
 						rows.add(row);
 					}

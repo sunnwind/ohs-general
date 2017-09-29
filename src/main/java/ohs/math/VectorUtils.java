@@ -207,6 +207,16 @@ public class VectorUtils {
 		return ret;
 	}
 
+	public static boolean enlarge(DenseMatrix a, int row_size, int col_size) {
+		boolean ret = false;
+		if (row_size > a.rowSize() || col_size > a.colSize()) {
+			double[][] v = new double[row_size][col_size];
+			a.setValues(v);
+			ret = true;
+		}
+		return ret;
+	}
+
 	public static Counter<Integer> toCounter(IntegerMatrix X) {
 		Counter<Integer> ret = Generics.newCounter();
 		for (int i = 0; i < X.size(); i++) {

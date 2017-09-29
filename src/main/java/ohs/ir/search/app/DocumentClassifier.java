@@ -336,11 +336,11 @@ public class DocumentClassifier {
 		NeuralNet nn = new NeuralNet();
 		nn.add(new FullyConnectedLayer(input_size, l1_size));
 		nn.add(new BatchNormalizationLayer(l1_size));
-		nn.add(new NonlinearityLayer(l1_size, new Tanh()));
+		nn.add(new NonlinearityLayer(new Tanh()));
 		// nn.add(new DropoutLayer(l1_size));
 		nn.add(new FullyConnectedLayer(l1_size, l2_size));
 		nn.add(new BatchNormalizationLayer(l2_size));
-		nn.add(new NonlinearityLayer(l2_size, new Tanh()));
+		nn.add(new NonlinearityLayer(new Tanh()));
 		nn.add(new FullyConnectedLayer(l2_size, output_size));
 		nn.add(new SoftmaxLayer(output_size));
 

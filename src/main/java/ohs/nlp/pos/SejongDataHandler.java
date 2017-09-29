@@ -46,13 +46,14 @@ public class SejongDataHandler {
 		while (reader.hasNext()) {
 			MDocument doc = reader.next();
 
-			for (MSentence sent : doc.getSentences()) {
-				for (MultiToken mt : sent.toMultiTokens()) {
+			for (MSentence sent : doc) {
+				for (MToken mt : sent) {
 					String ot = mt.get(TokenAttr.WORD);
 					String[] words = mt.getSub(TokenAttr.WORD);
 					String[] poss = mt.getSub(TokenAttr.POS);
 
-					// cm3.incrementCount(ot, StrUtils.join(Token.DELIM, MultiToken.DELIM, words, poss), 1);
+					// cm3.incrementCount(ot, StrUtils.join(Token.DELIM, MultiToken.DELIM, words,
+					// poss), 1);
 
 					if (ot.equals(StrUtils.join("", words))) {
 						for (int i = 0; i < words.length; i++) {
@@ -136,7 +137,8 @@ public class SejongDataHandler {
 							}
 
 							if (start > -1 && end - start != 0) {
-								String str1 = StrUtils.join(MToken.DELIM, MultiToken.DELIM, words, poss, start, end + 1);
+								String str1 = StrUtils.join(MToken.DELIM, MultiToken.DELIM, words, poss, start,
+										end + 1);
 								String str2 = StrUtils.join("", words, start, end + 1);
 
 								int size = ts.size();
