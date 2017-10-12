@@ -3,6 +3,7 @@ package ohs.ml.neuralnet.com;
 import java.util.List;
 import java.util.Set;
 
+import edu.stanford.nlp.ling.Label;
 import ohs.io.FileUtils;
 import ohs.math.ArrayUtils;
 import ohs.matrix.DenseMatrix;
@@ -11,6 +12,7 @@ import ohs.ml.neuralnet.layer.BatchNormalizationLayer;
 import ohs.ml.neuralnet.layer.BidirectionalRecurrentLayer;
 import ohs.ml.neuralnet.layer.BidirectionalRecurrentLayer.Type;
 import ohs.ml.neuralnet.layer.ConvolutionalLayer;
+import ohs.ml.neuralnet.layer.DropoutLayer;
 import ohs.ml.neuralnet.layer.EmbeddingLayer;
 import ohs.ml.neuralnet.layer.FullyConnectedLayer;
 import ohs.ml.neuralnet.layer.LstmLayer;
@@ -38,9 +40,9 @@ public class Apps {
 
 		// testMIST();
 		// testCharRNN();
-		// testNER();
+		testNER();
 
-		testSentenceClassification();
+		// testSentenceClassification();
 
 		System.out.println("process ends.");
 	}
@@ -53,7 +55,7 @@ public class Apps {
 		param.setBatchSize(10);
 		param.setLearnRate(0.001);
 		param.setRegLambda(0.01);
-		param.setThreadSize(4);
+		param.setThreadSize(5);
 		param.setBpttSize(10);
 
 		IntegerMatrix X = new IntegerMatrix();
@@ -108,25 +110,6 @@ public class Apps {
 			}
 		}
 
-		// {
-		//
-		// IntegerArrayMatrix rX = data.getFirst();
-		// IntegerArrayMatrix rY = data.getSecond();
-		//
-		// double test_portion = 0.3;
-		// int test_size = (int) (1f * rX.size() * test_portion);
-		//
-		// for (int i = 0; i < rX.size(); i++) {
-		// // if (i < test_size) {
-		// // tX.add(rX.get(i));
-		// // tY.add(rY.get(i));
-		// // } else {
-		// X.add(rX.get(i));
-		// Y.add(rY.get(i));
-		// // }
-		// }
-		// }
-
 		int size1 = 0;
 		int size2 = 0;
 		int max_len = 0;
@@ -151,7 +134,7 @@ public class Apps {
 		NeuralNet nn = new NeuralNet();
 
 		if (type == 0) {
-			int num_filters = 12;
+			int num_filters = 100;
 			int window_size = 2;
 			int[] window_sizes = new int[] { 2 };
 
@@ -162,13 +145,14 @@ public class Apps {
 			nn.add(new ConvolutionalLayer(emb_size, window_size, num_filters));
 			nn.add(new NonlinearityLayer(new ReLU()));
 			nn.add(new MaxPoolingLayer(num_filters));
+			nn.add(new DropoutLayer());
 			nn.add(new FullyConnectedLayer(num_filters, output_size));
 			nn.add(new SoftmaxLayer(output_size));
 			nn.prepare();
 			nn.init();
 
 			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size(), null);
-			trainer.train(X, Y, null, null, 10000);
+			trainer.train(X, Y, Xt, Yt, 10000);
 			trainer.finish();
 		}
 
@@ -198,20 +182,20 @@ public class Apps {
 
 		{
 
-			IntegerMatrix rX = data.getFirst();
-			IntegerMatrix rY = data.getSecond();
+			IntegerMatrix X_ = data.getFirst();
+			IntegerMatrix Y_ = data.getSecond();
 
 			double test_portion = 0.3;
-			int test_size = (int) (1f * rX.size() * test_portion);
+			int test_size = (int) (1f * X_.size() * test_portion);
 
-			for (int i = 0; i < rX.size(); i++) {
-				// if (i < test_size) {
-				// tX.add(rX.get(i));
-				// tY.add(rY.get(i));
-				// } else {
-				X.add(rX.get(i));
-				Y.add(rY.get(i));
-				// }
+			for (int i = 0; i < X_.size(); i++) {
+				if (i < test_size) {
+					Xt.add(X_.get(i));
+					Yt.add(Y_.get(i));
+				} else {
+					X.add(X_.get(i));
+					Y.add(Y_.get(i));
+				}
 			}
 
 		}
@@ -233,28 +217,13 @@ public class Apps {
 		int l1_size = 100;
 		int l2_size = 20;
 		int output_size = vocab.size();
-		int type = 5;
+		int type = 4;
 
 		System.out.println(vocab.info());
 
 		NeuralNet nn = new NeuralNet();
 
-		if (type == 0) {
-			int filter_size = 12;
-
-			nn.add(new EmbeddingLayer(vocab_size, emb_size, true));
-			nn.add(new ConvolutionalLayer(emb_size, 3, filter_size));
-			nn.add(new NonlinearityLayer(new ReLU()));
-			nn.add(new MaxPoolingLayer(filter_size));
-			nn.add(new FullyConnectedLayer(filter_size, output_size));
-			nn.add(new SoftmaxLayer(output_size));
-			nn.prepare();
-			nn.init();
-
-			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size(), null);
-			trainer.train(X, Y, null, null, 10000);
-			trainer.finish();
-		} else if (type == 1) {
+		if (type == 1) {
 			nn.add(new EmbeddingLayer(vocab_size, emb_size, false));
 			nn.add(new FullyConnectedLayer(emb_size, l1_size));
 			nn.add(new NonlinearityLayer(new Tanh()));
@@ -320,17 +289,6 @@ public class Apps {
 			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size(), null);
 			trainer.train(X, Y, null, null, 10000);
 			trainer.finish();
-		} else if (type == 5) {
-			nn.add(new EmbeddingLayer(vocab_size, emb_size, true));
-			nn.add(new ConvolutionalLayer(emb_size, 3, 5));
-			nn.add(new FullyConnectedLayer(l1_size, output_size));
-			nn.add(new SoftmaxLayer(output_size));
-			nn.prepare();
-			nn.init();
-
-			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size(), null);
-			trainer.train(X, Y, null, null, 10000);
-			trainer.finish();
 		}
 	}
 
@@ -386,7 +344,7 @@ public class Apps {
 		param.setInputSize(100);
 		param.setHiddenSize(50);
 		param.setOutputSize(10);
-		param.setBatchSize(1);
+		param.setBatchSize(20);
 		param.setLearnRate(0.001);
 		param.setRegLambda(0.01);
 		param.setThreadSize(5);
@@ -415,12 +373,18 @@ public class Apps {
 			Yt = (IntegerMatrix) objs[1];
 		}
 
+		X.trimToSize();
+		Y.trimToSize();
+
+		Xt.trimToSize();
+		Yt.trimToSize();
+
 		System.out.println(vocab.info());
 		System.out.println(labelIndexer.info());
 		System.out.println(X.sizeOfEntries());
 
-		int vocab_size = vocab.size();
-		int embedding_size = 200;
+		int voc_size = vocab.size();
+		int emb_size = 200;
 		int l1_size = 100;
 		int l2_size = 20;
 		int output_size = labelIndexer.size();
@@ -430,7 +394,7 @@ public class Apps {
 		NeuralNet nn = new NeuralNet();
 
 		if (type == 0) {
-			nn.add(new EmbeddingLayer(vocab_size, embedding_size, false));
+			nn.add(new EmbeddingLayer(voc_size, emb_size, false));
 			nn.add(new FullyConnectedLayer(nn.last().getOutputSize(), l1_size));
 			nn.add(new BatchNormalizationLayer(l1_size));
 			nn.add(new NonlinearityLayer(new Tanh()));
@@ -444,8 +408,8 @@ public class Apps {
 			trainer.train(X, Y, Xt, Yt, 10000);
 			trainer.finish();
 		} else if (type == 1) {
-			nn.add(new EmbeddingLayer(vocab_size, embedding_size, true));
-			nn.add(new FullyConnectedLayer(embedding_size, l1_size));
+			nn.add(new EmbeddingLayer(voc_size, emb_size, true));
+			nn.add(new FullyConnectedLayer(emb_size, l1_size));
 			nn.add(new NonlinearityLayer(new Tanh()));
 			// nn.add(new DropoutLayer(l1_size));
 			nn.add(new FullyConnectedLayer(l1_size, l2_size));
@@ -459,9 +423,8 @@ public class Apps {
 			trainer.train(X, Y, Xt, Yt, 10000);
 			trainer.finish();
 		} else if (type == 2) {
-			nn.add(new EmbeddingLayer(vocab_size, embedding_size, true));
-			// nn.add(new BatchNormalizationLayer(embedding_size));
-			nn.add(new BidirectionalRecurrentLayer(Type.RNN, embedding_size, l1_size, param.getBpttSize(), new Tanh()));
+			nn.add(new EmbeddingLayer(voc_size, emb_size, true));
+			nn.add(new BidirectionalRecurrentLayer(Type.LSTM, emb_size, l1_size, param.getBpttSize(), new ReLU()));
 			// nn.add(new DropoutLayer(l1_size));
 			// nn.add(new BatchNormalizationLayer(l1_size));
 			nn.add(new FullyConnectedLayer(l1_size, output_size));
@@ -475,23 +438,23 @@ public class Apps {
 
 			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size(), labelIndexer);
 
-			for (int i = 0; i < 1000; i++) {
+			for (int i = 0; i < ranges.length; i++) {
 				ArrayUtils.shuffle(locs.values());
+
+				System.out.printf("batches [%d/%d]\n", i + 1, ranges.length);
 
 				for (int j = 0; j < ranges.length; j++) {
 					int[] range = ranges[j];
-					IntegerMatrix Xsub = new IntegerMatrix(range[1] - range[0]);
-					IntegerMatrix Ysub = new IntegerMatrix(range[1] - range[0]);
+					IntegerMatrix Xm = new IntegerMatrix(range[1] - range[0]);
+					IntegerMatrix Ym = new IntegerMatrix(range[1] - range[0]);
 
 					for (int k = range[0]; k < range[1]; k++) {
 						int loc = locs.get(k);
-						Xsub.add(X.get(loc));
-						Ysub.add(Y.get(loc));
+						Xm.add(X.get(loc));
+						Ym.add(Y.get(loc));
 					}
-
-					trainer.train(Xsub, Ysub, Xt, Yt, 1);
+					trainer.train(Xm, Ym, Xt, Yt, 1);
 				}
-
 			}
 
 			trainer.finish();

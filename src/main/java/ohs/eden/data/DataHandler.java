@@ -7,10 +7,11 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.text.DecimalFormat;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.document.Document;
@@ -47,6 +48,7 @@ import ohs.nlp.ling.types.MToken;
 import ohs.types.common.IntPair;
 import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
+import ohs.types.generic.CounterMapMap;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
 import scala.collection.mutable.WrappedArray;
@@ -66,8 +68,11 @@ public class DataHandler {
 		// dh.tokenize();
 
 		// dh.extractKeywords();
+		// dh.computeKeywordWeights();
 		// dh.mapKeywords();
-		dh.format();
+		// dh.getCocounts();
+		dh.getYearCocounts();
+		// dh.format();
 
 		System.out.println("process ends.");
 	}
@@ -105,7 +110,11 @@ public class DataHandler {
 							continue;
 						}
 
-						if (kwd.length() > 0) {
+						if (kwd.matches("^\\p{Punct}+$") || kwd.matches("^\\d+$")) {
+							continue;
+						}
+
+						if (kwd.length() > 1) {
 							c.incrementCount(kwd, 1);
 						}
 					}
@@ -116,19 +125,17 @@ public class DataHandler {
 		FileUtils.writeStringCounterAsText(KPPath.DATA_DIR + "scenario/kwds.txt", c);
 	}
 
-	public void mapKeywords() throws Exception {
+	public void computeKeywordWeights() throws Exception {
 		Counter<String> c = FileUtils.readStringCounterFromText(KPPath.DATA_DIR + "scenario/kwds.txt");
-		// c.pruneKeysBelowThreshold(10);
 
 		CandidatePhraseSearcher cps = CandidatePhraseSearcher.newCandidatePhraseSearcher(c.keySet());
 
 		CounterMap<String, String> kwdTypeDocFreqs = Generics.newCounterMap();
 		CounterMap<String, String> kwdTypeCnts = Generics.newCounterMap();
-		CounterMap<String, String> kwdYearCnts = Generics.newCounterMap();
 
 		Counter<String> numDocs = Generics.newCounter();
 
-		for (File file : FileUtils.getFilesUnder(KPPath.COL_DIR + "line_2/paper")) {
+		for (File file : FileUtils.getFilesUnder(KPPath.COL_DIR + "line_2/")) {
 			for (String line : FileUtils.readLinesFromText(file)) {
 				List<String> ps = StrUtils.split("\t", line);
 
@@ -189,13 +196,8 @@ public class DataHandler {
 				for (String kwd : cc.keySet()) {
 					kwdTypeCnts.incrementCount(kwd, type, cc.getCount(kwd));
 					kwdTypeDocFreqs.incrementCount(kwd, type, 1);
-					if (date.length() > 4) {
-						kwdYearCnts.incrementCount(kwd, date.substring(0, 4), cc.getCount(kwd));
-					}
 				}
-
 				numDocs.incrementCount(type, 1);
-
 			}
 		}
 
@@ -218,7 +220,208 @@ public class DataHandler {
 
 		FileUtils.writeStringCounterMapAsText(KPPath.DATA_DIR + "scenario/kwds_cnt.txt", kwdTypeCnts);
 		FileUtils.writeStringCounterMapAsText(KPPath.DATA_DIR + "scenario/kwds_tfidf.txt", cm4);
-		FileUtils.writeStringCounterMapAsText(KPPath.DATA_DIR + "scenario/kwds_cnt_year.txt", kwdYearCnts);
+	}
+
+	public void mapKeywords() throws Exception {
+
+		CandidatePhraseSearcher cps = null;
+
+		{
+			Counter<String> c = FileUtils.readStringCounterFromText(KPPath.DATA_DIR + "scenario/kwds.txt");
+			cps = CandidatePhraseSearcher.newCandidatePhraseSearcher(c.keySet());
+		}
+
+		List<String> res = Generics.newLinkedList();
+
+		for (File file : FileUtils.getFilesUnder(KPPath.COL_DIR + "line_2/")) {
+			for (String line : FileUtils.readLinesFromText(file)) {
+				List<String> ps = StrUtils.split("\t", line);
+
+				if (ps.size() != 9) {
+					continue;
+				}
+
+				ps = StrUtils.unwrap(ps);
+
+				String type = ps.get(0);
+				String title = ps.get(4);
+				String abs = ps.get(5);
+				String date = ps.get(8).trim();
+
+				if (date.length() == 8) {
+
+				} else if (date.length() == 6) {
+					date = date + "00";
+				} else if (date.length() == 4) {
+					date = date + "0000";
+				} else {
+					date = date.replace("-", "");
+				}
+
+				if (date.length() < 4 || !date.matches("^\\d+$") || date.equals("0000")) {
+					continue;
+				}
+
+				if (type.equals("report")) {
+					continue;
+				}
+
+				String content = title + "<nl>" + abs;
+
+				MDocument d = new MDocument();
+
+				for (String sent : content.split("<nl>")) {
+					MSentence s = new MSentence();
+
+					for (String word : StrUtils.split(sent)) {
+						MToken t = new MToken();
+						t.add(word);
+						s.add(t);
+					}
+					d.add(s);
+				}
+
+				List<List<IntPair>> locData = cps.search(d);
+
+				Counter<String> tmp = Generics.newCounter();
+
+				for (int i = 0; i < locData.size(); i++) {
+					MSentence s = d.get(i);
+					List<IntPair> locs = locData.get(i);
+
+					for (IntPair p : locs) {
+						String kwd = StrUtils.join(" ", s.subSentence(p.getFirst(), p.getSecond()).getTokenStrings(0));
+						tmp.incrementCount(kwd, 1);
+					}
+				}
+
+				if (tmp.size() == 0) {
+					continue;
+				}
+
+				String year = date.substring(0, 4);
+
+				List<String> l = Generics.newLinkedList();
+				l.add(type);
+				l.add(year);
+
+				for (String kwd : tmp.getSortedKeys()) {
+					int cnt = (int) tmp.getCount(kwd);
+					l.add(String.format("%s:%d", kwd, cnt));
+				}
+
+				res.add(StrUtils.join("\t", l));
+			}
+		}
+
+		FileUtils.writeStringCollectionAsText(KPPath.DATA_DIR + "scenario/doc_kwds.txt", res);
+	}
+
+	public void getCocounts() throws Exception {
+		Set<String> targets = Generics
+				.newHashSet(FileUtils.readLinesFromText(KPPath.DATA_DIR + "scenario/kwds_target.txt"));
+
+		CounterMapMap<String, String, String> cmm = Generics.newCounterMapMap();
+
+		for (String line : FileUtils.readLinesFromText(KPPath.DATA_DIR + "scenario/doc_kwds.txt")) {
+			String[] ps = line.split("\t");
+			String type = ps[0];
+			String year = ps[1];
+			Counter<String> c = Generics.newCounter(ps.length - 2);
+
+			for (int i = 2; i < ps.length; i++) {
+				String p = ps[i];
+				String[] two = StrUtils.split2Two(":", p);
+				c.incrementCount(two[0], Double.parseDouble(two[1]));
+			}
+
+			List<String> kwds = c.getSortedKeys();
+
+			for (int i = 0; i < kwds.size(); i++) {
+				String k1 = kwds.get(i);
+				double cnt1 = c.getCount(k1);
+
+				if (!targets.contains(k1)) {
+					continue;
+				}
+
+				for (int j = 0; j < kwds.size(); j++) {
+					String k2 = kwds.get(j);
+					double cnt2 = c.getCount(k2);
+					if (i == j) {
+						continue;
+					}
+					cmm.incrementCount(k1, k2, type, Math.min(cnt1, cnt2));
+				}
+			}
+		}
+
+		{
+			TextFileWriter writer = new TextFileWriter(KPPath.DATA_DIR + "scenario/kwds_target_cooccur.txt");
+
+			for (String k1 : cmm.getOutKeyCountSums().getSortedKeys()) {
+				CounterMap<String, String> cm = cmm.getCounterMap(k1);
+
+				for (String k2 : cm.getOutKeyCountSums().getSortedKeys()) {
+					Counter<String> c = cm.getCounter(k2);
+					writer.write(String.format("%s\t%s\t%s\n", k1, k2, c.toString(c.size())));
+				}
+			}
+			writer.close();
+		}
+	}
+
+	public void getYearCocounts() throws Exception {
+
+		Set<String> targets = Generics.newHashSet();
+
+		for (String line : FileUtils.readLinesFromText(KPPath.DATA_DIR + "scenario/kwds_target_cooccur.txt")) {
+			String[] ps = line.split("\t");
+			targets.add(ps[0]);
+			targets.add(ps[1]);
+		}
+
+		CounterMapMap<String, String, String> cmm = Generics.newCounterMapMap();
+
+		for (String line : FileUtils.readLinesFromText(KPPath.DATA_DIR + "scenario/doc_kwds.txt")) {
+			String[] ps = line.split("\t");
+			String type = ps[0];
+			String year = ps[1];
+			Counter<String> c = Generics.newCounter(ps.length - 2);
+
+			for (int i = 2; i < ps.length; i++) {
+				String p = ps[i];
+				String[] two = StrUtils.split2Two(":", p);
+				c.incrementCount(two[0], Double.parseDouble(two[1]));
+			}
+
+			List<String> kwds = c.getSortedKeys();
+
+			for (int i = 0; i < kwds.size(); i++) {
+				String k1 = kwds.get(i);
+				double cnt1 = c.getCount(k1);
+
+				if (!targets.contains(k1)) {
+					continue;
+				}
+
+				cmm.incrementCount(k1, type, year, cnt1);
+			}
+		}
+
+		{
+			TextFileWriter writer = new TextFileWriter(KPPath.DATA_DIR + "scenario/kwds_target_year.txt");
+
+			for (String k1 : cmm.getOutKeyCountSums().getSortedKeys()) {
+				CounterMap<String, String> cm = cmm.getCounterMap(k1);
+
+				for (String k2 : cm.getOutKeyCountSums().getSortedKeys()) {
+					Counter<String> c = cm.getCounter(k2);
+					writer.write(String.format("%s\t%s\t%s\n", k1, k2, c.toString(c.size())));
+				}
+			}
+			writer.close();
+		}
 	}
 
 	public void format() throws Exception {
@@ -237,19 +440,17 @@ public class DataHandler {
 			int y = base + i;
 			years.add(y + "");
 		}
-		
-		
 
 		List<String> kwds = Generics.newArrayList();
-		
+
 		{
 			Counter<String> c1 = kwdYearCnts.getOutKeyCountSums();
-			
+
 			c1.pruneKeysBelowThreshold(10);
-			
+
 			Counter<String> c2 = kwdTypeWeights.getOutKeyCountSums();
 			c2.pruneExcept(c1.keySet());
-			
+
 			kwds = c2.getSortedKeys();
 		}
 

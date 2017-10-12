@@ -18,24 +18,19 @@ public class DropoutLayer extends Layer {
 	 */
 	private static final long serialVersionUID = -4640822254772512028L;
 
-	private DenseMatrix M;
-
-	private int output_size;
-
 	private double p = 0.5;
 
-	private DenseMatrix tmp_dX;
+	private DenseMatrix tmp_dX = new DenseMatrix(0);
 
-	private DenseMatrix tmp_M;
+	private DenseMatrix tmp_M = new DenseMatrix(0);
 
-	private DenseMatrix tmp_Y;
+	private DenseMatrix tmp_Y = new DenseMatrix(0);
 
-	public DropoutLayer(int output_size) {
-		this(output_size, 0.5);
+	public DropoutLayer() {
+		this(0.5);
 	}
 
-	public DropoutLayer(int output_size, double p) {
-		this.output_size = output_size;
+	public DropoutLayer(double p) {
 		this.p = p;
 	}
 
@@ -46,9 +41,7 @@ public class DropoutLayer extends Layer {
 	@Override
 	public DenseMatrix backward(Object I) {
 		DenseMatrix dY = (DenseMatrix) I;
-		if (tmp_dX == null || tmp_dX.rowSize() < dY.rowSize()) {
-			tmp_dX = dY.copy(true);
-		}
+		VectorUtils.enlarge(tmp_dX, dY.rowSize(), dY.colSize());
 		DenseMatrix dX = tmp_dX.rows(dY.rowSize());
 		VectorUtils.copy(dY, dX);
 		return dX;
@@ -56,7 +49,7 @@ public class DropoutLayer extends Layer {
 
 	@Override
 	public Layer copy() {
-		return new DropoutLayer(output_size, output_size);
+		return new DropoutLayer(p);
 	}
 
 	@Override
@@ -64,22 +57,16 @@ public class DropoutLayer extends Layer {
 		DenseMatrix X = (DenseMatrix) I;
 		int data_size = X.rowSize();
 
-		if (tmp_Y == null || tmp_Y.rowSize() < data_size) {
-			tmp_Y = X.copy(true);
-		}
+		VectorUtils.enlarge(tmp_Y, data_size, X.colSize());
 
-		DenseMatrix Y = tmp_Y.rows(X.rowSize());
+		DenseMatrix Y = tmp_Y.rows(data_size);
 
 		if (is_testing) {
 			VectorUtils.copy(X, Y);
 		} else {
-			if (tmp_M == null || tmp_M.rowSize() < X.rowSize()) {
-				tmp_M = X.copy(true);
-				tmp_Y = X.copy(true);
-			}
+			VectorUtils.enlarge(tmp_M, data_size, X.colSize());
 
-			M = tmp_M.rows(X.rowSize());
-
+			DenseMatrix M = tmp_M.rows(data_size);
 			VectorMath.random(0, 1, M);
 			VectorMath.mask(M, p);
 			M.multiply(1f / p); // inverted drop-out
@@ -89,29 +76,17 @@ public class DropoutLayer extends Layer {
 		return Y;
 	}
 
-	@Override
-	public int getOutputSize() {
-		return output_size;
-	}
-
 	public double getP() {
 		return p;
 	}
 
 	@Override
-	public DenseMatrix getW() {
-		return null;
-	}
-
-	@Override
 	public void readObject(ObjectInputStream ois) throws Exception {
-		output_size = ois.readInt();
 		p = ois.readDouble();
 	}
 
 	@Override
 	public void writeObject(ObjectOutputStream oos) throws Exception {
-		oos.writeInt(output_size);
 		oos.writeDouble(p);
 	}
 

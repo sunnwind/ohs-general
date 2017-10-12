@@ -15,6 +15,8 @@ import ohs.ml.neuralnet.layer.FullyConnectedLayer;
 import ohs.ml.neuralnet.layer.Layer;
 import ohs.ml.neuralnet.layer.NonlinearityLayer;
 import ohs.ml.neuralnet.layer.SoftmaxLayer;
+import ohs.types.generic.Indexer;
+import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
 import ohs.utils.Generics;
 
@@ -34,11 +36,21 @@ public class NeuralNet extends ArrayList<Layer> {
 	 */
 	private static final long serialVersionUID = -8546621903237371147L;
 
+	private Indexer<String> labelIdxer;
+
+	private Vocab vocab;
+
 	/**
 	 * 
 	 */
 
 	public NeuralNet() {
+
+	}
+
+	public NeuralNet(Indexer<String> labelIdxer, Vocab vocab) {
+		this.labelIdxer = labelIdxer;
+		this.vocab = vocab;
 	}
 
 	public Object backward(DenseMatrix D) {
@@ -177,7 +189,16 @@ public class NeuralNet extends ArrayList<Layer> {
 		return get(size() - 1);
 	}
 
+	public void prepare() {
+		for (Layer l : this) {
+			l.prepare();
+		}
+	}
+
 	public void readObject(ObjectInputStream ois) throws Exception {
+		labelIdxer = FileUtils.readStringIndexer(ois);
+		vocab = new Vocab(ois);
+
 		int size = ois.readInt();
 
 		for (int i = 0; i < size; i++) {
@@ -220,14 +241,11 @@ public class NeuralNet extends ArrayList<Layer> {
 		}
 	}
 
-	public void prepare() {
-		for (Layer l : this) {
-			l.prepare();
-		}
-	}
-
 	public void writeObject(ObjectOutputStream oos) throws Exception {
+		FileUtils.writeStringIndexer(oos, labelIdxer);
+		vocab.writeObject(oos);
 		oos.writeInt(size());
+
 		for (int i = 0; i < size(); i++) {
 			Layer l = get(i);
 			oos.writeUTF(l.getClass().getName());

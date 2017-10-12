@@ -13,12 +13,21 @@ public class ReLU implements Nonlinearity {
 	@Override
 	public void backward(DenseMatrix dY, DenseMatrix dX) {
 		VectorMath.reLUGradient(dY, dX);
-		
-		
+
 	}
 
 	@Override
 	public void forward(DenseMatrix X, DenseMatrix Y) {
-		VectorMath.reLU(X, Y);
+		// for (int i = 0; i < X.rowSize(); i++) {
+		// DenseVector x = X.row(i);
+		// DenseVector y = Y.row(i);
+		//
+		// for (int j = 0; j < x.size(); j++) {
+		// double v1 = x.value(j);
+		// double v2 = CommonMath.reLU(v1);
+		// y.add(j, v2);
+		// }
+		// }
+		VectorMath.reLU(X, Y); 
 	}
 }

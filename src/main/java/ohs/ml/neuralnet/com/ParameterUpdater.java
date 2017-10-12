@@ -113,7 +113,7 @@ public class ParameterUpdater {
 		VectorMath.multiply(dLw, v, dLg);
 		dLg.multiply(1f / norm_v);
 	}
- 
+
 	private void doWeightNormalization2(DenseVector w, DenseVector v) {
 		double g = VectorMath.normL2(w);
 		double norm_v = VectorMath.normL2(v);
@@ -134,7 +134,7 @@ public class ParameterUpdater {
 		double dx = 0;
 		double rv1 = 0;
 		double rv2 = 0;
-		double batch_size_scale = use_batch_size_scale ? 1f / batch_size : 1;
+		double batch_size_scale = use_batch_size_scale ? 1d / batch_size : 1;
 
 		for (int i = 0; i < locs.length; i++) {
 			int loc = locs[i];

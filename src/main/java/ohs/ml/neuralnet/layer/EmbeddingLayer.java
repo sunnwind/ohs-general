@@ -1,6 +1,7 @@
 package ohs.ml.neuralnet.layer;
 
 import ohs.math.VectorMath;
+import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
 import ohs.ml.neuralnet.com.ParameterInitializer;
@@ -71,21 +72,33 @@ public class EmbeddingLayer extends Layer {
 		return new EmbeddingLayer(W, learn_embedding);
 	}
 
+	private DenseMatrix tmp_Y = new DenseMatrix(0);
+
 	@Override
 	public Object forward(Object I) {
 		this.X = I;
 
 		if (I instanceof IntegerArray) {
 			IntegerArray X = (IntegerArray) I;
-			DenseMatrix Y = W.rows(X.values());
+			int data_size = X.size();
+			VectorUtils.enlarge(tmp_Y, data_size, W.colSize());
+			DenseMatrix Wm = W.rows(X.values());
+			DenseMatrix Y = tmp_Y.rows(data_size);
+			VectorUtils.copy(Wm, Y);
 			this.Y = Y;
 		} else if (I instanceof IntegerMatrix) {
 			IntegerMatrix X = (IntegerMatrix) I;
 			DenseTensor Y = new DenseTensor();
 			Y.ensureCapacity(X.size());
 
+			VectorUtils.enlarge(tmp_Y, X.sizeOfEntries(), W.colSize());
+			int start = 0;
 			for (IntegerArray Xm : X) {
-				Y.add(W.rows(Xm.values()));
+				DenseMatrix Wm = W.rows(Xm.values());
+				DenseMatrix Ym = tmp_Y.rows(start, Xm.size());
+				VectorUtils.copy(Wm, Ym);
+				Y.add(Ym);
+				start += Xm.size();
 			}
 			this.Y = Y;
 		}

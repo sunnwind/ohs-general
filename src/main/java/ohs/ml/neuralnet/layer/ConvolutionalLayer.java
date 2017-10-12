@@ -99,7 +99,6 @@ public class ConvolutionalLayer extends Layer {
 		num_filters = W.colSize();
 
 		pad_size = window_size - 1;
-
 	}
 
 	public ConvolutionalLayer(int emb_size, int window_size, int num_filters) {

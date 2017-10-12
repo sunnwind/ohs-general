@@ -74,8 +74,8 @@ public class DenseTensor extends ArrayList<DenseMatrix> {
 	}
 
 	public void add(double v) {
-		for (int i = 0; i < size(); i++) {
-			get(i).add(v);
+		for (DenseMatrix a : this) {
+			a.add(v);
 		}
 	}
 
@@ -85,14 +85,10 @@ public class DenseTensor extends ArrayList<DenseMatrix> {
 
 	public ByteSize byteSize() {
 		long bytes = 0;
-		for (DenseMatrix row : this) {
-			bytes += row.byteSize().getBytes();
+		for (DenseMatrix a : this) {
+			bytes += a.byteSize().getBytes();
 		}
 		return new ByteSize(bytes);
-	}
-
-	public int colSize() {
-		return get(0).size();
 	}
 
 	public int indexAt(int loc) {
@@ -138,8 +134,8 @@ public class DenseTensor extends ArrayList<DenseMatrix> {
 	}
 
 	public void multiply(double factor) {
-		for (int i = 0; i < size(); i++) {
-			get(i).multiply(factor);
+		for (DenseMatrix a : this) {
+			a.multiply(factor);
 		}
 	}
 
@@ -175,18 +171,18 @@ public class DenseTensor extends ArrayList<DenseMatrix> {
 		return size();
 	}
 
-	public int sizeOfInnerVectors() {
-		int ret = 0;
-		for (DenseMatrix a : this) {
-			ret += a.rowSize();
-		}
-		return ret;
-	}
-
 	public int sizeOfEntries() {
 		int ret = 0;
 		for (DenseMatrix a : this) {
 			ret += a.sizeOfEntries();
+		}
+		return ret;
+	}
+
+	public int sizeOfInnerVectors() {
+		int ret = 0;
+		for (DenseMatrix a : this) {
+			ret += a.rowSize();
 		}
 		return ret;
 	}
@@ -250,8 +246,8 @@ public class DenseTensor extends ArrayList<DenseMatrix> {
 
 	public void writeObject(ObjectOutputStream oos) throws Exception {
 		oos.writeInt(size());
-		for (DenseMatrix row : this) {
-			row.writeObject(oos);
+		for (DenseMatrix m : this) {
+			m.writeObject(oos);
 		}
 	}
 

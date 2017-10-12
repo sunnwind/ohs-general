@@ -89,7 +89,6 @@ public class FullyConnectedLayer extends Layer {
 				DenseVector dw = dW.row(idx);
 				VectorMath.add(dw, dY.row(i), dw);
 			}
-
 		}
 		return dX;
 	}
@@ -105,13 +104,10 @@ public class FullyConnectedLayer extends Layer {
 
 		int data_size = I instanceof DenseMatrix ? ((DenseMatrix) I).rowSize() : ((IntegerArray) I).size();
 
-		// if (tmp_Y.rowSize() < data_size) {
-		// tmp_Y = new DenseMatrix(data_size, output_size);
-		// }
-
 		VectorUtils.enlarge(tmp_Y, data_size, output_size);
 
 		DenseMatrix Y = tmp_Y.rows(data_size);
+		Y.setAll(0);
 
 		if (I instanceof DenseMatrix) {
 			DenseMatrix X = (DenseMatrix) I;

@@ -207,10 +207,10 @@ public class VectorUtils {
 		return ret;
 	}
 
-	public static boolean enlarge(DenseMatrix a, int row_size, int col_size) {
+	public static boolean enlarge(DenseMatrix a, int new_row_size, int new_col_size) {
 		boolean ret = false;
-		if (row_size > a.rowSize() || col_size > a.colSize()) {
-			double[][] v = new double[row_size][col_size];
+		if (new_row_size > a.rowSize() || new_col_size > a.colSize()) {
+			double[][] v = new double[new_row_size][new_col_size];
 			a.setValues(v);
 			ret = true;
 		}

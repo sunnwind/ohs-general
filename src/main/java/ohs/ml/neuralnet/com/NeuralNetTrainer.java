@@ -14,6 +14,7 @@ import ohs.matrix.DenseMatrix;
 import ohs.ml.eval.Performance;
 import ohs.ml.eval.PerformanceEvaluator;
 import ohs.ml.neuralnet.cost.CrossEntropyCostFunction;
+import ohs.ml.neuralnet.layer.BidirectionalRecurrentLayer;
 import ohs.ml.neuralnet.layer.Layer;
 import ohs.ml.neuralnet.layer.LstmLayer;
 import ohs.ml.neuralnet.layer.RnnLayer;
@@ -76,7 +77,6 @@ public class NeuralNetTrainer {
 					correct_cnt += cf.getCorrectCnt();
 
 					nn.backward(D);
-
 					pu.update();
 				}
 			} else if (X instanceof IntegerMatrix) {
@@ -107,9 +107,6 @@ public class NeuralNetTrainer {
 					IntegerMatrix X_ = (IntegerMatrix) X;
 					IntegerMatrix Y_ = (IntegerMatrix) Y;
 
-					IntegerArray Xm = new IntegerArray();
-					IntegerArray Ym = new IntegerArray();
-
 					while ((data_loc = range_cnt.getAndIncrement()) < data_locs.length) {
 						int loc = data_locs[data_loc];
 						IntegerArray x = X_.get(loc);
@@ -118,15 +115,10 @@ public class NeuralNetTrainer {
 						int[][] ranges = BatchUtils.getBatchRanges(x.size(), batch_size);
 
 						for (int i = 0; i < ranges.length; i++) {
-							Xm.clear();
-							Ym.clear();
-
 							int[] range = ranges[i];
 
-							for (int j = range[0]; j < range[1]; j++) {
-								Xm.add(x.get(j));
-								Ym.add(y.get(j));
-							}
+							IntegerArray Xm = x.subArray(range[0], range[1]);
+							IntegerArray Ym = y.subArray(range[0], range[1]);
 
 							DenseMatrix Yh = (DenseMatrix) nn.forward(Xm);
 							DenseMatrix D = cf.evaluate(Yh, Ym);
@@ -135,7 +127,6 @@ public class NeuralNetTrainer {
 							correct_cnt += cf.getCorrectCnt();
 
 							nn.backward(D);
-
 							pu.update();
 						}
 					}
@@ -155,6 +146,8 @@ public class NeuralNetTrainer {
 				} else if (l instanceof LstmLayer) {
 					LstmLayer n = (LstmLayer) l;
 					n.resetH0();
+				} else if (l instanceof BidirectionalRecurrentLayer) {
+
 				}
 			}
 		}
@@ -233,6 +226,7 @@ public class NeuralNetTrainer {
 		this.nn = nn;
 		this.param = param;
 		this.data_size = data_size;
+		this.labelIndexer = labelIndexer;
 
 		int thread_size = param.getThreadSize();
 		List<NeuralNet> nns = copy(nn, thread_size - 1);
@@ -419,7 +413,8 @@ public class NeuralNetTrainer {
 				data_locs = ArrayUtils.range(data_size);
 				ranges = BatchUtils.getBatchRanges(data_size, param.getBatchSize());
 			} else if (Y instanceof IntegerMatrix) {
-				data_locs = ArrayUtils.range(((IntegerMatrix) X).sizeOfEntries());
+				data_size = ((IntegerMatrix) X).sizeOfEntries();
+				data_locs = ArrayUtils.range(((IntegerMatrix) X).size());
 			}
 		}
 
@@ -477,21 +472,40 @@ public class NeuralNetTrainer {
 				if (X instanceof DenseMatrix) {
 					yh = nn.classify(Xt);
 					y = (IntegerArray) Yt;
-				} else {
-					IntegerMatrix Xm = (IntegerMatrix) Xt;
-					IntegerMatrix Ym = (IntegerMatrix) Yt;
+				} else if (X instanceof IntegerMatrix) {
+					if (Y instanceof IntegerArray) {
+						IntegerMatrix Xm = (IntegerMatrix) Xt;
+						IntegerArray Ym = (IntegerArray) Yt;
 
-					y = new IntegerArray(Xm.size());
-					yh = new IntegerArray(Xm.size());
+						y = new IntegerArray(Xm.size());
+						yh = new IntegerArray(Xm.size());
 
-					for (int j = 0; j < Xm.size(); j++) {
-						IntegerArray xm = Xm.get(j);
-						IntegerArray ym = Ym.get(j);
-						IntegerArray yhm = nn.classify(xm);
+						int[][] ranges = BatchUtils.getBatchRanges(Xm.size(), param.getBatchSize());
 
-						for (int k = 0; k < ym.size(); k++) {
-							y.add(ym.get(k));
-							yh.add(yhm.get(k));
+						for (int j = 0; j < ranges.length; j++) {
+							int[] range = ranges[j];
+							IntegerMatrix xm = Xm.subMatrix(range[0], range[1]);
+							IntegerArray yhm = nn.classify(xm);
+
+							y.addAll(Ym.subArray(range[0], range[1]));
+							yh.addAll(yhm);
+						}
+					} else if (Y instanceof IntegerMatrix) {
+						IntegerMatrix Xm = (IntegerMatrix) Xt;
+						IntegerMatrix Ym = (IntegerMatrix) Yt;
+
+						y = new IntegerArray(Xm.sizeOfEntries());
+						yh = new IntegerArray(Xm.sizeOfEntries());
+
+						for (int j = 0; j < Xm.size(); j++) {
+							IntegerArray xm = Xm.get(j);
+							IntegerArray ym = Ym.get(j);
+							IntegerArray yhm = nn.classify(xm);
+
+							for (int k = 0; k < ym.size(); k++) {
+								y.add(ym.get(k));
+								yh.add(yhm.get(k));
+							}
 						}
 					}
 				}

@@ -22,6 +22,7 @@ import ohs.corpus.type.RawDocumentCollection;
 import ohs.eden.keyphrase.cluster.KPPath;
 import ohs.io.FileUtils;
 import ohs.io.RandomAccessDenseMatrix;
+import ohs.io.TextFileWriter;
 import ohs.matrix.DenseMatrix;
 import ohs.ml.glove.CooccurrenceCounter;
 import ohs.ml.glove.GloveModel;
@@ -55,55 +56,78 @@ public class KorDataHandler {
 		// dh.getKeyphrases();
 		// dh.getKeyphrasePatterns();
 
-		// dh.test();
+		dh.test();
 
 		System.out.println("process ends.");
 	}
 
 	public void test() throws Exception {
-		List<String> ins = StrUtils.split("\r\n", FileUtils.readFromText(KPPath.KP_DIR + "ext/test_trend.txt"));
+
+		List<String> ins = FileUtils.readLinesFromText(KPPath.KP_DIR + "ext/label_data.txt");
 		List<String> outs = Generics.newLinkedList();
-		outs.add(ins.get(0));
+		int doc_cnt = 0;
 
-		List<String> tmp = Generics.newLinkedList();
+		for (int i = 0; i < ins.size(); i++) {
+			String line = ins.get(i);
+			List<String> ps = StrUtils.split("\t", line);
 
-		for (int i = 1; i < ins.size(); i++) {
-			String s = ins.get(i);
+			MDocument d1 = MDocument.newDocument(ps.get(1));
+			MDocument d2 = MDocument.newDocument(ps.get(2));
 
-			if (s.startsWith("SCTM") || s.startsWith("IWT") || s.startsWith("GTB")) {
-				if (tmp.size() > 0) {
-					String t = StrUtils.join(" ", tmp);
+			List<String> kps = Generics.newArrayList();
 
-					List<String> ps = StrUtils.split("\t", t);
-
-					if (ps.size() != 3) {
-						String t1 = ps.get(0);
-						String t2 = ps.get(1);
-						String t3 = StrUtils.join(" ", ps, 2, ps.size());
-
-						tmp.clear();
-
-						tmp.add(t1);
-						tmp.add(t2);
-						tmp.add(t3);
-					}
-
-					outs.add(StrUtils.join(" ", tmp));
-					tmp.clear();
-				}
-				tmp.add(s);
-			} else {
-				tmp.add(s);
+			for (MSentence s : d1) {
+				List<String> ss = s.getTokenStrings(0);
+				String kp = StrUtils.join(" ", ss);
+				kps.add(kp);
 			}
+
+			List<String> ss = Generics.newArrayList();
+
+			for (MSentence s : d2) {
+				List<String> t = s.getTokenStrings(0);
+				String k = StrUtils.join(" ", t);
+				k = k.replace(" . ", " .\n ");
+				for (String m : k.split("\n")) {
+					ss.add(m.trim());
+				}
+			}
+
+			String d = StrUtils.join("\n", ss);
+
+			List<String> kps2 = Generics.newArrayList();
+
+			for (String kp : kps) {
+				if (d.contains(kp)) {
+					kps2.add(kp);
+				}
+			}
+
+			if (kps2.size() == 0) {
+				continue;
+			}
+
+			if (doc_cnt == 100) {
+				break;
+			}
+
+			doc_cnt++;
+
+			String cn = ps.get(0);
+			String k = StrUtils.join("<tb>", kps2);
+
+			List<String> res = Generics.newArrayList();
+			res.add(cn);
+			res.add(k);
+			res.add(d.replace("\n", "<nl>"));
+			
+			res = StrUtils.wrap(res);
+
+			outs.add(StrUtils.join("\t", res));
 		}
 
-		if (tmp.size() > 0) {
-			outs.add(StrUtils.join(" ", tmp));
-		}
+		FileUtils.writeStringCollectionAsText(KPPath.KP_DIR + "ext/samples.txt", outs);
 
-		FileUtils.writeAsText(KPPath.KP_DIR + "ext/test_trend_2.txt", StrUtils.join("\n", outs));
-
-		// System.out.println(StrUtils.join("\n", outs));
 	}
 
 	public void getKeyphraseDocuments() throws Exception {

@@ -6,6 +6,7 @@ import java.util.List;
 
 import ohs.math.ArrayUtils;
 import ohs.math.VectorMath;
+import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseVector;
 import ohs.ml.neuralnet.nonlinearity.Nonlinearity;
@@ -40,9 +41,9 @@ public class BidirectionalRecurrentLayer extends Layer {
 
 	private int output_size;
 
-	private DenseMatrix tmp_dX;
+	private DenseMatrix tmp_dX = new DenseMatrix(0);
 
-	private DenseMatrix tmp_H;
+	private DenseMatrix tmp_H = new DenseMatrix(0);
 
 	public BidirectionalRecurrentLayer(Layer fwd, Layer bwd) {
 		super();
@@ -70,9 +71,7 @@ public class BidirectionalRecurrentLayer extends Layer {
 		DenseMatrix dH = (DenseMatrix) I;
 		int data_size = dH.rowSize();
 
-		if (tmp_dX == null || tmp_dX.rowSize() < data_size) {
-			tmp_dX = new DenseMatrix(data_size, input_size);
-		}
+		VectorUtils.enlarge(tmp_dX, data_size, input_size);
 
 		Object I2 = reverse(I);
 		DenseMatrix dX1 = (DenseMatrix) fwd.backward(I);
@@ -104,9 +103,7 @@ public class BidirectionalRecurrentLayer extends Layer {
 		DenseMatrix O1 = (DenseMatrix) fwd.forward(I);
 		DenseMatrix O2 = (DenseMatrix) bwd.forward(I2);
 
-		if (tmp_H == null || tmp_H.rowSize() < data_size) {
-			tmp_H = new DenseMatrix(data_size, output_size);
-		}
+		VectorUtils.enlarge(tmp_H, data_size, output_size);
 
 		H = tmp_H.rows(data_size);
 		H.setAll(0);
@@ -115,12 +112,7 @@ public class BidirectionalRecurrentLayer extends Layer {
 			DenseVector o1 = O1.row(i);
 			DenseVector o2 = O2.row(data_size - i - 1);
 			DenseVector o3 = H.row(i);
-
-			try {
-				VectorMath.add(o1, o2, o3);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+			VectorMath.add(o1, o2, o3);
 		}
 
 		if (data_size != H.size()) {
