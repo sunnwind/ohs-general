@@ -4,10 +4,12 @@ import java.util.List;
 import java.util.Set;
 
 import edu.stanford.nlp.ling.Label;
+import edu.stanford.nlp.math.ArrayMath;
 import ohs.io.FileUtils;
 import ohs.math.ArrayUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.SparseMatrix;
+import ohs.ml.neuralnet.com.ParameterUpdater.OptimizerType;
 import ohs.ml.neuralnet.layer.BatchNormalizationLayer;
 import ohs.ml.neuralnet.layer.BidirectionalRecurrentLayer;
 import ohs.ml.neuralnet.layer.BidirectionalRecurrentLayer.Type;
@@ -38,7 +40,7 @@ public class Apps {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 
-		// testMIST();
+		// testMNIST();
 		// testCharRNN();
 		testNER();
 
@@ -294,7 +296,7 @@ public class Apps {
 		}
 	}
 
-	public static void testMIST() throws Exception {
+	public static void testMNIST() throws Exception {
 		NeuralNetParams param = new NeuralNetParams();
 		param.setInputSize(100);
 		param.setHiddenSize(50);
@@ -302,7 +304,9 @@ public class Apps {
 		param.setBatchSize(10);
 		param.setLearnRate(0.001);
 		param.setRegLambda(0.001);
-		param.setThreadSize(10);
+		param.setThreadSize(8);
+		param.setGradientClipCutoff(5);
+		param.setOptimizerType(OptimizerType.RMSPROP);
 
 		Pair<SparseMatrix, IntegerArray> train = DataReader.readFromSvmFormat("../../data/ml_data/mnist.txt");
 		Pair<SparseMatrix, IntegerArray> test = DataReader.readFromSvmFormat("../../data/ml_data/mnist.t.txt");
@@ -329,11 +333,12 @@ public class Apps {
 
 		nn.add(new FullyConnectedLayer(vocab_size, l1_size));
 		// nn.add(new BatchNormalizationLayer(l1_size));
-		nn.add(new NonlinearityLayer(new Tanh()));
-		// nn.add(new DropoutLayer(l1_size));
+		nn.add(new NonlinearityLayer(new ReLU()));
+		// nn.add(new DropoutLayer());
 		nn.add(new FullyConnectedLayer(l1_size, l2_size));
 		// nn.add(new BatchNormalizationLayer(l2_size));
-		nn.add(new NonlinearityLayer(new Tanh()));
+		nn.add(new NonlinearityLayer(new ReLU()));
+		// nn.add(new DropoutLayer());
 		nn.add(new FullyConnectedLayer(l2_size, output_size));
 		nn.add(new SoftmaxLayer(output_size));
 		nn.prepare();
@@ -351,9 +356,10 @@ public class Apps {
 		param.setOutputSize(10);
 		param.setBatchSize(20);
 		param.setLearnRate(0.001);
-		param.setRegLambda(0.01);
+		param.setRegLambda(0.001);
 		param.setThreadSize(5);
 		param.setBpttSize(0);
+		param.setOptimizerType(OptimizerType.ADAGRAD);
 
 		IntegerMatrix X = null;
 		IntegerMatrix Y = null;
@@ -388,8 +394,8 @@ public class Apps {
 		System.out.println(X.sizeOfEntries());
 
 		int voc_size = vocab.size();
-		int emb_size = 200;
-		int l1_size = 100;
+		int emb_size = 100;
+		int l1_size = 50;
 		int l2_size = 20;
 		int output_size = labelIdxer.size();
 		int window_size = 5;
@@ -428,36 +434,41 @@ public class Apps {
 			trainer.finish();
 		} else if (type == 2) {
 			nn.add(new EmbeddingLayer(voc_size, emb_size, true));
+			// nn.add(new DropoutLayer());
 			nn.add(new BidirectionalRecurrentLayer(Type.LSTM, emb_size, l1_size, param.getBpttSize(), new ReLU()));
-			// nn.add(new DropoutLayer(l1_size));
 			// nn.add(new BatchNormalizationLayer(l1_size));
 			nn.add(new FullyConnectedLayer(l1_size, output_size));
 			nn.add(new SoftmaxLayer(output_size));
 			nn.prepare();
 			nn.init();
 
-			IntegerArray locs = new IntegerArray(ArrayUtils.range(X.size()));
-
-			int[][] ranges = BatchUtils.getBatchRanges(X.size(), 1000);
-
 			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size());
 
-			for (int i = 0; i < ranges.length; i++) {
+			IntegerArray locs = new IntegerArray(ArrayUtils.range(X.size()));
+
+			int group_size = 1000;
+			int[][] rs = BatchUtils.getBatchRanges(X.size(), group_size);
+
+			int max_iters = 1000;
+
+			for (int u = 0; u < max_iters; u++) {
 				ArrayUtils.shuffle(locs.values());
 
-				System.out.printf("batches [%d/%d]\n", i + 1, ranges.length);
+				for (int i = 0; i < rs.length; i++) {
+					System.out.printf("iters [%d/%d], batches [%d/%d]\n", u + 1, max_iters, i + 1, rs.length);
+					for (int j = 0; j < rs.length; j++) {
+						int[] r = rs[j];
+						int range_size = r[1] - r[0];
+						IntegerMatrix Xm = new IntegerMatrix(range_size);
+						IntegerMatrix Ym = new IntegerMatrix(range_size);
 
-				for (int j = 0; j < ranges.length; j++) {
-					int[] range = ranges[j];
-					IntegerMatrix Xm = new IntegerMatrix(range[1] - range[0]);
-					IntegerMatrix Ym = new IntegerMatrix(range[1] - range[0]);
-
-					for (int k = range[0]; k < range[1]; k++) {
-						int loc = locs.get(k);
-						Xm.add(X.get(loc));
-						Ym.add(Y.get(loc));
+						for (int k = r[0]; k < r[1]; k++) {
+							int loc = locs.get(k);
+							Xm.add(X.get(loc));
+							Ym.add(Y.get(loc));
+						}
+						trainer.train(Xm, Ym, Xt, Yt, 1);
 					}
-					trainer.train(Xm, Ym, Xt, Yt, 1);
 				}
 			}
 

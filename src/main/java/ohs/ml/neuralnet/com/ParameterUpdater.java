@@ -37,7 +37,12 @@ public class ParameterUpdater {
 
 	private double eps = 0.00000001;
 
-	private double grad_clip_cutoff = 1000;
+	/**
+	 * Lample, G., Ballesteros, M., Subramanian, S., Kawakami, K., & Dyer, C.
+	 * (2016). Neural Architectures for Named Entity Recognition. Arxiv, 1–10.
+	 * Retrieved from http://arxiv.org/abs/1603.01360
+	 */
+	private double grad_clip_cutoff = 5;
 
 	private double learn_rate = 0.001;
 
@@ -104,7 +109,7 @@ public class ParameterUpdater {
 		return nn;
 	}
 
-	public void setGradientClippingCutoff(double grad_clip_cutoff) {
+	public void setGradientClipCutoff(double grad_clip_cutoff) {
 		this.grad_clip_cutoff = grad_clip_cutoff;
 	}
 
@@ -153,14 +158,15 @@ public class ParameterUpdater {
 			double rv1 = 0;
 			double rv2 = 0;
 
-			for (int j = 0; j < W.rowSize(); j++) {
-				DenseVector dw = dW.row(j);
-				DenseVector w = W.row(j);
-				DenseVector r1 = rW1.row(j);
-				DenseVector r2 = rW2.row(j);
+//			synchronized (W) {
+				for (int j = 0; j < W.rowSize(); j++) {
+					DenseVector dw = dW.row(j);
+					DenseVector w = W.row(j);
+					DenseVector r1 = rW1.row(j);
+					DenseVector r2 = rW2.row(j);
 
-				// if (g.sum() != 0) {
-				synchronized (w) {
+					// if (g.sum() != 0) {
+					 synchronized (w) {
 					sum = 0;
 					if (ot == OptimizerType.SIMPLE) {
 						for (int k = 0; k < dw.size(); k++) {
@@ -212,10 +218,11 @@ public class ParameterUpdater {
 					}
 
 					w.setSum(sum);
-					// }
+					 }
 					dw.setAll(0);
+					// }
 				}
-			}
+			//			}
 		}
 	}
 

@@ -6,6 +6,7 @@ import java.io.ObjectOutputStream;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
+import ohs.matrix.DenseVector;
 
 public class SoftmaxLayer extends Layer {
 

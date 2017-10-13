@@ -1,36 +1,41 @@
 package ohs.ml.neuralnet.com;
 
+import ohs.ml.neuralnet.com.ParameterUpdater.OptimizerType;
+
 public class NeuralNetParams {
-
-	private int input_size = 10;
-
-	private int hidden_size = 5;
-
-	private int output_size = 10;
-
-	private double learn_rate = 0.01;
-
-	private double reg_lambda = 0.1;
-
-	private int batch_size = 50;
-
-	private int thread_size = 10;
-
-	private double momentum = 0.9;
-
-	private int bppt_size = 5;
 
 	private int annealing_size = 20000;
 
-	private double g_clip_threshold = 2;
+	private int batch_size = 50;
+
+	private int bppt_size = 5;
 
 	private int bptt_size = 5;
+
+	private double grad_clip_cutoff = Double.MAX_VALUE;
+
+	private int hidden_size = 5;
+
+	private int input_size = 10;
+
+	private double learn_rate = 0.01;
+
+	private double momentum = 0.9;
+
+	private OptimizerType ot = OptimizerType.ADAM;
+
+	private int output_size = 10;
+
+	private double reg_lambda = 0.1;
+
+	private int thread_size = 10;
 
 	public NeuralNetParams() {
 
 	}
 
-	public NeuralNetParams(int input_size, int hidden_size, int output_size, double learning_rate, int mini_batch_size, int thread_size) {
+	public NeuralNetParams(int input_size, int hidden_size, int output_size, double learning_rate, int mini_batch_size,
+			int thread_size) {
 		super();
 		this.input_size = input_size;
 		this.hidden_size = hidden_size;
@@ -44,12 +49,16 @@ public class NeuralNetParams {
 		return annealing_size;
 	}
 
+	public int getBatchSize() {
+		return batch_size;
+	}
+
 	public int getBpttSize() {
 		return bppt_size;
 	}
 
-	public double getGradientClippingThreshold() {
-		return g_clip_threshold;
+	public double getGradientClipCutoff() {
+		return grad_clip_cutoff;
 	}
 
 	public int getHiddenSize() {
@@ -64,12 +73,12 @@ public class NeuralNetParams {
 		return learn_rate;
 	}
 
-	public int getBatchSize() {
-		return batch_size;
-	}
-
 	public double getMomentum() {
 		return momentum;
+	}
+
+	public OptimizerType getOptimizerType() {
+		return ot;
 	}
 
 	public int getOutputSize() {
@@ -88,12 +97,16 @@ public class NeuralNetParams {
 		this.bppt_size = bppt_size;
 	}
 
+	public void setBatchSize(int batch_size) {
+		this.batch_size = batch_size;
+	}
+
 	public void setBpttSize(int bppt_size) {
 		this.bppt_size = bppt_size;
 	}
 
-	public void setGradientClippingThreshold(double g_clip_threshold) {
-		this.g_clip_threshold = g_clip_threshold;
+	public void setGradientClipCutoff(double grad_clip_cutoff) {
+		this.grad_clip_cutoff = grad_clip_cutoff;
 	}
 
 	public void setHiddenSize(int hidden_size) {
@@ -108,12 +121,12 @@ public class NeuralNetParams {
 		this.learn_rate = learning_rate;
 	}
 
-	public void setBatchSize(int batch_size) {
-		this.batch_size = batch_size;
-	}
-
 	public void setMomentum(double momentum) {
 		this.momentum = momentum;
+	}
+
+	public void setOptimizerType(OptimizerType ot) {
+		this.ot = ot;
 	}
 
 	public void setOutputSize(int output_size) {
