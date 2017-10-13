@@ -134,7 +134,7 @@ public class DataReader {
 		return Generics.newTriple(new IntegerMatrix(X), new IntegerMatrix(Y), vocab);
 	}
 
-	public static Object[] readNerTestData(String fileName, Vocab vocab, Indexer<String> labelIndexer) throws Exception {
+	public static Object[] readNerTestData(String fileName, Vocab vocab, Indexer<String> labeIdxer) throws Exception {
 		List<IntegerArray> X = Generics.newLinkedList();
 		List<IntegerArray> Y = Generics.newLinkedList();
 
@@ -151,13 +151,24 @@ public class DataReader {
 				String pos = parts[1];
 				String phrase = parts[2];
 				String ner = parts[3];
+				ner = modifyNerTag(ner);
+
 				x.add(vocab.indexOf(word, 0));
-				y.add(labelIndexer.indexOf(ner));
+				y.add(labeIdxer.indexOf(ner));
 			}
 			X.add(x);
 			Y.add(y);
 		}
 		return new Object[] { new IntegerMatrix(X), new IntegerMatrix(Y) };
+	}
+
+	private static String modifyNerTag(String ner) {
+		if (!ner.equals("O")) {
+			String bio = ner.substring(0, 1);
+			ner = ner.substring(2);
+			ner = ner + "-" + bio;
+		}
+		return ner;
 	}
 
 	public static Object[] readNerTrainData(String fileName) throws Exception {
@@ -173,33 +184,33 @@ public class DataReader {
 		String[] ps = FileUtils.readFromText(fileName).split("\n\n");
 
 		for (String p : ps) {
-			String[] lines = p.split("\n");
-			for (int j = 0; j < lines.length; j++) {
-				String line = lines[j];
+			for (String line : p.split("\n")) {
 				String[] parts = line.split(" ");
 				String word = parts[0];
 				String pos = parts[1];
 				String phrase = parts[2];
 				String ner = parts[3];
+				ner = modifyNerTag(ner);
 				labels.add(ner);
 			}
 		}
 
+		labels.remove("O");
+
 		labelIndexer.addAll(labels);
+		labelIndexer.add("O");
 
 		for (String p : ps) {
-			String[] lines = p.split("\n");
-
 			IntegerArray x = new IntegerArray();
 			IntegerArray y = new IntegerArray();
-
-			for (int j = 0; j < lines.length; j++) {
-				String line = lines[j];
+			for (String line : p.split("\n")) {
 				String[] parts = line.split(" ");
 				String word = parts[0];
 				String pos = parts[1];
 				String phrase = parts[2];
 				String ner = parts[3];
+				ner = modifyNerTag(ner);
+
 				x.add(vocab.getIndex(word.toLowerCase()));
 				y.add(labelIndexer.indexOf(ner));
 			}

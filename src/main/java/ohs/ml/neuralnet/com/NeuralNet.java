@@ -134,8 +134,16 @@ public class NeuralNet extends ArrayList<Layer> {
 		return get(0).getInputSize();
 	}
 
+	public Indexer<String> getLabelIndexer() {
+		return labelIdxer;
+	}
+
 	public int getOutputSize() {
 		return get(size() - 1).getOutputSize();
+	}
+
+	public Vocab getVocab() {
+		return vocab;
 	}
 
 	public DenseTensor getW(boolean no_bias) {

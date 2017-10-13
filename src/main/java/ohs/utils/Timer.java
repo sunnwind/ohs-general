@@ -1,5 +1,8 @@
 package ohs.utils;
 
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+
 /**
  * Simple class for measuring elapsed ms.
  */
@@ -11,9 +14,9 @@ public class Timer {
 		return ret;
 	}
 
-	private long start, end, ms;
+	private int n = 0;
 
-	private int n;
+	private long start = 0, end = 0, ms = 0;
 
 	public Timer() {
 
@@ -23,6 +26,10 @@ public class Timer {
 		start = 0;
 		end = time;
 		this.ms = time;
+	}
+
+	public Timer(ObjectInputStream ois) throws Exception {
+		readObject(ois);
 	}
 
 	public Timer accumStop() { // Stop and accumulate ms
@@ -46,6 +53,13 @@ public class Timer {
 
 	public long getStart() {
 		return start;
+	}
+
+	public void readObject(ObjectInputStream ois) throws Exception {
+		start = ois.readLong();
+		end = ois.readLong();
+		ms = ois.readLong();
+		n = ois.readInt();
 	}
 
 	public void reset() {
@@ -111,6 +125,13 @@ public class Timer {
 			sb.append('s');
 		}
 		return sb.toString();
+	}
+
+	public void writeObject(ObjectOutputStream oos) throws Exception {
+		oos.writeLong(start);
+		oos.writeLong(end);
+		oos.writeLong(ms);
+		oos.writeInt(n);
 	}
 
 }

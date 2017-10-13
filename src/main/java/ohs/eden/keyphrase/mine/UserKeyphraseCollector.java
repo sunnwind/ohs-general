@@ -1134,7 +1134,7 @@ public class UserKeyphraseCollector {
 			String name = names[i];
 
 			if (fileName.contains("wiki")) {
-				CounterMap<String, String> cm2 = FileUtils.readStringCounterMapFromText(fileName).invert();
+				CounterMap<String, String> cm2 = FileUtils.readStringCounterMapFromText(fileName, false).invert();
 				for (String type : cm2.keySet()) {
 					Counter<String> c = cm2.getCounter(type);
 					c = normalize(c);

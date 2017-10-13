@@ -71,7 +71,7 @@ public class PerformanceEvaluator {
 		}
 	}
 
-	public Performance evalute(IntegerArray y, IntegerArray yh, Indexer<String> labelIndexer) {
+	public Performance evalute(IntegerArray y, IntegerArray yh, Indexer<String> labelIdxer) {
 		Counter<Integer> corCnts = Generics.newCounter();
 		Counter<Integer> predCnts = Generics.newCounter();
 		Counter<Integer> ansCnts = Generics.newCounter();
@@ -100,8 +100,8 @@ public class PerformanceEvaluator {
 			pred_cnts.add((int) predCnts.getCount(i));
 			cor_cnts.add((int) corCnts.getCount(i));
 
-			if (labelIndexer != null) {
-				String label = labelIndexer.getObject(i);
+			if (labelIdxer != null) {
+				String label = labelIdxer.getObject(i);
 				if (label.equals("O")) {
 					ans_cnts.set(i, 0);
 					cor_cnts.set(i, 0);
@@ -111,7 +111,7 @@ public class PerformanceEvaluator {
 		}
 
 		Performance p = new Performance(ans_cnts, pred_cnts, cor_cnts);
-		p.SetLabelIndexer(labelIndexer);
+		p.SetLabelIndexer(labelIdxer);
 		return p;
 	}
 

@@ -64,6 +64,7 @@ public class Apps {
 		IntegerArray Yt = new IntegerArray();
 
 		Vocab vocab = new Vocab();
+		Indexer<String> labelIdxer = Generics.newIndexer();
 
 		{
 			List<String> sents = Generics.newLinkedList();
@@ -131,7 +132,7 @@ public class Apps {
 
 		System.out.println(vocab.info());
 
-		NeuralNet nn = new NeuralNet();
+		NeuralNet nn = new NeuralNet(labelIdxer, vocab);
 
 		if (type == 0) {
 			int num_filters = 100;
@@ -151,7 +152,7 @@ public class Apps {
 			nn.prepare();
 			nn.init();
 
-			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size(), null);
+			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size());
 			trainer.train(X, Y, Xt, Yt, 10000);
 			trainer.finish();
 		}
@@ -197,8 +198,9 @@ public class Apps {
 					Y.add(Y_.get(i));
 				}
 			}
-
 		}
+
+		Indexer<String> labelIdxer = Generics.newIndexer(vocab.getObjects());
 
 		int size1 = 0;
 		int size2 = 0;
@@ -221,7 +223,7 @@ public class Apps {
 
 		System.out.println(vocab.info());
 
-		NeuralNet nn = new NeuralNet();
+		NeuralNet nn = new NeuralNet(labelIdxer, vocab);
 
 		if (type == 1) {
 			nn.add(new EmbeddingLayer(vocab_size, emb_size, false));
@@ -235,7 +237,7 @@ public class Apps {
 			nn.prepare();
 			nn.init();
 
-			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size(), null);
+			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size());
 			trainer.train(X, Y, null, null, 10000);
 			trainer.finish();
 		} else if (type == 2) {
@@ -254,7 +256,7 @@ public class Apps {
 			nn.prepare();
 			nn.init();
 
-			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size(), null);
+			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size());
 			trainer.train(X, Y, null, null, 10000);
 			trainer.finish();
 		} else if (type == 3) {
@@ -268,7 +270,7 @@ public class Apps {
 			nn.prepare();
 			nn.init();
 
-			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size(), null);
+			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size());
 			trainer.train(X, Y, null, null, 10000);
 			trainer.finish();
 		} else if (type == 4) {
@@ -286,7 +288,7 @@ public class Apps {
 			nn.prepare();
 			nn.init();
 
-			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size(), null);
+			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size());
 			trainer.train(X, Y, null, null, 10000);
 			trainer.finish();
 		}
@@ -311,30 +313,33 @@ public class Apps {
 		DenseMatrix Xt = test.getFirst().toDenseMatrix(test.getFirst().rowSize(), X.colSize());
 		IntegerArray Yt = test.getSecond();
 
-		Set<Integer> labels = Generics.newHashSet();
+		Set<String> labels = Generics.newTreeSet();
 		for (int y : Y) {
-			labels.add(y);
+			labels.add(y + "");
 		}
 
+		Indexer<String> labelIdxer = Generics.newIndexer(labels);
+
 		int vocab_size = X.colSize();
-		int l1_size = 100;
+		int l1_size = 200;
 		int l2_size = 50;
 		int output_size = labels.size();
 
-		NeuralNet nn = new NeuralNet();
+		NeuralNet nn = new NeuralNet(labelIdxer, null);
+
 		nn.add(new FullyConnectedLayer(vocab_size, l1_size));
 		// nn.add(new BatchNormalizationLayer(l1_size));
 		nn.add(new NonlinearityLayer(new Tanh()));
 		// nn.add(new DropoutLayer(l1_size));
 		nn.add(new FullyConnectedLayer(l1_size, l2_size));
-		nn.add(new BatchNormalizationLayer(l2_size));
+		// nn.add(new BatchNormalizationLayer(l2_size));
 		nn.add(new NonlinearityLayer(new Tanh()));
 		nn.add(new FullyConnectedLayer(l2_size, output_size));
 		nn.add(new SoftmaxLayer(output_size));
 		nn.prepare();
 		nn.init();
 
-		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size(), null);
+		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size());
 		trainer.train(X, Y, Xt, Yt, 10000);
 		trainer.finish();
 	}
@@ -353,7 +358,7 @@ public class Apps {
 		IntegerMatrix X = null;
 		IntegerMatrix Y = null;
 		Vocab vocab = null;
-		Indexer<String> labelIndexer = null;
+		Indexer<String> labelIdxer = null;
 		IntegerMatrix Xt = null;
 		IntegerMatrix Yt = null;
 
@@ -363,12 +368,11 @@ public class Apps {
 			X = (IntegerMatrix) objs[0];
 			Y = (IntegerMatrix) objs[1];
 			vocab = (Vocab) objs[2];
-			labelIndexer = (Indexer<String>) objs[3];
+			labelIdxer = (Indexer<String>) objs[3];
 		}
 
 		{
-			Object[] objs = DataReader.readNerTestData("../../data/ml_data/conll2003.bio2/test.dat", vocab,
-					labelIndexer);
+			Object[] objs = DataReader.readNerTestData("../../data/ml_data/conll2003.bio2/test.dat", vocab, labelIdxer);
 			Xt = (IntegerMatrix) objs[0];
 			Yt = (IntegerMatrix) objs[1];
 		}
@@ -380,18 +384,18 @@ public class Apps {
 		Yt.trimToSize();
 
 		System.out.println(vocab.info());
-		System.out.println(labelIndexer.info());
+		System.out.println(labelIdxer.info());
 		System.out.println(X.sizeOfEntries());
 
 		int voc_size = vocab.size();
 		int emb_size = 200;
 		int l1_size = 100;
 		int l2_size = 20;
-		int output_size = labelIndexer.size();
+		int output_size = labelIdxer.size();
 		int window_size = 5;
 		int type = 2;
 
-		NeuralNet nn = new NeuralNet();
+		NeuralNet nn = new NeuralNet(labelIdxer, vocab);
 
 		if (type == 0) {
 			nn.add(new EmbeddingLayer(voc_size, emb_size, false));
@@ -404,7 +408,7 @@ public class Apps {
 			nn.prepare();
 			nn.init();
 
-			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size(), labelIndexer);
+			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size());
 			trainer.train(X, Y, Xt, Yt, 10000);
 			trainer.finish();
 		} else if (type == 1) {
@@ -419,7 +423,7 @@ public class Apps {
 			nn.prepare();
 			nn.init();
 
-			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size(), labelIndexer);
+			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size());
 			trainer.train(X, Y, Xt, Yt, 10000);
 			trainer.finish();
 		} else if (type == 2) {
@@ -436,7 +440,7 @@ public class Apps {
 
 			int[][] ranges = BatchUtils.getBatchRanges(X.size(), 1000);
 
-			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size(), labelIndexer);
+			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size());
 
 			for (int i = 0; i < ranges.length; i++) {
 				ArrayUtils.shuffle(locs.values());

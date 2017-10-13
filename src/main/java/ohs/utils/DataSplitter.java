@@ -12,10 +12,15 @@ import ohs.utils.Generics.ListType;
 
 public class DataSplitter {
 
-	public static IntegerMatrix group(IntegerArray x) {
+	/**
+	 * @param y
+	 *            data labels
+	 * @return labels x data locations
+	 */
+	public static IntegerMatrix group(IntegerArray y) {
 		ListMap<Integer, Integer> lm = Generics.newListMap(ListType.LINKED_LIST);
-		for (int i = 0; i < x.size(); i++) {
-			lm.put(x.get(i), i);
+		for (int i = 0; i < y.size(); i++) {
+			lm.put(y.get(i), i);
 		}
 
 		IntegerArray ls = new IntegerArray(lm.keySet());
@@ -66,7 +71,10 @@ public class DataSplitter {
 
 	/**
 	 * @param x
+	 *            data
 	 * @param cnts
+	 *            data sizes of groups
+	 * 
 	 * @return
 	 */
 	public static IntegerMatrix split(IntegerArray x, int[] cnts) {
@@ -107,6 +115,13 @@ public class DataSplitter {
 		return ret;
 	}
 
+	/**
+	 * @param G
+	 *            labels x data locations
+	 * @param cnts
+	 *            data size for each label
+	 * @return
+	 */
 	public static IntegerMatrix splitGroups(IntegerMatrix G, int[] cnts) {
 		int label_size = G.size();
 		int fold_size = cnts.length;

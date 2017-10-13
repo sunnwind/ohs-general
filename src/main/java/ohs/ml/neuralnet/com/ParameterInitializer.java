@@ -15,7 +15,7 @@ public class ParameterInitializer {
 
 	public static void init1(DenseMatrix W) {
 		int input_size = W.rowSize();
-		double bound = 1f / Math.sqrt(input_size);
+		double bound = 1d / Math.sqrt(input_size);
 		VectorMath.random(-bound, bound, W);
 	}
 

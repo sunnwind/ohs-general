@@ -171,6 +171,12 @@ public class DenseTensor extends ArrayList<DenseMatrix> {
 		return size();
 	}
 
+	public void setAll(double v) {
+		for (DenseMatrix a : this) {
+			a.setAll(v);
+		}
+	}
+
 	public int sizeOfEntries() {
 		int ret = 0;
 		for (DenseMatrix a : this) {

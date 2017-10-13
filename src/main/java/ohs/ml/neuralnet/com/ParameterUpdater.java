@@ -1,10 +1,13 @@
 package ohs.ml.neuralnet.com;
 
+import java.util.List;
+
 import ohs.math.ArrayMath;
 import ohs.math.VectorMath;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
+import ohs.utils.Generics;
 
 /**
  * 
@@ -83,6 +86,18 @@ public class ParameterUpdater {
 		// locs = ArrayUtils.range(W.rowSize());
 
 		// ArrayUtils.shuffle(locs);
+	}
+
+	public List<DenseTensor> getGradientAccumulators() {
+		List<DenseTensor> ret = Generics.newArrayList(2);
+		ret.add(rWs1);
+		ret.add(rWs2);
+		return ret;
+	}
+
+	public void resetGradientAccumulators() {
+		rWs1.setAll(0);
+		rWs2.setAll(0);
 	}
 
 	public NeuralNet getNeuralNet() {
