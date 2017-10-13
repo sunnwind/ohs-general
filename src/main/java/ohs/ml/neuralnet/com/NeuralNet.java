@@ -7,6 +7,7 @@ import java.util.List;
 
 import ohs.io.FileUtils;
 import ohs.matrix.DenseMatrix;
+import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
 import ohs.ml.neuralnet.layer.BatchNormalizationLayer;
 import ohs.ml.neuralnet.layer.DropoutLayer;
@@ -108,35 +109,25 @@ public class NeuralNet extends ArrayList<Layer> {
 		return new DenseMatrix(rows);
 	}
 
-	public DenseMatrix getDW() {
-		List<DenseVector> rows = Generics.newLinkedList();
+	public DenseTensor getDW(boolean no_bias) {
+		List<DenseMatrix> ret = Generics.newLinkedList();
 		for (Layer l : this) {
 			if (l instanceof EmbeddingLayer) {
-				if (((EmbeddingLayer) l).isLearnEmbedding()) {
-					for (DenseVector row : l.getDW()) {
-						rows.add(row);
-					}
-				}
-			} else {
-				if (l.getDW() != null) {
-					for (DenseVector row : l.getDW()) {
-						rows.add(row);
-					}
+				EmbeddingLayer n = (EmbeddingLayer) l;
+				if (!n.isLearnEmbedding()) {
+					continue;
 				}
 			}
-		}
-		return new DenseMatrix(rows);
-	}
 
-	public DenseMatrix getGradients() {
-		List<DenseVector> rows = Generics.newLinkedList();
-		for (DenseVector row : getDW()) {
-			rows.add(row);
+			if (l.getW() != null) {
+				ret.add(l.getDW());
+			}
+
+			if (!no_bias && l.getDB() != null) {
+				ret.add(l.getDB());
+			}
 		}
-		for (DenseVector row : getDB()) {
-			rows.add(row);
-		}
-		return new DenseMatrix(rows);
+		return new DenseTensor(ret);
 	}
 
 	public int getInputSize() {
@@ -147,36 +138,25 @@ public class NeuralNet extends ArrayList<Layer> {
 		return get(size() - 1).getOutputSize();
 	}
 
-	public DenseMatrix getParameters() {
-		List<DenseVector> rows = Generics.newLinkedList();
-		for (DenseVector row : getW()) {
-			rows.add(row);
-		}
-		for (DenseVector row : getB()) {
-			rows.add(row);
-		}
-		return new DenseMatrix(rows);
-	}
-
-	public DenseMatrix getW() {
-		List<DenseVector> rows = Generics.newLinkedList();
+	public DenseTensor getW(boolean no_bias) {
+		List<DenseMatrix> ret = Generics.newLinkedList();
 		for (Layer l : this) {
 			if (l instanceof EmbeddingLayer) {
 				EmbeddingLayer n = (EmbeddingLayer) l;
-				if (n.isLearnEmbedding()) {
-					for (DenseVector row : l.getW()) {
-						rows.add(row);
-					}
-				}
-			} else {
-				if (l.getW() != null) {
-					for (DenseVector row : l.getW()) {
-						rows.add(row);
-					}
+				if (!n.isLearnEmbedding()) {
+					continue;
 				}
 			}
+
+			if (l.getW() != null) {
+				ret.add(l.getW());
+			}
+
+			if (!no_bias && l.getB() != null) {
+				ret.add(l.getB());
+			}
 		}
-		return new DenseMatrix(rows);
+		return new DenseTensor(ret);
 	}
 
 	public void init() {

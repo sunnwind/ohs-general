@@ -270,7 +270,6 @@ public class GruLayer extends Layer {
 	public void init() {
 		ParameterInitializer.init2(Wxh);
 		ParameterInitializer.init2(Whh);
-
 	}
 
 	@Override

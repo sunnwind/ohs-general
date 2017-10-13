@@ -1532,12 +1532,12 @@ public class VectorMath {
 		return sum;
 	}
 
-	public static double sumSquared(DenseMatrix a) {
-		return ArrayMath.sumSquared(a.values());
+	public static double sumAfterSquared(DenseMatrix a) {
+		return ArrayMath.sumAfterSquared(a.values());
 	}
 
-	public static double sumSquared(DenseVector a) {
-		return ArrayMath.sumSquared(a.values());
+	public static double sumAfterSquared(DenseVector a) {
+		return ArrayMath.sumAfterSquared(a.values());
 	}
 
 	public static double tanh(DenseMatrix a, DenseMatrix b) {

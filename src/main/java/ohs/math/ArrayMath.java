@@ -2486,6 +2486,17 @@ public class ArrayMath {
 		return ret;
 	}
 
+	public static double normL2(double[][][] a) {
+		double ret = 0;
+		for (int i = 0; i < a.length; i++) {
+			for (int j = 0; j < a[i].length; j++) {
+				ret += dotProduct(a[i][j], a[i][j]);
+			}
+		}
+		ret = Math.sqrt(ret);
+		return ret;
+	}
+
 	public static double outerProduct(double[] a, double[] b, double[][] c, boolean add) {
 		int a_size = a.length;
 		int b_size = b.length;
@@ -3647,22 +3658,6 @@ public class ArrayMath {
 		return ret;
 	}
 
-	public static long sum(long[] x) {
-		long ret = 0;
-		for (int i = 0; i < x.length; i++) {
-			ret += x[i];
-		}
-		return ret;
-	}
-
-	public static double sum(float[] x) {
-		double ret = 0;
-		for (int i = 0; i < x.length; i++) {
-			ret += x[i];
-		}
-		return ret;
-	}
-
 	public static double sum(double[][] x) {
 		double ret = 0;
 		for (int i = 0; i < x.length; i++) {
@@ -3677,6 +3672,14 @@ public class ArrayMath {
 			sum += sum(x[i]);
 		}
 		return sum;
+	}
+
+	public static double sum(float[] x) {
+		double ret = 0;
+		for (int i = 0; i < x.length; i++) {
+			ret += x[i];
+		}
+		return ret;
 	}
 
 	public static int sum(int[] x) {
@@ -3695,6 +3698,14 @@ public class ArrayMath {
 		return ret;
 	}
 
+	public static long sum(long[] x) {
+		long ret = 0;
+		for (int i = 0; i < x.length; i++) {
+			ret += x[i];
+		}
+		return ret;
+	}
+
 	public static double sumAfterLog(double[] a) {
 		double sum = 0;
 		for (int i = 0; i < a.length; i++) {
@@ -3703,6 +3714,18 @@ public class ArrayMath {
 			}
 		}
 		return sum;
+	}
+
+	public static double sumAfterSquared(double[] a) {
+		return dotProduct(a, a);
+	}
+
+	public static double sumAfterSquared(double[][] a) {
+		double ret = 0;
+		for (int i = 0; i < a.length; i++) {
+			ret += sumAfterSquared(a[i]);
+		}
+		return ret;
 	}
 
 	public static double sumColumn(double[][] a, int j) {
@@ -3859,22 +3882,6 @@ public class ArrayMath {
 			sum += b[i];
 		}
 		return sum;
-	}
-
-	public static double sumSquared(double[] a) {
-		double ret = 0;
-		for (int i = 0; i < a.length; i++) {
-			ret += (a[i] * a[i]);
-		}
-		return ret;
-	}
-
-	public static double sumSquared(double[][] a) {
-		double ret = 0;
-		for (int i = 0; i < a.length; i++) {
-			ret += sumSquared(a[i]);
-		}
-		return ret;
 	}
 
 	public static double sumSquaredDifferences(double[] a, double[] b) {

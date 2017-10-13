@@ -141,9 +141,9 @@ public class DenseVector implements Vector {
 		return copy(false);
 	}
 
-	public DenseVector copy(boolean copy_template) {
+	public DenseVector copy(boolean shallow_copy) {
 		DenseVector ret = null;
-		if (copy_template) {
+		if (shallow_copy) {
 			ret = new DenseVector(vals.length);
 		} else {
 			ret = new DenseVector(ArrayUtils.copy(vals));

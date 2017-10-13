@@ -22,7 +22,7 @@ public class CrossEntropyCostFunction implements CostFunction {
 	private static final long serialVersionUID = 5599113065557841190L;
 
 	public static double getL2RegularizationTerm(double reg_lambda, DenseMatrix W, double data_size) {
-		return 0.5 * reg_lambda * (1f / data_size) * VectorMath.sumSquared(W);
+		return 0.5 * reg_lambda * (1f / data_size) * VectorMath.sumAfterSquared(W);
 	}
 
 	private DenseMatrix tmp_D;

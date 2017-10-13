@@ -45,6 +45,21 @@ public class BidirectionalRecurrentLayer extends Layer {
 
 	private DenseMatrix tmp_H = new DenseMatrix(0);
 
+	public void resetH0() {
+
+		if (fwd instanceof RnnLayer) {
+			RnnLayer l1 = (RnnLayer) fwd;
+			RnnLayer l2 = (RnnLayer) bwd;
+			l1.resetH0();
+			l2.resetH0();
+		} else if (fwd instanceof LstmLayer) {
+			LstmLayer l1 = (LstmLayer) fwd;
+			LstmLayer l2 = (LstmLayer) bwd;
+			l1.resetH0();
+			l2.resetH0();
+		}
+	}
+
 	public BidirectionalRecurrentLayer(Layer fwd, Layer bwd) {
 		super();
 		this.fwd = fwd;

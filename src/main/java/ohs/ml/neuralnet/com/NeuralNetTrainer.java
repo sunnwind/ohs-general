@@ -7,10 +7,13 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import ohs.math.ArrayMath;
 import ohs.math.ArrayUtils;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
+import ohs.matrix.DenseTensor;
+import ohs.matrix.DenseVector;
 import ohs.ml.eval.Performance;
 import ohs.ml.eval.PerformanceEvaluator;
 import ohs.ml.neuralnet.cost.CrossEntropyCostFunction;
@@ -44,11 +47,9 @@ public class NeuralNetTrainer {
 
 		private ParameterUpdater pu;
 
-		public Worker(NeuralNet nn) {
-			this.nn = nn;
-			pu = new ParameterUpdater(W, nn.getGradients(), rW1, rW2, param.getBatchSize());
-			pu.setLearningRate(param.getLearnRate());
-			pu.setWeightDecay(param.getRegLambda(), param.getLearnRate(), data_size);
+		public Worker(ParameterUpdater pu) {
+			this.pu = pu;
+			this.nn = pu.getNeuralNet();
 			cf = new CrossEntropyCostFunction();
 		}
 
@@ -147,7 +148,8 @@ public class NeuralNetTrainer {
 					LstmLayer n = (LstmLayer) l;
 					n.resetH0();
 				} else if (l instanceof BidirectionalRecurrentLayer) {
-
+					BidirectionalRecurrentLayer n = (BidirectionalRecurrentLayer) l;
+					n.resetH0();
 				}
 			}
 		}
@@ -188,19 +190,11 @@ public class NeuralNetTrainer {
 
 	private int[][] ranges;
 
-	private DenseMatrix rW1;
-
-	private DenseMatrix rW2;
-
 	private Timer timer1 = Timer.newTimer();
 
 	private ThreadPoolExecutor tpe;
 
 	private DenseMatrix W;
-
-	private DenseMatrix W_best;
-
-	private DenseMatrix W_no_bias;
 
 	private List<Worker> ws;
 
@@ -218,7 +212,7 @@ public class NeuralNetTrainer {
 
 		nn.setIsTesting(true);
 
-		VectorUtils.copy(W_best, W);
+		// VectorUtils.copy(W_best, W);
 	}
 
 	public void prepare(NeuralNet nn, NeuralNetParams param, int data_size, Indexer<String> labelIndexer)
@@ -237,19 +231,30 @@ public class NeuralNetTrainer {
 
 		nns.add(nn);
 
-		W = nn.getParameters();
-		rW1 = W.copy(true);
-		rW2 = W.copy(true);
+		List<ParameterUpdater> pus = Generics.newArrayList(nns.size());
 
-		W_best = W.copy(true);
-		W_no_bias = nn.getW();
+		for (NeuralNet n : nns) {
+			ParameterUpdater pu = new ParameterUpdater(n, data_size);
+			pu.setLearningRate(param.getLearnRate());
+			pu.setWeightDecay(param.getRegLambda(), param.getLearnRate(), data_size);
+			pus.add(pu);
+		}
+
+		{
+			List<DenseVector> l = Generics.newLinkedList();
+
+			for (DenseMatrix w : nn.getW(true)) {
+				l.addAll(w);
+			}
+			W = new DenseMatrix(l);
+		}
 
 		tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
 
 		ws = Generics.newArrayList(thread_size);
 
 		for (int i = 0; i < thread_size; i++) {
-			ws.add(new Worker(nns.get(i)));
+			ws.add(new Worker(pus.get(i)));
 		}
 	}
 
@@ -446,7 +451,7 @@ public class NeuralNetTrainer {
 			}
 
 			if (param.getRegLambda() > 0) {
-				cost += CrossEntropyCostFunction.getL2RegularizationTerm(param.getRegLambda(), W_no_bias, data_size);
+				cost += CrossEntropyCostFunction.getL2RegularizationTerm(param.getRegLambda(), W, data_size);
 			}
 
 			double acc = 1f * cor_cnt / data_size;
@@ -456,10 +461,10 @@ public class NeuralNetTrainer {
 				best_cor_cnt = cor_cnt;
 				best_acc = acc;
 
-				VectorUtils.copy(W, W_best);
+				// VectorUtils.copy(W, W_best);
 			}
 
-			double norm = VectorMath.normL2(W_no_bias);
+			double norm = ArrayMath.normL2(W.values());
 			System.out.printf("%dth, cost: %f, acc: %f (%d/%d), time: %s (%s), norm: %f, learn-rate: %f\n", i, cost,
 					acc, cor_cnt, data_size, timer2.stop(), timer1.stop(), norm, param.getLearnRate());
 

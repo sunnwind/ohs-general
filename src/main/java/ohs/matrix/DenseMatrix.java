@@ -137,10 +137,10 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 		return copy(false);
 	}
 
-	public DenseMatrix copy(boolean copy_template) {
+	public DenseMatrix copy(boolean shallow_copy) {
 		DenseVector[] rows = new DenseVector[rowSize()];
 		for (int i = 0; i < rowSize(); i++) {
-			rows[i] = row(i).copy(copy_template);
+			rows[i] = row(i).copy(shallow_copy);
 		}
 		return new DenseMatrix(rows);
 	}
