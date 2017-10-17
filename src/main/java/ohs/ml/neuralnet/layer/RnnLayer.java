@@ -310,19 +310,19 @@ public class RnnLayer extends RecurrentLayer {
 		b = new DenseVector(ois);
 	}
 
+	@Override
+	public void writeObject(ObjectOutputStream oos) throws Exception {
+		Wxh.writeObject(oos);
+		Whh.writeObject(oos);
+		b.writeObject(oos);
+	}
+
 	public void resetH0() {
 		h0.setAll(0);
 	}
 
 	public void setBpptSize(int bppt_size) {
 		this.bptt_size = bppt_size;
-	}
-
-	@Override
-	public void writeObject(ObjectOutputStream oos) throws Exception {
-		Wxh.writeObject(oos);
-		Whh.writeObject(oos);
-		b.writeObject(oos);
 	}
 
 }

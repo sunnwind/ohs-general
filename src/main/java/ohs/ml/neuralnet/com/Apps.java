@@ -58,7 +58,7 @@ public class Apps {
 		param.setLearnRate(0.001);
 		param.setRegLambda(0.01);
 		param.setThreadSize(3);
-		param.setBpttSize(10);
+		param.setTruncatedBackPropagationThroughTime(10);
 
 		// Triple<IntegerArrayMatrix, IntegerArrayMatrix, Vocab> train =
 		// DataReader.readCapitalData(300);
@@ -138,7 +138,7 @@ public class Apps {
 
 			nn.add(new EmbeddingLayer(vocab_size, emb_size, true));
 			// nn.add(new BatchNormalizationLayer(embedding_size));
-			nn.add(new RnnLayer(emb_size, l1_size, param.getBpttSize(), new Tanh()));
+			nn.add(new RnnLayer(emb_size, l1_size, param.getTruncatedBackPropagationThroughTime(), new Tanh()));
 			nn.add(new BatchNormalizationLayer(l1_size));
 			// nn.add(new DropoutLayer(l1_size));
 			nn.add(new FullyConnectedLayer(l1_size, output_size));
@@ -170,7 +170,8 @@ public class Apps {
 			// nn.add(new RnnLayer(embedding_size, l1_size, param.getBpttSize(), new
 			// ReLU()));
 			// nn.add(new LstmLayer(embedding_size, l1_size, new ReLU()));
-			nn.add(new BidirectionalRecurrentLayer(Type.LSTM, emb_size, l1_size, param.getBpttSize(), new ReLU()));
+			nn.add(new BidirectionalRecurrentLayer(Type.LSTM, emb_size, l1_size,
+					param.getTruncatedBackPropagationThroughTime(), new ReLU()));
 
 			// nn.add(new DropoutLayer(l1_size));
 			nn.add(new FullyConnectedLayer(l1_size, output_size));
@@ -241,10 +242,12 @@ public class Apps {
 		NeuralNetParams param = new NeuralNetParams();
 		param.setBatchSize(5);
 		param.setIsFullSequenceBatch(true);
+		param.setIsRandomBatch(true);
+		param.setGradientAccumulatorResetSize(100);
 		param.setLearnRate(0.001);
 		param.setRegLambda(0.001);
 		param.setThreadSize(5);
-		param.setBpttSize(10);
+		param.setTruncatedBackPropagationThroughTime(10);
 		param.setOptimizerType(OptimizerType.ADAM);
 		param.setGradientClipCutoff(5);
 
@@ -287,18 +290,28 @@ public class Apps {
 		int label_size = labelIdxer.size();
 		int type = 2;
 
+		String modelFileName = "../../data/ml_data/ner_nn.ser";
+
 		NeuralNet nn = new NeuralNet(labelIdxer, vocab);
 
 		if (type == 0) {
 		} else if (type == 2) {
-			nn.add(new EmbeddingLayer(voc_size, emb_size, true));
-			nn.add(new DropoutLayer());
-			nn.add(new BidirectionalRecurrentLayer(Type.LSTM, emb_size, l1_size, param.getBpttSize(), new ReLU()));
-			// nn.add(new BatchNormalizationLayer(l1_size));
-			nn.add(new FullyConnectedLayer(l1_size, label_size));
-			nn.add(new SoftmaxLayer(label_size));
-			nn.prepare();
-			nn.init();
+			if (FileUtils.exists(modelFileName)) {
+				nn = new NeuralNet(modelFileName);
+				nn.prepare();
+			} else {
+				nn.add(new EmbeddingLayer(voc_size, emb_size, true));
+				nn.add(new DropoutLayer());
+				nn.add(new BidirectionalRecurrentLayer(Type.LSTM, emb_size, l1_size,
+						param.getTruncatedBackPropagationThroughTime(), new ReLU()));
+				// nn.add(new BatchNormalizationLayer(l1_size));
+				nn.add(new FullyConnectedLayer(l1_size, label_size));
+				nn.add(new SoftmaxLayer(label_size));
+				nn.prepare();
+				nn.init();
+			}
+
+			nn.writeObject("../../data/nn_model/nn.ser");
 
 			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param);
 
@@ -316,9 +329,9 @@ public class Apps {
 					System.out.printf("iters [%d/%d], batches [%d/%d]\n", u + 1, max_iters, i + 1, rs.length);
 					for (int j = 0; j < rs.length; j++) {
 						int[] r = rs[j];
-						int range_size = r[1] - r[0];
-						IntegerMatrix Xm = new IntegerMatrix(range_size);
-						IntegerMatrix Ym = new IntegerMatrix(range_size);
+						int r_size = r[1] - r[0];
+						IntegerMatrix Xm = new IntegerMatrix(r_size);
+						IntegerMatrix Ym = new IntegerMatrix(r_size);
 
 						for (int k = r[0]; k < r[1]; k++) {
 							int loc = locs.get(k);
@@ -331,6 +344,8 @@ public class Apps {
 			}
 
 			trainer.finish();
+
+			nn.writeObject(modelFileName);
 		}
 	}
 
@@ -343,7 +358,7 @@ public class Apps {
 		param.setLearnRate(0.001);
 		param.setRegLambda(0.01);
 		param.setThreadSize(5);
-		param.setBpttSize(10);
+		param.setTruncatedBackPropagationThroughTime(10);
 
 		IntegerMatrix X = new IntegerMatrix();
 		IntegerArray Y = new IntegerArray();

@@ -1,5 +1,8 @@
 package ohs.ml.neuralnet.layer;
 
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
@@ -19,6 +22,8 @@ public class EmbeddingLayer extends Layer {
 
 	private boolean learn_embedding = true;
 
+	private DenseMatrix tmp_Y = new DenseMatrix(0);
+
 	/**
 	 * words x embedding size
 	 */
@@ -27,6 +32,10 @@ public class EmbeddingLayer extends Layer {
 	private Object X;
 
 	private Object Y;
+
+	public EmbeddingLayer() {
+
+	}
 
 	public EmbeddingLayer(DenseMatrix W, boolean learn_embedding) {
 		this.W = W;
@@ -71,8 +80,6 @@ public class EmbeddingLayer extends Layer {
 	public Layer copy() {
 		return new EmbeddingLayer(W, learn_embedding);
 	}
-
-	private DenseMatrix tmp_Y = new DenseMatrix(0);
 
 	@Override
 	public Object forward(Object I) {
@@ -137,6 +144,18 @@ public class EmbeddingLayer extends Layer {
 
 	public void setLearnEmbedding(boolean learn_embedding) {
 		this.learn_embedding = learn_embedding;
+	}
+
+	@Override
+	public void readObject(ObjectInputStream ois) throws Exception {
+		learn_embedding = ois.readBoolean();
+		W = new DenseMatrix(ois);
+	}
+
+	@Override
+	public void writeObject(ObjectOutputStream oos) throws Exception {
+		oos.writeBoolean(learn_embedding);
+		W.writeObject(oos);
 	}
 
 }

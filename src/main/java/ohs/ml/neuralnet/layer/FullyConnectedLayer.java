@@ -46,6 +46,10 @@ public class FullyConnectedLayer extends Layer {
 
 	private DenseMatrix Y;
 
+	public FullyConnectedLayer() {
+
+	}
+
 	public FullyConnectedLayer(DenseMatrix W, DenseVector b) {
 		this.W = W;
 		this.b = b;

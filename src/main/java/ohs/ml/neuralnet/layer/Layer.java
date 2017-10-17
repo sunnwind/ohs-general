@@ -15,6 +15,10 @@ public abstract class Layer implements Serializable {
 
 	protected boolean is_testing = false;
 
+	public Layer() {
+
+	}
+
 	public Object backward(Object I) {
 		return null;
 	}

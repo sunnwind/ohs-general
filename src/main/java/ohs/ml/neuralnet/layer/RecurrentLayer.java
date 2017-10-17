@@ -23,6 +23,10 @@ public abstract class RecurrentLayer extends Layer {
 	 */
 	protected DenseMatrix Wxh;
 
+	public RecurrentLayer() {
+
+	}
+
 	public DenseMatrix getWhh() {
 		return Whh;
 	}

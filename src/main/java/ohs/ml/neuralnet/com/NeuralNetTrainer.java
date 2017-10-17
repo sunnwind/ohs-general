@@ -76,6 +76,7 @@ public class NeuralNetTrainer {
 
 					nn.backward(D);
 					pu.update();
+					readyForNextIteration();
 				}
 			} else if (X instanceof IntegerMatrix) {
 				if (Y instanceof IntegerArray) {
@@ -98,6 +99,7 @@ public class NeuralNetTrainer {
 
 						nn.backward(D);
 						pu.update();
+						readyForNextIteration();
 					}
 				} else if (Y instanceof IntegerMatrix) {
 					IntegerMatrix X_ = (IntegerMatrix) X;
@@ -125,6 +127,7 @@ public class NeuralNetTrainer {
 							}
 							pu.update();
 						} else {
+							int len = 0;
 							for (int i = 0; i < Xm.size(); i++) {
 								IntegerArray xm = Xm.get(i);
 								IntegerArray ym = Ym.get(i);
@@ -140,10 +143,20 @@ public class NeuralNetTrainer {
 
 									cost += cf.getCost();
 									correct_cnt += cf.getCorrectCnt();
+									len += x.size();
 
 									nn.backward(D);
-									pu.update();
+
+									if (len >= batch_size) {
+										pu.update();
+										len = 0;
+									}
 								}
+							}
+
+							if (len > 0) {
+								pu.update();
+								len = 0;
 							}
 						}
 						readyForNextIteration();
@@ -172,7 +185,6 @@ public class NeuralNetTrainer {
 			ret.add(l.copy());
 		}
 		return ret;
-
 	}
 
 	public static List<NeuralNet> copy(NeuralNet nn, int size) {
@@ -185,13 +197,17 @@ public class NeuralNetTrainer {
 
 	private int batch_size;
 
-	private int burnin_iters = 100;
-
 	private int[] data_locs;
 
 	private PerformanceEvaluator eval = new PerformanceEvaluator();
 
+	private int grad_acc_reset_size;
+
 	// private NeuralNetParams param;
+
+	private boolean is_full_seq_batch;
+
+	private boolean is_random_batch;
 
 	private double learn_rate;
 
@@ -221,7 +237,8 @@ public class NeuralNetTrainer {
 
 	public NeuralNetTrainer(NeuralNet nn, NeuralNetParams param) throws Exception {
 		prepare(nn, param.getThreadSize(), param.getBatchSize(), param.getLearnRate(), param.getRegLambda(),
-				param.getGradientClipCutoff(), param.getOptimizerType(), param.isFullSequenceBatch());
+				param.getGradientClipCutoff(), param.getOptimizerType(), param.isFullSequenceBatch(),
+				param.isRandomBatch(), param.getGradientAccumulatorResetSize());
 	}
 
 	public void finish() {
@@ -233,13 +250,16 @@ public class NeuralNetTrainer {
 	}
 
 	private void prepare(NeuralNet nn, int thread_size, int batch_size, double learn_rate, double reg_lambda,
-			double grad_clip_cutoff, OptimizerType ot, boolean is_sent_batch) throws Exception {
+			double grad_clip_cutoff, OptimizerType ot, boolean is_full_seq_batch, boolean is_random_batch,
+			int grad_acc_reset_size) throws Exception {
 		this.nn = nn;
 
 		this.learn_rate = learn_rate;
 		this.reg_lambda = reg_lambda;
 		this.batch_size = batch_size;
-		this.is_full_seq_batch = is_sent_batch;
+		this.is_full_seq_batch = is_full_seq_batch;
+		this.is_random_batch = is_random_batch;
+		this.grad_acc_reset_size = grad_acc_reset_size;
 
 		List<NeuralNet> nns = copy(nn, thread_size - 1);
 
@@ -280,8 +300,6 @@ public class NeuralNetTrainer {
 		}
 	}
 
-	private boolean is_full_seq_batch;
-
 	public void train(Object X, Object Y, Object Xt, Object Yt, int max_iters) throws Exception {
 		this.X = X;
 		this.Y = Y;
@@ -321,7 +339,9 @@ public class NeuralNetTrainer {
 
 			Timer timer2 = Timer.newTimer();
 
-			ArrayUtils.shuffle(data_locs);
+			if (is_random_batch) {
+				ArrayUtils.shuffle(data_locs);
+			}
 
 			range_cnt = new AtomicInteger(0);
 
@@ -343,7 +363,7 @@ public class NeuralNetTrainer {
 				cost += CrossEntropyCostFunction.getL2RegularizationTerm(reg_lambda, W, data_size);
 			}
 
-			double acc = 1f * cor_cnt / data_size;
+			double acc = 1d * cor_cnt / data_size;
 
 			if (best_cost < cost) {
 				best_cost = cost;
@@ -354,25 +374,26 @@ public class NeuralNetTrainer {
 			}
 
 			double norm = ArrayMath.normL2(W.values());
+
 			System.out.printf("%dth, cost: %f, acc: %f (%d/%d), time: %s (%s), norm: %f, learn-rate: %f\n", i + 1, cost,
 					acc, cor_cnt, data_size, timer2.stop(), timer1.stop(), norm, learn_rate);
 
 			if (Xt != null && Yt != null) {
 				nn.setIsTesting(true);
 
-				IntegerArray yh = null;
-				IntegerArray y = null;
+				IntegerArray Yha = null;
+				IntegerArray Ya = null;
 
 				if (X instanceof DenseMatrix) {
-					yh = nn.classify(Xt);
-					y = (IntegerArray) Yt;
+					Yha = nn.classify(Xt);
+					Ya = (IntegerArray) Yt;
 				} else if (X instanceof IntegerMatrix) {
 					if (Y instanceof IntegerArray) {
 						IntegerMatrix Xt_ = (IntegerMatrix) Xt;
 						IntegerArray Yt_ = (IntegerArray) Yt;
 
-						y = new IntegerArray(Xt_.size());
-						yh = new IntegerArray(Xt_.size());
+						Ya = new IntegerArray(Xt_.size());
+						Yha = new IntegerArray(Xt_.size());
 
 						int[][] rs = BatchUtils.getBatchRanges(Xt_.size(), batch_size);
 
@@ -381,15 +402,15 @@ public class NeuralNetTrainer {
 							IntegerMatrix xm = Xt_.subMatrix(r[0], r[1]);
 							IntegerArray yhm = nn.classify(xm);
 
-							y.addAll(Yt_.subArray(r[0], r[1]));
-							yh.addAll(yhm);
+							Ya.addAll(Yt_.subArray(r[0], r[1]));
+							Yha.addAll(yhm);
 						}
 					} else if (Y instanceof IntegerMatrix) {
 						IntegerMatrix Xt_ = (IntegerMatrix) Xt;
 						IntegerMatrix Yt_ = (IntegerMatrix) Yt;
 
-						y = new IntegerArray(Xt_.sizeOfEntries());
-						yh = new IntegerArray(Xt_.sizeOfEntries());
+						Ya = new IntegerArray(Xt_.sizeOfEntries());
+						Yha = new IntegerArray(Xt_.sizeOfEntries());
 
 						for (int j = 0; j < Xt_.size(); j++) {
 							IntegerArray Xtm = Xt_.get(j);
@@ -397,20 +418,20 @@ public class NeuralNetTrainer {
 							IntegerArray Yhm = nn.classify(Xtm);
 
 							for (int k = 0; k < Ytm.size(); k++) {
-								y.add(Ytm.get(k));
-								yh.add(Yhm.get(k));
+								Ya.add(Ytm.get(k));
+								Yha.add(Yhm.get(k));
 							}
 						}
 					}
 				}
 
-				Performance p = eval.evalute(y, yh, nn.getLabelIndexer());
+				Performance p = eval.evalute(Ya, Yha, nn.getLabelIndexer());
 				perfs.add(p);
 
 				System.out.println(p.toString());
 				nn.setIsTesting(false);
 
-				if (iters % burnin_iters == 0) {
+				if (iters % grad_acc_reset_size == 0) {
 					for (ParameterUpdater pu : pus) {
 						pu.resetGradientAccumulators();
 					}

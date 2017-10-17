@@ -5,6 +5,8 @@ import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.poi.hssf.util.HSSFColor.RED;
+
 import ohs.io.FileUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
@@ -15,6 +17,7 @@ import ohs.ml.neuralnet.layer.EmbeddingLayer;
 import ohs.ml.neuralnet.layer.FullyConnectedLayer;
 import ohs.ml.neuralnet.layer.Layer;
 import ohs.ml.neuralnet.layer.NonlinearityLayer;
+import ohs.ml.neuralnet.layer.RecurrentLayer;
 import ohs.ml.neuralnet.layer.SoftmaxLayer;
 import ohs.types.generic.Indexer;
 import ohs.types.generic.Vocab;
@@ -52,6 +55,10 @@ public class NeuralNet extends ArrayList<Layer> {
 	public NeuralNet(Indexer<String> labelIdxer, Vocab vocab) {
 		this.labelIdxer = labelIdxer;
 		this.vocab = vocab;
+	}
+
+	public NeuralNet(String fileName) throws Exception {
+		readObject(fileName);
 	}
 
 	public Object backward(DenseMatrix D) {
@@ -191,18 +198,9 @@ public class NeuralNet extends ArrayList<Layer> {
 
 		for (int i = 0; i < size; i++) {
 			String name = ois.readUTF();
-			Layer l = null;
-			if (name.equals(FullyConnectedLayer.class.getName())) {
-				l = new FullyConnectedLayer(ois);
-			} else if (name.equals(SoftmaxLayer.class.getName())) {
-				l = new SoftmaxLayer(ois);
-			} else if (name.equals(BatchNormalizationLayer.class.getName())) {
-				l = new BatchNormalizationLayer(ois);
-			} else if (name.equals(DropoutLayer.class.getName())) {
-				l = new DropoutLayer(ois);
-			} else if (name.equals(NonlinearityLayer.class.getName())) {
-				l = new NonlinearityLayer(ois);
-			}
+			Class c = Class.forName(name);
+			Layer l = (Layer) c.newInstance();
+			l.readObject(ois);
 			add(l);
 		}
 	}

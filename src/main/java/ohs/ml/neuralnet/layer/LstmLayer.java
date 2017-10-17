@@ -1,5 +1,7 @@
 package ohs.ml.neuralnet.layer;
 
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.List;
 
 import ohs.math.VectorMath;
@@ -89,6 +91,10 @@ public class LstmLayer extends RecurrentLayer {
 	 * input to hidden
 	 */
 	private DenseMatrix X;
+
+	public LstmLayer() {
+
+	}
 
 	public LstmLayer(DenseMatrix Wxh, DenseMatrix Whh, DenseVector bh, Nonlinearity non) {
 		super();
@@ -370,9 +376,23 @@ public class LstmLayer extends RecurrentLayer {
 		dbh = bh.copy(true);
 	}
 
+	@Override
+	public void readObject(ObjectInputStream ois) throws Exception {
+		Wxh = new DenseMatrix(ois);
+		Whh = new DenseMatrix(ois);
+		bh = new DenseVector(ois);
+	}
+
 	public void resetH0() {
 		h0.setAll(0);
 		c0.setAll(0);
+	}
+
+	@Override
+	public void writeObject(ObjectOutputStream oos) throws Exception {
+		Wxh.writeObject(oos);
+		Whh.writeObject(oos);
+		bh.writeObject(oos);
 	}
 
 }

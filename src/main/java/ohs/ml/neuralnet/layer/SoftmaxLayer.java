@@ -19,6 +19,10 @@ public class SoftmaxLayer extends Layer {
 
 	private DenseMatrix tmp_Y = new DenseMatrix(0);
 
+	public SoftmaxLayer() {
+
+	}
+
 	public SoftmaxLayer(int output_size) {
 		this.output_size = output_size;
 	}

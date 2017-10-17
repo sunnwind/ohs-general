@@ -122,11 +122,11 @@ public class BidirectionalRecurrentLayer extends RecurrentLayer {
 		return H;
 	}
 
-	public Layer getBackwardLayer() {
+	public RecurrentLayer getBackwardLayer() {
 		return bwd;
 	}
 
-	public Layer getForwardLayer() {
+	public RecurrentLayer getForwardLayer() {
 		return fwd;
 	}
 
@@ -153,6 +153,10 @@ public class BidirectionalRecurrentLayer extends RecurrentLayer {
 		bwd.readObject(ois);
 		input_size = fwd.getInputSize();
 		output_size = fwd.getOutputSize();
+	}
+
+	public BidirectionalRecurrentLayer() {
+
 	}
 
 	public void resetH0() {

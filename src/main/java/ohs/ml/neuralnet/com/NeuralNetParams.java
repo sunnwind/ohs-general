@@ -8,9 +8,9 @@ public class NeuralNetParams {
 
 	private int batch_size = 50;
 
-	private int bppt_size = 5;
+	private int bptt = 5;
 
-	private int bptt_size = 5;
+	private int grad_acc_reset_size = 100;
 
 	private double grad_clip_cutoff = Double.MAX_VALUE;
 
@@ -19,6 +19,8 @@ public class NeuralNetParams {
 	private int input_size = 10;
 
 	private boolean is_full_seq_batch = false;
+
+	private boolean is_random_batch = true;
 
 	private double learn_rate = 0.01;
 
@@ -55,8 +57,8 @@ public class NeuralNetParams {
 		return batch_size;
 	}
 
-	public int getBpttSize() {
-		return bppt_size;
+	public int getGradientAccumulatorResetSize() {
+		return grad_acc_reset_size;
 	}
 
 	public double getGradientClipCutoff() {
@@ -95,20 +97,24 @@ public class NeuralNetParams {
 		return thread_size;
 	}
 
+	public int getTruncatedBackPropagationThroughTime() {
+		return bptt;
+	}
+
 	public boolean isFullSequenceBatch() {
 		return is_full_seq_batch;
 	}
 
-	public void setAnnealingSize(int bppt_size) {
-		this.bppt_size = bppt_size;
+	public boolean isRandomBatch() {
+		return is_random_batch;
 	}
 
 	public void setBatchSize(int batch_size) {
 		this.batch_size = batch_size;
 	}
 
-	public void setBpttSize(int bppt_size) {
-		this.bppt_size = bppt_size;
+	public void setGradientAccumulatorResetSize(int grad_acc_reset_size) {
+		this.grad_acc_reset_size = grad_acc_reset_size;
 	}
 
 	public void setGradientClipCutoff(double grad_clip_cutoff) {
@@ -125,6 +131,10 @@ public class NeuralNetParams {
 
 	public void setIsFullSequenceBatch(boolean is_full_seq_batch) {
 		this.is_full_seq_batch = is_full_seq_batch;
+	}
+
+	public void setIsRandomBatch(boolean is_random_batch) {
+		this.is_random_batch = is_random_batch;
 	}
 
 	public void setLearnRate(double learning_rate) {
@@ -149,6 +159,10 @@ public class NeuralNetParams {
 
 	public void setThreadSize(int thread_size) {
 		this.thread_size = thread_size;
+	}
+
+	public void setTruncatedBackPropagationThroughTime(int bptt) {
+		this.bptt = bptt;
 	}
 
 	@Override
