@@ -1,6 +1,5 @@
 package ohs.ml.neuralnet.com;
 
-import java.sql.Date;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
@@ -19,13 +18,13 @@ import ohs.ml.neuralnet.cost.CrossEntropyCostFunction;
 import ohs.ml.neuralnet.layer.BidirectionalRecurrentLayer;
 import ohs.ml.neuralnet.layer.Layer;
 import ohs.ml.neuralnet.layer.LstmLayer;
+import ohs.ml.neuralnet.layer.RecurrentLayer;
 import ohs.ml.neuralnet.layer.RnnLayer;
 import ohs.types.generic.Pair;
 import ohs.types.number.IntegerArray;
 import ohs.types.number.IntegerMatrix;
 import ohs.utils.Generics;
 import ohs.utils.Timer;
-import scala.collection.generic.BitOperations.Int;
 
 /**
  * http://www.wildml.com/2015/09/implementing-a-neural-network-from-scratch/
@@ -59,7 +58,6 @@ public class NeuralNetTrainer {
 
 			if (X instanceof DenseMatrix) {
 				int range_loc = 0;
-
 				DenseMatrix X_ = (DenseMatrix) X;
 				IntegerArray Y_ = (IntegerArray) Y;
 
@@ -105,15 +103,16 @@ public class NeuralNetTrainer {
 					IntegerMatrix X_ = (IntegerMatrix) X;
 					IntegerMatrix Y_ = (IntegerMatrix) Y;
 
-					if (is_full_seq_batch) {
-						int range_loc = 0;
-						while ((range_loc = range_cnt.getAndIncrement()) < ranges.length) {
-							int[] r = ranges[range_loc];
-							int[] locs = BatchUtils.getIndexes(data_locs, r);
+					int range_loc = 0;
 
-							IntegerMatrix Xm = X_.subMatrix(locs);
-							IntegerMatrix Ym = Y_.subMatrix(locs);
+					while ((range_loc = range_cnt.getAndIncrement()) < ranges.length) {
+						int[] r = ranges[range_loc];
+						int[] locs = BatchUtils.getIndexes(data_locs, r);
 
+						IntegerMatrix Xm = X_.subMatrix(locs);
+						IntegerMatrix Ym = Y_.subMatrix(locs);
+
+						if (is_full_seq_batch) {
 							for (int i = 0; i < Xm.size(); i++) {
 								IntegerArray xm = Xm.get(i);
 								IntegerArray ym = Ym.get(i);
@@ -125,21 +124,10 @@ public class NeuralNetTrainer {
 								nn.backward(D);
 							}
 							pu.update();
-						}
-					} else {
-						int range_loc = 0;
-
-						while ((range_loc = range_cnt.getAndIncrement()) < ranges.length) {
-							int[] r = ranges[range_loc];
-							int[] locs = BatchUtils.getIndexes(data_locs, r);
-
-							IntegerMatrix Xm = X_.subMatrix(locs);
-							IntegerMatrix Ym = Y_.subMatrix(locs);
-
+						} else {
 							for (int i = 0; i < Xm.size(); i++) {
 								IntegerArray xm = Xm.get(i);
 								IntegerArray ym = Ym.get(i);
-
 								int[][] rs = BatchUtils.getBatchRanges(xm.size(), batch_size);
 
 								for (int j = 0; j < rs.length; j++) {
@@ -156,28 +144,22 @@ public class NeuralNetTrainer {
 									nn.backward(D);
 									pu.update();
 								}
-
 							}
 						}
+						readyForNextIteration();
 					}
 				}
 			}
 
-			readyForNextIteration();
+			// readyForNextIteration();
 
 			return Generics.newPair(cost, correct_cnt);
 		}
 
 		private void readyForNextIteration() {
 			for (Layer l : nn) {
-				if (l instanceof RnnLayer) {
-					RnnLayer n = (RnnLayer) l;
-					n.resetH0();
-				} else if (l instanceof LstmLayer) {
-					LstmLayer n = (LstmLayer) l;
-					n.resetH0();
-				} else if (l instanceof BidirectionalRecurrentLayer) {
-					BidirectionalRecurrentLayer n = (BidirectionalRecurrentLayer) l;
+				if (l instanceof RecurrentLayer) {
+					RecurrentLayer n = (RecurrentLayer) l;
 					n.resetH0();
 				}
 			}
@@ -312,14 +294,14 @@ public class NeuralNetTrainer {
 			ranges = BatchUtils.getBatchRanges(data_size, batch_size);
 		} else if (X instanceof IntegerMatrix) {
 			if (Y instanceof IntegerArray) {
-				data_size = ((IntegerMatrix) X).size();
+				data_size = ((IntegerMatrix) Y).size();
 				data_locs = ArrayUtils.range(data_size);
 				ranges = BatchUtils.getBatchRanges(data_size, batch_size);
 			} else if (Y instanceof IntegerMatrix) {
-				IntegerMatrix X_ = ((IntegerMatrix) X);
-				data_size = X_.sizeOfEntries();
-				data_locs = ArrayUtils.range(X_.size());
-				ranges = BatchUtils.getBatchRanges(X_.size(), 100);
+				IntegerMatrix Y_ = ((IntegerMatrix) Y);
+				data_size = Y_.sizeOfEntries();
+				data_locs = ArrayUtils.range(Y_.size());
+				ranges = BatchUtils.getBatchRanges(Y_.size(), 100);
 			}
 		}
 
@@ -386,37 +368,37 @@ public class NeuralNetTrainer {
 					y = (IntegerArray) Yt;
 				} else if (X instanceof IntegerMatrix) {
 					if (Y instanceof IntegerArray) {
-						IntegerMatrix Xm = (IntegerMatrix) Xt;
-						IntegerArray Ym = (IntegerArray) Yt;
+						IntegerMatrix Xt_ = (IntegerMatrix) Xt;
+						IntegerArray Yt_ = (IntegerArray) Yt;
 
-						y = new IntegerArray(Xm.size());
-						yh = new IntegerArray(Xm.size());
+						y = new IntegerArray(Xt_.size());
+						yh = new IntegerArray(Xt_.size());
 
-						int[][] rs = BatchUtils.getBatchRanges(Xm.size(), batch_size);
+						int[][] rs = BatchUtils.getBatchRanges(Xt_.size(), batch_size);
 
 						for (int j = 0; j < rs.length; j++) {
 							int[] r = rs[j];
-							IntegerMatrix xm = Xm.subMatrix(r[0], r[1]);
+							IntegerMatrix xm = Xt_.subMatrix(r[0], r[1]);
 							IntegerArray yhm = nn.classify(xm);
 
-							y.addAll(Ym.subArray(r[0], r[1]));
+							y.addAll(Yt_.subArray(r[0], r[1]));
 							yh.addAll(yhm);
 						}
 					} else if (Y instanceof IntegerMatrix) {
-						IntegerMatrix Xm = (IntegerMatrix) Xt;
-						IntegerMatrix Ym = (IntegerMatrix) Yt;
+						IntegerMatrix Xt_ = (IntegerMatrix) Xt;
+						IntegerMatrix Yt_ = (IntegerMatrix) Yt;
 
-						y = new IntegerArray(Xm.sizeOfEntries());
-						yh = new IntegerArray(Xm.sizeOfEntries());
+						y = new IntegerArray(Xt_.sizeOfEntries());
+						yh = new IntegerArray(Xt_.sizeOfEntries());
 
-						for (int j = 0; j < Xm.size(); j++) {
-							IntegerArray xm = Xm.get(j);
-							IntegerArray ym = Ym.get(j);
-							IntegerArray yhm = nn.classify(xm);
+						for (int j = 0; j < Xt_.size(); j++) {
+							IntegerArray Xtm = Xt_.get(j);
+							IntegerArray Ytm = Yt_.get(j);
+							IntegerArray Yhm = nn.classify(Xtm);
 
-							for (int k = 0; k < ym.size(); k++) {
-								y.add(ym.get(k));
-								yh.add(yhm.get(k));
+							for (int k = 0; k < Ytm.size(); k++) {
+								y.add(Ytm.get(k));
+								yh.add(Yhm.get(k));
 							}
 						}
 					}

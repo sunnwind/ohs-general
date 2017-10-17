@@ -194,7 +194,7 @@ public class Apps {
 		param.setRegLambda(0.001);
 		param.setThreadSize(8);
 		param.setGradientClipCutoff(5);
-		param.setOptimizerType(OptimizerType.RMSPROP);
+		param.setOptimizerType(OptimizerType.ADAM);
 
 		Pair<SparseMatrix, IntegerArray> train = DataReader.readFromSvmFormat("../../data/ml_data/mnist.txt");
 		Pair<SparseMatrix, IntegerArray> test = DataReader.readFromSvmFormat("../../data/ml_data/mnist.t.txt");

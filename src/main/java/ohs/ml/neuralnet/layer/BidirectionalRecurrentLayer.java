@@ -20,7 +20,7 @@ import ohs.utils.Generics;
  * 
  * @author ohs
  */
-public class BidirectionalRecurrentLayer extends Layer {
+public class BidirectionalRecurrentLayer extends RecurrentLayer {
 
 	public static enum Type {
 		LSTM, RNN
@@ -31,9 +31,9 @@ public class BidirectionalRecurrentLayer extends Layer {
 	 */
 	private static final long serialVersionUID = -8764635726766071893L;
 
-	private Layer bwd;
+	private RecurrentLayer bwd;
 
-	private Layer fwd;
+	private RecurrentLayer fwd;
 
 	private DenseMatrix H;
 
@@ -45,22 +45,7 @@ public class BidirectionalRecurrentLayer extends Layer {
 
 	private DenseMatrix tmp_H = new DenseMatrix(0);
 
-	public void resetH0() {
-
-		if (fwd instanceof RnnLayer) {
-			RnnLayer l1 = (RnnLayer) fwd;
-			RnnLayer l2 = (RnnLayer) bwd;
-			l1.resetH0();
-			l2.resetH0();
-		} else if (fwd instanceof LstmLayer) {
-			LstmLayer l1 = (LstmLayer) fwd;
-			LstmLayer l2 = (LstmLayer) bwd;
-			l1.resetH0();
-			l2.resetH0();
-		}
-	}
-
-	public BidirectionalRecurrentLayer(Layer fwd, Layer bwd) {
+	public BidirectionalRecurrentLayer(RecurrentLayer fwd, RecurrentLayer bwd) {
 		super();
 		this.fwd = fwd;
 		this.bwd = bwd;
@@ -106,8 +91,8 @@ public class BidirectionalRecurrentLayer extends Layer {
 	}
 
 	@Override
-	public Layer copy() {
-		return new BidirectionalRecurrentLayer(fwd.copy(), bwd.copy());
+	public RecurrentLayer copy() {
+		return new BidirectionalRecurrentLayer((RecurrentLayer) fwd.copy(), (RecurrentLayer) bwd.copy());
 	}
 
 	@Override
@@ -161,13 +146,18 @@ public class BidirectionalRecurrentLayer extends Layer {
 	public void readObject(ObjectInputStream ois) throws Exception {
 		String name = ois.readUTF();
 		Class c = Class.forName(name);
-		fwd = (Layer) c.newInstance();
-		bwd = (Layer) c.newInstance();
+		fwd = (RecurrentLayer) c.newInstance();
+		bwd = (RecurrentLayer) c.newInstance();
 
 		fwd.readObject(ois);
 		bwd.readObject(ois);
 		input_size = fwd.getInputSize();
 		output_size = fwd.getOutputSize();
+	}
+
+	public void resetH0() {
+		fwd.resetH0();
+		bwd.resetH0();
 	}
 
 	private Object reverse(Object I) {

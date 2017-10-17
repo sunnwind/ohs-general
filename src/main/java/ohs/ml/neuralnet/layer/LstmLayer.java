@@ -36,7 +36,7 @@ import ohs.utils.Generics;
  * 
  * @author ohs
  */
-public class LstmLayer extends Layer {
+public class LstmLayer extends RecurrentLayer {
 
 	/**
 	 * 
@@ -62,8 +62,6 @@ public class LstmLayer extends Layer {
 	private DenseVector di;
 
 	private DenseVector doo;
-	private DenseMatrix dWhh;
-	private DenseMatrix dWxh;
 
 	private DenseMatrix F;
 	private DenseMatrix G;
@@ -87,11 +85,9 @@ public class LstmLayer extends Layer {
 	private DenseMatrix tmp_I;
 
 	private DenseMatrix tmp_O;
-	private DenseMatrix Whh;
 	/**
 	 * input to hidden
 	 */
-	private DenseMatrix Wxh;
 	private DenseMatrix X;
 
 	public LstmLayer(DenseMatrix Wxh, DenseMatrix Whh, DenseVector bh, Nonlinearity non) {
@@ -235,6 +231,10 @@ public class LstmLayer extends Layer {
 			da = a.copy(true);
 		}
 
+		// if (is_testing) {
+		// resetH0();
+		// }
+
 		H = tmp_H.rows(data_size);
 		C = tmp_C.rows(data_size);
 
@@ -348,14 +348,6 @@ public class LstmLayer extends Layer {
 		}
 
 		return new DenseMatrix(ws);
-	}
-
-	public DenseMatrix getWhh() {
-		return Whh;
-	}
-
-	public DenseMatrix getWxh() {
-		return Wxh;
 	}
 
 	@Override

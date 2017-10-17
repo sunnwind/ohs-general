@@ -33,7 +33,7 @@ import ohs.utils.Generics;
  * 
  * @author ohs
  */
-public class RnnLayer extends Layer {
+public class RnnLayer extends RecurrentLayer {
 
 	/**
 	 * 
@@ -49,10 +49,6 @@ public class RnnLayer extends Layer {
 	private DenseVector dh_prev;
 
 	private DenseVector dh_raw;
-
-	private DenseMatrix dWhh;
-
-	private DenseMatrix dWxh;
 
 	private Object fwd_I;
 
@@ -75,16 +71,6 @@ public class RnnLayer extends Layer {
 	private DenseMatrix tmp_dX;
 
 	private DenseMatrix tmp_H;
-
-	/**
-	 * hidden to hidden
-	 */
-	private DenseMatrix Whh;
-
-	/**
-	 * input to hidden
-	 */
-	private DenseMatrix Wxh;
 
 	public RnnLayer(DenseMatrix Wxh, DenseMatrix Whh, DenseVector bh, int bptt_size, Nonlinearity non) {
 		super();
@@ -302,14 +288,6 @@ public class RnnLayer extends Layer {
 		}
 
 		return new DenseMatrix(ws);
-	}
-
-	public DenseMatrix getWhh() {
-		return Whh;
-	}
-
-	public DenseMatrix getWxh() {
-		return Wxh;
 	}
 
 	@Override
