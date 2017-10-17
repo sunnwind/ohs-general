@@ -100,13 +100,13 @@ public class ParameterUpdater {
 		return ret;
 	}
 
+	public NeuralNet getNeuralNet() {
+		return nn;
+	}
+
 	public void resetGradientAccumulators() {
 		rWs1.setAll(0);
 		rWs2.setAll(0);
-	}
-
-	public NeuralNet getNeuralNet() {
-		return nn;
 	}
 
 	public void setGradientClipCutoff(double grad_clip_cutoff) {
@@ -158,15 +158,15 @@ public class ParameterUpdater {
 			double rv1 = 0;
 			double rv2 = 0;
 
-//			synchronized (W) {
-				for (int j = 0; j < W.rowSize(); j++) {
-					DenseVector dw = dW.row(j);
-					DenseVector w = W.row(j);
-					DenseVector r1 = rW1.row(j);
-					DenseVector r2 = rW2.row(j);
+			// synchronized (W) {
+			for (int j = 0; j < W.rowSize(); j++) {
+				DenseVector dw = dW.row(j);
+				DenseVector w = W.row(j);
+				DenseVector r1 = rW1.row(j);
+				DenseVector r2 = rW2.row(j);
 
-					// if (g.sum() != 0) {
-					 synchronized (w) {
+				// if (g.sum() != 0) {
+				synchronized (w) {
 					sum = 0;
 					if (ot == OptimizerType.SIMPLE) {
 						for (int k = 0; k < dw.size(); k++) {
@@ -180,6 +180,7 @@ public class ParameterUpdater {
 						for (int k = 0; k < dw.size(); k++) {
 							dx = dw.value(k) * batch_size_scale;
 							r1.add(k, Math.pow(dx, 2));
+
 							x = w.value(k) * weight_decay;
 							x -= learn_rate / Math.sqrt(r1.value(k) + eps) * dx;
 							w.set(k, x);
@@ -189,7 +190,7 @@ public class ParameterUpdater {
 						sum = 0;
 						for (int k = 0; k < dw.size(); k++) {
 							dx = dw.value(k) * batch_size_scale;
-							rv1 = ArrayMath.addAfterMultiply(r1.value(k), decay_rate, Math.pow(dx, 2));
+							rv1 = ArrayMath.addAfterMultiply(r1.value(k), decay_rate, Math.pow(dx, 2), 1 - decay_rate);
 							r1.set(k, rv1);
 
 							x = w.value(k) * weight_decay;
@@ -218,11 +219,11 @@ public class ParameterUpdater {
 					}
 
 					w.setSum(sum);
-					 }
-					dw.setAll(0);
-					// }
 				}
-			//			}
+				dw.setAll(0);
+				// }
+			}
+			// }
 		}
 	}
 

@@ -153,8 +153,11 @@ public class DataReader {
 				String ner = parts[3];
 				ner = modifyNerTag(ner);
 
-				x.add(vocab.indexOf(word, 0));
-				y.add(labeIdxer.indexOf(ner));
+				int w = vocab.indexOf(word, 0);
+				int label = labeIdxer.indexOf(ner);
+
+				x.add(w);
+				y.add(label);
 			}
 			X.add(x);
 			Y.add(y);
@@ -171,7 +174,7 @@ public class DataReader {
 		return ner;
 	}
 
-	public static Object[] readNerTrainData(String fileName) throws Exception {
+	public static Object[] readNerTrainData(String trainFileName, String testFileName) throws Exception {
 		List<IntegerArray> X = Generics.newLinkedList();
 		List<IntegerArray> Y = Generics.newLinkedList();
 
@@ -181,17 +184,19 @@ public class DataReader {
 		Indexer<String> labelIndexer = Generics.newIndexer();
 		Set<String> labels = Generics.newTreeSet();
 
-		String[] ps = FileUtils.readFromText(fileName).split("\n\n");
-
-		for (String p : ps) {
-			for (String line : p.split("\n")) {
-				String[] parts = line.split(" ");
-				String word = parts[0];
-				String pos = parts[1];
-				String phrase = parts[2];
-				String ner = parts[3];
-				ner = modifyNerTag(ner);
-				labels.add(ner);
+		for (String fileName : new String[] { trainFileName }) {
+			String[] ps = FileUtils.readFromText(fileName).split("\n\n");
+			for (String p : ps) {
+				for (String line : p.split("\n")) {
+					String[] parts = line.split(" ");
+					String word = parts[0];
+					String pos = parts[1];
+					String phrase = parts[2];
+					String ner = parts[3];
+					ner = modifyNerTag(ner);
+					labels.add(ner);
+					vocab.add(word);
+				}
 			}
 		}
 
@@ -199,6 +204,8 @@ public class DataReader {
 
 		labelIndexer.addAll(labels);
 		labelIndexer.add("O");
+
+		String[] ps = FileUtils.readFromText(trainFileName).split("\n\n");
 
 		for (String p : ps) {
 			IntegerArray x = new IntegerArray();
@@ -211,8 +218,11 @@ public class DataReader {
 				String ner = parts[3];
 				ner = modifyNerTag(ner);
 
-				x.add(vocab.getIndex(word.toLowerCase()));
-				y.add(labelIndexer.indexOf(ner));
+				int w = vocab.indexOf(word, 0);
+				int label = labelIndexer.indexOf(ner);
+
+				x.add(w);
+				y.add(label);
 			}
 			X.add(x);
 			Y.add(y);

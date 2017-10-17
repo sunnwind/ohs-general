@@ -49,6 +49,291 @@ public class Apps {
 		System.out.println("process ends.");
 	}
 
+	public static void testCharRNN() throws Exception {
+		NeuralNetParams param = new NeuralNetParams();
+		param.setInputSize(100);
+		param.setHiddenSize(50);
+		param.setOutputSize(10);
+		param.setBatchSize(10);
+		param.setLearnRate(0.001);
+		param.setRegLambda(0.01);
+		param.setThreadSize(3);
+		param.setBpttSize(10);
+
+		// Triple<IntegerArrayMatrix, IntegerArrayMatrix, Vocab> train =
+		// DataReader.readCapitalData(300);
+		Triple<IntegerMatrix, IntegerMatrix, Vocab> data = DataReader.readLines("../../data/ml_data/warpeace_input.txt",
+				1000);
+
+		IntegerMatrix X = new IntegerMatrix();
+		IntegerMatrix Y = new IntegerMatrix();
+		IntegerMatrix Xt = new IntegerMatrix();
+		IntegerMatrix Yt = new IntegerMatrix();
+		Vocab vocab = data.getThird();
+
+		{
+
+			IntegerMatrix X_ = data.getFirst();
+			IntegerMatrix Y_ = data.getSecond();
+
+			double test_portion = 0.3;
+			int test_size = (int) (1f * X_.size() * test_portion);
+
+			for (int i = 0; i < X_.size(); i++) {
+				if (i < test_size) {
+					Xt.add(X_.get(i));
+					Yt.add(Y_.get(i));
+				} else {
+					X.add(X_.get(i));
+					Y.add(Y_.get(i));
+				}
+			}
+		}
+
+		Indexer<String> labelIdxer = Generics.newIndexer(vocab.getObjects());
+
+		int size1 = 0;
+		int size2 = 0;
+		int max_len = 0;
+		int min_len = Integer.MAX_VALUE;
+
+		int pad_label = vocab.getIndex("<PAD>");
+
+		System.out.printf("data size: [%d -> %d]\n", size1, size2);
+		System.out.printf("max len: [%d]\n", max_len);
+		System.out.printf("min len: [%d]\n", min_len);
+
+		int vocab_size = vocab.size();
+		int input_size = vocab_size;
+		int emb_size = 200;
+		int l1_size = 100;
+		int l2_size = 20;
+		int output_size = vocab.size();
+		int type = 4;
+
+		System.out.println(vocab.info());
+
+		NeuralNet nn = new NeuralNet(labelIdxer, vocab);
+
+		if (type == 1) {
+			nn.add(new EmbeddingLayer(vocab_size, emb_size, false));
+			nn.add(new FullyConnectedLayer(emb_size, l1_size));
+			nn.add(new NonlinearityLayer(new Tanh()));
+			// nn.add(new DropoutLayer(l1_size));
+			nn.add(new FullyConnectedLayer(l1_size, l2_size));
+			nn.add(new NonlinearityLayer(new Tanh()));
+			nn.add(new FullyConnectedLayer(l2_size, output_size));
+			nn.add(new SoftmaxLayer(output_size));
+			nn.prepare();
+			nn.init();
+
+			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param);
+			trainer.train(X, Y, null, null, 10000);
+			trainer.finish();
+		} else if (type == 2) {
+			// nn.add(new EmbeddingLayer(vocab_size, embedding_size, true));
+			// nn.add(new BatchNormalizationLayer(embedding_size));
+			// nn.add(new RnnLayer(embedding_size, l1_size, param.getBpttSize(),
+			// new Tanh()));
+
+			nn.add(new EmbeddingLayer(vocab_size, emb_size, true));
+			// nn.add(new BatchNormalizationLayer(embedding_size));
+			nn.add(new RnnLayer(emb_size, l1_size, param.getBpttSize(), new Tanh()));
+			nn.add(new BatchNormalizationLayer(l1_size));
+			// nn.add(new DropoutLayer(l1_size));
+			nn.add(new FullyConnectedLayer(l1_size, output_size));
+			nn.add(new SoftmaxLayer(output_size));
+			nn.prepare();
+			nn.init();
+
+			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param);
+			trainer.train(X, Y, null, null, 10000);
+			trainer.finish();
+		} else if (type == 3) {
+			nn.add(new EmbeddingLayer(vocab_size, emb_size, true));
+			// nn.add(new BatchNormalizationLayer(embedding_size));
+			nn.add(new LstmLayer(emb_size, l1_size, new Tanh()));
+			// nn.add(new BatchNormalizationLayer(l1_size));
+			// nn.add(new DropoutLayer(l1_size));
+			nn.add(new FullyConnectedLayer(l1_size, output_size));
+			nn.add(new SoftmaxLayer(output_size));
+			nn.prepare();
+			nn.init();
+
+			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param);
+			trainer.train(X, Y, null, null, 10000);
+			trainer.finish();
+		} else if (type == 4) {
+			nn.add(new EmbeddingLayer(vocab_size, emb_size, true));
+			// nn.add(new BatchNormalizationLayer(embedding_size));
+			// nn.add(new GruLayer(embedding_size, l1_size, new Tanh()));
+			// nn.add(new RnnLayer(embedding_size, l1_size, param.getBpttSize(), new
+			// ReLU()));
+			// nn.add(new LstmLayer(embedding_size, l1_size, new ReLU()));
+			nn.add(new BidirectionalRecurrentLayer(Type.LSTM, emb_size, l1_size, param.getBpttSize(), new ReLU()));
+
+			// nn.add(new DropoutLayer(l1_size));
+			nn.add(new FullyConnectedLayer(l1_size, output_size));
+			nn.add(new SoftmaxLayer(output_size));
+			nn.prepare();
+			nn.init();
+
+			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param);
+			trainer.train(X, Y, null, null, 10000);
+			trainer.finish();
+		}
+	}
+
+	public static void testMNIST() throws Exception {
+		NeuralNetParams param = new NeuralNetParams();
+		param.setInputSize(100);
+		param.setHiddenSize(50);
+		param.setOutputSize(10);
+		param.setBatchSize(Integer.MAX_VALUE);
+		param.setLearnRate(0.001);
+		param.setRegLambda(0.001);
+		param.setThreadSize(8);
+		param.setGradientClipCutoff(5);
+		param.setOptimizerType(OptimizerType.RMSPROP);
+
+		Pair<SparseMatrix, IntegerArray> train = DataReader.readFromSvmFormat("../../data/ml_data/mnist.txt");
+		Pair<SparseMatrix, IntegerArray> test = DataReader.readFromSvmFormat("../../data/ml_data/mnist.t.txt");
+
+		DenseMatrix X = train.getFirst().toDenseMatrix();
+		IntegerArray Y = train.getSecond();
+
+		DenseMatrix Xt = test.getFirst().toDenseMatrix(test.getFirst().rowSize(), X.colSize());
+		IntegerArray Yt = test.getSecond();
+
+		Set<String> labels = Generics.newTreeSet();
+		for (int y : Y) {
+			labels.add(y + "");
+		}
+
+		Indexer<String> labelIdxer = Generics.newIndexer(labels);
+
+		int vocab_size = X.colSize();
+		int l1_size = 200;
+		int l2_size = 50;
+		int output_size = labels.size();
+
+		NeuralNet nn = new NeuralNet(labelIdxer, null);
+
+		nn.add(new FullyConnectedLayer(vocab_size, l1_size));
+		// nn.add(new BatchNormalizationLayer(l1_size));
+		nn.add(new NonlinearityLayer(new ReLU()));
+		// nn.add(new DropoutLayer());
+		nn.add(new FullyConnectedLayer(l1_size, l2_size));
+		// nn.add(new BatchNormalizationLayer(l2_size));
+		nn.add(new NonlinearityLayer(new ReLU()));
+		// nn.add(new DropoutLayer());
+		nn.add(new FullyConnectedLayer(l2_size, output_size));
+		nn.add(new SoftmaxLayer(output_size));
+		nn.prepare();
+		nn.init();
+
+		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param);
+		trainer.train(X, Y, Xt, Yt, 10000);
+		trainer.finish();
+	}
+
+	public static void testNER() throws Exception {
+		NeuralNetParams param = new NeuralNetParams();
+		param.setBatchSize(5);
+		param.setIsFullSequenceBatch(true);
+		param.setLearnRate(0.001);
+		param.setRegLambda(0.001);
+		param.setThreadSize(5);
+		param.setBpttSize(10);
+		param.setOptimizerType(OptimizerType.ADAM);
+		param.setGradientClipCutoff(5);
+
+		IntegerMatrix X = null;
+		IntegerMatrix Y = null;
+		Vocab vocab = null;
+		Indexer<String> labelIdxer = null;
+		IntegerMatrix Xt = null;
+		IntegerMatrix Yt = null;
+
+		{
+
+			Object[] objs = DataReader.readNerTrainData("../../data/ml_data/conll2003.bio2/train.dat",
+					"../../data/ml_data/conll2003.bio2/test.dat");
+			X = (IntegerMatrix) objs[0];
+			Y = (IntegerMatrix) objs[1];
+			vocab = (Vocab) objs[2];
+			labelIdxer = (Indexer<String>) objs[3];
+		}
+
+		{
+			Object[] objs = DataReader.readNerTestData("../../data/ml_data/conll2003.bio2/test.dat", vocab, labelIdxer);
+			Xt = (IntegerMatrix) objs[0];
+			Yt = (IntegerMatrix) objs[1];
+		}
+
+		X.trimToSize();
+		Y.trimToSize();
+
+		Xt.trimToSize();
+		Yt.trimToSize();
+
+		System.out.println(vocab.info());
+		System.out.println(labelIdxer.info());
+		System.out.println(X.sizeOfEntries());
+
+		int voc_size = vocab.size();
+		int emb_size = 50;
+		int l1_size = 100;
+		int label_size = labelIdxer.size();
+		int type = 2;
+
+		NeuralNet nn = new NeuralNet(labelIdxer, vocab);
+
+		if (type == 0) {
+		} else if (type == 2) {
+			nn.add(new EmbeddingLayer(voc_size, emb_size, true));
+			nn.add(new DropoutLayer());
+			nn.add(new BidirectionalRecurrentLayer(Type.LSTM, emb_size, l1_size, param.getBpttSize(), new ReLU()));
+			// nn.add(new BatchNormalizationLayer(l1_size));
+			nn.add(new FullyConnectedLayer(l1_size, label_size));
+			nn.add(new SoftmaxLayer(label_size));
+			nn.prepare();
+			nn.init();
+
+			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param);
+
+			IntegerArray locs = new IntegerArray(ArrayUtils.range(X.size()));
+
+			int group_size = 1000;
+			int[][] rs = BatchUtils.getBatchRanges(X.size(), group_size);
+
+			int max_iters = 1000;
+
+			for (int u = 0; u < max_iters; u++) {
+				ArrayUtils.shuffle(locs.values());
+
+				for (int i = 0; i < rs.length; i++) {
+					System.out.printf("iters [%d/%d], batches [%d/%d]\n", u + 1, max_iters, i + 1, rs.length);
+					for (int j = 0; j < rs.length; j++) {
+						int[] r = rs[j];
+						int range_size = r[1] - r[0];
+						IntegerMatrix Xm = new IntegerMatrix(range_size);
+						IntegerMatrix Ym = new IntegerMatrix(range_size);
+
+						for (int k = r[0]; k < r[1]; k++) {
+							int loc = locs.get(k);
+							Xm.add(X.get(loc));
+							Ym.add(Y.get(loc));
+						}
+						trainer.train(Xm, Ym, Xt, Yt, 1);
+					}
+				}
+			}
+
+			trainer.finish();
+		}
+	}
+
 	public static void testSentenceClassification() throws Exception {
 		NeuralNetParams param = new NeuralNetParams();
 		param.setInputSize(100);
@@ -154,325 +439,10 @@ public class Apps {
 			nn.prepare();
 			nn.init();
 
-			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size());
+			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param);
 			trainer.train(X, Y, Xt, Yt, 10000);
 			trainer.finish();
 		}
 
-	}
-
-	public static void testCharRNN() throws Exception {
-		NeuralNetParams param = new NeuralNetParams();
-		param.setInputSize(100);
-		param.setHiddenSize(50);
-		param.setOutputSize(10);
-		param.setBatchSize(10);
-		param.setLearnRate(0.001);
-		param.setRegLambda(0.01);
-		param.setThreadSize(3);
-		param.setBpttSize(10);
-
-		// Triple<IntegerArrayMatrix, IntegerArrayMatrix, Vocab> train =
-		// DataReader.readCapitalData(300);
-		Triple<IntegerMatrix, IntegerMatrix, Vocab> data = DataReader.readLines("../../data/ml_data/warpeace_input.txt",
-				1000);
-
-		IntegerMatrix X = new IntegerMatrix();
-		IntegerMatrix Y = new IntegerMatrix();
-		IntegerMatrix Xt = new IntegerMatrix();
-		IntegerMatrix Yt = new IntegerMatrix();
-		Vocab vocab = data.getThird();
-
-		{
-
-			IntegerMatrix X_ = data.getFirst();
-			IntegerMatrix Y_ = data.getSecond();
-
-			double test_portion = 0.3;
-			int test_size = (int) (1f * X_.size() * test_portion);
-
-			for (int i = 0; i < X_.size(); i++) {
-				if (i < test_size) {
-					Xt.add(X_.get(i));
-					Yt.add(Y_.get(i));
-				} else {
-					X.add(X_.get(i));
-					Y.add(Y_.get(i));
-				}
-			}
-		}
-
-		Indexer<String> labelIdxer = Generics.newIndexer(vocab.getObjects());
-
-		int size1 = 0;
-		int size2 = 0;
-		int max_len = 0;
-		int min_len = Integer.MAX_VALUE;
-
-		int pad_label = vocab.getIndex("<PAD>");
-
-		System.out.printf("data size: [%d -> %d]\n", size1, size2);
-		System.out.printf("max len: [%d]\n", max_len);
-		System.out.printf("min len: [%d]\n", min_len);
-
-		int vocab_size = vocab.size();
-		int input_size = vocab_size;
-		int emb_size = 200;
-		int l1_size = 100;
-		int l2_size = 20;
-		int output_size = vocab.size();
-		int type = 4;
-
-		System.out.println(vocab.info());
-
-		NeuralNet nn = new NeuralNet(labelIdxer, vocab);
-
-		if (type == 1) {
-			nn.add(new EmbeddingLayer(vocab_size, emb_size, false));
-			nn.add(new FullyConnectedLayer(emb_size, l1_size));
-			nn.add(new NonlinearityLayer(new Tanh()));
-			// nn.add(new DropoutLayer(l1_size));
-			nn.add(new FullyConnectedLayer(l1_size, l2_size));
-			nn.add(new NonlinearityLayer(new Tanh()));
-			nn.add(new FullyConnectedLayer(l2_size, output_size));
-			nn.add(new SoftmaxLayer(output_size));
-			nn.prepare();
-			nn.init();
-
-			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size());
-			trainer.train(X, Y, null, null, 10000);
-			trainer.finish();
-		} else if (type == 2) {
-			// nn.add(new EmbeddingLayer(vocab_size, embedding_size, true));
-			// nn.add(new BatchNormalizationLayer(embedding_size));
-			// nn.add(new RnnLayer(embedding_size, l1_size, param.getBpttSize(),
-			// new Tanh()));
-
-			nn.add(new EmbeddingLayer(vocab_size, emb_size, true));
-			// nn.add(new BatchNormalizationLayer(embedding_size));
-			nn.add(new RnnLayer(emb_size, l1_size, param.getBpttSize(), new Tanh()));
-			nn.add(new BatchNormalizationLayer(l1_size));
-			// nn.add(new DropoutLayer(l1_size));
-			nn.add(new FullyConnectedLayer(l1_size, output_size));
-			nn.add(new SoftmaxLayer(output_size));
-			nn.prepare();
-			nn.init();
-
-			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size());
-			trainer.train(X, Y, null, null, 10000);
-			trainer.finish();
-		} else if (type == 3) {
-			nn.add(new EmbeddingLayer(vocab_size, emb_size, true));
-			// nn.add(new BatchNormalizationLayer(embedding_size));
-			nn.add(new LstmLayer(emb_size, l1_size, new Tanh()));
-			// nn.add(new BatchNormalizationLayer(l1_size));
-			// nn.add(new DropoutLayer(l1_size));
-			nn.add(new FullyConnectedLayer(l1_size, output_size));
-			nn.add(new SoftmaxLayer(output_size));
-			nn.prepare();
-			nn.init();
-
-			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size());
-			trainer.train(X, Y, null, null, 10000);
-			trainer.finish();
-		} else if (type == 4) {
-			nn.add(new EmbeddingLayer(vocab_size, emb_size, true));
-			// nn.add(new BatchNormalizationLayer(embedding_size));
-			// nn.add(new GruLayer(embedding_size, l1_size, new Tanh()));
-			// nn.add(new RnnLayer(embedding_size, l1_size, param.getBpttSize(), new
-			// ReLU()));
-			// nn.add(new LstmLayer(embedding_size, l1_size, new ReLU()));
-			nn.add(new BidirectionalRecurrentLayer(Type.LSTM, emb_size, l1_size, param.getBpttSize(), new ReLU()));
-
-			// nn.add(new DropoutLayer(l1_size));
-			nn.add(new FullyConnectedLayer(l1_size, output_size));
-			nn.add(new SoftmaxLayer(output_size));
-			nn.prepare();
-			nn.init();
-
-			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size());
-			trainer.train(X, Y, null, null, 10000);
-			trainer.finish();
-		}
-	}
-
-	public static void testMNIST() throws Exception {
-		NeuralNetParams param = new NeuralNetParams();
-		param.setInputSize(100);
-		param.setHiddenSize(50);
-		param.setOutputSize(10);
-		param.setBatchSize(10);
-		param.setLearnRate(0.001);
-		param.setRegLambda(0.001);
-		param.setThreadSize(8);
-		param.setGradientClipCutoff(5);
-		param.setOptimizerType(OptimizerType.RMSPROP);
-
-		Pair<SparseMatrix, IntegerArray> train = DataReader.readFromSvmFormat("../../data/ml_data/mnist.txt");
-		Pair<SparseMatrix, IntegerArray> test = DataReader.readFromSvmFormat("../../data/ml_data/mnist.t.txt");
-
-		DenseMatrix X = train.getFirst().toDenseMatrix();
-		IntegerArray Y = train.getSecond();
-
-		DenseMatrix Xt = test.getFirst().toDenseMatrix(test.getFirst().rowSize(), X.colSize());
-		IntegerArray Yt = test.getSecond();
-
-		Set<String> labels = Generics.newTreeSet();
-		for (int y : Y) {
-			labels.add(y + "");
-		}
-
-		Indexer<String> labelIdxer = Generics.newIndexer(labels);
-
-		int vocab_size = X.colSize();
-		int l1_size = 200;
-		int l2_size = 50;
-		int output_size = labels.size();
-
-		NeuralNet nn = new NeuralNet(labelIdxer, null);
-
-		nn.add(new FullyConnectedLayer(vocab_size, l1_size));
-		// nn.add(new BatchNormalizationLayer(l1_size));
-		nn.add(new NonlinearityLayer(new ReLU()));
-		// nn.add(new DropoutLayer());
-		nn.add(new FullyConnectedLayer(l1_size, l2_size));
-		// nn.add(new BatchNormalizationLayer(l2_size));
-		nn.add(new NonlinearityLayer(new ReLU()));
-		// nn.add(new DropoutLayer());
-		nn.add(new FullyConnectedLayer(l2_size, output_size));
-		nn.add(new SoftmaxLayer(output_size));
-		nn.prepare();
-		nn.init();
-
-		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size());
-		trainer.train(X, Y, Xt, Yt, 10000);
-		trainer.finish();
-	}
-
-	public static void testNER() throws Exception {
-		NeuralNetParams param = new NeuralNetParams();
-		param.setInputSize(100);
-		param.setHiddenSize(50);
-		param.setOutputSize(10);
-		param.setBatchSize(20);
-		param.setLearnRate(0.001);
-		param.setRegLambda(0.001);
-		param.setThreadSize(5);
-		param.setBpttSize(0);
-		param.setOptimizerType(OptimizerType.ADAGRAD);
-
-		IntegerMatrix X = null;
-		IntegerMatrix Y = null;
-		Vocab vocab = null;
-		Indexer<String> labelIdxer = null;
-		IntegerMatrix Xt = null;
-		IntegerMatrix Yt = null;
-
-		{
-
-			Object[] objs = DataReader.readNerTrainData("../../data/ml_data/conll2003.bio2/train.dat");
-			X = (IntegerMatrix) objs[0];
-			Y = (IntegerMatrix) objs[1];
-			vocab = (Vocab) objs[2];
-			labelIdxer = (Indexer<String>) objs[3];
-		}
-
-		{
-			Object[] objs = DataReader.readNerTestData("../../data/ml_data/conll2003.bio2/test.dat", vocab, labelIdxer);
-			Xt = (IntegerMatrix) objs[0];
-			Yt = (IntegerMatrix) objs[1];
-		}
-
-		X.trimToSize();
-		Y.trimToSize();
-
-		Xt.trimToSize();
-		Yt.trimToSize();
-
-		System.out.println(vocab.info());
-		System.out.println(labelIdxer.info());
-		System.out.println(X.sizeOfEntries());
-
-		int voc_size = vocab.size();
-		int emb_size = 100;
-		int l1_size = 50;
-		int l2_size = 20;
-		int output_size = labelIdxer.size();
-		int window_size = 5;
-		int type = 2;
-
-		NeuralNet nn = new NeuralNet(labelIdxer, vocab);
-
-		if (type == 0) {
-			nn.add(new EmbeddingLayer(voc_size, emb_size, false));
-			nn.add(new FullyConnectedLayer(nn.last().getOutputSize(), l1_size));
-			nn.add(new BatchNormalizationLayer(l1_size));
-			nn.add(new NonlinearityLayer(new Tanh()));
-			// nn.add(new DropoutLayer(l1_size));
-			nn.add(new FullyConnectedLayer(nn.last().getOutputSize(), output_size));
-			nn.add(new SoftmaxLayer(output_size));
-			nn.prepare();
-			nn.init();
-
-			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size());
-			trainer.train(X, Y, Xt, Yt, 10000);
-			trainer.finish();
-		} else if (type == 1) {
-			nn.add(new EmbeddingLayer(voc_size, emb_size, true));
-			nn.add(new FullyConnectedLayer(emb_size, l1_size));
-			nn.add(new NonlinearityLayer(new Tanh()));
-			// nn.add(new DropoutLayer(l1_size));
-			nn.add(new FullyConnectedLayer(l1_size, l2_size));
-			nn.add(new NonlinearityLayer(new Tanh()));
-			nn.add(new FullyConnectedLayer(l2_size, output_size));
-			nn.add(new SoftmaxLayer(output_size));
-			nn.prepare();
-			nn.init();
-
-			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size());
-			trainer.train(X, Y, Xt, Yt, 10000);
-			trainer.finish();
-		} else if (type == 2) {
-			nn.add(new EmbeddingLayer(voc_size, emb_size, true));
-			// nn.add(new DropoutLayer());
-			nn.add(new BidirectionalRecurrentLayer(Type.LSTM, emb_size, l1_size, param.getBpttSize(), new ReLU()));
-			// nn.add(new BatchNormalizationLayer(l1_size));
-			nn.add(new FullyConnectedLayer(l1_size, output_size));
-			nn.add(new SoftmaxLayer(output_size));
-			nn.prepare();
-			nn.init();
-
-			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size());
-
-			IntegerArray locs = new IntegerArray(ArrayUtils.range(X.size()));
-
-			int group_size = 1000;
-			int[][] rs = BatchUtils.getBatchRanges(X.size(), group_size);
-
-			int max_iters = 1000;
-
-			for (int u = 0; u < max_iters; u++) {
-				ArrayUtils.shuffle(locs.values());
-
-				for (int i = 0; i < rs.length; i++) {
-					System.out.printf("iters [%d/%d], batches [%d/%d]\n", u + 1, max_iters, i + 1, rs.length);
-					for (int j = 0; j < rs.length; j++) {
-						int[] r = rs[j];
-						int range_size = r[1] - r[0];
-						IntegerMatrix Xm = new IntegerMatrix(range_size);
-						IntegerMatrix Ym = new IntegerMatrix(range_size);
-
-						for (int k = r[0]; k < r[1]; k++) {
-							int loc = locs.get(k);
-							Xm.add(X.get(loc));
-							Ym.add(Y.get(loc));
-						}
-						trainer.train(Xm, Ym, Xt, Yt, 1);
-					}
-				}
-			}
-
-			trainer.finish();
-		}
 	}
 }

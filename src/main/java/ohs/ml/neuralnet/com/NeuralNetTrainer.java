@@ -1,5 +1,6 @@
 package ohs.ml.neuralnet.com;
 
+import java.sql.Date;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
@@ -13,6 +14,7 @@ import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseVector;
 import ohs.ml.eval.Performance;
 import ohs.ml.eval.PerformanceEvaluator;
+import ohs.ml.neuralnet.com.ParameterUpdater.OptimizerType;
 import ohs.ml.neuralnet.cost.CrossEntropyCostFunction;
 import ohs.ml.neuralnet.layer.BidirectionalRecurrentLayer;
 import ohs.ml.neuralnet.layer.Layer;
@@ -23,6 +25,7 @@ import ohs.types.number.IntegerArray;
 import ohs.types.number.IntegerMatrix;
 import ohs.utils.Generics;
 import ohs.utils.Timer;
+import scala.collection.generic.BitOperations.Int;
 
 /**
  * http://www.wildml.com/2015/09/implementing-a-neural-network-from-scratch/
@@ -99,40 +102,61 @@ public class NeuralNetTrainer {
 						pu.update();
 					}
 				} else if (Y instanceof IntegerMatrix) {
-					int data_loc = 0;
-					int batch_size = param.getBatchSize();
 					IntegerMatrix X_ = (IntegerMatrix) X;
 					IntegerMatrix Y_ = (IntegerMatrix) Y;
 
-					while ((data_loc = range_cnt.getAndIncrement()) < data_locs.length) {
-						int loc = data_locs[data_loc];
-						IntegerArray x = X_.get(loc);
-						IntegerArray y = Y_.get(loc);
+					if (is_full_seq_batch) {
+						int range_loc = 0;
+						while ((range_loc = range_cnt.getAndIncrement()) < ranges.length) {
+							int[] r = ranges[range_loc];
+							int[] locs = BatchUtils.getIndexes(data_locs, r);
 
-						if (batch_size == Integer.MAX_VALUE) {
-							DenseMatrix Yh = (DenseMatrix) nn.forward(x);
-							DenseMatrix D = cf.evaluate(Yh, y);
+							IntegerMatrix Xm = X_.subMatrix(locs);
+							IntegerMatrix Ym = Y_.subMatrix(locs);
 
-							cost += cf.getCost();
-							correct_cnt += cf.getCorrectCnt();
-
-							nn.backward(D);
-							pu.update();
-						} else {
-							int[][] rs = BatchUtils.getBatchRanges(x.size(), batch_size);
-							for (int i = 0; i < rs.length; i++) {
-								int[] r = rs[i];
-								IntegerArray Xm = x.subArray(r[0], r[1]);
-								IntegerArray Ym = y.subArray(r[0], r[1]);
-
-								DenseMatrix Yh = (DenseMatrix) nn.forward(Xm);
-								DenseMatrix D = cf.evaluate(Yh, Ym);
+							for (int i = 0; i < Xm.size(); i++) {
+								IntegerArray xm = Xm.get(i);
+								IntegerArray ym = Ym.get(i);
+								DenseMatrix ymh = (DenseMatrix) nn.forward(xm);
+								DenseMatrix D = cf.evaluate(ymh, ym);
 
 								cost += cf.getCost();
 								correct_cnt += cf.getCorrectCnt();
-
 								nn.backward(D);
-								pu.update();
+							}
+							pu.update();
+						}
+					} else {
+						int range_loc = 0;
+
+						while ((range_loc = range_cnt.getAndIncrement()) < ranges.length) {
+							int[] r = ranges[range_loc];
+							int[] locs = BatchUtils.getIndexes(data_locs, r);
+
+							IntegerMatrix Xm = X_.subMatrix(locs);
+							IntegerMatrix Ym = Y_.subMatrix(locs);
+
+							for (int i = 0; i < Xm.size(); i++) {
+								IntegerArray xm = Xm.get(i);
+								IntegerArray ym = Ym.get(i);
+
+								int[][] rs = BatchUtils.getBatchRanges(xm.size(), batch_size);
+
+								for (int j = 0; j < rs.length; j++) {
+									int[] r2 = rs[j];
+									IntegerArray x = xm.subArray(r2[0], r2[1]);
+									IntegerArray y = ym.subArray(r2[0], r2[1]);
+
+									DenseMatrix Yh = (DenseMatrix) nn.forward(x);
+									DenseMatrix D = cf.evaluate(Yh, y);
+
+									cost += cf.getCost();
+									correct_cnt += cf.getCorrectCnt();
+
+									nn.backward(D);
+									pu.update();
+								}
+
 							}
 						}
 					}
@@ -177,23 +201,27 @@ public class NeuralNetTrainer {
 		return ret;
 	}
 
-	private int[] data_locs;
-
-	private int data_size;
-
-	private PerformanceEvaluator eval = new PerformanceEvaluator();
+	private int batch_size;
 
 	private int burnin_iters = 100;
 
-	private NeuralNet nn;
+	private int[] data_locs;
 
-	private NeuralNetParams param;
+	private PerformanceEvaluator eval = new PerformanceEvaluator();
+
+	// private NeuralNetParams param;
+
+	private double learn_rate;
+
+	private NeuralNet nn;
 
 	private List<ParameterUpdater> pus;
 
 	private AtomicInteger range_cnt;
 
 	private int[][] ranges;
+
+	private double reg_lambda;
 
 	private Timer timer1 = Timer.newTimer();
 
@@ -209,8 +237,9 @@ public class NeuralNetTrainer {
 
 	private Object Y;
 
-	public NeuralNetTrainer(NeuralNet nn, NeuralNetParams param, int data_size) throws Exception {
-		prepare(nn, param, data_size);
+	public NeuralNetTrainer(NeuralNet nn, NeuralNetParams param) throws Exception {
+		prepare(nn, param.getThreadSize(), param.getBatchSize(), param.getLearnRate(), param.getRegLambda(),
+				param.getGradientClipCutoff(), param.getOptimizerType(), param.isFullSequenceBatch());
 	}
 
 	public void finish() {
@@ -221,12 +250,15 @@ public class NeuralNetTrainer {
 		// VectorUtils.copy(W_best, W);
 	}
 
-	private void prepare(NeuralNet nn, NeuralNetParams param, int data_size) throws Exception {
+	private void prepare(NeuralNet nn, int thread_size, int batch_size, double learn_rate, double reg_lambda,
+			double grad_clip_cutoff, OptimizerType ot, boolean is_sent_batch) throws Exception {
 		this.nn = nn;
-		this.param = param;
-		this.data_size = data_size;
 
-		int thread_size = param.getThreadSize();
+		this.learn_rate = learn_rate;
+		this.reg_lambda = reg_lambda;
+		this.batch_size = batch_size;
+		this.is_full_seq_batch = is_sent_batch;
+
 		List<NeuralNet> nns = copy(nn, thread_size - 1);
 
 		for (NeuralNet n : nns) {
@@ -237,12 +269,14 @@ public class NeuralNetTrainer {
 
 		pus = Generics.newArrayList(nns.size());
 
+		int tmp_data_size = 1000000;
+
 		for (NeuralNet n : nns) {
-			ParameterUpdater pu = new ParameterUpdater(n, data_size);
-			pu.setLearningRate(param.getLearnRate());
-			pu.setWeightDecay(param.getRegLambda(), param.getLearnRate(), data_size);
-			pu.setOptimizerType(param.getOptimizerType());
-			pu.setGradientClipCutoff(param.getGradientClipCutoff());
+			ParameterUpdater pu = new ParameterUpdater(n, tmp_data_size);
+			pu.setLearningRate(learn_rate);
+			pu.setWeightDecay(reg_lambda, learn_rate, tmp_data_size);
+			pu.setOptimizerType(ot);
+			pu.setGradientClipCutoff(grad_clip_cutoff);
 			pus.add(pu);
 		}
 
@@ -264,6 +298,8 @@ public class NeuralNetTrainer {
 		}
 	}
 
+	private boolean is_full_seq_batch;
+
 	public void train(Object X, Object Y, Object Xt, Object Yt, int max_iters) throws Exception {
 		this.X = X;
 		this.Y = Y;
@@ -273,15 +309,17 @@ public class NeuralNetTrainer {
 		if (X instanceof DenseMatrix) {
 			data_size = ((DenseMatrix) X).rowSize();
 			data_locs = ArrayUtils.range(data_size);
-			ranges = BatchUtils.getBatchRanges(data_size, param.getBatchSize());
-		} else {
+			ranges = BatchUtils.getBatchRanges(data_size, batch_size);
+		} else if (X instanceof IntegerMatrix) {
 			if (Y instanceof IntegerArray) {
 				data_size = ((IntegerMatrix) X).size();
 				data_locs = ArrayUtils.range(data_size);
-				ranges = BatchUtils.getBatchRanges(data_size, param.getBatchSize());
+				ranges = BatchUtils.getBatchRanges(data_size, batch_size);
 			} else if (Y instanceof IntegerMatrix) {
-				data_size = ((IntegerMatrix) X).sizeOfEntries();
-				data_locs = ArrayUtils.range(((IntegerMatrix) X).size());
+				IntegerMatrix X_ = ((IntegerMatrix) X);
+				data_size = X_.sizeOfEntries();
+				data_locs = ArrayUtils.range(X_.size());
+				ranges = BatchUtils.getBatchRanges(X_.size(), 100);
 			}
 		}
 
@@ -293,11 +331,11 @@ public class NeuralNetTrainer {
 
 		int s = total_iters;
 		int e = total_iters + max_iters;
-		int cnt = 0;
+		int iters = 0;
 
 		for (int i = s; i < e; i++) {
 			total_iters++;
-			cnt++;
+			iters++;
 
 			Timer timer2 = Timer.newTimer();
 
@@ -319,8 +357,8 @@ public class NeuralNetTrainer {
 				cor_cnt += res.getSecond();
 			}
 
-			if (param.getRegLambda() > 0) {
-				cost += CrossEntropyCostFunction.getL2RegularizationTerm(param.getRegLambda(), W, data_size);
+			if (reg_lambda > 0) {
+				cost += CrossEntropyCostFunction.getL2RegularizationTerm(reg_lambda, W, data_size);
 			}
 
 			double acc = 1f * cor_cnt / data_size;
@@ -335,7 +373,7 @@ public class NeuralNetTrainer {
 
 			double norm = ArrayMath.normL2(W.values());
 			System.out.printf("%dth, cost: %f, acc: %f (%d/%d), time: %s (%s), norm: %f, learn-rate: %f\n", i + 1, cost,
-					acc, cor_cnt, data_size, timer2.stop(), timer1.stop(), norm, param.getLearnRate());
+					acc, cor_cnt, data_size, timer2.stop(), timer1.stop(), norm, learn_rate);
 
 			if (Xt != null && Yt != null) {
 				nn.setIsTesting(true);
@@ -354,7 +392,7 @@ public class NeuralNetTrainer {
 						y = new IntegerArray(Xm.size());
 						yh = new IntegerArray(Xm.size());
 
-						int[][] rs = BatchUtils.getBatchRanges(Xm.size(), param.getBatchSize());
+						int[][] rs = BatchUtils.getBatchRanges(Xm.size(), batch_size);
 
 						for (int j = 0; j < rs.length; j++) {
 							int[] r = rs[j];
@@ -390,7 +428,7 @@ public class NeuralNetTrainer {
 				System.out.println(p.toString());
 				nn.setIsTesting(false);
 
-				if (cnt == burnin_iters) {
+				if (iters % burnin_iters == 0) {
 					for (ParameterUpdater pu : pus) {
 						pu.resetGradientAccumulators();
 					}

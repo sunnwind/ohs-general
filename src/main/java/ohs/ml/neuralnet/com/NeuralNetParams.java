@@ -18,6 +18,8 @@ public class NeuralNetParams {
 
 	private int input_size = 10;
 
+	private boolean is_full_seq_batch = false;
+
 	private double learn_rate = 0.01;
 
 	private double momentum = 0.9;
@@ -93,6 +95,10 @@ public class NeuralNetParams {
 		return thread_size;
 	}
 
+	public boolean isFullSequenceBatch() {
+		return is_full_seq_batch;
+	}
+
 	public void setAnnealingSize(int bppt_size) {
 		this.bppt_size = bppt_size;
 	}
@@ -115,6 +121,10 @@ public class NeuralNetParams {
 
 	public void setInputSize(int input_size) {
 		this.input_size = input_size;
+	}
+
+	public void setIsFullSequenceBatch(boolean is_full_seq_batch) {
+		this.is_full_seq_batch = is_full_seq_batch;
 	}
 
 	public void setLearnRate(double learning_rate) {

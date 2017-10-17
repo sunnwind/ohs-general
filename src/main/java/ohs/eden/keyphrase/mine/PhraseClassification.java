@@ -582,7 +582,7 @@ public class PhraseClassification {
 		nn.prepare();
 		nn.init();
 
-		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.rowSize());
+		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param);
 		trainer.train(X, Y, Xt, Yt, 100);
 		trainer.finish();
 
@@ -689,7 +689,7 @@ public class PhraseClassification {
 		nn.prepare();
 		nn.init();
 
-		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, XD.rowSize());
+		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param);
 
 		IntegerMatrix G = DataSplitter.group(Y);
 		IntegerArray negLocs = G.get(0);
@@ -799,7 +799,7 @@ public class PhraseClassification {
 		nn.prepare();
 		nn.init();
 
-		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, XD.rowSize());
+		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param);
 
 		IntegerMatrix G = DataSplitter.group(Y);
 		IntegerArray negLocs = G.get(0);
