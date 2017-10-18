@@ -5,20 +5,12 @@ import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.poi.hssf.util.HSSFColor.RED;
-
 import ohs.io.FileUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
-import ohs.ml.neuralnet.layer.BatchNormalizationLayer;
-import ohs.ml.neuralnet.layer.DropoutLayer;
 import ohs.ml.neuralnet.layer.EmbeddingLayer;
-import ohs.ml.neuralnet.layer.FullyConnectedLayer;
 import ohs.ml.neuralnet.layer.Layer;
-import ohs.ml.neuralnet.layer.NonlinearityLayer;
-import ohs.ml.neuralnet.layer.RecurrentLayer;
-import ohs.ml.neuralnet.layer.SoftmaxLayer;
 import ohs.types.generic.Indexer;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
@@ -42,6 +34,8 @@ public class NeuralNet extends ArrayList<Layer> {
 
 	private Indexer<String> labelIdxer;
 
+	private TaskType tt;
+
 	private Vocab vocab;
 
 	/**
@@ -52,9 +46,10 @@ public class NeuralNet extends ArrayList<Layer> {
 
 	}
 
-	public NeuralNet(Indexer<String> labelIdxer, Vocab vocab) {
+	public NeuralNet(Indexer<String> labelIdxer, Vocab vocab, TaskType tt) {
 		this.labelIdxer = labelIdxer;
 		this.vocab = vocab;
+		this.tt = tt;
 	}
 
 	public NeuralNet(String fileName) throws Exception {
@@ -149,6 +144,10 @@ public class NeuralNet extends ArrayList<Layer> {
 		return get(size() - 1).getOutputSize();
 	}
 
+	public TaskType getTaskType() {
+		return tt;
+	}
+
 	public Vocab getVocab() {
 		return vocab;
 	}
@@ -191,6 +190,7 @@ public class NeuralNet extends ArrayList<Layer> {
 	}
 
 	public void readObject(ObjectInputStream ois) throws Exception {
+		tt = TaskType.values()[ois.readInt()];
 		labelIdxer = FileUtils.readStringIndexer(ois);
 		vocab = new Vocab(ois);
 
@@ -199,7 +199,7 @@ public class NeuralNet extends ArrayList<Layer> {
 		for (int i = 0; i < size; i++) {
 			String name = ois.readUTF();
 			Class c = Class.forName(name);
-			Layer l = (Layer) c.newInstance();
+			Layer l = (Layer) c.getDeclaredConstructor().newInstance();
 			l.readObject(ois);
 			add(l);
 		}
@@ -228,6 +228,7 @@ public class NeuralNet extends ArrayList<Layer> {
 	}
 
 	public void writeObject(ObjectOutputStream oos) throws Exception {
+		oos.writeInt(tt.ordinal());
 		FileUtils.writeStringIndexer(oos, labelIdxer);
 		vocab.writeObject(oos);
 		oos.writeInt(size());

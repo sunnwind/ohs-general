@@ -9,42 +9,42 @@ import ohs.types.number.IntegerArray;
 
 public class Performance {
 
-	private IntegerArray cor_cnts;
-
-	private IntegerArray pred_cnts;
-
 	private IntegerArray ans_cnts;
 
-	private DoubleArray precisons;
-
-	private DoubleArray recalls;
+	private IntegerArray cor_cnts;
 
 	private DoubleArray f1;
 
-	private double micro_f1;
+	private Indexer<String> labelIdxer;
 
 	private double macro_f1;
 
-	private int total_ans_cnt;
-
-	private int total_pred_cnt;
-
-	private int total_cor_cnt;
+	private double micro_f1;
 
 	private double micro_pr;
 
 	private double micro_rc;
 
-	private Indexer<String> labelIndexer;
+	private DoubleArray precisons;
+
+	private IntegerArray pred_cnts;
+
+	private DoubleArray recalls;
+
+	private int total_ans_cnt;
+
+	private int total_cor_cnt;
+
+	private int total_pred_cnt;
 
 	public Performance(int label_size) {
 		this(new IntegerArray(label_size), new IntegerArray(label_size), new IntegerArray(label_size));
 	}
 
-	public Performance(IntegerArray ans_cnts, IntegerArray pred_cnts, IntegerArray correct_cnts) {
+	public Performance(IntegerArray ans_cnts, IntegerArray pred_cnts, IntegerArray cor_cnts) {
 		this.ans_cnts = ans_cnts;
 		this.pred_cnts = pred_cnts;
-		this.cor_cnts = correct_cnts;
+		this.cor_cnts = cor_cnts;
 
 		precisons = new DoubleArray(ans_cnts.size());
 		recalls = new DoubleArray(ans_cnts.size());
@@ -71,31 +71,31 @@ public class Performance {
 
 	}
 
-	public IntegerArray getAnswerCnts() {
+	public IntegerArray getAnswerCounts() {
 		return ans_cnts;
 	}
 
-	public IntegerArray getCorrectCnts() {
+	public IntegerArray getCorrectCounts() {
 		return cor_cnts;
 	}
 
-	public IntegerArray getPredictCnts() {
+	public IntegerArray getPredictCounts() {
 		return pred_cnts;
 	}
 
-	public void setAnswerCnts(IntegerArray ans_cnts) {
+	public void setAnswerCounts(IntegerArray ans_cnts) {
 		this.ans_cnts = ans_cnts;
 	}
 
-	public void setCorrectCnts(IntegerArray correct_cnts) {
-		this.cor_cnts = correct_cnts;
+	public void setCorrectCounts(IntegerArray cor_cnts) {
+		this.cor_cnts = cor_cnts;
 	}
 
-	public void SetLabelIndexer(Indexer<String> labelIndexer) {
-		this.labelIndexer = labelIndexer;
+	public void SetLabelIndexer(Indexer<String> labelIdxer) {
+		this.labelIdxer = labelIdxer;
 	}
 
-	public void setPredictCnts(IntegerArray pred_cnts) {
+	public void setPredictCounts(IntegerArray pred_cnts) {
 		this.pred_cnts = pred_cnts;
 	}
 
@@ -112,10 +112,10 @@ public class Performance {
 			double pr = precisons.get(i);
 			double rc = recalls.get(i);
 			double f = f1.get(i);
-			String label = labelIndexer == null ? null : labelIndexer.getObject(i);
+			String label = labelIdxer == null ? null : labelIdxer.getObject(i);
 
-			sb.append(String.format("\n%s\t%d\t%d\t%d\t%s\t%s\t%s", label == null ? i + "" : label, ans_cnt, pred_cnt, correct,
-					nf.format(pr), nf.format(rc), nf.format(f)));
+			sb.append(String.format("\n%s\t%d\t%d\t%d\t%s\t%s\t%s", label == null ? i + "" : label, ans_cnt, pred_cnt,
+					correct, nf.format(pr), nf.format(rc), nf.format(f)));
 		}
 
 		// total_ans_cnt = ArrayMath.sum(ans_cnts);
@@ -126,8 +126,8 @@ public class Performance {
 		// micro_rc = Metrics.recall(total_cor_cnt, total_ans_cnt);
 		// micro_f1 = Metrics.f1(micro_pr, micro_rc);
 
-		sb.append(String.format("\nTotal\t%d\t%d\t%d\t%s\t%s\t%s", total_ans_cnt, total_pred_cnt, total_cor_cnt, nf.format(micro_pr),
-				nf.format(micro_rc), nf.format(micro_f1)));
+		sb.append(String.format("\nTotal\t%d\t%d\t%d\t%s\t%s\t%s", total_ans_cnt, total_pred_cnt, total_cor_cnt,
+				nf.format(micro_pr), nf.format(micro_rc), nf.format(micro_f1)));
 
 		return sb.toString();
 	}

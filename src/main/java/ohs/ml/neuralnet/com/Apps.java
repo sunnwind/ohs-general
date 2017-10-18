@@ -3,8 +3,6 @@ package ohs.ml.neuralnet.com;
 import java.util.List;
 import java.util.Set;
 
-import edu.stanford.nlp.ling.Label;
-import edu.stanford.nlp.math.ArrayMath;
 import ohs.io.FileUtils;
 import ohs.math.ArrayUtils;
 import ohs.matrix.DenseMatrix;
@@ -19,7 +17,6 @@ import ohs.ml.neuralnet.layer.EmbeddingLayer;
 import ohs.ml.neuralnet.layer.FullyConnectedLayer;
 import ohs.ml.neuralnet.layer.LstmLayer;
 import ohs.ml.neuralnet.layer.MaxPoolingLayer;
-import ohs.ml.neuralnet.layer.MultiWindowConvolutionalLayer;
 import ohs.ml.neuralnet.layer.NonlinearityLayer;
 import ohs.ml.neuralnet.layer.RnnLayer;
 import ohs.ml.neuralnet.layer.SoftmaxLayer;
@@ -113,7 +110,7 @@ public class Apps {
 
 		System.out.println(vocab.info());
 
-		NeuralNet nn = new NeuralNet(labelIdxer, vocab);
+		NeuralNet nn = new NeuralNet(labelIdxer, vocab, TaskType.SEQ_LABELING);
 
 		if (type == 1) {
 			nn.add(new EmbeddingLayer(vocab_size, emb_size, false));
@@ -218,7 +215,7 @@ public class Apps {
 		int l2_size = 50;
 		int output_size = labels.size();
 
-		NeuralNet nn = new NeuralNet(labelIdxer, null);
+		NeuralNet nn = new NeuralNet(labelIdxer, null, TaskType.CLASSIFICATION);
 
 		nn.add(new FullyConnectedLayer(vocab_size, l1_size));
 		// nn.add(new BatchNormalizationLayer(l1_size));
@@ -292,7 +289,7 @@ public class Apps {
 
 		String modelFileName = "../../data/ml_data/ner_nn.ser";
 
-		NeuralNet nn = new NeuralNet(labelIdxer, vocab);
+		NeuralNet nn = new NeuralNet(labelIdxer, vocab, TaskType.SEQ_LABELING);
 
 		if (type == 0) {
 		} else if (type == 2) {
@@ -338,6 +335,7 @@ public class Apps {
 							Xm.add(X.get(loc));
 							Ym.add(Y.get(loc));
 						}
+						
 						trainer.train(Xm, Ym, Xt, Yt, 1);
 					}
 				}
@@ -434,7 +432,7 @@ public class Apps {
 
 		System.out.println(vocab.info());
 
-		NeuralNet nn = new NeuralNet(labelIdxer, vocab);
+		NeuralNet nn = new NeuralNet(labelIdxer, vocab, TaskType.SEQ_CLASSIFICATION);
 
 		if (type == 0) {
 			int num_filters = 100;

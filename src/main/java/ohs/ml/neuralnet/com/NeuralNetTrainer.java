@@ -15,11 +15,8 @@ import ohs.ml.eval.Performance;
 import ohs.ml.eval.PerformanceEvaluator;
 import ohs.ml.neuralnet.com.ParameterUpdater.OptimizerType;
 import ohs.ml.neuralnet.cost.CrossEntropyCostFunction;
-import ohs.ml.neuralnet.layer.BidirectionalRecurrentLayer;
 import ohs.ml.neuralnet.layer.Layer;
-import ohs.ml.neuralnet.layer.LstmLayer;
 import ohs.ml.neuralnet.layer.RecurrentLayer;
-import ohs.ml.neuralnet.layer.RnnLayer;
 import ohs.types.generic.Pair;
 import ohs.types.number.IntegerArray;
 import ohs.types.number.IntegerMatrix;
@@ -187,14 +184,6 @@ public class NeuralNetTrainer {
 		return ret;
 	}
 
-	public static List<NeuralNet> copy(NeuralNet nn, int size) {
-		List<NeuralNet> ret = Generics.newArrayList();
-		for (int i = 0; i < size; i++) {
-			ret.add(copy(nn));
-		}
-		return ret;
-	}
-
 	private int batch_size;
 
 	private int[] data_locs;
@@ -210,8 +199,6 @@ public class NeuralNetTrainer {
 	private boolean is_random_batch;
 
 	private double learn_rate;
-
-	private NeuralNet nn;
 
 	private List<ParameterUpdater> pus;
 
@@ -235,16 +222,85 @@ public class NeuralNetTrainer {
 
 	private Object Y;
 
+	private List<NeuralNet> nns;
+
+	private NeuralNetMultiRunner nnmr;
+
 	public NeuralNetTrainer(NeuralNet nn, NeuralNetParams param) throws Exception {
 		prepare(nn, param.getThreadSize(), param.getBatchSize(), param.getLearnRate(), param.getRegLambda(),
 				param.getGradientClipCutoff(), param.getOptimizerType(), param.isFullSequenceBatch(),
 				param.isRandomBatch(), param.getGradientAccumulatorResetSize());
 	}
 
+	public Performance evaluate(Object X, Object Y) throws Exception {
+		for (NeuralNet nn : nns) {
+			nn.setIsTesting(true);
+		}
+
+		IntegerArray Yha = null;
+		IntegerArray Ya = null;
+
+		NeuralNet n = nns.get(0);
+
+		if (X instanceof DenseMatrix) {
+			Yha = n.classify(X);
+			Ya = TaskType.toIntegerArray(Y);
+		} else if (X instanceof IntegerMatrix) {
+			if (Y instanceof IntegerArray) {
+				IntegerMatrix X_ = (IntegerMatrix) X;
+				IntegerArray Y_ = (IntegerArray) Y;
+
+				Ya = new IntegerArray(X_.size());
+				Yha = new IntegerArray(X_.size());
+
+				int[][] rs = BatchUtils.getBatchRanges(X_.size(), batch_size);
+
+				for (int j = 0; j < rs.length; j++) {
+					int[] r = rs[j];
+					IntegerMatrix Xm = X_.subMatrix(r[0], r[1]);
+					IntegerArray Yhm = n.classify(Xm);
+
+					Ya.addAll(Y_.subArray(r[0], r[1]));
+					Yha.addAll(Yhm);
+				}
+			} else if (Y instanceof IntegerMatrix) {
+				IntegerMatrix Yh_ = TaskType.toIntegerMatrix(nnmr.classify(X));
+				IntegerMatrix X_ = TaskType.toIntegerMatrix(X);
+				IntegerMatrix Y_ = TaskType.toIntegerMatrix(Y);
+
+				Ya = new IntegerArray(X_.sizeOfEntries());
+				Yha = new IntegerArray(X_.sizeOfEntries());
+
+				for (int j = 0; j < X_.size(); j++) {
+					IntegerArray Ytm = Y_.get(j);
+					IntegerArray Yhm = Yh_.get(j);
+
+					Ya.addAll(Ytm);
+					Yha.addAll(Yhm);
+				}
+			}
+		}
+
+		Performance p = eval.evalute(Ya, Yha, n.getLabelIndexer());
+
+		System.out.println(p.toString());
+
+		for (NeuralNet nn : nns) {
+			nn.setIsTesting(false);
+		}
+
+		return p;
+
+	}
+
 	public void finish() {
 		tpe.shutdown();
 
-		nn.setIsTesting(true);
+		for (NeuralNet nn : nns) {
+			nn.setIsTesting(true);
+		}
+
+		nnmr.shutdown();
 
 		// VectorUtils.copy(W_best, W);
 	}
@@ -252,8 +308,6 @@ public class NeuralNetTrainer {
 	private void prepare(NeuralNet nn, int thread_size, int batch_size, double learn_rate, double reg_lambda,
 			double grad_clip_cutoff, OptimizerType ot, boolean is_full_seq_batch, boolean is_random_batch,
 			int grad_acc_reset_size) throws Exception {
-		this.nn = nn;
-
 		this.learn_rate = learn_rate;
 		this.reg_lambda = reg_lambda;
 		this.batch_size = batch_size;
@@ -261,17 +315,19 @@ public class NeuralNetTrainer {
 		this.is_random_batch = is_random_batch;
 		this.grad_acc_reset_size = grad_acc_reset_size;
 
-		List<NeuralNet> nns = copy(nn, thread_size - 1);
-
-		for (NeuralNet n : nns) {
-			n.prepare();
-		}
-
+		nns = Generics.newArrayList(thread_size);
 		nns.add(nn);
 
-		pus = Generics.newArrayList(nns.size());
+		for (int i = 0; i < thread_size - 1; i++) {
+			NeuralNet n = copy(nn);
+			n.prepare();
+
+			nns.add(n);
+		}
 
 		int tmp_data_size = 1000000;
+
+		pus = Generics.newArrayList(thread_size);
 
 		for (NeuralNet n : nns) {
 			ParameterUpdater pu = new ParameterUpdater(n, tmp_data_size);
@@ -298,6 +354,8 @@ public class NeuralNetTrainer {
 		for (int i = 0; i < thread_size; i++) {
 			ws.add(new Worker(pus.get(i)));
 		}
+
+		nnmr = new NeuralNetMultiRunner(nns);
 	}
 
 	public void train(Object X, Object Y, Object Xt, Object Yt, int max_iters) throws Exception {
@@ -307,16 +365,16 @@ public class NeuralNetTrainer {
 		int data_size = 0;
 
 		if (X instanceof DenseMatrix) {
-			data_size = ((DenseMatrix) X).rowSize();
+			data_size = TaskType.toDenseMatrix(X).rowSize();
 			data_locs = ArrayUtils.range(data_size);
 			ranges = BatchUtils.getBatchRanges(data_size, batch_size);
 		} else if (X instanceof IntegerMatrix) {
 			if (Y instanceof IntegerArray) {
-				data_size = ((IntegerMatrix) Y).size();
+				data_size = TaskType.toIntegerArray(Y).size();
 				data_locs = ArrayUtils.range(data_size);
 				ranges = BatchUtils.getBatchRanges(data_size, batch_size);
 			} else if (Y instanceof IntegerMatrix) {
-				IntegerMatrix Y_ = ((IntegerMatrix) Y);
+				IntegerMatrix Y_ = TaskType.toIntegerMatrix(Y);
 				data_size = Y_.sizeOfEntries();
 				data_locs = ArrayUtils.range(Y_.size());
 				ranges = BatchUtils.getBatchRanges(Y_.size(), 100);
@@ -346,15 +404,16 @@ public class NeuralNetTrainer {
 			range_cnt = new AtomicInteger(0);
 
 			List<Future<Pair<Double, Integer>>> fs = Generics.newArrayList(ws.size());
-			for (int j = 0; j < ws.size(); j++) {
-				fs.add(tpe.submit(ws.get(j)));
+
+			for (Worker w : ws) {
+				fs.add(tpe.submit(w));
 			}
 
 			double cost = 0;
 			int cor_cnt = 0;
 
-			for (int j = 0; j < fs.size(); j++) {
-				Pair<Double, Integer> res = fs.get(j).get();
+			for (Future<Pair<Double, Integer>> f : fs) {
+				Pair<Double, Integer> res = f.get();
 				cost += res.getFirst();
 				cor_cnt += res.getSecond();
 			}
@@ -379,13 +438,18 @@ public class NeuralNetTrainer {
 					acc, cor_cnt, data_size, timer2.stop(), timer1.stop(), norm, learn_rate);
 
 			if (Xt != null && Yt != null) {
-				nn.setIsTesting(true);
+
+				for (NeuralNet nn : nns) {
+					nn.setIsTesting(true);
+				}
 
 				IntegerArray Yha = null;
 				IntegerArray Ya = null;
 
+				NeuralNet n = nns.get(0);
+
 				if (X instanceof DenseMatrix) {
-					Yha = nn.classify(Xt);
+					Yha = n.classify(Xt);
 					Ya = (IntegerArray) Yt;
 				} else if (X instanceof IntegerMatrix) {
 					if (Y instanceof IntegerArray) {
@@ -400,36 +464,56 @@ public class NeuralNetTrainer {
 						for (int j = 0; j < rs.length; j++) {
 							int[] r = rs[j];
 							IntegerMatrix xm = Xt_.subMatrix(r[0], r[1]);
-							IntegerArray yhm = nn.classify(xm);
+							IntegerArray yhm = n.classify(xm);
 
 							Ya.addAll(Yt_.subArray(r[0], r[1]));
 							Yha.addAll(yhm);
 						}
 					} else if (Y instanceof IntegerMatrix) {
+
+						IntegerMatrix Yht_ = (IntegerMatrix) nnmr.classify(Xt);
 						IntegerMatrix Xt_ = (IntegerMatrix) Xt;
 						IntegerMatrix Yt_ = (IntegerMatrix) Yt;
+
+						int size1 = Xt_.size();
+						int size2 = Yht_.size();
+
+						System.out.printf("[%d, %d]\n", Xt_.size(), Yht_.size());
+						System.out.printf("[%d, %d]\n", Xt_.sizeOfEntries(), Yht_.sizeOfEntries());
+						System.out.println();
 
 						Ya = new IntegerArray(Xt_.sizeOfEntries());
 						Yha = new IntegerArray(Xt_.sizeOfEntries());
 
 						for (int j = 0; j < Xt_.size(); j++) {
-							IntegerArray Xtm = Xt_.get(j);
 							IntegerArray Ytm = Yt_.get(j);
-							IntegerArray Yhm = nn.classify(Xtm);
+							IntegerArray Yhm = Yht_.get(j);
 
-							for (int k = 0; k < Ytm.size(); k++) {
-								Ya.add(Ytm.get(k));
-								Yha.add(Yhm.get(k));
-							}
+							Ya.addAll(Ytm);
+							Yha.addAll(Yhm);
 						}
+
+						// for (int j = 0; j < Xt_.size(); j++) {
+						// IntegerArray Xtm = Xt_.get(j);
+						// IntegerArray Ytm = Yt_.get(j);
+						// IntegerArray Yhm = nn.classify(Xtm);
+						//
+						// for (int k = 0; k < Ytm.size(); k++) {
+						// Ya.add(Ytm.get(k));
+						// Yha.add(Yhm.get(k));
+						// }
+						// }
 					}
 				}
 
-				Performance p = eval.evalute(Ya, Yha, nn.getLabelIndexer());
+				Performance p = eval.evalute(Ya, Yha, n.getLabelIndexer());
 				perfs.add(p);
 
 				System.out.println(p.toString());
-				nn.setIsTesting(false);
+
+				for (NeuralNet nn : nns) {
+					nn.setIsTesting(false);
+				}
 
 				if (iters % grad_acc_reset_size == 0) {
 					for (ParameterUpdater pu : pus) {
