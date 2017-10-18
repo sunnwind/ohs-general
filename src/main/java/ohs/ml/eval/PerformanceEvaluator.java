@@ -86,14 +86,14 @@ public class PerformanceEvaluator {
 		return ret;
 	}
 
-	public Performance evalute(IntegerArray y, IntegerArray yh, Indexer<String> labelIdxer) {
+	public Performance evalute(IntegerArray Y, IntegerArray Yh, Indexer<String> labelIdxer) {
 		Counter<Integer> corCnts = Generics.newCounter();
 		Counter<Integer> predCnts = Generics.newCounter();
 		Counter<Integer> ansCnts = Generics.newCounter();
 
-		for (int i = 0; i < y.size(); i++) {
-			int ans = y.get(i);
-			int pred = yh.get(i);
+		for (int i = 0; i < Y.size(); i++) {
+			int ans = Y.get(i);
+			int pred = Yh.get(i);
 
 			ansCnts.incrementCount(ans, 1);
 			predCnts.incrementCount(pred, 1);
@@ -103,12 +103,12 @@ public class PerformanceEvaluator {
 			}
 		}
 
-		Set<Integer> labels = Generics.newHashSet();
+		Set<Integer> labels = Generics.newTreeSet();
+
 		if (labelIdxer == null) {
 			labels.addAll(predCnts.keySet());
 			labels.addAll(ansCnts.keySet());
 		} else {
-			labels = Generics.newHashSet(labelIdxer.size());
 			for (int i = 0; i < labelIdxer.size(); i++) {
 				labels.add(i);
 			}
@@ -133,71 +133,44 @@ public class PerformanceEvaluator {
 			}
 		}
 
-		Performance p = new Performance(ans_cnts, pred_cnts, cor_cnts);
-		p.SetLabelIndexer(labelIdxer);
+		Performance p = new Performance(ans_cnts, pred_cnts, cor_cnts, labelIdxer);
 		return p;
 	}
 
-	public Performance evalute(IntegerMatrix Y, IntegerMatrix Yh, int label_size) {
-		Counter<Integer> corCnts = Generics.newCounter();
-		Counter<Integer> predCnts = Generics.newCounter();
-		Counter<Integer> ansCnts = Generics.newCounter();
-
+	public Performance evalute(IntegerMatrix Y, IntegerMatrix Yh, Indexer<String> labelIdxer) {
+		int size = Y.sizeOfEntries();
+		IntegerArray Y_ = new IntegerArray(size);
+		IntegerArray Yh_ = new IntegerArray(size);
 		for (int i = 0; i < Y.size(); i++) {
-			IntegerArray y = Y.get(i);
-			IntegerArray yh = Yh.get(i);
-			for (int j = 0; j < y.size(); j++) {
-				int ans = y.get(j);
-				int pred = yh.get(j);
-
-				if (ans == pred) {
-					corCnts.incrementCount(y.get(j), 1);
-				}
-			}
+			Y_.addAll(Y.get(i));
+			Yh_.addAll(Yh.get(i));
 		}
-
-		Set<Integer> labels = Generics.newHashSet();
-		labels.addAll(predCnts.keySet());
-		labels.addAll(ansCnts.keySet());
-
-		IntegerArray ans_cnts = new IntegerArray(label_size);
-		IntegerArray pred_cnts = new IntegerArray(label_size);
-		IntegerArray cor_cnts = new IntegerArray(label_size);
-
-		for (int i = 0; i < ansCnts.size(); i++) {
-			ans_cnts.add((int) ansCnts.getCount(i));
-			pred_cnts.add((int) predCnts.getCount(i));
-			cor_cnts.add((int) corCnts.getCount(i));
-		}
-
-		return new Performance(ans_cnts, pred_cnts, cor_cnts);
+		return evalute(Y_, Yh_, labelIdxer);
 	}
 
 	public Performance evaluteSequences(IntegerMatrix Y, IntegerMatrix Yh, Indexer<String> bioIdxer) {
 		Indexer<String> labelIdxer = Generics.newIndexer();
 
 		{
-			Set<String> labels = Generics.newTreeSet();
+			Set<String> L = Generics.newTreeSet();
 
 			for (String bio : bioIdxer) {
 				String[] ps = bio.split("-");
-				String l = "O";
 				if (ps.length == 2) {
-					l = ps[0];
-
+					String l = ps[0];
 					if (l.equals("B") || l.equals("I")) {
 						l = ps[1];
 					}
+					L.add(l);
 				}
-				labels.add(l);
 			}
-			labelIdxer.addAll(labels);
+			labelIdxer.addAll(L);
+			labelIdxer.add("O");
 		}
 
 		Counter<Integer> corCnts = Generics.newCounter(labelIdxer.size());
 		Counter<Integer> predCnts = Generics.newCounter(labelIdxer.size());
 		Counter<Integer> ansCnts = Generics.newCounter(labelIdxer.size());
-		Set<Integer> labels = Generics.newHashSet(labelIdxer.size());
 
 		for (int u = 0; u < Y.size(); u++) {
 			IntegerArray y = Y.get(u);
@@ -215,13 +188,13 @@ public class PerformanceEvaluator {
 		IntegerArray pred_cnts = new IntegerArray(labelIdxer.size());
 		IntegerArray cor_cnts = new IntegerArray(labelIdxer.size());
 
-		for (int i = 0; i < labels.size(); i++) {
+		for (int i = 0; i < labelIdxer.size(); i++) {
 			ans_cnts.add((int) ansCnts.getCount(i));
 			pred_cnts.add((int) predCnts.getCount(i));
 			cor_cnts.add((int) corCnts.getCount(i));
 		}
 
-		return new Performance(ans_cnts, pred_cnts, cor_cnts);
+		return new Performance(ans_cnts, pred_cnts, cor_cnts, labelIdxer);
 	}
 
 	private String[] splitBioLabel(String bioLabel) {

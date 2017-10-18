@@ -237,7 +237,7 @@ public class Apps {
 
 	public static void testNER() throws Exception {
 		NeuralNetParams param = new NeuralNetParams();
-		param.setBatchSize(5);
+		param.setBatchSize(10);
 		param.setIsFullSequenceBatch(true);
 		param.setIsRandomBatch(true);
 		param.setGradientAccumulatorResetSize(100);
@@ -335,7 +335,7 @@ public class Apps {
 							Xm.add(X.get(loc));
 							Ym.add(Y.get(loc));
 						}
-						
+
 						trainer.train(Xm, Ym, Xt, Yt, 1);
 					}
 				}

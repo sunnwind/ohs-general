@@ -42,9 +42,15 @@ public class Performance {
 	}
 
 	public Performance(IntegerArray ans_cnts, IntegerArray pred_cnts, IntegerArray cor_cnts) {
+		this(ans_cnts, pred_cnts, cor_cnts, null);
+	}
+
+	public Performance(IntegerArray ans_cnts, IntegerArray pred_cnts, IntegerArray cor_cnts,
+			Indexer<String> labelIdxer) {
 		this.ans_cnts = ans_cnts;
 		this.pred_cnts = pred_cnts;
 		this.cor_cnts = cor_cnts;
+		this.labelIdxer = labelIdxer;
 
 		precisons = new DoubleArray(ans_cnts.size());
 		recalls = new DoubleArray(ans_cnts.size());
