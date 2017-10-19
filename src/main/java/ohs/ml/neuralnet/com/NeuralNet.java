@@ -87,46 +87,25 @@ public class NeuralNet extends ArrayList<Layer> {
 		return Y;
 	}
 
-	public DenseMatrix getB() {
-		List<DenseVector> rows = Generics.newLinkedList();
-		for (Layer l : this) {
-			if (l.getB() != null) {
-				for (DenseVector b : l.getB()) {
-					rows.add(b);
-				}
-			}
-		}
-		return new DenseMatrix(rows);
-	}
-
-	public DenseMatrix getDB() {
-		List<DenseVector> rows = Generics.newLinkedList();
-		for (Layer l : this) {
-			if (l.getDB() != null) {
-				for (DenseVector db : l.getDB()) {
-					rows.add(db);
-				}
-			}
-		}
-		return new DenseMatrix(rows);
-	}
-
 	public DenseTensor getDW(boolean no_bias) {
 		List<DenseMatrix> ret = Generics.newLinkedList();
 		for (Layer l : this) {
+			DenseMatrix dW = null;
+			DenseMatrix dB = null;
+
 			if (l instanceof EmbeddingLayer) {
 				EmbeddingLayer n = (EmbeddingLayer) l;
-				if (!n.isLearnEmbedding()) {
-					continue;
+				if (n.isLearnEmbedding()) {
+					dW = n.getDW();
+					dB = n.getDB();
 				}
 			}
 
-			if (l.getW() != null) {
-				ret.add(l.getDW());
+			if (dW != null) {
+				ret.add(dW);
 			}
-
-			if (!no_bias && l.getDB() != null) {
-				ret.add(l.getDB());
+			if (!no_bias && dB != null) {
+				ret.add(dB);
 			}
 		}
 		return new DenseTensor(ret);
@@ -155,19 +134,22 @@ public class NeuralNet extends ArrayList<Layer> {
 	public DenseTensor getW(boolean no_bias) {
 		List<DenseMatrix> ret = Generics.newLinkedList();
 		for (Layer l : this) {
+			DenseMatrix W = null;
+			DenseMatrix B = null;
+
 			if (l instanceof EmbeddingLayer) {
 				EmbeddingLayer n = (EmbeddingLayer) l;
-				if (!n.isLearnEmbedding()) {
-					continue;
+				if (n.isLearnEmbedding()) {
+					W = n.getW();
+					B = n.getB();
 				}
 			}
 
-			if (l.getW() != null) {
-				ret.add(l.getW());
+			if (W != null) {
+				ret.add(W);
 			}
-
-			if (!no_bias && l.getB() != null) {
-				ret.add(l.getB());
+			if (!no_bias && B != null) {
+				ret.add(B);
 			}
 		}
 		return new DenseTensor(ret);

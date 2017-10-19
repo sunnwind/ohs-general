@@ -15,9 +15,11 @@ import ohs.ml.neuralnet.layer.DropoutLayer;
 import ohs.ml.neuralnet.layer.EmbeddingLayer;
 import ohs.ml.neuralnet.layer.FullyConnectedLayer;
 import ohs.ml.neuralnet.layer.Layer;
+import ohs.ml.neuralnet.layer.LstmLayer;
 import ohs.ml.neuralnet.layer.MaxPoolingLayer;
 import ohs.ml.neuralnet.layer.NonlinearityLayer;
 import ohs.ml.neuralnet.layer.RecurrentLayer;
+import ohs.ml.neuralnet.layer.RnnLayer;
 import ohs.ml.neuralnet.layer.SoftmaxLayer;
 import ohs.ml.neuralnet.nonlinearity.ReLU;
 import ohs.nlp.ling.types.MDocument;
@@ -56,7 +58,7 @@ public class Apps {
 		nnp.setLearnRate(0.001);
 		nnp.setRegLambda(0.001);
 		nnp.setThreadSize(5);
-		nnp.setTruncatedBackPropagationThroughTime(10);
+		nnp.setTruncatedBackPropagationThroughTime(5);
 		nnp.setOptimizerType(OptimizerType.ADAM);
 		nnp.setGradientClipCutoff(5);
 
@@ -145,9 +147,12 @@ public class Apps {
 			nn.prepare();
 		} else {
 			nn.add(new EmbeddingLayer(voc_size, emb_size, true));
-			// nn.add(new DropoutLayer());
-			nn.add(new BidirectionalRecurrentLayer(Type.LSTM, emb_size, l1_size,
-					nnp.getTruncatedBackPropagationThroughTime(), new ReLU()));
+			nn.add(new DropoutLayer());
+			// nn.add(new BidirectionalRecurrentLayer(Type.LSTM, emb_size, l1_size,
+			// nnp.getTruncatedBackPropagationThroughTime(), new ReLU()));
+			nn.add(new LstmLayer(emb_size, l1_size, new ReLU()));
+			// nn.add(new RnnLayer(emb_size, l1_size,
+			// nnp.getTruncatedBackPropagationThroughTime(), new ReLU()));
 			// nn.add(new BatchNormalizationLayer(l1_size));
 			nn.add(new FullyConnectedLayer(l1_size, label_size));
 			nn.add(new SoftmaxLayer(label_size));

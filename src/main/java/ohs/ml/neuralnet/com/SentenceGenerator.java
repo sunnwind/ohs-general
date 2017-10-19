@@ -2,10 +2,6 @@ package ohs.ml.neuralnet.com;
 
 import java.util.List;
 
-import org.apache.xalan.xsltc.compiler.sym;
-import org.omg.CORBA.WStringSeqHelper;
-
-import java_cup.runtime.Symbol;
 import ohs.math.ArrayMath;
 import ohs.math.VectorMath;
 import ohs.matrix.DenseMatrix;

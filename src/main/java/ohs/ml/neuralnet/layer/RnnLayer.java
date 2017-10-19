@@ -50,7 +50,7 @@ public class RnnLayer extends RecurrentLayer {
 
 	private DenseVector dh_raw;
 
-	private Object fwd_I;
+	private Object X;
 
 	private DenseMatrix H;
 
@@ -144,13 +144,13 @@ public class RnnLayer extends RecurrentLayer {
 			int size = Math.max(0, t - bptt_size);
 
 			for (int tt = t; tt >= size; tt--) {
-				if (fwd_I instanceof IntegerArray) {
-					IntegerArray X = ((IntegerArray) fwd_I);
+				if (this.X instanceof IntegerArray) {
+					IntegerArray X = ((IntegerArray) this.X);
 					int idx = X.get(tt);
 					DenseVector dwx = dWxh.row(idx);
 					VectorMath.add(tmp, dwx);
 				} else {
-					DenseMatrix X = ((DenseMatrix) fwd_I);
+					DenseMatrix X = ((DenseMatrix) this.X);
 					DenseVector x = X.row(tt);
 					VectorMath.outerProduct(x, tmp, dWxh, true);
 
@@ -213,12 +213,19 @@ public class RnnLayer extends RecurrentLayer {
 			VectorMath.add(b, h);
 
 			non.forward(h.toDenseMatrix(), h.toDenseMatrix());
+
+			for (double v : h.values()) {
+				if (v > 1000) {
+					int iii = 0;
+					iii += 3;
+				}
+			}
 		}
 
 		VectorUtils.copy(h0, h0_prev);
 		VectorUtils.copy(H.row(data_size - 1), h0);
 
-		fwd_I = I;
+		X = I;
 
 		return H;
 	}
@@ -226,10 +233,6 @@ public class RnnLayer extends RecurrentLayer {
 	@Override
 	public DenseMatrix getB() {
 		return b.toDenseMatrix();
-	}
-
-	public DenseVector getBh() {
-		return b;
 	}
 
 	public int getBpttSize() {

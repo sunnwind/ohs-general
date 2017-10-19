@@ -7,6 +7,8 @@ import ohs.math.VectorMath;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
+import ohs.ml.neuralnet.layer.EmbeddingLayer;
+import ohs.ml.neuralnet.layer.Layer;
 import ohs.utils.Generics;
 
 /**
@@ -71,6 +73,43 @@ public class ParameterUpdater {
 		this.nn = nn;
 		this.batch_size = batch_size;
 
+		// Ws = new DenseTensor();
+		// dWs = new DenseTensor();
+		// rWs1 = new DenseTensor();
+		// rWs2 = new DenseTensor();
+		//
+		// for (Layer l : nn) {
+		// DenseMatrix W = null;
+		// DenseMatrix dW = null;
+		//
+		// DenseMatrix B = null;
+		// DenseMatrix dB = null;
+		//
+		// if (l instanceof EmbeddingLayer) {
+		// EmbeddingLayer n = (EmbeddingLayer) l;
+		// if (n.isLearnEmbedding()) {
+		// W = n.getW();
+		// dW = n.getDW();
+		// B = n.getB();
+		// dB = n.getDB();
+		// }
+		// }
+		//
+		// if (W != null) {
+		// Ws.add(W);
+		// dWs.add(dW);
+		// rWs1.add(W.copy(true));
+		// rWs2.add(W.copy(true));
+		// }
+		//
+		// if (B != null) {
+		// Ws.add(B);
+		// dWs.add(dB);
+		// rWs1.add(B.copy(true));
+		// rWs2.add(B.copy(true));
+		// }
+		// }
+
 		Ws = nn.getW(false);
 		dWs = nn.getDW(false);
 		rWs1 = new DenseTensor();
@@ -88,9 +127,6 @@ public class ParameterUpdater {
 			rWs2.add(rW2);
 		}
 
-		// locs = ArrayUtils.range(W.rowSize());
-
-		// ArrayUtils.shuffle(locs);
 	}
 
 	public List<DenseTensor> getGradientAccumulators() {
