@@ -2,6 +2,10 @@ package ohs.ml.neuralnet.com;
 
 import java.util.List;
 
+import org.apache.xalan.xsltc.compiler.sym;
+import org.omg.CORBA.WStringSeqHelper;
+
+import java_cup.runtime.Symbol;
 import ohs.math.ArrayMath;
 import ohs.math.VectorMath;
 import ohs.matrix.DenseMatrix;
@@ -23,36 +27,42 @@ public class SentenceGenerator {
 		this.vocab = vocab;
 	}
 
-	public List<String> generate(int max_words) {
-		IntegerArray sent = new IntegerArray();
-		sent.add(SYM.START.ordinal());
+	public String generate(int max_words) {
+		int w_unk = vocab.indexOf(SYM.UNK.getText());
+		int w_start = vocab.indexOf(SYM.START.getText());
+		int w_end = vocab.indexOf(SYM.END.getText());
 
-		while (sent.get(sent.size() - 1) != SYM.END.ordinal()) {
+		List<Integer> sent = Generics.newArrayList(max_words);
+		sent.add(w_start);
+
+		int w_prev = 0;
+
+		while ((w_prev = sent.get(sent.size() - 1)) != w_end) {
 			if (sent.size() - 1 == max_words) {
-				sent.add(SYM.END.ordinal());
+				sent.add(w_end);
 				break;
 			}
-			DenseMatrix Yh = (DenseMatrix) nn.forward(sent);
+			DenseMatrix Yh = (DenseMatrix) nn.forward(new IntegerArray(sent));
 			DenseVector yh = Yh.row(Yh.rowSize() - 1);
 
 			VectorMath.cumulateAfterNormalize(yh, yh);
 
-			int nw = SYM.UNK.ordinal();
+			int w = w_unk;
 
 			do {
-				nw = ArrayMath.sample(yh.values());
-			} while (nw == SYM.UNK.ordinal());
+				w = ArrayMath.sample(yh.values());
+			} while (w == w_unk || w == w_start);
 
-			sent.add(nw);
+			sent.add(w);
 		}
 
-		List<String> ret = Generics.newArrayList(sent.size());
+		StringBuffer sb = new StringBuffer();
 
-		for (int i = 1; i < sent.size() - 1; i++) {
-			ret.add(vocab.getObject(sent.get(i)));
+		for (int i = 0; i < sent.size(); i++) {
+			sb.append(vocab.getObject(sent.get(i)));
 		}
 
-		return ret;
+		return sb.toString();
 	}
 
 }

@@ -91,7 +91,13 @@ public class MToken extends ArrayList<Object> {
 	public String toString(boolean print_attr_names) {
 		StringBuffer sb = new StringBuffer();
 
-		for (int i = 0; i < size(); i++) {
+		int size = INDEXER.size();
+
+		if (size == 0) {
+			size = size();
+		}
+
+		for (int i = 0; i < size; i++) {
 			sb.append(get(i));
 			if (i != size() - 1) {
 				sb.append(DELIM);

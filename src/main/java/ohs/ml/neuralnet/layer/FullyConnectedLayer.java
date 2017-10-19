@@ -6,9 +6,11 @@ import java.io.ObjectOutputStream;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
+import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
 import ohs.ml.neuralnet.com.ParameterInitializer;
 import ohs.types.number.IntegerArray;
+import ohs.types.number.IntegerMatrix;
 
 /**
  * 
@@ -125,6 +127,7 @@ public class FullyConnectedLayer extends Layer {
 			}
 			VectorMath.add(Y, b, Y);
 		}
+
 		this.Y = Y;
 
 		return Y;

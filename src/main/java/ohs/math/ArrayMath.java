@@ -1324,17 +1324,20 @@ public class ArrayMath {
 		System.out.println("process begins.");
 
 		{
-
-			long a = Long.MAX_VALUE;
-			long b = Integer.MAX_VALUE;
-			long c = Integer.MAX_VALUE - 8;
-
-			System.out.println(a / (100000000d * 10000000));
-			System.out.println(c);
-
-			OperatingSystemMXBean os = ManagementFactory.getOperatingSystemMXBean();
-
-			System.out.println(System.getProperties());
+			double[] probs = { 10, 10, 10, 10, 90, 10, 10, 10, 10, 10 };
+			
+			normalize(probs);
+			cumulate(probs, probs);
+			
+			int[] samples = sample(probs, 50);
+			
+			Counter<Integer> c= Generics.newCounter();
+			
+			for(int s : samples) {
+				c.incrementCount(s, 1);
+			}
+			
+			System.out.println(c.toStringSortedByValues(true, true, c.size(), "\t"));
 
 			System.exit(0);
 		}
