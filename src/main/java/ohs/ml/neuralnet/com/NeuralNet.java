@@ -9,8 +9,12 @@ import ohs.io.FileUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
+import ohs.ml.neuralnet.layer.BidirectionalRecurrentLayer;
 import ohs.ml.neuralnet.layer.EmbeddingLayer;
 import ohs.ml.neuralnet.layer.Layer;
+import ohs.ml.neuralnet.layer.LstmLayer;
+import ohs.ml.neuralnet.layer.RecurrentLayer;
+import ohs.ml.neuralnet.layer.RnnLayer;
 import ohs.types.generic.Indexer;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
@@ -31,6 +35,8 @@ public class NeuralNet extends ArrayList<Layer> {
 	 * 
 	 */
 	private static final long serialVersionUID = -8546621903237371147L;
+
+	private static final String RecurrentLayer = null;
 
 	private Indexer<String> labelIdxer;
 
@@ -88,10 +94,10 @@ public class NeuralNet extends ArrayList<Layer> {
 	}
 
 	public DenseTensor getDW(boolean no_bias) {
-		List<DenseMatrix> ret = Generics.newLinkedList();
+		DenseTensor ret = new DenseTensor();
 		for (Layer l : this) {
-			DenseMatrix dW = null;
-			DenseMatrix dB = null;
+			DenseTensor dW = l.getDW();
+			DenseTensor dB = l.getDB();
 
 			if (l instanceof EmbeddingLayer) {
 				EmbeddingLayer n = (EmbeddingLayer) l;
@@ -99,16 +105,31 @@ public class NeuralNet extends ArrayList<Layer> {
 					dW = n.getDW();
 					dB = n.getDB();
 				}
+			} else if (l instanceof RecurrentLayer) {
+				if (l instanceof RnnLayer) {
+					RnnLayer n = (RnnLayer) l;
+					dW = n.getDW();
+					dB = n.getDB();
+				} else if (l instanceof LstmLayer) {
+					LstmLayer n = (LstmLayer) l;
+					dW = n.getDW();
+					dB = n.getDB();
+				} else if (l instanceof BidirectionalRecurrentLayer) {
+					BidirectionalRecurrentLayer n = (BidirectionalRecurrentLayer) l;
+					dW = n.getDW();
+					dB = n.getDB();
+				}
 			}
 
 			if (dW != null) {
-				ret.add(dW);
+				ret.addAll(dW);
 			}
+
 			if (!no_bias && dB != null) {
-				ret.add(dB);
+				ret.addAll(dB);
 			}
 		}
-		return new DenseTensor(ret);
+		return ret;
 	}
 
 	public int getInputSize() {
@@ -132,10 +153,10 @@ public class NeuralNet extends ArrayList<Layer> {
 	}
 
 	public DenseTensor getW(boolean no_bias) {
-		List<DenseMatrix> ret = Generics.newLinkedList();
+		DenseTensor ret = new DenseTensor();
 		for (Layer l : this) {
-			DenseMatrix W = null;
-			DenseMatrix B = null;
+			DenseTensor W = l.getW();
+			DenseTensor B = l.getB();
 
 			if (l instanceof EmbeddingLayer) {
 				EmbeddingLayer n = (EmbeddingLayer) l;
@@ -143,16 +164,31 @@ public class NeuralNet extends ArrayList<Layer> {
 					W = n.getW();
 					B = n.getB();
 				}
+			} else if (l instanceof RecurrentLayer) {
+				if (l instanceof RnnLayer) {
+					RnnLayer n = (RnnLayer) l;
+					W = n.getW();
+					B = n.getB();
+				} else if (l instanceof LstmLayer) {
+					LstmLayer n = (LstmLayer) l;
+					W = n.getW();
+					B = n.getB();
+				} else if (l instanceof BidirectionalRecurrentLayer) {
+					BidirectionalRecurrentLayer n = (BidirectionalRecurrentLayer) l;
+					W = n.getW();
+					B = n.getB();
+				}
 			}
 
 			if (W != null) {
-				ret.add(W);
+				ret.addAll(W);
 			}
+
 			if (!no_bias && B != null) {
-				ret.add(B);
+				ret.addAll(B);
 			}
 		}
-		return new DenseTensor(ret);
+		return ret;
 	}
 
 	public void init() {

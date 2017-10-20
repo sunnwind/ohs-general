@@ -3,22 +3,21 @@ package ohs.ml.neuralnet.com;
 import java.util.List;
 import java.util.Set;
 
+import ohs.corpus.type.EnglishTokenizer;
 import ohs.io.FileUtils;
 import ohs.math.ArrayUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.SparseMatrix;
 import ohs.ml.neuralnet.com.ParameterUpdater.OptimizerType;
 import ohs.ml.neuralnet.layer.BidirectionalRecurrentLayer;
-import ohs.ml.neuralnet.layer.BidirectionalRecurrentLayer.Type;
 import ohs.ml.neuralnet.layer.ConvolutionalLayer;
 import ohs.ml.neuralnet.layer.DropoutLayer;
 import ohs.ml.neuralnet.layer.EmbeddingLayer;
 import ohs.ml.neuralnet.layer.FullyConnectedLayer;
-import ohs.ml.neuralnet.layer.Layer;
 import ohs.ml.neuralnet.layer.LstmLayer;
 import ohs.ml.neuralnet.layer.MaxPoolingLayer;
 import ohs.ml.neuralnet.layer.NonlinearityLayer;
-import ohs.ml.neuralnet.layer.RecurrentLayer;
+import ohs.ml.neuralnet.layer.RecurrentLayer.Type;
 import ohs.ml.neuralnet.layer.RnnLayer;
 import ohs.ml.neuralnet.layer.SoftmaxLayer;
 import ohs.ml.neuralnet.nonlinearity.ReLU;
@@ -41,8 +40,8 @@ public class Apps {
 		System.out.println("process begins.");
 
 		// testMNIST();
-		testCharRNN();
-		// testNER();
+		// testCharRNN();
+		testNER();
 
 		// testSentenceClassification();
 
@@ -51,16 +50,16 @@ public class Apps {
 
 	public static void testCharRNN() throws Exception {
 		NeuralNetParams nnp = new NeuralNetParams();
-		nnp.setBatchSize(10);
+		nnp.setBatchSize(5);
 		nnp.setIsFullSequenceBatch(true);
-		nnp.setIsRandomBatch(false);
+		nnp.setIsRandomBatch(true);
 		nnp.setGradientAccumulatorResetSize(100);
 		nnp.setLearnRate(0.001);
 		nnp.setRegLambda(0.001);
 		nnp.setThreadSize(5);
 		nnp.setTruncatedBackPropagationThroughTime(5);
 		nnp.setOptimizerType(OptimizerType.ADAM);
-		nnp.setGradientClipCutoff(5);
+		nnp.setGradientClipCutoff(10);
 
 		IntegerMatrix X = new IntegerMatrix();
 		IntegerMatrix Y = new IntegerMatrix();
@@ -69,17 +68,25 @@ public class Apps {
 
 		List<String> lines = Generics.newLinkedList();
 
+		// for (String line :
+		// FileUtils.readFromText("../../data/ml_data/love_input.txt").split("\n\n")) {
+		// line = StrUtils.normalizeSpaces(line);
+		// if (line.length() > 0) {
+		// lines.add(line.toLowerCase());
+		// }
+		// }
+
+		EnglishTokenizer et = new EnglishTokenizer();
+
 		for (String line : FileUtils.readFromText("../../data/ml_data/shakespeare_input.txt").split("\n\n")) {
-			line = StrUtils.normalizeSpaces(line);
-			if (line.length() > 0) {
-				lines.add(line);
-			}
+			lines.add(StrUtils.join(" ", et.tokenize(line)));
 		}
 
 		lines = Generics.newArrayList(lines);
 
 		int test_size = 1000;
-		int train_size = lines.size() - test_size;
+		// int train_size = lines.size() - test_size;
+		int train_size = 10000;
 
 		Vocab vocab = new Vocab();
 		vocab.add(SYM.UNK.getText());
@@ -87,17 +94,21 @@ public class Apps {
 		vocab.add(SYM.END.getText());
 
 		{
-			Set<String> charSet = Generics.newTreeSet();
+			Set<String> set = Generics.newTreeSet();
 
 			for (int i = 0; i < lines.size() && i < train_size; i++) {
 				String s = lines.get(i);
 				for (int j = 0; j < s.length(); j++) {
-					charSet.add(s.charAt(j) + "");
+					set.add(s.charAt(j) + "");
 				}
+
+				// for (String word : StrUtils.split(s)) {
+				// vocab.add(word);
+				// }
 			}
 
-			for (String ch : charSet) {
-				vocab.add(ch);
+			for (String s : set) {
+				vocab.add(s);
 			}
 		}
 
@@ -112,6 +123,14 @@ public class Apps {
 			}
 
 			t.add(vocab.indexOf(SYM.END.getText()));
+
+			// IntegerArray t = new IntegerArray(s.length());
+			// t.add(vocab.indexOf(SYM.START.getText()));
+			//
+			// for (String word : StrUtils.split(s)) {
+			// t.add(vocab.indexOf(word, 0));
+			// }
+			// t.add(vocab.indexOf(SYM.END.getText()));
 
 			IntegerArray x = new IntegerArray(t.size() - 1);
 			IntegerArray y = new IntegerArray(t.size() - 1);
@@ -133,7 +152,7 @@ public class Apps {
 		Indexer<String> labelIdxer = Generics.newIndexer(vocab.getObjects());
 
 		int voc_size = vocab.size();
-		int emb_size = 50;
+		int emb_size = 100;
 		int l1_size = 100;
 		int label_size = labelIdxer.size();
 		int type = 2;
@@ -150,9 +169,8 @@ public class Apps {
 			nn.add(new DropoutLayer());
 			// nn.add(new BidirectionalRecurrentLayer(Type.LSTM, emb_size, l1_size,
 			// nnp.getTruncatedBackPropagationThroughTime(), new ReLU()));
-			nn.add(new LstmLayer(emb_size, l1_size, new ReLU()));
-			// nn.add(new RnnLayer(emb_size, l1_size,
-			// nnp.getTruncatedBackPropagationThroughTime(), new ReLU()));
+			// nn.add(new LstmLayer(emb_size, l1_size, new ReLU()));
+			nn.add(new RnnLayer(emb_size, l1_size, nnp.getTruncatedBackPropagationThroughTime(), new ReLU()));
 			// nn.add(new BatchNormalizationLayer(l1_size));
 			nn.add(new FullyConnectedLayer(l1_size, label_size));
 			nn.add(new SoftmaxLayer(label_size));
@@ -187,17 +205,21 @@ public class Apps {
 					}
 
 					trainer.train(Xm, Ym, null, null, 1);
+				}
 
-					// for (Layer l : nn) {
-					// if (l instanceof RecurrentLayer) {
-					// RecurrentLayer n = (RecurrentLayer) l;
-					// n.resetH0();
-					// }
-					// }
+				if (u % 10 == 0) {
 					String s = sg.generate(100);
 					System.out.println(s);
 				}
 			}
+
+			// for (Layer l : nn) {
+			// if (l instanceof RecurrentLayer) {
+			// RecurrentLayer n = (RecurrentLayer) l;
+			// n.resetH0();
+			// }
+			// }
+
 		}
 
 		trainer.finish();
@@ -265,7 +287,7 @@ public class Apps {
 		nnp.setLearnRate(0.001);
 		nnp.setRegLambda(0.001);
 		nnp.setThreadSize(5);
-		nnp.setTruncatedBackPropagationThroughTime(10);
+		nnp.setTruncatedBackPropagationThroughTime(5);
 		nnp.setOptimizerType(OptimizerType.ADAM);
 		nnp.setGradientClipCutoff(5);
 
@@ -348,6 +370,7 @@ public class Apps {
 		int l1_size = 100;
 		int label_size = labelIdxer.size();
 		int type = 2;
+		int bptt_size = nnp.getTruncatedBackPropagationThroughTime();
 
 		String modelFileName = "../../data/ml_data/ner_nn.ser";
 
@@ -362,8 +385,10 @@ public class Apps {
 				nn.add(new EmbeddingLayer(voc_size, emb_size, true));
 				// nn.add(new FullyConnectedLayer(voc_size, emb_size));
 				nn.add(new DropoutLayer());
-				nn.add(new BidirectionalRecurrentLayer(Type.LSTM, emb_size, l1_size,
-						nnp.getTruncatedBackPropagationThroughTime(), new ReLU()));
+				// nn.add(new RnnLayer(emb_size, l1_size, bptt_size, new ReLU()));
+				nn.add(new LstmLayer(emb_size, l1_size, new ReLU()));
+				// nn.add(new BidirectionalRecurrentLayer(Type.RNN, emb_size, l1_size,
+				// bptt_size, new ReLU()));
 				// nn.add(new BatchNormalizationLayer(l1_size));
 				nn.add(new FullyConnectedLayer(l1_size, label_size));
 				nn.add(new SoftmaxLayer(label_size));
@@ -377,7 +402,7 @@ public class Apps {
 
 			IntegerArray locs = new IntegerArray(ArrayUtils.range(X.size()));
 
-			int group_size = 1000;
+			int group_size = 10000;
 			int[][] rs = BatchUtils.getBatchRanges(X.size(), group_size);
 
 			int max_iters = 1000;

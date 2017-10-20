@@ -8,6 +8,7 @@ import ohs.math.ArrayUtils;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
+import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
 import ohs.ml.neuralnet.nonlinearity.Nonlinearity;
 import ohs.types.number.IntegerArray;
@@ -21,10 +22,6 @@ import ohs.utils.Generics;
  * @author ohs
  */
 public class BidirectionalRecurrentLayer extends RecurrentLayer {
-
-	public static enum Type {
-		LSTM, RNN
-	}
 
 	/**
 	 * 
@@ -93,6 +90,38 @@ public class BidirectionalRecurrentLayer extends RecurrentLayer {
 	@Override
 	public RecurrentLayer copy() {
 		return new BidirectionalRecurrentLayer((RecurrentLayer) fwd.copy(), (RecurrentLayer) bwd.copy());
+	}
+
+	@Override
+	public DenseTensor getW() {
+		DenseTensor ret = new DenseTensor();
+		ret.addAll(fwd.getW());
+		ret.addAll(bwd.getW());
+		return ret;
+	}
+
+	@Override
+	public DenseTensor getDW() {
+		DenseTensor ret = new DenseTensor();
+		ret.addAll(fwd.getDW());
+		ret.addAll(bwd.getDW());
+		return ret;
+	}
+
+	@Override
+	public DenseTensor getB() {
+		DenseTensor ret = new DenseTensor();
+		ret.addAll(fwd.getB());
+		ret.addAll(bwd.getB());
+		return ret;
+	}
+
+	@Override
+	public DenseTensor getDB() {
+		DenseTensor ret = new DenseTensor();
+		ret.addAll(fwd.getDB());
+		ret.addAll(bwd.getDB());
+		return ret;
 	}
 
 	@Override

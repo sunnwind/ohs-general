@@ -134,18 +134,24 @@ public class FullyConnectedLayer extends Layer {
 	}
 
 	@Override
-	public DenseMatrix getB() {
-		return b.toDenseMatrix();
+	public DenseTensor getB() {
+		DenseTensor ret = new DenseTensor();
+		ret.add(b.toDenseMatrix());
+		return ret;
 	}
 
 	@Override
-	public DenseMatrix getDB() {
-		return db.toDenseMatrix();
+	public DenseTensor getDB() {
+		DenseTensor ret = new DenseTensor();
+		ret.add(db.toDenseMatrix());
+		return ret;
 	}
 
 	@Override
-	public DenseMatrix getDW() {
-		return dW;
+	public DenseTensor getDW() {
+		DenseTensor ret = new DenseTensor();
+		ret.add(dW);
+		return ret;
 	}
 
 	@Override
@@ -159,8 +165,10 @@ public class FullyConnectedLayer extends Layer {
 	}
 
 	@Override
-	public DenseMatrix getW() {
-		return W;
+	public DenseTensor getW() {
+		DenseTensor ret = new DenseTensor();
+		ret.add(W);
+		return ret;
 	}
 
 	@Override

@@ -6,6 +6,7 @@ import java.io.ObjectOutputStream;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
+import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
 
 /**
@@ -217,8 +218,11 @@ public class BatchNormalizationLayer extends Layer {
 	}
 
 	@Override
-	public DenseMatrix getDW() {
-		return new DenseMatrix(new DenseVector[] { dgamma, dbeta });
+	public DenseTensor getDW() {
+		DenseTensor ret = new DenseTensor();
+		ret.add(dgamma.toDenseMatrix());
+		ret.add(dbeta.toDenseMatrix());
+		return ret;
 	}
 
 	public DenseVector getGamma() {
@@ -244,8 +248,11 @@ public class BatchNormalizationLayer extends Layer {
 	}
 
 	@Override
-	public DenseMatrix getW() {
-		return new DenseMatrix(new DenseVector[] { gamma, beta });
+	public DenseTensor getW() {
+		DenseTensor ret = new DenseTensor();
+		ret.add(gamma.toDenseMatrix());
+		ret.add(beta.toDenseMatrix());
+		return ret;
 	}
 
 	@Override

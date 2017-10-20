@@ -1,6 +1,7 @@
 package ohs.ml.neuralnet.layer;
 
 import ohs.matrix.DenseMatrix;
+import ohs.matrix.DenseTensor;
 import ohs.ml.neuralnet.nonlinearity.ReLU;
 
 /**
@@ -76,17 +77,17 @@ public class ConvNetLayer extends Layer {
 	}
 
 	@Override
-	public DenseMatrix getB() {
+	public DenseTensor getB() {
 		return cl.getB();
 	}
 
 	@Override
-	public DenseMatrix getDB() {
+	public DenseTensor getDB() {
 		return cl.getDB();
 	}
 
 	@Override
-	public DenseMatrix getDW() {
+	public DenseTensor getDW() {
 		return cl.getDW();
 	}
 
@@ -101,7 +102,7 @@ public class ConvNetLayer extends Layer {
 	}
 
 	@Override
-	public DenseMatrix getW() {
+	public DenseTensor getW() {
 		return cl.getW();
 	}
 

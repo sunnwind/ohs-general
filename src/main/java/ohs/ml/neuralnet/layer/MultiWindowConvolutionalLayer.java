@@ -252,8 +252,8 @@ public class MultiWindowConvolutionalLayer extends Layer {
 	}
 
 	@Override
-	public DenseMatrix getB() {
-		DenseMatrix ret = new DenseMatrix();
+	public DenseTensor getB() {
+		DenseTensor ret = new DenseTensor();
 		for (Layer l : cns) {
 			ret.addAll(l.getB());
 		}
@@ -261,8 +261,8 @@ public class MultiWindowConvolutionalLayer extends Layer {
 	}
 
 	@Override
-	public DenseMatrix getDB() {
-		DenseMatrix ret = new DenseMatrix();
+	public DenseTensor getDB() {
+		DenseTensor ret = new DenseTensor();
 		for (Layer l : cns) {
 			ret.addAll(l.getDB());
 		}
@@ -270,10 +270,12 @@ public class MultiWindowConvolutionalLayer extends Layer {
 	}
 
 	@Override
-	public DenseMatrix getDW() {
-		DenseMatrix ret = new DenseMatrix();
+	public DenseTensor getDW() {
+		DenseTensor ret = new DenseTensor();
 		for (Layer l : cns) {
-			ret.addAll(l.getDW());
+			for (DenseMatrix dW : l.getDW()) {
+				ret.add(dW);
+			}
 		}
 		return ret;
 	}
@@ -297,10 +299,12 @@ public class MultiWindowConvolutionalLayer extends Layer {
 	}
 
 	@Override
-	public DenseMatrix getW() {
-		DenseMatrix ret = new DenseMatrix();
+	public DenseTensor getW() {
+		DenseTensor ret = new DenseTensor();
 		for (Layer l : cns) {
-			ret.addAll(l.getW());
+			for (DenseMatrix W : l.getW()) {
+				ret.add(W);
+			}
 		}
 		return ret;
 	}

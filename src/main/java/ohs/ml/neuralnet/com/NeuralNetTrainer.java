@@ -192,13 +192,15 @@ public class NeuralNetTrainer {
 
 	private int grad_acc_reset_size;
 
-	// private NeuralNetParams param;
-
 	private boolean is_full_seq_batch;
 
 	private boolean is_random_batch;
 
 	private double learn_rate;
+
+	private NeuralNetMultiRunner nnmr;
+
+	private List<NeuralNet> nns;
 
 	private List<ParameterUpdater> pus;
 
@@ -221,10 +223,6 @@ public class NeuralNetTrainer {
 	private Object X;
 
 	private Object Y;
-
-	private List<NeuralNet> nns;
-
-	private NeuralNetMultiRunner nnmr;
 
 	public NeuralNetTrainer(NeuralNet nn, NeuralNetParams param) throws Exception {
 		prepare(nn, param.getThreadSize(), param.getBatchSize(), param.getLearnRate(), param.getRegLambda(),
@@ -404,7 +402,7 @@ public class NeuralNetTrainer {
 				Performance p = evaluate(Xt, Yt);
 				System.out.println(p.toString());
 			}
-			
+
 			if (iters % grad_acc_reset_size == 0) {
 				for (ParameterUpdater pu : pus) {
 					pu.resetGradientAccumulators();

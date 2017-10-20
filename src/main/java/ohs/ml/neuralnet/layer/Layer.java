@@ -5,6 +5,7 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
 import ohs.matrix.DenseMatrix;
+import ohs.matrix.DenseTensor;
 
 public abstract class Layer implements Serializable {
 
@@ -31,15 +32,15 @@ public abstract class Layer implements Serializable {
 		return null;
 	}
 
-	public DenseMatrix getB() {
+	public DenseTensor getB() {
 		return null;
 	}
 
-	public DenseMatrix getDB() {
+	public DenseTensor getDB() {
 		return null;
 	}
 
-	public DenseMatrix getDW() {
+	public DenseTensor getDW() {
 		return null;
 	}
 
@@ -51,7 +52,7 @@ public abstract class Layer implements Serializable {
 		return 0;
 	}
 
-	public DenseMatrix getW() {
+	public DenseTensor getW() {
 		return null;
 	}
 

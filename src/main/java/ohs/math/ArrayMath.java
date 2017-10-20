@@ -783,11 +783,13 @@ public class ArrayMath {
 			throw new IllegalArgumentException();
 		}
 		double sum = 0;
+		double sum2 = 0;
 		for (int i = 0; i < a.length; i++) {
 			sum += a[i];
 			b[i] = sum;
+			sum2 += b[i];
 		}
-		return b[b.length - 1];
+		return sum2;
 	}
 
 	public static int[] cumulate(int[] a) {
@@ -1322,6 +1324,18 @@ public class ArrayMath {
 
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
+		
+		{
+			Random r = new Random(System.currentTimeMillis());
+			double sum = 10;
+			
+			for (int i = 0; i < 10; i++) {
+				double rv = sum * r.nextDouble();
+				System.out.println(rv);
+			}
+			
+			System.exit(0);
+		}
 
 		{
 			double[] probs = { 10, 10, 10, 10, 90, 10, 10, 10, 10, 10 };

@@ -7,6 +7,7 @@ import java.util.List;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
+import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
 import ohs.ml.neuralnet.com.ParameterInitializer;
 import ohs.ml.neuralnet.nonlinearity.Nonlinearity;
@@ -197,6 +198,8 @@ public class LstmLayer extends RecurrentLayer {
 
 			VectorMath.productRows(da.toDenseMatrix(), Whh, dh_prev.toDenseMatrix(), false);
 
+			// VectorMath.productColumns(Whh, da, dh_prev);
+
 			DenseVector h_prev = t == 0 ? h0_prev : H.row(t - 1);
 
 			VectorMath.outerProduct(h_prev, da, dWhh, true);
@@ -298,28 +301,25 @@ public class LstmLayer extends RecurrentLayer {
 	}
 
 	@Override
-	public DenseMatrix getB() {
-		return bh.toDenseMatrix();
+	public DenseTensor getB() {
+		DenseTensor ret = new DenseTensor();
+		ret.add(bh.toDenseMatrix());
+		return ret;
 	}
 
 	@Override
-	public DenseMatrix getDB() {
-		return dbh.toDenseMatrix();
+	public DenseTensor getDB() {
+		DenseTensor ret = new DenseTensor();
+		ret.add(dbh.toDenseMatrix());
+		return ret;
 	}
 
 	@Override
-	public DenseMatrix getDW() {
-		int size = dWxh.rowSize() + dWhh.rowSize();
-		List<DenseVector> ws = Generics.newArrayList(size);
-
-		for (DenseVector w : dWxh) {
-			ws.add(w);
-		}
-
-		for (DenseVector w : dWhh) {
-			ws.add(w);
-		}
-		return new DenseMatrix(ws);
+	public DenseTensor getDW() {
+		DenseTensor ret = new DenseTensor();
+		ret.add(dWxh);
+		ret.add(dWhh);
+		return ret;
 	}
 
 	public DenseVector getH0() {
@@ -341,19 +341,11 @@ public class LstmLayer extends RecurrentLayer {
 	}
 
 	@Override
-	public DenseMatrix getW() {
-		int size = Wxh.rowSize() + Whh.rowSize();
-		List<DenseVector> ws = Generics.newArrayList(size);
-
-		for (DenseVector w : Wxh) {
-			ws.add(w);
-		}
-
-		for (DenseVector w : Whh) {
-			ws.add(w);
-		}
-
-		return new DenseMatrix(ws);
+	public DenseTensor getW() {
+		DenseTensor ret = new DenseTensor();
+		ret.add(Wxh);
+		ret.add(Whh);
+		return ret;
 	}
 
 	@Override

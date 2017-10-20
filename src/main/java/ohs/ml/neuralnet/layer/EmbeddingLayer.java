@@ -114,8 +114,10 @@ public class EmbeddingLayer extends Layer {
 	}
 
 	@Override
-	public DenseMatrix getDW() {
-		return dW;
+	public DenseTensor getDW() {
+		DenseTensor ret = new DenseTensor();
+		ret.add(dW);
+		return ret;
 	}
 
 	@Override
@@ -124,8 +126,10 @@ public class EmbeddingLayer extends Layer {
 	}
 
 	@Override
-	public DenseMatrix getW() {
-		return W;
+	public DenseTensor getW() {
+		DenseTensor ret = new DenseTensor();
+		ret.add(W);
+		return ret;
 	}
 
 	@Override

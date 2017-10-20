@@ -4,6 +4,10 @@ import ohs.matrix.DenseMatrix;
 
 public abstract class RecurrentLayer extends Layer {
 
+	public static enum Type {
+		LSTM, RNN
+	}
+
 	/**
 	 * 
 	 */
@@ -25,6 +29,14 @@ public abstract class RecurrentLayer extends Layer {
 
 	public RecurrentLayer() {
 
+	}
+
+	public DenseMatrix getDWhh() {
+		return dWhh;
+	}
+
+	public DenseMatrix getDWxh() {
+		return dWxh;
 	}
 
 	public DenseMatrix getWhh() {

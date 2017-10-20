@@ -6,6 +6,9 @@ import ohs.math.ArrayMath;
 import ohs.math.VectorMath;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseVector;
+import ohs.matrix.SparseVector;
+import ohs.ml.neuralnet.layer.Layer;
+import ohs.ml.neuralnet.layer.RecurrentLayer;
 import ohs.types.generic.Vocab;
 import ohs.types.generic.Vocab.SYM;
 import ohs.types.number.IntegerArray;
@@ -28,34 +31,43 @@ public class SentenceGenerator {
 		int w_start = vocab.indexOf(SYM.START.getText());
 		int w_end = vocab.indexOf(SYM.END.getText());
 
-		List<Integer> sent = Generics.newArrayList(max_words);
-		sent.add(w_start);
+		List<Integer> s1 = Generics.newArrayList(max_words);
+		s1.add(w_start);
 
-		int w_prev = 0;
+		List<String> s2 = Generics.newArrayList(max_words);
+		s2.add(vocab.getObject(w_start));
 
-		while ((w_prev = sent.get(sent.size() - 1)) != w_end) {
-			if (sent.size() - 1 == max_words) {
-				sent.add(w_end);
+		while (s1.get(s1.size() - 1) != w_end) {
+			if (s1.size() - 1 == max_words) {
+				s1.add(w_end);
 				break;
 			}
-			DenseMatrix Yh = (DenseMatrix) nn.forward(new IntegerArray(sent));
+
+			DenseMatrix Yh = (DenseMatrix) nn.forward(new IntegerArray(s1));
 			DenseVector yh = Yh.row(Yh.rowSize() - 1);
 
 			VectorMath.cumulateAfterNormalize(yh, yh);
 
 			int w = w_unk;
+			int cnt = 0;
 
 			do {
+				if(cnt++ > 10) {
+					SparseVector sv = yh.toSparseVector();
+					w = sv.argMax();
+					break;
+				}
 				w = ArrayMath.sample(yh.values());
 			} while (w == w_unk || w == w_start);
 
-			sent.add(w);
+			s1.add(w);
+			s2.add(vocab.getObject(w));
 		}
 
 		StringBuffer sb = new StringBuffer();
 
-		for (int i = 0; i < sent.size(); i++) {
-			sb.append(vocab.getObject(sent.get(i)));
+		for (int i = 0; i < s1.size(); i++) {
+			sb.append(vocab.getObject(s1.get(i)));
 		}
 
 		return sb.toString();

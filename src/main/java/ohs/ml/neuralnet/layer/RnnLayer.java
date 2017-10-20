@@ -7,6 +7,7 @@ import java.util.List;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
+import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
 import ohs.ml.neuralnet.com.ParameterInitializer;
 import ohs.ml.neuralnet.nonlinearity.Nonlinearity;
@@ -46,17 +47,15 @@ public class RnnLayer extends RecurrentLayer {
 
 	private DenseVector db;
 
-	private DenseVector dh_prev;
+	private DenseVector dh_prev = new DenseVector(0);
 
-	private DenseVector dh_raw;
-
-	private Object X;
+	private DenseVector dh_raw = new DenseVector(0);
 
 	private DenseMatrix H;
 
-	private DenseVector h0;
+	private DenseVector h0 = new DenseVector(0);
 
-	private DenseVector h0_prev;
+	private DenseVector h0_prev = new DenseVector(0);
 
 	private int hidden_size;
 
@@ -66,11 +65,13 @@ public class RnnLayer extends RecurrentLayer {
 
 	private DenseVector tmp;
 
-	private DenseMatrix tmp_dA;
+	private DenseMatrix tmp_dA = new DenseMatrix(0);
 
-	private DenseMatrix tmp_dX;
+	private DenseMatrix tmp_dX = new DenseMatrix(0);
 
-	private DenseMatrix tmp_H;
+	private DenseMatrix tmp_H = new DenseMatrix(0);
+
+	private Object X;
 
 	public RnnLayer(DenseMatrix Wxh, DenseMatrix Whh, DenseVector bh, int bptt_size, Nonlinearity non) {
 		super();
@@ -91,7 +92,142 @@ public class RnnLayer extends RecurrentLayer {
 
 	@Override
 	public Object backward(Object I) {
-		return backward2(I);
+		return backward1(I);
+	}
+
+	private Object backward1(Object I) {
+		DenseMatrix dH = (DenseMatrix) I;
+
+		int data_size = dH.rowSize();
+
+		if (dh_raw.size() == 0) {
+			dh_raw = new DenseVector(hidden_size);
+			dh_prev = new DenseVector(hidden_size);
+			h0_prev = new DenseVector(hidden_size);
+		}
+
+		dh_prev.setAll(0);
+
+		VectorUtils.enlarge(tmp_dX, data_size, input_size);
+		VectorUtils.enlarge(tmp_dA, data_size, hidden_size);
+
+		DenseMatrix dX = tmp_dX.rows(data_size);
+		DenseMatrix dA = tmp_dA.rows(data_size);
+
+		non.backward(H, dA);
+
+		DenseMatrix X = ((DenseMatrix) this.X);
+
+		for (int t = data_size - 1; t >= 0; t--) {
+			DenseVector dh = dH.row(t);
+
+			VectorMath.add(dh_prev, dh);
+
+			VectorMath.multiply(dh, dA.row(t), dh_raw);
+
+			VectorMath.add(dh_raw, db);
+
+			DenseVector x = X.row(t);
+
+			VectorMath.outerProduct(x, dh_raw, dWxh, true);
+
+			DenseVector h_prev = t == 0 ? h0_prev : H.row(t - 1);
+
+			VectorMath.outerProduct(dh_raw, h_prev, dWhh, true);
+
+			VectorMath.productColumns(Whh, dh_raw, dh_prev);
+
+			// VectorMath.productRows(dh_raw.toDenseMatrix(), Whh, dh_prev.toDenseMatrix(),
+			// false);
+
+			DenseVector dx = dX.row(t);
+
+			VectorMath.productRows(dh_raw.toDenseMatrix(), Wxh, dx.toDenseMatrix(), false);
+		}
+
+		return dX;
+	}
+
+	private Object backward2(Object I) {
+		DenseMatrix dH = (DenseMatrix) I;
+
+		int data_size = dH.rowSize();
+
+		if (dh_raw.size() == 0) {
+			dh_raw = new DenseVector(hidden_size);
+			dh_prev = new DenseVector(hidden_size);
+			h0_prev = new DenseVector(hidden_size);
+		}
+
+		dh_prev.setAll(0);
+
+		VectorUtils.enlarge(tmp_dX, data_size, input_size);
+		VectorUtils.enlarge(tmp_dA, data_size, hidden_size);
+
+		DenseMatrix dX = tmp_dX.rows(data_size);
+		DenseMatrix dA = tmp_dA.rows(data_size);
+
+		non.backward(H, dA);
+
+		DenseMatrix X = ((DenseMatrix) this.X);
+
+		for (int t = data_size - 1; t >= 0; t--) {
+			BpttAtT(t, bptt_size, X, dX, H, dH, dA, Wxh, dWxh, Whh, dWhh, db, dh_raw, dh_prev, h0_prev);
+		}
+
+		return dX;
+	}
+
+	private Object backward3(Object I) {
+		DenseMatrix dH = (DenseMatrix) I;
+
+		int data_size = dH.rowSize();
+
+		if (dh_raw.size() == 0) {
+			dh_raw = new DenseVector(hidden_size);
+			dh_prev = new DenseVector(hidden_size);
+			h0_prev = new DenseVector(hidden_size);
+		}
+
+		dh_prev.setAll(0);
+
+		VectorUtils.enlarge(tmp_dX, data_size, input_size);
+		VectorUtils.enlarge(tmp_dA, data_size, hidden_size);
+
+		DenseMatrix dX = tmp_dX.rows(data_size);
+		DenseMatrix dA = tmp_dA.rows(data_size);
+
+		non.backward(H, dA);
+
+		DenseMatrix X = ((DenseMatrix) this.X);
+
+		for (int t = data_size - 1; t >= 0; t--) {
+			DenseVector dh = dH.row(t);
+
+			VectorMath.add(dh_prev, dh);
+
+			VectorMath.multiply(dh, dA.row(t), dh_raw);
+
+			VectorMath.add(dh_raw, db);
+
+			for (int tt = t; tt >= Math.max(t - bptt_size, 0); tt--) {
+				DenseVector h_prev = tt == 0 ? h0_prev : H.row(tt - 1);
+
+				VectorMath.outerProduct(h_prev, dh_raw, dWhh, true);
+			}
+
+			DenseVector x = X.row(t);
+
+			VectorMath.outerProduct(x, dh_raw, dWxh, true);
+
+			VectorMath.productColumns(Whh, dh_raw, dh_prev);
+
+			DenseVector dx = dX.row(t);
+
+			VectorMath.productRows(dh_raw.toDenseMatrix(), Wxh, dx.toDenseMatrix(), false);
+		}
+
+		return dX;
 	}
 
 	/**
@@ -106,22 +242,21 @@ public class RnnLayer extends RecurrentLayer {
 	 * @param I
 	 * @return
 	 */
-	public Object backward2(Object I) {
+	private Object backwardOld(Object I) {
 		DenseMatrix dH = (DenseMatrix) I;
 		int data_size = dH.rowSize();
 
-		if (dh_raw == null) {
+		if (dh_raw.size() == 0) {
 			dh_raw = new DenseVector(hidden_size);
-			dh_prev = dh_raw.copy(true);
-			tmp = dh_raw.copy(true);
+			dh_prev = new DenseVector(hidden_size);
+			tmp = new DenseVector(hidden_size);
+			h0_prev = new DenseVector(hidden_size);
 		}
 
 		dh_prev.setAll(0);
 
-		if (tmp_dX == null || tmp_dX.rowSize() < data_size) {
-			tmp_dX = new DenseMatrix(data_size, input_size);
-			tmp_dA = new DenseMatrix(data_size, hidden_size);
-		}
+		VectorUtils.enlarge(tmp_dX, data_size, input_size);
+		VectorUtils.enlarge(tmp_dA, data_size, hidden_size);
 
 		DenseMatrix dX = tmp_dX.rows(data_size);
 		DenseMatrix dA = tmp_dA.rows(data_size);
@@ -174,6 +309,38 @@ public class RnnLayer extends RecurrentLayer {
 		return dX;
 	}
 
+	private void BpttAtT(int start, int bptt_size, DenseMatrix X, DenseMatrix dX, DenseMatrix H, DenseMatrix dH,
+			DenseMatrix dA, DenseMatrix Wxh, DenseMatrix dWxh, DenseMatrix Whh, DenseMatrix dWhh, DenseVector db,
+			DenseVector dh_raw, DenseVector dh_prev, DenseVector h0_prev) {
+
+		int end = Math.max(start - bptt_size, 0);
+
+		for (int t = start; t >= end; t--) {
+			DenseVector dh = dH.row(t);
+
+			VectorMath.add(dh_prev, dh);
+
+			VectorMath.multiply(dh, dA.row(t), dh_raw);
+
+			VectorMath.add(dh_raw, db);
+
+			DenseVector x = X.row(t);
+
+			VectorMath.outerProduct(x, dh_raw, dWxh, true);
+
+			DenseVector h_prev = t == 0 ? h0_prev : H.row(t - 1);
+
+			VectorMath.outerProduct(h_prev, dh_raw, dWhh, true);
+
+			VectorMath.productColumns(Whh, dh_raw, dh_prev);
+
+			DenseVector dx = dX.row(t);
+
+			VectorMath.productRows(dh_raw.toDenseMatrix(), Wxh, dx.toDenseMatrix(), false);
+		}
+
+	}
+
 	@Override
 	public Layer copy() {
 		return new RnnLayer(Wxh, Whh, b, bptt_size, non);
@@ -181,58 +348,47 @@ public class RnnLayer extends RecurrentLayer {
 
 	@Override
 	public DenseMatrix forward(Object I) {
-		int data_size = I instanceof IntegerArray ? ((IntegerArray) I).size() : ((DenseMatrix) I).rowSize();
+		DenseMatrix X = (DenseMatrix) I;
 
-		if (tmp_H == null || tmp_H.rowSize() < data_size) {
-			tmp_H = new DenseMatrix(data_size, hidden_size);
-		}
+		int data_size = X.rowSize();
 
-		if (h0 == null) {
-			h0 = new DenseVector(hidden_size);
-			h0_prev = h0.copy(true);
-		}
+		VectorUtils.enlarge(tmp_H, data_size, hidden_size);
 
 		H = tmp_H.rows(data_size);
 		H.setAll(0);
 
+		if (h0.size() == 0) {
+			h0 = new DenseVector(hidden_size);
+		}
+
 		for (int t = 0; t < data_size; t++) {
 			DenseVector h = H.row(t);
+
 			DenseVector h_prev = t == 0 ? h0 : H.row(t - 1);
 
 			VectorMath.product(h_prev, Whh, h, false);
 
-			if (I instanceof IntegerArray) {
-				int w = ((IntegerArray) I).get(t);
-				DenseVector x = Wxh.row(w);
-				VectorMath.add(x, h);
-			} else {
-				DenseVector x = ((DenseMatrix) I).row(t);
-				VectorMath.product(x, Wxh, h, true);
-			}
+			DenseVector x = X.row(t);
+
+			VectorMath.product(x, Wxh, h, true);
 
 			VectorMath.add(b, h);
 
 			non.forward(h.toDenseMatrix(), h.toDenseMatrix());
-
-			for (double v : h.values()) {
-				if (v > 1000) {
-					int iii = 0;
-					iii += 3;
-				}
-			}
 		}
 
-		VectorUtils.copy(h0, h0_prev);
 		VectorUtils.copy(H.row(data_size - 1), h0);
 
-		X = I;
+		this.X = X;
 
 		return H;
 	}
 
 	@Override
-	public DenseMatrix getB() {
-		return b.toDenseMatrix();
+	public DenseTensor getB() {
+		DenseTensor ret = new DenseTensor();
+		ret.add(b.toDenseMatrix());
+		return ret;
 	}
 
 	public int getBpttSize() {
@@ -240,23 +396,18 @@ public class RnnLayer extends RecurrentLayer {
 	}
 
 	@Override
-	public DenseMatrix getDB() {
-		return db.toDenseMatrix();
+	public DenseTensor getDB() {
+		DenseTensor ret = new DenseTensor();
+		ret.add(db.toDenseMatrix());
+		return ret;
 	}
 
 	@Override
-	public DenseMatrix getDW() {
-		int size = dWxh.rowSize() + dWhh.rowSize();
-		List<DenseVector> ws = Generics.newArrayList(size);
-
-		for (DenseVector w : dWxh) {
-			ws.add(w);
-		}
-
-		for (DenseVector w : dWhh) {
-			ws.add(w);
-		}
-		return new DenseMatrix(ws);
+	public DenseTensor getDW() {
+		DenseTensor ret = new DenseTensor();
+		ret.add(dWxh);
+		ret.add(dWhh);
+		return ret;
 	}
 
 	public DenseVector getH0() {
@@ -278,19 +429,11 @@ public class RnnLayer extends RecurrentLayer {
 	}
 
 	@Override
-	public DenseMatrix getW() {
-		int size = Wxh.rowSize() + Whh.rowSize();
-		List<DenseVector> ws = Generics.newArrayList(size);
-
-		for (DenseVector w : Wxh) {
-			ws.add(w);
-		}
-
-		for (DenseVector w : Whh) {
-			ws.add(w);
-		}
-
-		return new DenseMatrix(ws);
+	public DenseTensor getW() {
+		DenseTensor ret = new DenseTensor();
+		ret.add(Wxh);
+		ret.add(Whh);
+		return ret;
 	}
 
 	@Override
@@ -313,19 +456,19 @@ public class RnnLayer extends RecurrentLayer {
 		b = new DenseVector(ois);
 	}
 
-	@Override
-	public void writeObject(ObjectOutputStream oos) throws Exception {
-		Wxh.writeObject(oos);
-		Whh.writeObject(oos);
-		b.writeObject(oos);
-	}
-
 	public void resetH0() {
 		h0.setAll(0);
 	}
 
 	public void setBpptSize(int bppt_size) {
 		this.bptt_size = bppt_size;
+	}
+
+	@Override
+	public void writeObject(ObjectOutputStream oos) throws Exception {
+		Wxh.writeObject(oos);
+		Whh.writeObject(oos);
+		b.writeObject(oos);
 	}
 
 }
