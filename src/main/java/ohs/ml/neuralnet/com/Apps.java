@@ -40,8 +40,8 @@ public class Apps {
 		System.out.println("process begins.");
 
 		// testMNIST();
-//		testCharRNN();
-		 testNER();
+		// testCharRNN();
+		testNER();
 
 		// testSentenceClassification();
 
@@ -57,7 +57,7 @@ public class Apps {
 		nnp.setLearnRate(0.001);
 		nnp.setRegLambda(0.001);
 		nnp.setThreadSize(5);
-		nnp.setTruncatedBackPropagationThroughTime(5);
+		nnp.setTruncatedBackPropagationThroughTime(1);
 		nnp.setOptimizerType(OptimizerType.ADAM);
 		nnp.setGradientClipCutoff(10);
 
@@ -209,8 +209,10 @@ public class Apps {
 				}
 
 				if (u % 10 == 0) {
-					String s = sg.generate(100);
-					System.out.println(s);
+					for (int j = 0; j < 10; j++) {
+						String s = sg.generate(100);
+						System.out.println(s);
+					}
 				}
 			}
 		}
@@ -380,7 +382,7 @@ public class Apps {
 				nn.add(new DropoutLayer());
 				// nn.add(new RnnLayer(emb_size, l1_size, bptt_size, new ReLU()));
 				// nn.add(new LstmLayer(emb_size, l1_size, new ReLU()));
-				nn.add(new BidirectionalRecurrentLayer(Type.RNN, emb_size, l1_size, bptt_size, new ReLU()));
+				nn.add(new BidirectionalRecurrentLayer(Type.LSTM, emb_size, l1_size, bptt_size, new ReLU()));
 				// nn.add(new BatchNormalizationLayer(l1_size));
 				nn.add(new FullyConnectedLayer(l1_size, label_size));
 				nn.add(new SoftmaxLayer(label_size));

@@ -2,9 +2,7 @@ package ohs.ml.neuralnet.layer;
 
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.util.List;
 
-import ohs.math.ArrayChecker;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
@@ -13,7 +11,6 @@ import ohs.matrix.DenseVector;
 import ohs.ml.neuralnet.com.ParameterInitializer;
 import ohs.ml.neuralnet.nonlinearity.Nonlinearity;
 import ohs.types.number.IntegerArray;
-import ohs.utils.Generics;
 
 /**
  *
@@ -41,12 +38,6 @@ public class RnnLayer extends RecurrentLayer {
 	 * 
 	 */
 	private static final long serialVersionUID = 2848535801786544922L;
-
-	private DenseVector b;
-
-	private int bptt_size = 5;
-
-	private DenseVector db;
 
 	private DenseVector dh_prev = new DenseVector(0);
 
@@ -226,10 +217,6 @@ public class RnnLayer extends RecurrentLayer {
 		return ret;
 	}
 
-	public int getBpttSize() {
-		return bptt_size;
-	}
-
 	@Override
 	public DenseTensor getDB() {
 		DenseTensor ret = new DenseTensor();
@@ -293,10 +280,6 @@ public class RnnLayer extends RecurrentLayer {
 
 	public void resetH0() {
 		h0.setAll(0);
-	}
-
-	public void setBpptSize(int bppt_size) {
-		this.bptt_size = bppt_size;
 	}
 
 	@Override
