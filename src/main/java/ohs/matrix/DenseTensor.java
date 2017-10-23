@@ -45,12 +45,12 @@ public class DenseTensor extends ArrayList<DenseMatrix> {
 		this.vals = vals;
 	}
 
-	public DenseTensor(int size) {
-		this(new double[size][size][size]);
-	}
-
 	public DenseTensor(int size1, int size2, int size3) {
 		this(new double[size1][size2][size3]);
+	}
+
+	public DenseTensor(int size) {
+		this(new double[size][size][size]);
 	}
 
 	public DenseTensor(List<DenseMatrix> rows) {

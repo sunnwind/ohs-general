@@ -96,6 +96,16 @@ public class FullyConnectedLayer extends Layer {
 				VectorMath.add(dw, dY.row(i), dw);
 			}
 		}
+
+		for (int i = 0; i < dX.rowSize(); i++) {
+			DenseVector dx = dX.row(i);
+			for (int j = 0; j < dx.size(); j++) {
+				if (Math.abs(dx.value(j)) > 10000) {
+					System.out.println();
+				}
+			}
+		}
+
 		return dX;
 	}
 
@@ -127,6 +137,15 @@ public class FullyConnectedLayer extends Layer {
 			}
 			VectorMath.add(Y, b, Y);
 		}
+
+		// for (int i = 0; i < Y.size(); i++) {
+		// DenseVector y = Y.row(i);
+		// for (int j = 0; j < y.size(); j++) {
+		// if (Math.abs(y.value(j)) > 100000) {
+		// System.out.println();
+		// }
+		// }
+		// }
 
 		this.Y = Y;
 

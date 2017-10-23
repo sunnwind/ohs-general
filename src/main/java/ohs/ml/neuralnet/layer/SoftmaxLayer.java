@@ -49,7 +49,12 @@ public class SoftmaxLayer extends Layer {
 		VectorUtils.enlarge(tmp_Y, data_size, X.colSize());
 
 		DenseMatrix Y = tmp_Y.rows(data_size);
-		VectorMath.softmax(X, Y);
+		try {
+			VectorMath.softmax(X, Y);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		return Y;
 	}
 

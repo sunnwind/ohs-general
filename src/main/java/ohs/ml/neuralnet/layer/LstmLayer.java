@@ -240,9 +240,8 @@ public class LstmLayer extends RecurrentLayer {
 			da = a.copy(true);
 		}
 
-		// if (is_testing) {
-		// resetH0();
-		// }
+		h0.setAll(0);
+		c0.setAll(0);
 
 		H = tmp_H.rows(data_size);
 		C = tmp_C.rows(data_size);

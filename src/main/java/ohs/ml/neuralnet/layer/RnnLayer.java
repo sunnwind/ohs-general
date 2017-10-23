@@ -4,6 +4,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.List;
 
+import ohs.math.ArrayChecker;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
@@ -51,6 +52,8 @@ public class RnnLayer extends RecurrentLayer {
 
 	private DenseVector dh_raw = new DenseVector(0);
 
+	private DenseVector dh_raw2;
+
 	private DenseMatrix H;
 
 	private DenseVector h0 = new DenseVector(0);
@@ -62,8 +65,6 @@ public class RnnLayer extends RecurrentLayer {
 	private int input_size;
 
 	private Nonlinearity non;
-
-	private DenseVector tmp;
 
 	private DenseMatrix tmp_dA = new DenseMatrix(0);
 
@@ -95,141 +96,6 @@ public class RnnLayer extends RecurrentLayer {
 		return backward1(I);
 	}
 
-	private Object backward1(Object I) {
-		DenseMatrix dH = (DenseMatrix) I;
-
-		int data_size = dH.rowSize();
-
-		if (dh_raw.size() == 0) {
-			dh_raw = new DenseVector(hidden_size);
-			dh_prev = new DenseVector(hidden_size);
-			h0_prev = new DenseVector(hidden_size);
-		}
-
-		dh_prev.setAll(0);
-
-		VectorUtils.enlarge(tmp_dX, data_size, input_size);
-		VectorUtils.enlarge(tmp_dA, data_size, hidden_size);
-
-		DenseMatrix dX = tmp_dX.rows(data_size);
-		DenseMatrix dA = tmp_dA.rows(data_size);
-
-		non.backward(H, dA);
-
-		DenseMatrix X = ((DenseMatrix) this.X);
-
-		for (int t = data_size - 1; t >= 0; t--) {
-			DenseVector dh = dH.row(t);
-
-			VectorMath.add(dh_prev, dh);
-
-			VectorMath.multiply(dh, dA.row(t), dh_raw);
-
-			VectorMath.add(dh_raw, db);
-
-			DenseVector x = X.row(t);
-
-			VectorMath.outerProduct(x, dh_raw, dWxh, true);
-
-			DenseVector h_prev = t == 0 ? h0_prev : H.row(t - 1);
-
-			VectorMath.outerProduct(dh_raw, h_prev, dWhh, true);
-
-			VectorMath.productColumns(Whh, dh_raw, dh_prev);
-
-			// VectorMath.productRows(dh_raw.toDenseMatrix(), Whh, dh_prev.toDenseMatrix(),
-			// false);
-
-			DenseVector dx = dX.row(t);
-
-			VectorMath.productRows(dh_raw.toDenseMatrix(), Wxh, dx.toDenseMatrix(), false);
-		}
-
-		return dX;
-	}
-
-	private Object backward2(Object I) {
-		DenseMatrix dH = (DenseMatrix) I;
-
-		int data_size = dH.rowSize();
-
-		if (dh_raw.size() == 0) {
-			dh_raw = new DenseVector(hidden_size);
-			dh_prev = new DenseVector(hidden_size);
-			h0_prev = new DenseVector(hidden_size);
-		}
-
-		dh_prev.setAll(0);
-
-		VectorUtils.enlarge(tmp_dX, data_size, input_size);
-		VectorUtils.enlarge(tmp_dA, data_size, hidden_size);
-
-		DenseMatrix dX = tmp_dX.rows(data_size);
-		DenseMatrix dA = tmp_dA.rows(data_size);
-
-		non.backward(H, dA);
-
-		DenseMatrix X = ((DenseMatrix) this.X);
-
-		for (int t = data_size - 1; t >= 0; t--) {
-			BpttAtT(t, bptt_size, X, dX, H, dH, dA, Wxh, dWxh, Whh, dWhh, db, dh_raw, dh_prev, h0_prev);
-		}
-
-		return dX;
-	}
-
-	private Object backward3(Object I) {
-		DenseMatrix dH = (DenseMatrix) I;
-
-		int data_size = dH.rowSize();
-
-		if (dh_raw.size() == 0) {
-			dh_raw = new DenseVector(hidden_size);
-			dh_prev = new DenseVector(hidden_size);
-			h0_prev = new DenseVector(hidden_size);
-		}
-
-		dh_prev.setAll(0);
-
-		VectorUtils.enlarge(tmp_dX, data_size, input_size);
-		VectorUtils.enlarge(tmp_dA, data_size, hidden_size);
-
-		DenseMatrix dX = tmp_dX.rows(data_size);
-		DenseMatrix dA = tmp_dA.rows(data_size);
-
-		non.backward(H, dA);
-
-		DenseMatrix X = ((DenseMatrix) this.X);
-
-		for (int t = data_size - 1; t >= 0; t--) {
-			DenseVector dh = dH.row(t);
-
-			VectorMath.add(dh_prev, dh);
-
-			VectorMath.multiply(dh, dA.row(t), dh_raw);
-
-			VectorMath.add(dh_raw, db);
-
-			for (int tt = t; tt >= Math.max(t - bptt_size, 0); tt--) {
-				DenseVector h_prev = tt == 0 ? h0_prev : H.row(tt - 1);
-
-				VectorMath.outerProduct(h_prev, dh_raw, dWhh, true);
-			}
-
-			DenseVector x = X.row(t);
-
-			VectorMath.outerProduct(x, dh_raw, dWxh, true);
-
-			VectorMath.productColumns(Whh, dh_raw, dh_prev);
-
-			DenseVector dx = dX.row(t);
-
-			VectorMath.productRows(dh_raw.toDenseMatrix(), Wxh, dx.toDenseMatrix(), false);
-		}
-
-		return dX;
-	}
-
 	/**
 	 * Sutskever, I. (2013). Training Recurrent neural Networks. PhD thesis.
 	 * University of Toronto.
@@ -242,18 +108,19 @@ public class RnnLayer extends RecurrentLayer {
 	 * @param I
 	 * @return
 	 */
-	private Object backwardOld(Object I) {
+	private Object backward1(Object I) {
 		DenseMatrix dH = (DenseMatrix) I;
 		int data_size = dH.rowSize();
 
 		if (dh_raw.size() == 0) {
 			dh_raw = new DenseVector(hidden_size);
 			dh_prev = new DenseVector(hidden_size);
-			tmp = new DenseVector(hidden_size);
+			dh_raw2 = new DenseVector(hidden_size);
 			h0_prev = new DenseVector(hidden_size);
 		}
 
 		dh_prev.setAll(0);
+		h0_prev.setAll(0);
 
 		VectorUtils.enlarge(tmp_dX, data_size, input_size);
 		VectorUtils.enlarge(tmp_dA, data_size, hidden_size);
@@ -268,13 +135,11 @@ public class RnnLayer extends RecurrentLayer {
 
 			VectorMath.add(dh_prev, dh);
 
-			VectorUtils.copy(dA.row(t), dh_raw);
-
-			VectorMath.multiply(dh, dh_raw, dh_raw);
+			VectorMath.multiply(dh, dA.row(t), dh_raw);
 
 			VectorMath.productRows(dh_raw.toDenseMatrix(), Whh, dh_prev.toDenseMatrix(), false);
 
-			VectorUtils.copy(dh_raw, tmp);
+			VectorUtils.copy(dh_raw, dh_raw2);
 
 			int size = Math.max(0, t - bptt_size);
 
@@ -283,62 +148,30 @@ public class RnnLayer extends RecurrentLayer {
 					IntegerArray X = ((IntegerArray) this.X);
 					int idx = X.get(tt);
 					DenseVector dwx = dWxh.row(idx);
-					VectorMath.add(tmp, dwx);
+					VectorMath.add(dh_raw2, dwx);
 				} else {
 					DenseMatrix X = ((DenseMatrix) this.X);
 					DenseVector x = X.row(tt);
-					VectorMath.outerProduct(x, tmp, dWxh, true);
+					VectorMath.outerProduct(x, dh_raw2, dWxh, true);
 
 					DenseVector dx = dX.row(tt);
-					VectorMath.productRows(tmp.toDenseMatrix(), Wxh, dx.toDenseMatrix(), false);
+					VectorMath.productRows(dh_raw2.toDenseMatrix(), Wxh, dx.toDenseMatrix(), false);
 				}
 
 				DenseVector h_prev = tt == 0 ? h0_prev : H.row(tt - 1);
 
-				VectorMath.outerProduct(h_prev, tmp, dWhh, true);
+				VectorMath.outerProduct(h_prev, dh_raw2, dWhh, true);
 
-				VectorMath.add(tmp, db);
+				VectorMath.add(dh_raw2, db);
 
-				VectorMath.productRows(tmp.toDenseMatrix(), Whh, tmp.toDenseMatrix(), false);
+				VectorMath.productRows(dh_raw2.toDenseMatrix(), Whh, dh_raw2.toDenseMatrix(), false);
 
 				DenseVector da = tt == 0 ? dh_prev : dA.row(tt - 1);
 
-				VectorMath.multiply(da, tmp, tmp);
+				VectorMath.multiply(da, dh_raw2, dh_raw2);
 			}
 		}
 		return dX;
-	}
-
-	private void BpttAtT(int start, int bptt_size, DenseMatrix X, DenseMatrix dX, DenseMatrix H, DenseMatrix dH,
-			DenseMatrix dA, DenseMatrix Wxh, DenseMatrix dWxh, DenseMatrix Whh, DenseMatrix dWhh, DenseVector db,
-			DenseVector dh_raw, DenseVector dh_prev, DenseVector h0_prev) {
-
-		int end = Math.max(start - bptt_size, 0);
-
-		for (int t = start; t >= end; t--) {
-			DenseVector dh = dH.row(t);
-
-			VectorMath.add(dh_prev, dh);
-
-			VectorMath.multiply(dh, dA.row(t), dh_raw);
-
-			VectorMath.add(dh_raw, db);
-
-			DenseVector x = X.row(t);
-
-			VectorMath.outerProduct(x, dh_raw, dWxh, true);
-
-			DenseVector h_prev = t == 0 ? h0_prev : H.row(t - 1);
-
-			VectorMath.outerProduct(h_prev, dh_raw, dWhh, true);
-
-			VectorMath.productColumns(Whh, dh_raw, dh_prev);
-
-			DenseVector dx = dX.row(t);
-
-			VectorMath.productRows(dh_raw.toDenseMatrix(), Wxh, dx.toDenseMatrix(), false);
-		}
-
 	}
 
 	@Override
@@ -360,6 +193,8 @@ public class RnnLayer extends RecurrentLayer {
 		if (h0.size() == 0) {
 			h0 = new DenseVector(hidden_size);
 		}
+
+		h0.setAll(0);
 
 		for (int t = 0; t < data_size; t++) {
 			DenseVector h = H.row(t);

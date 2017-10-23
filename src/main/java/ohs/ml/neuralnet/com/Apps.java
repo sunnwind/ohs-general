@@ -40,8 +40,8 @@ public class Apps {
 		System.out.println("process begins.");
 
 		// testMNIST();
-		// testCharRNN();
-		testNER();
+//		testCharRNN();
+		 testNER();
 
 		// testSentenceClassification();
 
@@ -156,6 +156,7 @@ public class Apps {
 		int l1_size = 100;
 		int label_size = labelIdxer.size();
 		int type = 2;
+		int bptt = nnp.getTruncatedBackPropagationThroughTime();
 
 		NeuralNet nn = new NeuralNet(labelIdxer, vocab, TaskType.SEQ_LABELING);
 
@@ -168,9 +169,9 @@ public class Apps {
 			nn.add(new EmbeddingLayer(voc_size, emb_size, true));
 			nn.add(new DropoutLayer());
 			// nn.add(new BidirectionalRecurrentLayer(Type.LSTM, emb_size, l1_size,
-			// nnp.getTruncatedBackPropagationThroughTime(), new ReLU()));
+			// bptt, new ReLU()));
 			// nn.add(new LstmLayer(emb_size, l1_size, new ReLU()));
-			nn.add(new RnnLayer(emb_size, l1_size, nnp.getTruncatedBackPropagationThroughTime(), new ReLU()));
+			nn.add(new RnnLayer(emb_size, l1_size, bptt, new ReLU()));
 			// nn.add(new BatchNormalizationLayer(l1_size));
 			nn.add(new FullyConnectedLayer(l1_size, label_size));
 			nn.add(new SoftmaxLayer(label_size));
@@ -212,14 +213,6 @@ public class Apps {
 					System.out.println(s);
 				}
 			}
-
-			// for (Layer l : nn) {
-			// if (l instanceof RecurrentLayer) {
-			// RecurrentLayer n = (RecurrentLayer) l;
-			// n.resetH0();
-			// }
-			// }
-
 		}
 
 		trainer.finish();
@@ -386,9 +379,8 @@ public class Apps {
 				// nn.add(new FullyConnectedLayer(voc_size, emb_size));
 				nn.add(new DropoutLayer());
 				// nn.add(new RnnLayer(emb_size, l1_size, bptt_size, new ReLU()));
-				nn.add(new LstmLayer(emb_size, l1_size, new ReLU()));
-				// nn.add(new BidirectionalRecurrentLayer(Type.RNN, emb_size, l1_size,
-				// bptt_size, new ReLU()));
+				// nn.add(new LstmLayer(emb_size, l1_size, new ReLU()));
+				nn.add(new BidirectionalRecurrentLayer(Type.RNN, emb_size, l1_size, bptt_size, new ReLU()));
 				// nn.add(new BatchNormalizationLayer(l1_size));
 				nn.add(new FullyConnectedLayer(l1_size, label_size));
 				nn.add(new SoftmaxLayer(label_size));

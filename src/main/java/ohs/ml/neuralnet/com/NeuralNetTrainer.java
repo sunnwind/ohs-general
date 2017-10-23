@@ -73,7 +73,6 @@ public class NeuralNetTrainer {
 
 					nn.backward(D);
 					pu.update();
-					readyForNextIteration();
 				}
 			} else if (X instanceof IntegerMatrix) {
 				if (Y instanceof IntegerArray) {
@@ -96,7 +95,6 @@ public class NeuralNetTrainer {
 
 						nn.backward(D);
 						pu.update();
-						readyForNextIteration();
 					}
 				} else if (Y instanceof IntegerMatrix) {
 					IntegerMatrix X_ = (IntegerMatrix) X;
@@ -156,7 +154,6 @@ public class NeuralNetTrainer {
 								len = 0;
 							}
 						}
-						readyForNextIteration();
 					}
 				}
 			}
@@ -166,14 +163,6 @@ public class NeuralNetTrainer {
 			return Generics.newPair(cost, correct_cnt);
 		}
 
-		private void readyForNextIteration() {
-			for (Layer l : nn) {
-				if (l instanceof RecurrentLayer) {
-					RecurrentLayer n = (RecurrentLayer) l;
-					n.resetH0();
-				}
-			}
-		}
 	}
 
 	public static NeuralNet copy(NeuralNet nn) {
