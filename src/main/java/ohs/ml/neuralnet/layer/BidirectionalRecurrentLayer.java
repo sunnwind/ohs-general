@@ -42,6 +42,10 @@ public class BidirectionalRecurrentLayer extends RecurrentLayer {
 
 	private DenseMatrix tmp_H = new DenseMatrix(0);
 
+	public BidirectionalRecurrentLayer() {
+
+	}
+
 	public BidirectionalRecurrentLayer(RecurrentLayer fwd, RecurrentLayer bwd) {
 		super();
 		this.fwd = fwd;
@@ -55,8 +59,8 @@ public class BidirectionalRecurrentLayer extends RecurrentLayer {
 			fwd = new RnnLayer(input_size, hidden_size, bptt_size, non);
 			bwd = new RnnLayer(input_size, hidden_size, bptt_size, non);
 		} else if (type == Type.LSTM) {
-			fwd = new LstmLayer(input_size, hidden_size, non);
-			bwd = new LstmLayer(input_size, hidden_size, non);
+			fwd = new LstmLayer(input_size, hidden_size);
+			bwd = new LstmLayer(input_size, hidden_size);
 		}
 
 		this.input_size = fwd.getInputSize();
@@ -93,38 +97,6 @@ public class BidirectionalRecurrentLayer extends RecurrentLayer {
 	}
 
 	@Override
-	public DenseTensor getW() {
-		DenseTensor ret = new DenseTensor();
-		ret.addAll(fwd.getW());
-		ret.addAll(bwd.getW());
-		return ret;
-	}
-
-	@Override
-	public DenseTensor getDW() {
-		DenseTensor ret = new DenseTensor();
-		ret.addAll(fwd.getDW());
-		ret.addAll(bwd.getDW());
-		return ret;
-	}
-
-	@Override
-	public DenseTensor getB() {
-		DenseTensor ret = new DenseTensor();
-		ret.addAll(fwd.getB());
-		ret.addAll(bwd.getB());
-		return ret;
-	}
-
-	@Override
-	public DenseTensor getDB() {
-		DenseTensor ret = new DenseTensor();
-		ret.addAll(fwd.getDB());
-		ret.addAll(bwd.getDB());
-		return ret;
-	}
-
-	@Override
 	public Object forward(Object I) {
 		int data_size = I instanceof IntegerArray ? ((IntegerArray) I).size() : ((DenseMatrix) I).rowSize();
 		Object I2 = reverse(I);
@@ -144,19 +116,47 @@ public class BidirectionalRecurrentLayer extends RecurrentLayer {
 			VectorMath.add(o1, o2, o3);
 		}
 
-		if (data_size != H.size()) {
-			System.out.println();
-		}
-
 		return H;
+	}
+
+	@Override
+	public DenseTensor getB() {
+		DenseTensor ret = new DenseTensor();
+		ret.addAll(fwd.getB());
+		ret.addAll(bwd.getB());
+		return ret;
 	}
 
 	public RecurrentLayer getBackwardLayer() {
 		return bwd;
 	}
 
+	@Override
+	public DenseTensor getDB() {
+		DenseTensor ret = new DenseTensor();
+		ret.addAll(fwd.getDB());
+		ret.addAll(bwd.getDB());
+		return ret;
+	}
+
+	@Override
+	public DenseTensor getDW() {
+		DenseTensor ret = new DenseTensor();
+		ret.addAll(fwd.getDW());
+		ret.addAll(bwd.getDW());
+		return ret;
+	}
+
 	public RecurrentLayer getForwardLayer() {
 		return fwd;
+	}
+
+	@Override
+	public DenseTensor getW() {
+		DenseTensor ret = new DenseTensor();
+		ret.addAll(fwd.getW());
+		ret.addAll(bwd.getW());
+		return ret;
 	}
 
 	@Override
@@ -175,17 +175,19 @@ public class BidirectionalRecurrentLayer extends RecurrentLayer {
 	public void readObject(ObjectInputStream ois) throws Exception {
 		String name = ois.readUTF();
 		Class c = Class.forName(name);
-		fwd = (RecurrentLayer) c.newInstance();
-		bwd = (RecurrentLayer) c.newInstance();
+
+		if (c.getName().toLowerCase().contains("rnnlayer")) {
+			fwd = (RnnLayer) c.newInstance();
+			bwd = (RnnLayer) c.newInstance();
+		} else if (c.getName().toLowerCase().contains("lstmlayer")) {
+			fwd = (LstmLayer) c.newInstance();
+			bwd = (LstmLayer) c.newInstance();
+		}
 
 		fwd.readObject(ois);
 		bwd.readObject(ois);
 		input_size = fwd.getInputSize();
 		output_size = fwd.getOutputSize();
-	}
-
-	public BidirectionalRecurrentLayer() {
-
 	}
 
 	public void resetH0() {

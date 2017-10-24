@@ -65,6 +65,10 @@ public class RnnLayer extends RecurrentLayer {
 
 	private Object X;
 
+	public RnnLayer() {
+
+	}
+
 	public RnnLayer(DenseMatrix Wxh, DenseMatrix Whh, DenseVector bh, int bptt_size, Nonlinearity non) {
 		super();
 		this.Wxh = Wxh;
@@ -192,7 +196,12 @@ public class RnnLayer extends RecurrentLayer {
 
 			DenseVector h_prev = t == 0 ? h0 : H.row(t - 1);
 
-			VectorMath.product(h_prev, Whh, h, false);
+			try {
+				VectorMath.product(h_prev, Whh, h, false);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 
 			DenseVector x = X.row(t);
 
@@ -276,6 +285,11 @@ public class RnnLayer extends RecurrentLayer {
 		Wxh = new DenseMatrix(ois);
 		Whh = new DenseMatrix(ois);
 		b = new DenseVector(ois);
+		Class c = Class.forName(ois.readUTF());
+		non = (Nonlinearity) c.newInstance();
+
+		this.input_size = Wxh.rowSize();
+		this.hidden_size = Wxh.colSize();
 	}
 
 	public void resetH0() {
@@ -287,6 +301,8 @@ public class RnnLayer extends RecurrentLayer {
 		Wxh.writeObject(oos);
 		Whh.writeObject(oos);
 		b.writeObject(oos);
+		oos.writeUTF(non.getClass().getName());
+
 	}
 
 }

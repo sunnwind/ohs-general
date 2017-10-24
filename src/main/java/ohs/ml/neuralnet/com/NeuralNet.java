@@ -208,6 +208,8 @@ public class NeuralNet extends ArrayList<Layer> {
 	}
 
 	public void readObject(ObjectInputStream ois) throws Exception {
+		this.clear();
+
 		tt = TaskType.values()[ois.readInt()];
 		labelIdxer = FileUtils.readStringIndexer(ois);
 		vocab = new Vocab(ois);

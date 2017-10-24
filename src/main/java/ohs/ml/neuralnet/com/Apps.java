@@ -282,7 +282,7 @@ public class Apps {
 		nnp.setLearnRate(0.001);
 		nnp.setRegLambda(0.001);
 		nnp.setThreadSize(5);
-		nnp.setTruncatedBackPropagationThroughTime(5);
+		nnp.setTruncatedBackPropagationThroughTime(1);
 		nnp.setOptimizerType(OptimizerType.ADAM);
 		nnp.setGradientClipCutoff(5);
 
@@ -361,7 +361,7 @@ public class Apps {
 		System.out.println(X.sizeOfEntries());
 
 		int voc_size = vocab.size();
-		int emb_size = 50;
+		int emb_size = 100;
 		int l1_size = 100;
 		int label_size = labelIdxer.size();
 		int type = 2;
@@ -373,22 +373,27 @@ public class Apps {
 
 		if (type == 0) {
 		} else if (type == 2) {
-			if (FileUtils.exists(modelFileName)) {
-				nn = new NeuralNet(modelFileName);
-				nn.prepare();
-			} else {
-				nn.add(new EmbeddingLayer(voc_size, emb_size, true));
-				// nn.add(new FullyConnectedLayer(voc_size, emb_size));
-				nn.add(new DropoutLayer());
-				// nn.add(new RnnLayer(emb_size, l1_size, bptt_size, new ReLU()));
-				// nn.add(new LstmLayer(emb_size, l1_size, new ReLU()));
-				nn.add(new BidirectionalRecurrentLayer(Type.LSTM, emb_size, l1_size, bptt_size, new ReLU()));
-				// nn.add(new BatchNormalizationLayer(l1_size));
-				nn.add(new FullyConnectedLayer(l1_size, label_size));
-				nn.add(new SoftmaxLayer(label_size));
-				nn.prepare();
-				nn.init();
-			}
+			// if (FileUtils.exists(modelFileName)) {
+			// nn = new NeuralNet(modelFileName);
+			// nn.prepare();
+			// } else {
+			nn.add(new EmbeddingLayer(voc_size, emb_size, true));
+			// nn.add(new FullyConnectedLayer(voc_size, emb_size));
+			nn.add(new DropoutLayer());
+			// nn.add(new RnnLayer(emb_size, l1_size, bptt_size, new ReLU()));
+			// nn.add(new LstmLayer(emb_size, l1_size, new ReLU()));
+			nn.add(new BidirectionalRecurrentLayer(Type.LSTM, emb_size, l1_size, bptt_size, new ReLU()));
+			// nn.add(new BatchNormalizationLayer(l1_size));
+			nn.add(new FullyConnectedLayer(l1_size, label_size));
+			nn.add(new SoftmaxLayer(label_size));
+			nn.prepare();
+			nn.init();
+			// }
+
+			nn.writeObject(modelFileName);
+
+			nn.readObject(modelFileName);
+			nn.prepare();
 
 			// nn.writeObject(modelFileName);
 

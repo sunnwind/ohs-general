@@ -72,7 +72,6 @@ public class LstmLayer extends RecurrentLayer {
 	private int hidden_size;
 	private DenseMatrix I;
 	private int input_size;
-	private Nonlinearity non;
 	private DenseMatrix O;
 	private DenseVector tmp;
 	private DenseMatrix tmp_C;
@@ -94,20 +93,19 @@ public class LstmLayer extends RecurrentLayer {
 
 	}
 
-	public LstmLayer(DenseMatrix Wxh, DenseMatrix Whh, DenseVector bh, Nonlinearity non) {
+	public LstmLayer(DenseMatrix Wxh, DenseMatrix Whh, DenseVector bh) {
 		super();
 		this.Wxh = Wxh;
 		this.Whh = Whh;
 		this.b = bh;
-		this.non = non;
 
 		input_size = Wxh.rowSize();
 		hidden_size = Wxh.colSize() / 4;
 	}
 
-	public LstmLayer(int input_size, int hidden_size, Nonlinearity non) {
+	public LstmLayer(int input_size, int hidden_size) {
 		this(new DenseMatrix(input_size, hidden_size * 4), new DenseMatrix(hidden_size, hidden_size * 4),
-				new DenseVector(hidden_size * 4), non);
+				new DenseVector(hidden_size * 4));
 	}
 
 	@Override
@@ -296,7 +294,7 @@ public class LstmLayer extends RecurrentLayer {
 
 	@Override
 	public Layer copy() {
-		return new LstmLayer(Wxh, Whh, b, non);
+		return new LstmLayer(Wxh, Whh, b);
 	}
 
 	@Override
@@ -415,10 +413,6 @@ public class LstmLayer extends RecurrentLayer {
 		return Wxh.rowSize();
 	}
 
-	public Nonlinearity getNonlinearity() {
-		return non;
-	}
-
 	@Override
 	public int getOutputSize() {
 		return hidden_size;
@@ -457,6 +451,9 @@ public class LstmLayer extends RecurrentLayer {
 		Wxh = new DenseMatrix(ois);
 		Whh = new DenseMatrix(ois);
 		b = new DenseVector(ois);
+
+		input_size = Wxh.rowSize();
+		hidden_size = Wxh.colSize() / 4;
 	}
 
 	public void resetH0() {

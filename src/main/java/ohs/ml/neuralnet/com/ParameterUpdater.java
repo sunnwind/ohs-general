@@ -27,8 +27,6 @@ public class ParameterUpdater {
 		ADAGRAD, ADAM, RMSPROP, SIMPLE
 	}
 
-	private int batch_size;
-
 	private double beta1 = 0.9;
 
 	private double beta2 = 0.999;
@@ -52,9 +50,9 @@ public class ParameterUpdater {
 
 	private OptimizerType ot = OptimizerType.ADAM;
 
-	private DenseTensor rWs1;
+	private DenseTensor Rs1;
 
-	private DenseTensor rWs2;
+	private DenseTensor Rs2;
 
 	private boolean use_batch_size_scale = false;
 
@@ -71,31 +69,30 @@ public class ParameterUpdater {
 	 */
 	public ParameterUpdater(NeuralNet nn, int batch_size) {
 		this.nn = nn;
-		this.batch_size = batch_size;
 
 		Ws = nn.getW(false);
 		dWs = nn.getDW(false);
-		rWs1 = new DenseTensor();
-		rWs2 = new DenseTensor();
+		Rs1 = new DenseTensor();
+		Rs2 = new DenseTensor();
 
-		rWs1.ensureCapacity(Ws.size());
-		rWs2.ensureCapacity(Ws.size());
+		Rs1.ensureCapacity(Ws.size());
+		Rs2.ensureCapacity(Ws.size());
 
 		for (int i = 0; i < Ws.size(); i++) {
 			DenseMatrix W = Ws.get(i);
 			DenseMatrix rW1 = W.copy(true);
 			DenseMatrix rW2 = W.copy(true);
 
-			rWs1.add(rW1);
-			rWs2.add(rW2);
+			Rs1.add(rW1);
+			Rs2.add(rW2);
 		}
 
 	}
 
 	public List<DenseTensor> getGradientAccumulators() {
 		List<DenseTensor> ret = Generics.newArrayList(2);
-		ret.add(rWs1);
-		ret.add(rWs2);
+		ret.add(Rs1);
+		ret.add(Rs2);
 		return ret;
 	}
 
@@ -104,8 +101,8 @@ public class ParameterUpdater {
 	}
 
 	public void resetGradientAccumulators() {
-		rWs1.setAll(0);
-		rWs2.setAll(0);
+		Rs1.setAll(0);
+		Rs2.setAll(0);
 	}
 
 	public void setGradientClipCutoff(double grad_clip_cutoff) {
@@ -136,13 +133,12 @@ public class ParameterUpdater {
 	}
 
 	public void update() {
-		double batch_size_scale = use_batch_size_scale ? 1d / batch_size : 1;
 
 		for (int i = 0; i < Ws.size(); i++) {
 			DenseMatrix W = Ws.get(i);
 			DenseMatrix dW = dWs.get(i);
-			DenseMatrix rW1 = rWs1.get(i);
-			DenseMatrix rW2 = rWs2.get(i);
+			DenseMatrix R1 = Rs1.get(i);
+			DenseMatrix R2 = Rs2.get(i);
 
 			if (grad_clip_cutoff != Double.MAX_VALUE) {
 				double norm = VectorMath.normL2(dW);
@@ -161,15 +157,15 @@ public class ParameterUpdater {
 			for (int j = 0; j < W.rowSize(); j++) {
 				DenseVector dw = dW.row(j);
 				DenseVector w = W.row(j);
-				DenseVector r1 = rW1.row(j);
-				DenseVector r2 = rW2.row(j);
+				DenseVector r1 = R1.row(j);
+				DenseVector r2 = R2.row(j);
 
 				// if (g.sum() != 0) {
 				synchronized (w) {
 					sum = 0;
 					if (ot == OptimizerType.SIMPLE) {
 						for (int k = 0; k < dw.size(); k++) {
-							dx = dw.value(k) * batch_size_scale;
+							dx = dw.value(k);
 							x = w.value(k) * weight_decay;
 							x -= learn_rate * dx;
 							w.set(k, x);
@@ -177,7 +173,7 @@ public class ParameterUpdater {
 						}
 					} else if (ot == OptimizerType.ADAGRAD) {
 						for (int k = 0; k < dw.size(); k++) {
-							dx = dw.value(k) * batch_size_scale;
+							dx = dw.value(k);
 							r1.add(k, Math.pow(dx, 2));
 
 							x = w.value(k) * weight_decay;
@@ -188,7 +184,7 @@ public class ParameterUpdater {
 					} else if (ot == OptimizerType.RMSPROP) {
 						sum = 0;
 						for (int k = 0; k < dw.size(); k++) {
-							dx = dw.value(k) * batch_size_scale;
+							dx = dw.value(k);
 							rv1 = ArrayMath.addAfterMultiply(r1.value(k), decay_rate, Math.pow(dx, 2), 1 - decay_rate);
 							r1.set(k, rv1);
 
@@ -199,7 +195,7 @@ public class ParameterUpdater {
 						}
 					} else if (ot == OptimizerType.ADAM) {
 						for (int k = 0; k < dw.size(); k++) {
-							dx = dw.value(k) * batch_size_scale;
+							dx = dw.value(k);
 							rv1 = ArrayMath.addAfterMultiply(r1.value(k), beta1, dx);
 							rv2 = ArrayMath.addAfterMultiply(r2.value(k), beta2, Math.pow(dx, 2));
 							r1.set(k, rv1);

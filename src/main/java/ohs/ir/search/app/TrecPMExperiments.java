@@ -6,6 +6,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+
+import org.apache.commons.math.stat.descriptive.SynchronizedMultivariateSummaryStatistics;
+
 import java.util.Properties;
 import java.util.Set;
 
@@ -101,48 +104,50 @@ public class TrecPMExperiments {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 
-		TrecPMExperiments e = new TrecPMExperiments();
+		test2();
+
+		// TrecPMExperiments e = new TrecPMExperiments();
 
 		int[] corTypes = { 0, 1, 2 };
 
-		for (int i = 0; i < corTypes.length; i++) {
-			int corType = corTypes[i];
-
-			if (corType != 1) {
-				continue;
-			}
-
-			// if (corType < 1) {
-			// continue;
-			// }
-
-			if (corType == 0) {
-				dataDir = MIRPath.TREC_CDS_2016_DIR;
-				idxDir = MIRPath.TREC_CDS_2016_COL_DC_DIR;
-				queryFileName = MIRPath.TREC_CDS_2016_QUERY_FILE;
-				relFileName = MIRPath.TREC_CDS_2016_REL_JUDGE_FILE;
-			} else if (corType == 1) {
-				dataDir = MIRPath.TREC_PM_2017_DIR;
-				idxDir = MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR;
-				queryFileName = MIRPath.TREC_PM_2017_QUERY_FILE;
-				relFileName = "";
-				resDir = dataDir + "res/medline/";
-			} else if (corType == 2) {
-				dataDir = MIRPath.TREC_PM_2017_DIR;
-				idxDir = MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR;
-				queryFileName = MIRPath.TREC_PM_2017_QUERY_FILE;
-				relFileName = "";
-				resDir = dataDir + "res/clinical/";
-			}
-
-			// e.runInitSearch();
-			// e.runReranking();
-			// e.runReranking2();
-			// e.runReranking3();
-			// e.runReranking4();
-			// e.formatTrecOutput();
-			e.test();
-		}
+		// for (int i = 0; i < corTypes.length; i++) {
+		// int corType = corTypes[i];
+		//
+		// if (corType != 1) {
+		// continue;
+		// }
+		//
+		// // if (corType < 1) {
+		// // continue;
+		// // }
+		//
+		// if (corType == 0) {
+		// dataDir = MIRPath.TREC_CDS_2016_DIR;
+		// idxDir = MIRPath.TREC_CDS_2016_COL_DC_DIR;
+		// queryFileName = MIRPath.TREC_CDS_2016_QUERY_FILE;
+		// relFileName = MIRPath.TREC_CDS_2016_REL_JUDGE_FILE;
+		// } else if (corType == 1) {
+		// dataDir = MIRPath.TREC_PM_2017_DIR;
+		// idxDir = MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR;
+		// queryFileName = MIRPath.TREC_PM_2017_QUERY_FILE;
+		// relFileName = "";
+		// resDir = dataDir + "res/medline/";
+		// } else if (corType == 2) {
+		// dataDir = MIRPath.TREC_PM_2017_DIR;
+		// idxDir = MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR;
+		// queryFileName = MIRPath.TREC_PM_2017_QUERY_FILE;
+		// relFileName = "";
+		// resDir = dataDir + "res/clinical/";
+		// }
+		//
+		// // e.runInitSearch();
+		// // e.runReranking();
+		// // e.runReranking2();
+		// // e.runReranking3();
+		// // e.runReranking4();
+		// // e.formatTrecOutput();
+		// // e.test();
+		// }
 
 		// e.runInitSearch();
 		// e.runReranking();
@@ -1024,6 +1029,22 @@ public class TrecPMExperiments {
 
 		new SparseMatrix(qData1).writeObject(qFileName);
 		new SparseMatrix(dData1).writeObject(dFileName);
+	}
+
+	public static void test2() throws Exception {
+		String[] dirs = { MIRPath.TREC_PM_2017_COL_MEDLINE_DC_DIR, MIRPath.TREC_PM_2017_COL_CLINICAL_DC_DIR };
+
+		for (String dir : dirs) {
+			DocumentSearcher ds = new DocumentSearcher(dir, MIRPath.STOPWORD_INQUERY_FILE);
+			DocumentCollection dc = ds.getDocumentCollection();
+			
+			System.out.println(dc.info());
+			System.out.println(dc.getVocab().info());
+			System.out.println();
+			System.out.println();
+			
+			ds.close();
+		}
 	}
 
 	public void test() throws Exception {
