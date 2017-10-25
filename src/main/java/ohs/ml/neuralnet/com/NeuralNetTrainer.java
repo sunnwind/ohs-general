@@ -187,6 +187,10 @@ public class NeuralNetTrainer {
 
 	private double learn_rate;
 
+	private double learn_rate_decay;
+
+	private int learn_rate_decay_size;
+
 	private NeuralNetMultiRunner nnmr;
 
 	private List<NeuralNet> nns;
@@ -207,16 +211,19 @@ public class NeuralNetTrainer {
 
 	private DenseMatrix W;
 
+	private double weight_decay;
+
 	private List<Worker> ws;
 
 	private Object X;
 
 	private Object Y;
 
-	public NeuralNetTrainer(NeuralNet nn, NeuralNetParams param) throws Exception {
-		prepare(nn, param.getThreadSize(), param.getBatchSize(), param.getLearnRate(), param.getRegLambda(),
-				param.getGradientClipCutoff(), param.getOptimizerType(), param.isFullSequenceBatch(),
-				param.isRandomBatch(), param.getGradientAccumulatorResetSize());
+	public NeuralNetTrainer(NeuralNet nn, NeuralNetParams nnp) throws Exception {
+		prepare(nn, nnp.getThreadSize(), nnp.getBatchSize(), nnp.getLearnRate(), nnp.getRegLambda(),
+				nnp.getGradientClipCutoff(), nnp.getOptimizerType(), nnp.isFullSequenceBatch(), nnp.isRandomBatch(),
+				nnp.getGradientAccumulatorResetSize(), nnp.getWeightDecay(), nnp.getLearnRateDecay(),
+				nnp.getLearnRateDecaySize());
 	}
 
 	public Performance evaluate(Object X, Object Y) throws Exception {
@@ -259,13 +266,17 @@ public class NeuralNetTrainer {
 
 	private void prepare(NeuralNet nn, int thread_size, int batch_size, double learn_rate, double reg_lambda,
 			double grad_clip_cutoff, OptimizerType ot, boolean is_full_seq_batch, boolean is_random_batch,
-			int grad_acc_reset_size) throws Exception {
+			int grad_acc_reset_size, double weight_decay, double learn_rate_decay, int learn_rate_decay_size)
+			throws Exception {
 		this.learn_rate = learn_rate;
 		this.reg_lambda = reg_lambda;
 		this.batch_size = batch_size;
 		this.is_full_seq_batch = is_full_seq_batch;
 		this.is_random_batch = is_random_batch;
 		this.grad_acc_reset_size = grad_acc_reset_size;
+		this.weight_decay = weight_decay;
+		this.learn_rate_decay = learn_rate_decay;
+		this.learn_rate_decay_size = learn_rate_decay_size;
 
 		nns = Generics.newArrayList(thread_size);
 		nns.add(nn);
@@ -284,9 +295,10 @@ public class NeuralNetTrainer {
 		for (NeuralNet n : nns) {
 			ParameterUpdater pu = new ParameterUpdater(n, tmp_data_size);
 			pu.setLearningRate(learn_rate);
-			pu.setWeightDecay(reg_lambda, learn_rate, tmp_data_size);
+			// pu.setWeightDecay(reg_lambda, learn_rate, tmp_data_size);
 			pu.setOptimizerType(ot);
 			pu.setGradientClipCutoff(grad_clip_cutoff);
+			pu.setWeightDecay(weight_decay);
 			pus.add(pu);
 		}
 
@@ -397,6 +409,15 @@ public class NeuralNetTrainer {
 					pu.resetGradientAccumulators();
 				}
 			}
+
+			if (iters % learn_rate_decay_size == 0) {
+				learn_rate = learn_rate * learn_rate_decay;
+
+				for (ParameterUpdater pu : pus) {
+					pu.setLearningRate(learn_rate);
+				}
+			}
+
 		}
 	}
 

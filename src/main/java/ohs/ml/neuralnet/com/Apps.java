@@ -279,7 +279,9 @@ public class Apps {
 		nnp.setIsFullSequenceBatch(true);
 		nnp.setIsRandomBatch(true);
 		nnp.setGradientAccumulatorResetSize(1000);
-		nnp.setLearnRate(0.001);
+		nnp.setLearnRate(0.1);
+		nnp.setLearnRateDecay(0.9);
+		nnp.setLearnRateDecaySize(10);
 		nnp.setRegLambda(0.001);
 		nnp.setThreadSize(5);
 		nnp.setTruncatedBackPropagationThroughTime(1);
@@ -371,12 +373,12 @@ public class Apps {
 
 		NeuralNet nn = new NeuralNet(labelIdxer, vocab, TaskType.SEQ_LABELING);
 
-		if (type == 0) {
-		} else if (type == 2) {
-			// if (FileUtils.exists(modelFileName)) {
-			// nn = new NeuralNet(modelFileName);
-			// nn.prepare();
-			// } else {
+		boolean read_ner_model = false;
+
+		if (read_ner_model && FileUtils.exists(modelFileName)) {
+			nn = new NeuralNet(modelFileName);
+			nn.prepare();
+		} else {
 			nn.add(new EmbeddingLayer(voc_size, emb_size, true));
 			// nn.add(new FullyConnectedLayer(voc_size, emb_size));
 			nn.add(new DropoutLayer());
@@ -388,50 +390,44 @@ public class Apps {
 			nn.add(new SoftmaxLayer(label_size));
 			nn.prepare();
 			nn.init();
-			// }
+		}
 
-			nn.writeObject(modelFileName);
+		// nn.writeObject(modelFileName);
 
-			nn.readObject(modelFileName);
-			nn.prepare();
+		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, nnp);
 
-			// nn.writeObject(modelFileName);
+		IntegerArray locs = new IntegerArray(ArrayUtils.range(X.size()));
 
-			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, nnp);
+		int group_size = 10000;
+		int[][] rs = BatchUtils.getBatchRanges(X.size(), group_size);
 
-			IntegerArray locs = new IntegerArray(ArrayUtils.range(X.size()));
+		int max_iters = 1000;
 
-			int group_size = 10000;
-			int[][] rs = BatchUtils.getBatchRanges(X.size(), group_size);
+		for (int u = 0; u < max_iters; u++) {
+			ArrayUtils.shuffle(locs.values());
 
-			int max_iters = 1000;
+			for (int i = 0; i < rs.length; i++) {
+				System.out.printf("iters [%d/%d], batches [%d/%d]\n", u + 1, max_iters, i + 1, rs.length);
+				for (int j = 0; j < rs.length; j++) {
+					int[] r = rs[j];
+					int r_size = r[1] - r[0];
+					IntegerMatrix Xm = new IntegerMatrix(r_size);
+					IntegerMatrix Ym = new IntegerMatrix(r_size);
 
-			for (int u = 0; u < max_iters; u++) {
-				ArrayUtils.shuffle(locs.values());
-
-				for (int i = 0; i < rs.length; i++) {
-					System.out.printf("iters [%d/%d], batches [%d/%d]\n", u + 1, max_iters, i + 1, rs.length);
-					for (int j = 0; j < rs.length; j++) {
-						int[] r = rs[j];
-						int r_size = r[1] - r[0];
-						IntegerMatrix Xm = new IntegerMatrix(r_size);
-						IntegerMatrix Ym = new IntegerMatrix(r_size);
-
-						for (int k = r[0]; k < r[1]; k++) {
-							int loc = locs.get(k);
-							Xm.add(X.get(loc));
-							Ym.add(Y.get(loc));
-						}
-
-						trainer.train(Xm, Ym, Xt, Yt, 1);
+					for (int k = r[0]; k < r[1]; k++) {
+						int loc = locs.get(k);
+						Xm.add(X.get(loc));
+						Ym.add(Y.get(loc));
 					}
+
+					trainer.train(Xm, Ym, Xt, Yt, 1);
 				}
 			}
-
-			trainer.finish();
-
-			nn.writeObject(modelFileName);
 		}
+
+		trainer.finish();
+
+		nn.writeObject(modelFileName);
 	}
 
 	public static void testSentenceClassification() throws Exception {

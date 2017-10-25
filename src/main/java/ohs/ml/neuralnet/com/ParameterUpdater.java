@@ -54,8 +54,6 @@ public class ParameterUpdater {
 
 	private DenseTensor Rs2;
 
-	private boolean use_batch_size_scale = false;
-
 	private double weight_decay = 0.99999;
 
 	private DenseTensor Ws;
@@ -117,10 +115,6 @@ public class ParameterUpdater {
 		this.ot = ot;
 	}
 
-	public void setUseBatchSizeScale(boolean use_batch_size_scale) {
-		this.use_batch_size_scale = use_batch_size_scale;
-	}
-
 	/**
 	 * http://neuralnetworksanddeeplearning.com/chap3.html#overfitting_and_regularization
 	 * 
@@ -130,6 +124,10 @@ public class ParameterUpdater {
 	 */
 	public void setWeightDecay(double reg_lambda, double learn_rate, long data_size) {
 		weight_decay = (1 - reg_lambda * learn_rate / data_size);
+	}
+
+	public void setWeightDecay(double weight_decay) {
+		this.weight_decay = weight_decay;
 	}
 
 	public void update() {

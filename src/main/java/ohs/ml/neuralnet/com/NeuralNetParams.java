@@ -24,6 +24,10 @@ public class NeuralNetParams {
 
 	private double learn_rate = 0.01;
 
+	private double learn_rate_decay = 0.9;
+
+	private int learn_rate_decay_size = 1000;
+
 	private double momentum = 0.9;
 
 	private OptimizerType ot = OptimizerType.ADAM;
@@ -33,6 +37,8 @@ public class NeuralNetParams {
 	private double reg_lambda = 0.1;
 
 	private int thread_size = 10;
+
+	private double weight_decay = 0.999;
 
 	public NeuralNetParams() {
 
@@ -77,6 +83,14 @@ public class NeuralNetParams {
 		return learn_rate;
 	}
 
+	public double getLearnRateDecay() {
+		return learn_rate_decay;
+	}
+
+	public int getLearnRateDecaySize() {
+		return learn_rate_decay_size;
+	}
+
 	public double getMomentum() {
 		return momentum;
 	}
@@ -99,6 +113,10 @@ public class NeuralNetParams {
 
 	public int getTruncatedBackPropagationThroughTime() {
 		return bptt;
+	}
+
+	public double getWeightDecay() {
+		return weight_decay;
 	}
 
 	public boolean isFullSequenceBatch() {
@@ -163,6 +181,18 @@ public class NeuralNetParams {
 
 	public void setTruncatedBackPropagationThroughTime(int bptt) {
 		this.bptt = bptt;
+	}
+
+	public void setWeightDecay(double weight_decay) {
+		this.weight_decay = weight_decay;
+	}
+
+	public void setLearnRateDecay(double learn_rate_decay) {
+		this.learn_rate_decay = learn_rate_decay;
+	}
+
+	public void setLearnRateDecaySize(int learn_rate_decay_size) {
+		this.learn_rate_decay_size = learn_rate_decay_size;
 	}
 
 	@Override
