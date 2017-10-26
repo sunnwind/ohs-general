@@ -2,7 +2,6 @@ package ohs.ml.neuralnet.com;
 
 import java.util.List;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -12,6 +11,7 @@ import ohs.matrix.DenseMatrix;
 import ohs.types.generic.Pair;
 import ohs.types.number.IntegerArray;
 import ohs.types.number.IntegerMatrix;
+import ohs.types.number.IntegerTensor;
 import ohs.utils.Generics;
 
 public class NeuralNetMultiRunner {
@@ -32,40 +32,33 @@ public class NeuralNetMultiRunner {
 				int[] r = ranges[range_loc];
 
 				if (tt == TaskType.CLASSIFICATION) {
-					DenseMatrix X_ = TaskType.toDenseMatrix(X);
-					IntegerArray Y_ = TaskType.toIntegerArray(Y);
+					DenseMatrix _X = (DenseMatrix) X;
+					IntegerArray _Yh = (IntegerArray) Yh;
 
-					DenseMatrix Xm = X_.rows(r[0], r[1] - r[0]);
+					DenseMatrix Xm = _X.rows(r[0], r[1] - r[0]);
 					IntegerArray Yhm = nn.classify(Xm);
 
 					for (int i = 0; i < Yhm.size(); i++) {
 						int j = i + r[0];
-						Y_.set(j, Yhm.get(i));
+						_Yh.set(j, Yhm.get(i));
 					}
 				} else if (tt == TaskType.SEQ_CLASSIFICATION) {
-					IntegerMatrix X_ = TaskType.toIntegerMatrix(X);
-					IntegerArray Y_ = TaskType.toIntegerArray(Y);
-
-					IntegerMatrix Xm = X_.subMatrix(r[1], r[0]);
-					IntegerArray Yhm = nn.classify(Xm);
-
-					for (int i = 0; i < Yhm.size(); i++) {
-						int j = i + r[0];
-						Y_.set(j, Yhm.get(i));
-					}
-				} else if (tt == TaskType.SEQ_LABELING) {
-					IntegerMatrix X_ = TaskType.toIntegerMatrix(X);
-					IntegerMatrix Y_ = TaskType.toIntegerMatrix(Y);
+					IntegerTensor _X = (IntegerTensor) X;
+					IntegerArray _Yh = TaskType.toIntegerArray(Yh);
 
 					for (int i = r[0]; i < r[1]; i++) {
-						IntegerArray Xm = X_.get(i);
+						IntegerArray Yhm = nn.classify(_X.get(i).toIntegerTensor());
+						int j = i + r[0];
+						_Yh.set(j, Yhm.get(0));
+					}
+				} else if (tt == TaskType.SEQ_LABELING) {
+					IntegerTensor _X = (IntegerTensor) X;
+					IntegerMatrix _Yh = (IntegerMatrix) Yh;
+
+					for (int i = r[0]; i < r[1]; i++) {
+						IntegerTensor Xm = _X.get(i).toIntegerTensor();
 						IntegerArray Yhm = nn.classify(Xm);
-
-						if (Xm.size() != Yhm.size()) {
-							System.out.println();
-						}
-
-						Y_.set(i, Yhm);
+						_Yh.set(i, Yhm);
 					}
 				}
 			}
@@ -77,19 +70,19 @@ public class NeuralNetMultiRunner {
 
 	private List<NeuralNet> nns;
 
-	private ThreadPoolExecutor tpe;
-
-	private List<Worker> ws;
-
-	private TaskType tt;
-
-	private Object Y;
-
-	private Object X;
+	private AtomicInteger range_cnt;
 
 	private int[][] ranges;
 
-	private AtomicInteger range_cnt;
+	private ThreadPoolExecutor tpe;
+
+	private TaskType tt;
+
+	private List<Worker> ws;
+
+	private Object X;
+
+	private Object Yh;
 
 	public NeuralNetMultiRunner(List<NeuralNet> nns) {
 		this.nns = nns;
@@ -102,6 +95,7 @@ public class NeuralNetMultiRunner {
 		for (int i = 0; i < nns.size(); i++) {
 			ws.add(new Worker(nns.get(i)));
 		}
+
 	}
 
 	public Object classify(Object X) throws Exception {
@@ -109,20 +103,22 @@ public class NeuralNetMultiRunner {
 		int size = 0;
 
 		if (tt == TaskType.CLASSIFICATION) {
-			size = TaskType.toDenseMatrix(X).rowSize();
-			Y = new IntegerArray(new int[size]);
+			DenseMatrix _X = (DenseMatrix) X;
+			size = _X.rowSize();
+			Yh = new IntegerArray(new int[size]);
 		} else if (tt == TaskType.SEQ_CLASSIFICATION) {
-			size = TaskType.toIntegerMatrix(X).size();
-			Y = new IntegerArray(new int[size]);
+			IntegerTensor _X = (IntegerTensor) X;
+			size = _X.size();
+			Yh = new IntegerArray(new int[size]);
 		} else if (tt == TaskType.SEQ_LABELING) {
-			IntegerMatrix X_ = TaskType.toIntegerMatrix(X);
-			size = X_.size();
-			IntegerMatrix Y_ = new IntegerMatrix(size);
+			IntegerTensor _X = (IntegerTensor) X;
+			size = _X.size();
+			IntegerMatrix _Y = new IntegerMatrix(size);
 
 			for (int i = 0; i < size; i++) {
-				Y_.add(new IntegerArray());
+				_Y.add(new IntegerArray());
 			}
-			Y = Y_;
+			Yh = _Y;
 		}
 
 		ranges = BatchUtils.getBatchRanges(size, 20);
@@ -139,7 +135,7 @@ public class NeuralNetMultiRunner {
 			Pair<Double, Integer> res = fs.get(j).get();
 		}
 
-		return Y;
+		return Yh;
 	}
 
 	public void shutdown() {

@@ -10,7 +10,6 @@ import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
 import ohs.ml.neuralnet.com.ParameterInitializer;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerMatrix;
 
 /**
  * 
@@ -137,15 +136,6 @@ public class FullyConnectedLayer extends Layer {
 			}
 			VectorMath.add(Y, b, Y);
 		}
-
-		// for (int i = 0; i < Y.size(); i++) {
-		// DenseVector y = Y.row(i);
-		// for (int j = 0; j < y.size(); j++) {
-		// if (Math.abs(y.value(j)) > 100000) {
-		// System.out.println();
-		// }
-		// }
-		// }
 
 		this.Y = Y;
 

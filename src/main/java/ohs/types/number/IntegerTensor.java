@@ -118,6 +118,14 @@ public class IntegerTensor extends ArrayList<IntegerMatrix> {
 		return ret;
 	}
 
+	public int sizeOfIntegerArrays() {
+		int ret = 0;
+		for (IntegerMatrix a : this) {
+			ret += a.size();
+		}
+		return ret;
+	}
+
 	public IntegerTensor subTensor(int i, int j) {
 		return new IntegerTensor(subList(i, j));
 	}
@@ -147,11 +155,13 @@ public class IntegerTensor extends ArrayList<IntegerMatrix> {
 	public String toString(int size) {
 		StringBuffer sb = new StringBuffer();
 		for (int i = 0; i < size(); i++) {
+			sb.append(String.format("%d:\n%s", i, get(i).toString()));
 			if (i == size) {
 				sb.append(String.format("\n..."));
 				break;
+			} else {
+				sb.append("\n");
 			}
-			sb.append(String.format("\n%d: %s", i, get(i).toString()));
 		}
 		return sb.toString();
 	}

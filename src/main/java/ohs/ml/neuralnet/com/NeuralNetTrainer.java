@@ -17,9 +17,11 @@ import ohs.ml.neuralnet.com.ParameterUpdater.OptimizerType;
 import ohs.ml.neuralnet.cost.CrossEntropyCostFunction;
 import ohs.ml.neuralnet.layer.Layer;
 import ohs.ml.neuralnet.layer.RecurrentLayer;
+import ohs.ml.neuralnet.layer.RecurrentLayer.Type;
 import ohs.types.generic.Pair;
 import ohs.types.number.IntegerArray;
 import ohs.types.number.IntegerMatrix;
+import ohs.types.number.IntegerTensor;
 import ohs.utils.Generics;
 import ohs.utils.Timer;
 
@@ -53,17 +55,17 @@ public class NeuralNetTrainer {
 			int correct_cnt = 0;
 			double cost = 0;
 
-			if (X instanceof DenseMatrix) {
+			if (tt == TaskType.CLASSIFICATION) {
 				int range_loc = 0;
-				DenseMatrix X_ = (DenseMatrix) X;
-				IntegerArray Y_ = (IntegerArray) Y;
+				DenseMatrix _X = (DenseMatrix) X;
+				IntegerArray _Y = (IntegerArray) Y;
 
 				while ((range_loc = range_cnt.getAndIncrement()) < ranges.length) {
 					int[] r = ranges[range_loc];
 					int[] locs = BatchUtils.getIndexes(data_locs, r);
 
-					DenseMatrix Xm = X_.rows(locs);
-					IntegerArray Ym = Y_.get(locs);
+					DenseMatrix Xm = _X.rows(locs);
+					IntegerArray Ym = _Y.get(locs);
 
 					DenseMatrix Yh = (DenseMatrix) nn.forward(Xm);
 					DenseMatrix D = cf.evaluate(Yh, Ym);
@@ -74,91 +76,89 @@ public class NeuralNetTrainer {
 					nn.backward(D);
 					pu.update();
 				}
-			} else if (X instanceof IntegerMatrix) {
-				if (Y instanceof IntegerArray) {
-					int range_loc = 0;
-					IntegerMatrix X_ = (IntegerMatrix) X;
-					IntegerArray Y_ = (IntegerArray) Y;
+			} else if (tt == TaskType.SEQ_LABELING) {
+				IntegerTensor _X = (IntegerTensor) X;
+				IntegerMatrix _Y = (IntegerMatrix) Y;
 
-					while ((range_loc = range_cnt.getAndIncrement()) < ranges.length) {
-						int[] r = ranges[range_loc];
-						int[] locs = BatchUtils.getIndexes(data_locs, r);
+				int range_loc = 0;
 
-						IntegerMatrix Xm = X_.subMatrix(locs);
-						IntegerArray Ym = Y_.subArray(locs);
+				while ((range_loc = range_cnt.getAndIncrement()) < ranges.length) {
+					int[] r = ranges[range_loc];
+					int[] locs = BatchUtils.getIndexes(data_locs, r);
 
-						DenseMatrix Yh = (DenseMatrix) nn.forward(Xm);
-						DenseMatrix D = cf.evaluate(Yh, Ym);
+					IntegerTensor Xm = _X.subTensor(locs);
+					IntegerMatrix Ym = _Y.subMatrix(locs);
+
+					if (is_full_seq_batch) {
+						for (int i = 0; i < Xm.size(); i++) {
+							IntegerTensor xm = Xm.get(i).toIntegerTensor();
+							IntegerArray ym = Ym.get(i);
+							DenseMatrix ymh = (DenseMatrix) nn.forward(xm);
+							DenseMatrix D = cf.evaluate(ymh, ym);
+
+							cost += cf.getCost();
+							correct_cnt += cf.getCorrectCnt();
+							nn.backward(D);
+						}
+						pu.update();
+					} else {
+						int len = 0;
+						for (int i = 0; i < Xm.size(); i++) {
+							IntegerMatrix xm = Xm.get(i);
+							IntegerArray ym = Ym.get(i);
+							int[][] rs = BatchUtils.getBatchRanges(xm.size(), batch_size);
+
+							for (int j = 0; j < rs.length; j++) {
+								int[] r2 = rs[j];
+								IntegerTensor x = xm.subMatrix(r2[0], r2[1]).toIntegerTensor();
+								IntegerArray y = ym.subArray(r2[0], r2[1]);
+
+								DenseMatrix Yh = (DenseMatrix) nn.forward(x);
+								DenseMatrix D = cf.evaluate(Yh, y);
+
+								cost += cf.getCost();
+								correct_cnt += cf.getCorrectCnt();
+								len += x.size();
+
+								nn.backward(D);
+
+								if (len >= batch_size) {
+									pu.update();
+									len = 0;
+								}
+							}
+						}
+
+						if (len > 0) {
+							pu.update();
+							len = 0;
+						}
+					}
+				}
+			} else if (tt == TaskType.SEQ_CLASSIFICATION) {
+				int range_loc = 0;
+				IntegerTensor _X = (IntegerTensor) X;
+				IntegerArray _Y = (IntegerArray) Y;
+
+				while ((range_loc = range_cnt.getAndIncrement()) < ranges.length) {
+					int[] r = ranges[range_loc];
+					int[] locs = BatchUtils.getIndexes(data_locs, r);
+
+					IntegerTensor Xm = _X.subTensor(locs);
+					IntegerArray Ym = _Y.subArray(locs);
+
+					for (int i = 0; i < Xm.size(); i++) {
+						DenseMatrix Yhm = (DenseMatrix) nn.forward(Xm.get(i).toIntegerTensor());
+						DenseMatrix D = cf.evaluate(Yhm, Ym);
 
 						cost += cf.getCost();
 						correct_cnt += cf.getCorrectCnt();
 
 						nn.backward(D);
-						pu.update();
 					}
-				} else if (Y instanceof IntegerMatrix) {
-					IntegerMatrix X_ = (IntegerMatrix) X;
-					IntegerMatrix Y_ = (IntegerMatrix) Y;
-
-					int range_loc = 0;
-
-					while ((range_loc = range_cnt.getAndIncrement()) < ranges.length) {
-						int[] r = ranges[range_loc];
-						int[] locs = BatchUtils.getIndexes(data_locs, r);
-
-						IntegerMatrix Xm = X_.subMatrix(locs);
-						IntegerMatrix Ym = Y_.subMatrix(locs);
-
-						if (is_full_seq_batch) {
-							for (int i = 0; i < Xm.size(); i++) {
-								IntegerArray xm = Xm.get(i);
-								IntegerArray ym = Ym.get(i);
-								DenseMatrix ymh = (DenseMatrix) nn.forward(xm);
-								DenseMatrix D = cf.evaluate(ymh, ym);
-
-								cost += cf.getCost();
-								correct_cnt += cf.getCorrectCnt();
-								nn.backward(D);
-							}
-							pu.update();
-						} else {
-							int len = 0;
-							for (int i = 0; i < Xm.size(); i++) {
-								IntegerArray xm = Xm.get(i);
-								IntegerArray ym = Ym.get(i);
-								int[][] rs = BatchUtils.getBatchRanges(xm.size(), batch_size);
-
-								for (int j = 0; j < rs.length; j++) {
-									int[] r2 = rs[j];
-									IntegerArray x = xm.subArray(r2[0], r2[1]);
-									IntegerArray y = ym.subArray(r2[0], r2[1]);
-
-									DenseMatrix Yh = (DenseMatrix) nn.forward(x);
-									DenseMatrix D = cf.evaluate(Yh, y);
-
-									cost += cf.getCost();
-									correct_cnt += cf.getCorrectCnt();
-									len += x.size();
-
-									nn.backward(D);
-
-									if (len >= batch_size) {
-										pu.update();
-										len = 0;
-									}
-								}
-							}
-
-							if (len > 0) {
-								pu.update();
-								len = 0;
-							}
-						}
-					}
+					pu.update();
 				}
 			}
-
-			// readyForNextIteration();
 
 			return Generics.newPair(cost, correct_cnt);
 		}
@@ -243,6 +243,8 @@ public class NeuralNetTrainer {
 			} else if (Y instanceof IntegerMatrix) {
 				p = eval.evaluteSequences((IntegerMatrix) Y, (IntegerMatrix) nnmr.classify(X), n.getLabelIndexer());
 			}
+		} else if (X instanceof IntegerTensor) {
+			p = eval.evaluteSequences((IntegerMatrix) Y, (IntegerMatrix) nnmr.classify(X), n.getLabelIndexer());
 		}
 
 		for (NeuralNet nn : nns) {
@@ -264,6 +266,8 @@ public class NeuralNetTrainer {
 		// VectorUtils.copy(W_best, W);
 	}
 
+	private TaskType tt;
+
 	private void prepare(NeuralNet nn, int thread_size, int batch_size, double learn_rate, double reg_lambda,
 			double grad_clip_cutoff, OptimizerType ot, boolean is_full_seq_batch, boolean is_random_batch,
 			int grad_acc_reset_size, double weight_decay, double learn_rate_decay, int learn_rate_decay_size)
@@ -277,6 +281,8 @@ public class NeuralNetTrainer {
 		this.weight_decay = weight_decay;
 		this.learn_rate_decay = learn_rate_decay;
 		this.learn_rate_decay_size = learn_rate_decay_size;
+
+		this.tt = nn.getTaskType();
 
 		nns = Generics.newArrayList(thread_size);
 		nns.add(nn);
@@ -322,27 +328,30 @@ public class NeuralNetTrainer {
 		nnmr = new NeuralNetMultiRunner(nns);
 	}
 
+	private Object F;
+
 	public void train(Object X, Object Y, Object Xt, Object Yt, int max_iters) throws Exception {
+
 		this.X = X;
 		this.Y = Y;
 
 		int data_size = 0;
 
-		if (X instanceof DenseMatrix) {
-			data_size = TaskType.toDenseMatrix(X).rowSize();
+		if (tt == TaskType.CLASSIFICATION) {
+			DenseMatrix _X = (DenseMatrix) X;
+			data_size = _X.rowSize();
 			data_locs = ArrayUtils.range(data_size);
 			ranges = BatchUtils.getBatchRanges(data_size, batch_size);
-		} else if (X instanceof IntegerMatrix) {
-			if (Y instanceof IntegerArray) {
-				data_size = TaskType.toIntegerArray(Y).size();
-				data_locs = ArrayUtils.range(data_size);
-				ranges = BatchUtils.getBatchRanges(data_size, batch_size);
-			} else if (Y instanceof IntegerMatrix) {
-				IntegerMatrix Y_ = TaskType.toIntegerMatrix(Y);
-				data_size = Y_.sizeOfEntries();
-				data_locs = ArrayUtils.range(Y_.size());
-				ranges = BatchUtils.getBatchRanges(Y_.size(), 100);
-			}
+		} else if (tt == TaskType.SEQ_CLASSIFICATION) {
+			IntegerArray _Y = (IntegerArray) Y;
+			data_size = _Y.size();
+			data_locs = ArrayUtils.range(data_size);
+			ranges = BatchUtils.getBatchRanges(data_size, batch_size);
+		} else if (tt == TaskType.SEQ_LABELING) {
+			IntegerTensor _X = (IntegerTensor) X;
+			data_size = _X.sizeOfIntegerArrays();
+			data_locs = ArrayUtils.range(_X.size());
+			ranges = BatchUtils.getBatchRanges(_X.size(), batch_size);
 		}
 
 		double best_acc = 0;

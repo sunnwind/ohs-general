@@ -7,13 +7,17 @@ import ohs.corpus.type.EnglishTokenizer;
 import ohs.io.FileUtils;
 import ohs.math.ArrayUtils;
 import ohs.matrix.DenseMatrix;
+import ohs.matrix.DenseTensor;
+import ohs.matrix.DenseVector;
 import ohs.matrix.SparseMatrix;
 import ohs.ml.neuralnet.com.ParameterUpdater.OptimizerType;
 import ohs.ml.neuralnet.layer.BidirectionalRecurrentLayer;
 import ohs.ml.neuralnet.layer.ConvolutionalLayer;
+import ohs.ml.neuralnet.layer.DiscreteFeatureLayer;
 import ohs.ml.neuralnet.layer.DropoutLayer;
 import ohs.ml.neuralnet.layer.EmbeddingLayer;
 import ohs.ml.neuralnet.layer.FullyConnectedLayer;
+import ohs.ml.neuralnet.layer.Layer;
 import ohs.ml.neuralnet.layer.LstmLayer;
 import ohs.ml.neuralnet.layer.MaxPoolingLayer;
 import ohs.ml.neuralnet.layer.NonlinearityLayer;
@@ -30,6 +34,7 @@ import ohs.types.generic.Vocab;
 import ohs.types.generic.Vocab.SYM;
 import ohs.types.number.IntegerArray;
 import ohs.types.number.IntegerMatrix;
+import ohs.types.number.IntegerTensor;
 import ohs.utils.DataSplitter;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
@@ -166,7 +171,7 @@ public class Apps {
 			nn = new NeuralNet(modelFileName);
 			nn.prepare();
 		} else {
-			nn.add(new EmbeddingLayer(voc_size, emb_size, true));
+			nn.add(new EmbeddingLayer(voc_size, emb_size, true, TaskType.SEQ_LABELING));
 			nn.add(new DropoutLayer());
 			// nn.add(new BidirectionalRecurrentLayer(Type.LSTM, emb_size, l1_size,
 			// bptt, new ReLU()));
@@ -279,9 +284,9 @@ public class Apps {
 		nnp.setIsFullSequenceBatch(true);
 		nnp.setIsRandomBatch(true);
 		nnp.setGradientAccumulatorResetSize(1000);
-		nnp.setLearnRate(0.1);
+		nnp.setLearnRate(0.001);
 		nnp.setLearnRateDecay(0.9);
-		nnp.setLearnRateDecaySize(10);
+		nnp.setLearnRateDecaySize(200);
 		nnp.setRegLambda(0.001);
 		nnp.setThreadSize(5);
 		nnp.setTruncatedBackPropagationThroughTime(1);
@@ -307,15 +312,23 @@ public class Apps {
 		Vocab vocab = new Vocab();
 		vocab.add(Vocab.SYM.UNK.getText());
 
-		IntegerMatrix X = new IntegerMatrix();
+		int unk = 0;
+
+		IntegerTensor X = new IntegerTensor();
 		IntegerMatrix Y = new IntegerMatrix();
 
-		IntegerMatrix Xt = new IntegerMatrix();
+		X.ensureCapacity(trainData.size());
+		Y.ensureCapacity(trainData.size());
+
+		IntegerTensor Xt = new IntegerTensor();
 		IntegerMatrix Yt = new IntegerMatrix();
 
-		{
-			WordFeatureExtractor ext = new WordFeatureExtractor();
+		Xt.ensureCapacity(trainData.size());
+		Xt.ensureCapacity(trainData.size());
 
+		WordFeatureExtractor ext = new WordFeatureExtractor();
+
+		{
 			MDocument D = new MDocument();
 			D.addAll(trainData);
 			D.addAll(testData);
@@ -342,12 +355,38 @@ public class Apps {
 			for (int i = 0; i < D.size(); i++) {
 				MSentence s = D.get(i);
 
+				IntegerMatrix Xm = new IntegerMatrix();
+				IntegerArray Ym = new IntegerArray();
+
+				Xm.ensureCapacity(s.size());
+				Ym.ensureCapacity(s.size());
+
+				for (int j = 0; j < s.size(); j++) {
+					MToken t = s.get(j);
+
+					IntegerArray f = new IntegerArray(1 + ext.getFeatureIndexer().size());
+
+					if (i < trainData.size()) {
+						f.add(vocab.getIndex(t.getString(4)));
+						f.addAll((IntegerArray) t.get(5));
+
+						Xm.add(f);
+						Ym.add(labelIdxer.getIndex(t.getString(3)));
+					} else {
+						f.add(vocab.indexOf(t.getString(4), 0));
+						f.addAll((IntegerArray) t.get(5));
+
+						Xm.add(f);
+						Ym.add(labelIdxer.getIndex(t.getString(3)));
+					}
+				}
+
 				if (i < trainData.size()) {
-					X.add(new IntegerArray(vocab.getIndexes(s.getTokenStrings(4))));
-					Y.add(new IntegerArray(labelIdxer.indexesOf(s.getTokenStrings(3), 0)));
+					X.add(Xm);
+					Y.add(Ym);
 				} else {
-					Xt.add(new IntegerArray(vocab.indexesOf(s.getTokenStrings(4), 0)));
-					Yt.add(new IntegerArray(labelIdxer.indexesOf(s.getTokenStrings(3), 0)));
+					Xt.add(Xm);
+					Yt.add(Ym);
 				}
 			}
 		}
@@ -379,7 +418,186 @@ public class Apps {
 			nn = new NeuralNet(modelFileName);
 			nn.prepare();
 		} else {
-			nn.add(new EmbeddingLayer(voc_size, emb_size, true));
+			nn.add(new EmbeddingLayer(voc_size, emb_size, true, nn.getTaskType()));
+
+			DiscreteFeatureLayer l = new DiscreteFeatureLayer(ext.getFeatureIndexer().size(), 10, emb_size, true);
+
+			nn.add(l);
+			nn.add(new DropoutLayer());
+			// nn.add(new RnnLayer(emb_size, l1_size, bptt_size, new ReLU()));
+			// nn.add(new LstmLayer(emb_size, l1_size, new ReLU()));
+			nn.add(new BidirectionalRecurrentLayer(Type.LSTM, l.getOutputSize(), l1_size, bptt_size, new ReLU()));
+			// nn.add(new BatchNormalizationLayer(l1_size));
+			nn.add(new FullyConnectedLayer(l1_size, label_size));
+			nn.add(new SoftmaxLayer(label_size));
+			nn.prepare();
+			nn.init();
+		}
+
+		// nn.writeObject(modelFileName);
+
+		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, nnp);
+
+		IntegerArray locs = new IntegerArray(ArrayUtils.range(X.size()));
+
+		int group_size = 200;
+		int[][] rs = BatchUtils.getBatchRanges(X.size(), group_size);
+
+		int max_iters = 1000;
+
+		for (int u = 0; u < max_iters; u++) {
+			ArrayUtils.shuffle(locs.values());
+
+			for (int i = 0; i < rs.length; i++) {
+				System.out.printf("iters [%d/%d], batches [%d/%d]\n", u + 1, max_iters, i + 1, rs.length);
+				for (int j = 0; j < rs.length; j++) {
+					int[] r = rs[j];
+					int r_size = r[1] - r[0];
+					IntegerTensor Xm = new IntegerTensor(r_size);
+					IntegerMatrix Ym = new IntegerMatrix(r_size);
+
+					for (int k = r[0]; k < r[1]; k++) {
+						int loc = locs.get(k);
+						Xm.add(X.get(loc));
+						Ym.add(Y.get(loc));
+					}
+
+					trainer.train(Xm, Ym, Xt, Yt, 1);
+				}
+			}
+		}
+
+		trainer.finish();
+
+		nn.writeObject(modelFileName);
+	}
+
+	public static void testNEROld() throws Exception {
+		NeuralNetParams nnp = new NeuralNetParams();
+		nnp.setBatchSize(5);
+		nnp.setIsFullSequenceBatch(true);
+		nnp.setIsRandomBatch(true);
+		nnp.setGradientAccumulatorResetSize(1000);
+		nnp.setLearnRate(0.1);
+		nnp.setLearnRateDecay(0.9);
+		nnp.setLearnRateDecaySize(1);
+		nnp.setRegLambda(0.001);
+		nnp.setThreadSize(5);
+		nnp.setTruncatedBackPropagationThroughTime(1);
+		nnp.setOptimizerType(OptimizerType.ADAM);
+		nnp.setGradientClipCutoff(5);
+
+		String trainFileName = "../../data/ml_data/conll2003.bio2/train.dat";
+		String testFileName = "../../data/ml_data/conll2003.bio2/test.dat";
+
+		{
+			Indexer<String> l = Generics.newIndexer();
+			l.add("word");
+			l.add("pos");
+			l.add("chunk");
+			l.add("ner");
+			MToken.INDEXER = l;
+		}
+
+		MDocument trainData = MDocument.newDocument(FileUtils.readFromText(trainFileName));
+		MDocument testData = MDocument.newDocument(FileUtils.readFromText(testFileName));
+
+		Indexer<String> labelIdxer = Generics.newIndexer();
+		Vocab vocab = new Vocab();
+		vocab.add(Vocab.SYM.UNK.getText());
+
+		int unk = 0;
+
+		IntegerMatrix X = new IntegerMatrix();
+		IntegerMatrix Y = new IntegerMatrix();
+
+		IntegerMatrix Xt = new IntegerMatrix();
+		IntegerMatrix Yt = new IntegerMatrix();
+
+		IntegerTensor F = new IntegerTensor();
+		IntegerTensor Ft = new IntegerTensor();
+
+		WordFeatureExtractor ext = new WordFeatureExtractor();
+
+		{
+			MDocument D = new MDocument();
+			D.addAll(trainData);
+			D.addAll(testData);
+
+			Set<String> labels = Generics.newTreeSet();
+
+			for (MToken t : D.getTokens()) {
+				String word = t.getString(0);
+				String ner = t.getString(3);
+				String[] ps = ner.split("-");
+				if (ps.length == 2) {
+					ner = String.format("%s-%s", ps[1], ps[0]);
+				}
+				t.set(3, ner);
+				ext.extract(t);
+
+				labels.add(ner);
+			}
+
+			labels.remove("O");
+			labelIdxer.addAll(labels);
+			labelIdxer.add("O");
+
+			for (int i = 0; i < D.size(); i++) {
+				MSentence s = D.get(i);
+
+				IntegerMatrix T = new IntegerMatrix();
+				T.ensureCapacity(s.size());
+
+				for (int j = 0; j < s.size(); j++) {
+					MToken t = s.get(j);
+					String word1 = t.getString(0);
+					String word2 = t.getString(MToken.INDEXER.size());
+					IntegerArray f = (IntegerArray) t.get(MToken.INDEXER.size() + 1);
+					T.add(f);
+				}
+
+				if (i < trainData.size()) {
+					X.add(new IntegerArray(vocab.getIndexes(s.getTokenStrings(4))));
+					Y.add(new IntegerArray(labelIdxer.indexesOf(s.getTokenStrings(3), 0)));
+					F.add(T);
+				} else {
+					Xt.add(new IntegerArray(vocab.indexesOf(s.getTokenStrings(4), 0)));
+					Yt.add(new IntegerArray(labelIdxer.indexesOf(s.getTokenStrings(3), 0)));
+					Ft.add(T);
+				}
+			}
+		}
+
+		X.trimToSize();
+		Y.trimToSize();
+
+		Xt.trimToSize();
+		Yt.trimToSize();
+
+		System.out.println(vocab.info());
+		System.out.println(labelIdxer.info());
+		System.out.println(X.sizeOfEntries());
+
+		int voc_size = vocab.size();
+		int emb_size = 100;
+		int l1_size = 100;
+		int label_size = labelIdxer.size();
+		int type = 2;
+		int bptt_size = nnp.getTruncatedBackPropagationThroughTime();
+
+		String modelFileName = "../../data/ml_data/ner_nn.ser";
+
+		NeuralNet nn = new NeuralNet(labelIdxer, vocab, TaskType.SEQ_LABELING);
+
+		boolean read_ner_model = false;
+
+		if (read_ner_model && FileUtils.exists(modelFileName)) {
+			nn = new NeuralNet(modelFileName);
+			nn.prepare();
+		} else {
+
+			nn.add(new EmbeddingLayer(voc_size, emb_size, true, TaskType.SEQ_LABELING));
 			// nn.add(new FullyConnectedLayer(voc_size, emb_size));
 			nn.add(new DropoutLayer());
 			// nn.add(new RnnLayer(emb_size, l1_size, bptt_size, new ReLU()));
@@ -522,7 +740,7 @@ public class Apps {
 			int window_size = 2;
 			int[] window_sizes = new int[] { 2 };
 
-			nn.add(new EmbeddingLayer(vocab_size, emb_size, true));
+			nn.add(new EmbeddingLayer(vocab_size, emb_size, true, nn.getTaskType()));
 
 			// nn.add(new MultiWindowConvolutionalLayer(emb_size, window_sizes,
 			// num_filters));

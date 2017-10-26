@@ -23,7 +23,7 @@ public class PerformanceEvaluator {
 			String[] p1 = splitBioLabel(pred);
 			String[] a1 = splitBioLabel(ans);
 
-			if (p1[1].equals("B") && a1[1].equals("B")) {
+			if (p1[0].equals(a1[0]) && p1[1].equals("B") && a1[1].equals("B")) {
 				int e1 = i + 1;
 				int e2 = i + 1;
 
@@ -182,6 +182,15 @@ public class PerformanceEvaluator {
 			ansCnts.incrementAll(countLabelSeqs(anss, labelIdxer));
 			predCnts.incrementAll(countLabelSeqs(preds, labelIdxer));
 			corCnts.incrementAll(countCommonLabelSeqs(anss, preds, labelIdxer));
+		}
+
+		for (int l : ansCnts.keySet()) {
+			double cnt1 = ansCnts.getCount(l);
+			double cnt2 = corCnts.getCount(l);
+
+			if (cnt2 > cnt1) {
+				System.out.println();
+			}
 		}
 
 		IntegerArray ans_cnts = new IntegerArray(labelIdxer.size());

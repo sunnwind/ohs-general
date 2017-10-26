@@ -120,7 +120,7 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 
 	@Override
 	public int colSize() {
-		return get(0).size();
+		return size() > 0 ? get(0).size() : 0;
 	}
 
 	@Override

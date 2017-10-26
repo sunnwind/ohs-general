@@ -7,7 +7,6 @@ import java.util.Collection;
 
 import ohs.io.FileUtils;
 import ohs.utils.ByteSize;
-import scala.collection.generic.BitOperations.Int;
 
 public class IntegerMatrix extends ArrayList<IntegerArray> {
 
@@ -69,6 +68,20 @@ public class IntegerMatrix extends ArrayList<IntegerArray> {
 		return get(i);
 	}
 
+	public IntegerArray getColumn(int j, int absence) {
+		IntegerArray ret = new IntegerArray(size());
+		for (IntegerArray a : this) {
+			if (a.size() < j) {
+				ret.add(absence);
+			} else {
+				ret.add(a.get(j));
+			}
+		}
+		ret.trimToSize();
+		return ret;
+
+	}
+
 	public String info() {
 		int min = Integer.MAX_VALUE;
 		int max = -Integer.MAX_VALUE;
@@ -110,6 +123,14 @@ public class IntegerMatrix extends ArrayList<IntegerArray> {
 		return ret;
 	}
 
+	public IntegerMatrix subMatrix(int size) {
+		IntegerMatrix ret = new IntegerMatrix(size());
+		for (int i = 0; i < size; i++) {
+			ret.add(get(i));
+		}
+		return ret;
+	}
+
 	public IntegerMatrix subMatrix(int i, int j) {
 		return new IntegerMatrix(subList(i, j));
 	}
@@ -117,14 +138,6 @@ public class IntegerMatrix extends ArrayList<IntegerArray> {
 	public IntegerMatrix subMatrix(int[] is) {
 		IntegerMatrix ret = new IntegerMatrix(is.length);
 		for (int i : is) {
-			ret.add(get(i));
-		}
-		return ret;
-	}
-
-	public IntegerMatrix subMatrix(int size) {
-		IntegerMatrix ret = new IntegerMatrix(size());
-		for (int i = 0; i < size; i++) {
 			ret.add(get(i));
 		}
 		return ret;
@@ -138,6 +151,12 @@ public class IntegerMatrix extends ArrayList<IntegerArray> {
 		return ret;
 	}
 
+	public IntegerTensor toIntegerTensor() {
+		IntegerTensor ret = new IntegerTensor(1);
+		ret.add(this);
+		return ret;
+	}
+
 	public String toString() {
 		return toString(30);
 	}
@@ -145,11 +164,13 @@ public class IntegerMatrix extends ArrayList<IntegerArray> {
 	public String toString(int size) {
 		StringBuffer sb = new StringBuffer();
 		for (int i = 0; i < size(); i++) {
+			sb.append(String.format("%d: %s", i, get(i).toString()));
 			if (i == size) {
 				sb.append(String.format("\n..."));
 				break;
+			} else {
+				sb.append("\n");
 			}
-			sb.append(String.format("\n%d: %s", i, get(i).toString()));
 		}
 		return sb.toString();
 	}

@@ -27,19 +27,27 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 	static final class ArrayListSpliterator<Integer> implements Spliterator<Integer> {
 
 		/*
-		 * If ArrayLists were immutable, or structurally immutable (no adds, removes, etc), we could implement their spliterators with
-		 * Arrays.spliterator. Instead we detect as much interference during traversal as practical without sacrificing much performance. We
-		 * rely primarily on modCounts. These are not guaranteed to detect concurrency violations, and are sometimes overly conservative
-		 * about within-thread interference, but detect enough problems to be worthwhile in practice. To carry this out, we (1) lazily
-		 * initialize fence and expectedModCount until the latest point that we need to commit to the state we are checking against; thus
-		 * improving precision. (This doesn't apply to SubLists, that create spliterators with current non-lazy values). (2) We perform only
-		 * a single ConcurrentModificationException check at the end of forEach (the most performance-sensitive method). When using forEach
-		 * (as opposed to iterators), we can normally only detect interference after actions, not before. Further CME-triggering checks
-		 * apply to all other possible violations of assumptions for example null or too-small vals array given its size(), that could only
-		 * have occurred due to interference. This allows the inner loop of forEach to run without any further checks, and simplifies
-		 * lambda-resolution. While this does entail a number of checks, note that in the common case of list.stream().forEach(a), no checks
-		 * or other computation occur anywhere other than inside forEach itself. The other less-often-used methods cannot take advantage of
-		 * most of these streamlinings.
+		 * If ArrayLists were immutable, or structurally immutable (no adds, removes,
+		 * etc), we could implement their spliterators with Arrays.spliterator. Instead
+		 * we detect as much interference during traversal as practical without
+		 * sacrificing much performance. We rely primarily on modCounts. These are not
+		 * guaranteed to detect concurrency violations, and are sometimes overly
+		 * conservative about within-thread interference, but detect enough problems to
+		 * be worthwhile in practice. To carry this out, we (1) lazily initialize fence
+		 * and expectedModCount until the latest point that we need to commit to the
+		 * state we are checking against; thus improving precision. (This doesn't apply
+		 * to SubLists, that create spliterators with current non-lazy values). (2) We
+		 * perform only a single ConcurrentModificationException check at the end of
+		 * forEach (the most performance-sensitive method). When using forEach (as
+		 * opposed to iterators), we can normally only detect interference after
+		 * actions, not before. Further CME-triggering checks apply to all other
+		 * possible violations of assumptions for example null or too-small vals array
+		 * given its size(), that could only have occurred due to interference. This
+		 * allows the inner loop of forEach to run without any further checks, and
+		 * simplifies lambda-resolution. While this does entail a number of checks, note
+		 * that in the common case of list.stream().forEach(a), no checks or other
+		 * computation occur anywhere other than inside forEach itself. The other
+		 * less-often-used methods cannot take advantage of most of these streamlinings.
 		 */
 
 		private int expectedModCount; // initialized when fence set
@@ -259,8 +267,9 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 	private static final int DEFAULT_CAPACITY = 10;
 
 	/**
-	 * Shared empty array instance used for default sized empty instances. We distinguish this from EMPTY_VALUES to know how much to inflate
-	 * when first element is added.
+	 * Shared empty array instance used for default sized empty instances. We
+	 * distinguish this from EMPTY_VALUES to know how much to inflate when first
+	 * element is added.
 	 */
 	private static final int[] DEFAULT_CAPACITY_EMPTY_VALUES = {};
 
@@ -270,8 +279,9 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 	private static final int[] EMPTY_VALUES = {};
 
 	/**
-	 * The maximum size of array to allocate. Some VMs reserve some header words in an array. Attempts to allocate larger arrays may result
-	 * in OutOfMemoryError: Requested array size exceeds VM limit
+	 * The maximum size of array to allocate. Some VMs reserve some header words in
+	 * an array. Attempts to allocate larger arrays may result in OutOfMemoryError:
+	 * Requested array size exceeds VM limit
 	 */
 	private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
 
@@ -302,9 +312,10 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 	private int size;
 
 	/**
-	 * The array buffer into which the elements of the ArrayList are stored. The capacity of the ArrayList is the length of this array
-	 * buffer. Any empty ArrayList with vals == DEFAULT_CAPACITY_EMPTY_VALUES will be expanded to DEFAULT_CAPACITY when the first element is
-	 * added.
+	 * The array buffer into which the elements of the ArrayList are stored. The
+	 * capacity of the ArrayList is the length of this array buffer. Any empty
+	 * ArrayList with vals == DEFAULT_CAPACITY_EMPTY_VALUES will be expanded to
+	 * DEFAULT_CAPACITY when the first element is added.
 	 */
 	transient int[] vals; // non-private to simplify nested class access
 
@@ -316,7 +327,8 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 	}
 
 	/**
-	 * Constructs a list containing the elements of the specified collection, in the order they are returned by the collection's iterator.
+	 * Constructs a list containing the elements of the specified collection, in the
+	 * order they are returned by the collection's iterator.
 	 *
 	 * @param a
 	 *            the collection whose elements are to be placed into this list
@@ -385,8 +397,9 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 	}
 
 	/**
-	 * Inserts the specified element at the specified position in this list. Shifts the element currently at that position (if any) and any
-	 * subsequent elements to the right (adds one to their indices).
+	 * Inserts the specified element at the specified position in this list. Shifts
+	 * the element currently at that position (if any) and any subsequent elements
+	 * to the right (adds one to their indices).
 	 *
 	 * @param index
 	 *            index at which the specified element is to be inserted
@@ -405,10 +418,12 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 	}
 
 	/**
-	 * Appends all of the elements in the specified collection to the end of this list, in the order that they are returned by the specified
-	 * collection's Iterator. The behavior of this operation is undefined if the specified collection is modified while the operation is in
-	 * progress. (This implies that the behavior of this call is undefined if the specified collection is this list, and this list is
-	 * nonempty.)
+	 * Appends all of the elements in the specified collection to the end of this
+	 * list, in the order that they are returned by the specified collection's
+	 * Iterator. The behavior of this operation is undefined if the specified
+	 * collection is modified while the operation is in progress. (This implies that
+	 * the behavior of this call is undefined if the specified collection is this
+	 * list, and this list is nonempty.)
 	 *
 	 * @param c
 	 *            collection containing elements to be added to this list
@@ -426,12 +441,15 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 	}
 
 	/**
-	 * Inserts all of the elements in the specified collection into this list, starting at the specified position. Shifts the element
-	 * currently at that position (if any) and any subsequent elements to the right (increases their indices). The new elements will appear
-	 * in the list in the order that they are returned by the specified collection's iterator.
+	 * Inserts all of the elements in the specified collection into this list,
+	 * starting at the specified position. Shifts the element currently at that
+	 * position (if any) and any subsequent elements to the right (increases their
+	 * indices). The new elements will appear in the list in the order that they are
+	 * returned by the specified collection's iterator.
 	 *
 	 * @param index
-	 *            index at which to insert the first element from the specified collection
+	 *            index at which to insert the first element from the specified
+	 *            collection
 	 * @param c
 	 *            collection containing elements to be added to this list
 	 * @return <tt>true</tt> if this list changed as a result of the call
@@ -498,7 +516,8 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 	}
 
 	/**
-	 * Removes all of the elements from this list. The list will be empty after this call returns.
+	 * Removes all of the elements from this list. The list will be empty after this
+	 * call returns.
 	 */
 	public void clear() {
 		modCount++;
@@ -506,7 +525,8 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 	}
 
 	/**
-	 * Returns a shallow copy of this <tt>ArrayList</tt> instance. (The elements themselves are not copied.)
+	 * Returns a shallow copy of this <tt>ArrayList</tt> instance. (The elements
+	 * themselves are not copied.)
 	 *
 	 * @return a clone of this <tt>ArrayList</tt> instance
 	 */
@@ -523,8 +543,10 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 	}
 
 	/**
-	 * Returns <tt>true</tt> if this list contains the specified element. More formally, returns <tt>true</tt> if and only if this list
-	 * contains at least one element <tt>e</tt> such that <tt>(o==null&nbsp;?&nbsp;e==null&nbsp;:&nbsp;o.equals(e))</tt>.
+	 * Returns <tt>true</tt> if this list contains the specified element. More
+	 * formally, returns <tt>true</tt> if and only if this list contains at least
+	 * one element <tt>e</tt> such that
+	 * <tt>(o==null&nbsp;?&nbsp;e==null&nbsp;:&nbsp;o.equals(e))</tt>.
 	 *
 	 * @param o
 	 *            element whose presence in this list is to be tested
@@ -535,8 +557,9 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 	}
 
 	/**
-	 * Increases the capacity of this <tt>ArrayList</tt> instance, if necessary, to ensure that it can hold at least the number of elements
-	 * specified by the minimum capacity argument.
+	 * Increases the capacity of this <tt>ArrayList</tt> instance, if necessary, to
+	 * ensure that it can hold at least the number of elements specified by the
+	 * minimum capacity argument.
 	 *
 	 * @param minCapacity
 	 *            the desired minimum capacity
@@ -587,7 +610,8 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 	}
 
 	/*
-	 * Private remove method that skips bounds checking and does not return the value removed.
+	 * Private remove method that skips bounds checking and does not return the
+	 * value removed.
 	 */
 	private void fastRemove(int index) {
 		modCount++;
@@ -634,7 +658,8 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 	}
 
 	/**
-	 * Increases the capacity to ensure that it can hold at least the number of elements specified by the minimum capacity argument.
+	 * Increases the capacity to ensure that it can hold at least the number of
+	 * elements specified by the minimum capacity argument.
 	 *
 	 * @param minCapacity
 	 *            the desired minimum capacity
@@ -661,9 +686,11 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 	}
 
 	/**
-	 * Returns the index of the first occurrence of the specified element in this list, or -1 if this list does not contain the element.
-	 * More formally, returns the lowest index <tt>i</tt> such that
-	 * <tt>(o==null&nbsp;?&nbsp;get(i)==null&nbsp;:&nbsp;o.equals(get(i)))</tt>, or -1 if there is no such index.
+	 * Returns the index of the first occurrence of the specified element in this
+	 * list, or -1 if this list does not contain the element. More formally, returns
+	 * the lowest index <tt>i</tt> such that
+	 * <tt>(o==null&nbsp;?&nbsp;get(i)==null&nbsp;:&nbsp;o.equals(get(i)))</tt>, or
+	 * -1 if there is no such index.
 	 */
 	public int indexOf(int o) {
 		for (int i = 0; i < size; i++)
@@ -672,8 +699,6 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 		return -1;
 	}
 
-	// Positional Access Operations
-
 	public String info() {
 		StringBuffer sb = new StringBuffer();
 		sb.append("[Info]\n");
@@ -681,6 +706,8 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 		sb.append(String.format("mem:\t%s", byteSize().toString()));
 		return sb.toString();
 	}
+
+	// Positional Access Operations
 
 	/**
 	 * Returns <tt>true</tt> if this list contains no elements.
@@ -704,8 +731,10 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 	}
 
 	/**
-	 * Returns the index of the last occurrence of the specified element in this list, or -1 if this list does not contain the element. More
-	 * formally, returns the highest index <tt>i</tt> such that <tt>(o==null&nbsp;?&nbsp;get(i)==null&nbsp;:&nbsp;o.equals(get(i)))</tt>, or
+	 * Returns the index of the last occurrence of the specified element in this
+	 * list, or -1 if this list does not contain the element. More formally, returns
+	 * the highest index <tt>i</tt> such that
+	 * <tt>(o==null&nbsp;?&nbsp;get(i)==null&nbsp;:&nbsp;o.equals(get(i)))</tt>, or
 	 * -1 if there is no such index.
 	 */
 	public int lastIndexOf(int o) {
@@ -728,9 +757,12 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 	}
 
 	/**
-	 * Returns a list iterator over the elements in this list (in proper sequence), starting at the specified position in the list. The
-	 * specified index indicates the first element that would be returned by an initial call to {@link ListIterator#next next}. An initial
-	 * call to {@link ListIterator#previous previous} would return the element with the specified index minus one.
+	 * Returns a list iterator over the elements in this list (in proper sequence),
+	 * starting at the specified position in the list. The specified index indicates
+	 * the first element that would be returned by an initial call to
+	 * {@link ListIterator#next next}. An initial call to
+	 * {@link ListIterator#previous previous} would return the element with the
+	 * specified index minus one.
 	 *
 	 * <p>
 	 * The returned list iterator is <a href="#fail-fast"><i>fail-fast</i></a>.
@@ -745,17 +777,19 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 	}
 
 	/**
-	 * Constructs an IndexOutOfBoundsException detail message. Of the many possible refactorings of the error handling code, this
-	 * "outlining" performs best with both server and client VMs.
+	 * Constructs an IndexOutOfBoundsException detail message. Of the many possible
+	 * refactorings of the error handling code, this "outlining" performs best with
+	 * both server and client VMs.
 	 */
 	private String outOfBoundsMsg(int index) {
 		return "Index: " + index + ", Size: " + size;
 	}
 
 	/**
-	 * Checks if the given index is in range. If not, throws an appropriate runtime exception. This method does *not* check if the index is
-	 * negative: It is always used immediately prior to an array access, which throws an ArrayIndexOutOfBoundsException if index is
-	 * negative.
+	 * Checks if the given index is in range. If not, throws an appropriate runtime
+	 * exception. This method does *not* check if the index is negative: It is
+	 * always used immediately prior to an array access, which throws an
+	 * ArrayIndexOutOfBoundsException if index is negative.
 	 */
 	private void rangeCheck(int index) {
 		if (index >= size)
@@ -788,10 +822,13 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 	}
 
 	/**
-	 * Removes the first occurrence of the specified element from this list, if it is present. If the list does not contain the element, it
-	 * is unchanged. More formally, removes the element with the lowest index <tt>i</tt> such that
-	 * <tt>(o==null&nbsp;?&nbsp;get(i)==null&nbsp;:&nbsp;o.equals(get(i)))</tt> (if such an element exists). Returns <tt>true</tt> if this
-	 * list contained the specified element (or equivalently, if this list changed as a result of the call).
+	 * Removes the first occurrence of the specified element from this list, if it
+	 * is present. If the list does not contain the element, it is unchanged. More
+	 * formally, removes the element with the lowest index <tt>i</tt> such that
+	 * <tt>(o==null&nbsp;?&nbsp;get(i)==null&nbsp;:&nbsp;o.equals(get(i)))</tt> (if
+	 * such an element exists). Returns <tt>true</tt> if this list contained the
+	 * specified element (or equivalently, if this list changed as a result of the
+	 * call).
 	 *
 	 * @param o
 	 *            element to be removed from this list, if present
@@ -808,17 +845,21 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 	}
 
 	/**
-	 * Removes from this list all of its elements that are contained in the specified collection.
+	 * Removes from this list all of its elements that are contained in the
+	 * specified collection.
 	 *
 	 * @param c
 	 *            collection containing elements to be removed from this list
 	 * @return {@code true} if this list changed as a result of the call
 	 * @throws ClassCastException
-	 *             if the class of an element of this list is incompatible with the specified collection
+	 *             if the class of an element of this list is incompatible with the
+	 *             specified collection
 	 *             (<a href="Collection.html#optional-restrictions">optional</a>)
 	 * @throws NullPointerException
-	 *             if this list contains a null element and the specified collection does not permit null elements
-	 *             (<a href="Collection.html#optional-restrictions">optional</a>), or if the specified collection is null
+	 *             if this list contains a null element and the specified collection
+	 *             does not permit null elements
+	 *             (<a href="Collection.html#optional-restrictions">optional</a>),
+	 *             or if the specified collection is null
 	 * @see Collection#contains(Object)
 	 */
 	public boolean removeAll(Collection<Integer> c) {
@@ -827,8 +868,8 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 	}
 
 	/**
-	 * Removes the element at the specified position in this list. Shifts any subsequent elements to the left (subtracts one from their
-	 * indices).
+	 * Removes the element at the specified position in this list. Shifts any
+	 * subsequent elements to the left (subtracts one from their indices).
 	 *
 	 * @param index
 	 *            the index of the element to be removed
@@ -893,12 +934,15 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 	}
 
 	/**
-	 * Removes from this list all of the elements whose index is between {@code fromIndex}, inclusive, and {@code toIndex}, exclusive.
-	 * Shifts any succeeding elements to the left (reduces their index). This call shortens the list by {@code (toIndex - fromIndex)}
-	 * elements. (If {@code toIndex==fromIndex}, this operation has no effect.)
+	 * Removes from this list all of the elements whose index is between
+	 * {@code fromIndex}, inclusive, and {@code toIndex}, exclusive. Shifts any
+	 * succeeding elements to the left (reduces their index). This call shortens the
+	 * list by {@code (toIndex - fromIndex)} elements. (If
+	 * {@code toIndex==fromIndex}, this operation has no effect.)
 	 *
 	 * @throws IndexOutOfBoundsException
-	 *             if {@code fromIndex} or {@code toIndex} is out of range ({@code fromIndex < 0 ||
+	 *             if {@code fromIndex} or {@code toIndex} is out of range
+	 *             ({@code fromIndex < 0 ||
 	 *          fromIndex >= size() ||
 	 *          toIndex > size() ||
 	 *          toIndex < fromIndex})
@@ -931,18 +975,22 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 	}
 
 	/**
-	 * Retains only the elements in this list that are contained in the specified collection. In other words, removes from this list all of
-	 * its elements that are not contained in the specified collection.
+	 * Retains only the elements in this list that are contained in the specified
+	 * collection. In other words, removes from this list all of its elements that
+	 * are not contained in the specified collection.
 	 *
 	 * @param c
 	 *            collection containing elements to be retained in this list
 	 * @return {@code true} if this list changed as a result of the call
 	 * @throws ClassCastException
-	 *             if the class of an element of this list is incompatible with the specified collection
+	 *             if the class of an element of this list is incompatible with the
+	 *             specified collection
 	 *             (<a href="Collection.html#optional-restrictions">optional</a>)
 	 * @throws NullPointerException
-	 *             if this list contains a null element and the specified collection does not permit null elements
-	 *             (<a href="Collection.html#optional-restrictions">optional</a>), or if the specified collection is null
+	 *             if this list contains a null element and the specified collection
+	 *             does not permit null elements
+	 *             (<a href="Collection.html#optional-restrictions">optional</a>),
+	 *             or if the specified collection is null
 	 * @see Collection#contains(Object)
 	 */
 	public boolean retainAll(Collection<Integer> c) {
@@ -965,7 +1013,8 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 	}
 
 	/**
-	 * Replaces the element at the specified position in this list with the specified element.
+	 * Replaces the element at the specified position in this list with the
+	 * specified element.
 	 *
 	 * @param index
 	 *            index of the element to replace
@@ -1008,12 +1057,14 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 	}
 
 	/**
-	 * Creates a <em><a href="Spliterator.html#binding">late-binding</a></em> and <em>fail-fast</em> {@link Spliterator} over the elements
-	 * in this list.
+	 * Creates a <em><a href="Spliterator.html#binding">late-binding</a></em> and
+	 * <em>fail-fast</em> {@link Spliterator} over the elements in this list.
 	 *
 	 * <p>
-	 * The {@code Spliterator} reports {@link Spliterator#SIZED}, {@link Spliterator#SUBSIZED}, and {@link Spliterator#ORDERED}. Overriding
-	 * implementations should document the reporting of additional characteristic values.
+	 * The {@code Spliterator} reports {@link Spliterator#SIZED},
+	 * {@link Spliterator#SUBSIZED}, and {@link Spliterator#ORDERED}. Overriding
+	 * implementations should document the reporting of additional characteristic
+	 * values.
 	 *
 	 * @return a {@code Spliterator} over the elements in this list
 	 * @since 1.8
@@ -1023,27 +1074,33 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 	}
 
 	/**
-	 * Returns a view of the portion of this list between the specified {@code fromIndex}, inclusive, and {@code toIndex}, exclusive. (If
-	 * {@code fromIndex} and {@code toIndex} are equal, the returned list is empty.) The returned list is backed by this list, so
-	 * non-structural changes in the returned list are reflected in this list, and vice-versa. The returned list supports all of the
-	 * optional list operations.
+	 * Returns a view of the portion of this list between the specified
+	 * {@code fromIndex}, inclusive, and {@code toIndex}, exclusive. (If
+	 * {@code fromIndex} and {@code toIndex} are equal, the returned list is empty.)
+	 * The returned list is backed by this list, so non-structural changes in the
+	 * returned list are reflected in this list, and vice-versa. The returned list
+	 * supports all of the optional list operations.
 	 *
 	 * <p>
-	 * This method eliminates the need for explicit range operations (of the sort that commonly exist for arrays). Any operation that
-	 * expects a list can be used as a range operation by passing a subList view instead of a whole list. For example, the following idiom
-	 * removes a range of elements from a list:
+	 * This method eliminates the need for explicit range operations (of the sort
+	 * that commonly exist for arrays). Any operation that expects a list can be
+	 * used as a range operation by passing a subList view instead of a whole list.
+	 * For example, the following idiom removes a range of elements from a list:
 	 * 
 	 * <pre>
 	 * list.subList(from, to).clear();
 	 * </pre>
 	 * 
-	 * Similar idioms may be constructed for {@link #indexOf(Object)} and {@link #lastIndexOf(Object)}, and all of the algorithms in the
+	 * Similar idioms may be constructed for {@link #indexOf(Object)} and
+	 * {@link #lastIndexOf(Object)}, and all of the algorithms in the
 	 * {@link Collections} class can be applied to a subList.
 	 *
 	 * <p>
-	 * The semantics of the list returned by this method become undefined if the backing list (i.e., this list) is <i>structurally
-	 * modified</i> in any way other than via the returned list. (Structural modifications are those that change the size of this list, or
-	 * otherwise perturb it in such a fashion that iterations in progress may yield incorrect results.)
+	 * The semantics of the list returned by this method become undefined if the
+	 * backing list (i.e., this list) is <i>structurally modified</i> in any way
+	 * other than via the returned list. (Structural modifications are those that
+	 * change the size of this list, or otherwise perturb it in such a fashion that
+	 * iterations in progress may yield incorrect results.)
 	 *
 	 * @throws IndexOutOfBoundsException
 	 *             {@inheritDoc}
@@ -1077,16 +1134,19 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 	}
 
 	/**
-	 * Returns an array containing all of the elements in this list in proper sequence (from first to last element).
+	 * Returns an array containing all of the elements in this list in proper
+	 * sequence (from first to last element).
 	 *
 	 * <p>
-	 * The returned array will be "safe" in that no references to it are maintained by this list. (In other words, this method must allocate
-	 * a new array). The caller is thus free to modify the returned array.
+	 * The returned array will be "safe" in that no references to it are maintained
+	 * by this list. (In other words, this method must allocate a new array). The
+	 * caller is thus free to modify the returned array.
 	 *
 	 * <p>
 	 * This method acts as bridge between array-based and collection-based APIs.
 	 *
-	 * @return an array containing all of the elements in this list in proper sequence
+	 * @return an array containing all of the elements in this list in proper
+	 *         sequence
 	 */
 	public Object[] toArray() {
 		// return Arrays.copyOf(vals, size);
@@ -1095,21 +1155,27 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 	}
 
 	/**
-	 * Returns an array containing all of the elements in this list in proper sequence (from first to last element); the runtime type of the
-	 * returned array is that of the specified array. If the list fits in the specified array, it is returned therein. Otherwise, a new
-	 * array is allocated with the runtime type of the specified array and the size of this list.
+	 * Returns an array containing all of the elements in this list in proper
+	 * sequence (from first to last element); the runtime type of the returned array
+	 * is that of the specified array. If the list fits in the specified array, it
+	 * is returned therein. Otherwise, a new array is allocated with the runtime
+	 * type of the specified array and the size of this list.
 	 *
 	 * <p>
-	 * If the list fits in the specified array with room to spare (i.e., the array has more elements than the list), the element in the
-	 * array immediately following the end of the collection is set to <tt>null</tt>. (This is useful in determining the length of the list
-	 * <i>only</i> if the caller knows that the list does not contain any null elements.)
+	 * If the list fits in the specified array with room to spare (i.e., the array
+	 * has more elements than the list), the element in the array immediately
+	 * following the end of the collection is set to <tt>null</tt>. (This is useful
+	 * in determining the length of the list <i>only</i> if the caller knows that
+	 * the list does not contain any null elements.)
 	 *
 	 * @param a
-	 *            the array into which the elements of the list are to be stored, if it is big enough; otherwise, a new array of the same
-	 *            runtime type is allocated for this purpose.
+	 *            the array into which the elements of the list are to be stored, if
+	 *            it is big enough; otherwise, a new array of the same runtime type
+	 *            is allocated for this purpose.
 	 * @return an array containing the elements of the list
 	 * @throws ArrayStoreException
-	 *             if the runtime type of the specified array is not a supertype of the runtime type of every element in this list
+	 *             if the runtime type of the specified array is not a supertype of
+	 *             the runtime type of every element in this list
 	 * @throws NullPointerException
 	 *             if the specified array is null
 	 */
@@ -1131,6 +1197,12 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 		for (int i = 0; i < size(); i++) {
 			ret.add(get(i));
 		}
+		return ret;
+	}
+
+	public IntegerMatrix toIntegerMatrix() {
+		IntegerMatrix ret = new IntegerMatrix(1);
+		ret.add(this);
 		return ret;
 	}
 
@@ -1165,8 +1237,9 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 	}
 
 	/**
-	 * Trims the capacity of this <tt>ArrayList</tt> instance to be the list's current size. An application can use this operation to
-	 * minimize the storage of an <tt>ArrayList</tt> instance.
+	 * Trims the capacity of this <tt>ArrayList</tt> instance to be the list's
+	 * current size. An application can use this operation to minimize the storage
+	 * of an <tt>ArrayList</tt> instance.
 	 */
 	public void trimToSize() {
 		modCount++;
