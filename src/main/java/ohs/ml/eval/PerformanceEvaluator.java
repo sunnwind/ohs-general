@@ -152,7 +152,7 @@ public class PerformanceEvaluator {
 		Indexer<String> labelIdxer = Generics.newIndexer();
 
 		{
-			Set<String> L = Generics.newTreeSet();
+			Counter<String> c = Generics.newCounter();
 
 			for (String bio : bioIdxer) {
 				String[] ps = bio.split("-");
@@ -161,11 +161,17 @@ public class PerformanceEvaluator {
 					if (l.equals("B") || l.equals("I")) {
 						l = ps[1];
 					}
-					L.add(l);
+					c.incrementCount(l, 1);
 				}
 			}
-			labelIdxer.addAll(L);
-			labelIdxer.add("O");
+
+			if (c.size() > 0) {
+				labelIdxer.addAll(Generics.newTreeSet(c.keySet()));
+				labelIdxer.add("O");
+			} else {
+				labelIdxer = Generics.newIndexer(bioIdxer);
+			}
+
 		}
 
 		Counter<Integer> corCnts = Generics.newCounter(labelIdxer.size());
@@ -182,15 +188,6 @@ public class PerformanceEvaluator {
 			ansCnts.incrementAll(countLabelSeqs(anss, labelIdxer));
 			predCnts.incrementAll(countLabelSeqs(preds, labelIdxer));
 			corCnts.incrementAll(countCommonLabelSeqs(anss, preds, labelIdxer));
-		}
-
-		for (int l : ansCnts.keySet()) {
-			double cnt1 = ansCnts.getCount(l);
-			double cnt2 = corCnts.getCount(l);
-
-			if (cnt2 > cnt1) {
-				System.out.println();
-			}
 		}
 
 		IntegerArray ans_cnts = new IntegerArray(labelIdxer.size());

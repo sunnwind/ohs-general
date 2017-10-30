@@ -47,12 +47,6 @@ public interface Matrix extends Serializable {
 
 	public int[] rowIndexes();
 
-	public Matrix rows(int size);
-
-	public Matrix rows(int start, int size);
-
-	public Matrix rows(int[] is);
-
 	public int rowSize();
 
 	public void set(int i, int j, double v);
@@ -66,6 +60,12 @@ public interface Matrix extends Serializable {
 	public void setRows(List<Vector> rows);
 
 	public int sizeOfEntries();
+
+	public Matrix subMatrix(int size);
+
+	public Matrix subMatrix(int start, int size);
+
+	public Matrix subMatrix(int[] is);
 
 	public double sum();
 

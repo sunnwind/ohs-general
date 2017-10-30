@@ -1,7 +1,5 @@
 package ohs.ml.neuralnet.layer;
 
-import java.util.List;
-
 import ohs.math.ArrayUtils;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
@@ -9,7 +7,7 @@ import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
 import ohs.ml.neuralnet.com.ParameterInitializer;
-import ohs.utils.Generics;
+import ohs.types.generic.Pair;
 
 /**
  * http://cthorey.github.io./backprop_conv/
@@ -124,8 +122,8 @@ public class ConvolutionalLayer extends Layer {
 
 			int len = dYm.rowSize();
 
-			DenseMatrix dZm = tmp_dZ.rows(start, len);
-			DenseMatrix dXm = tmp_dX.rows(start, len);
+			DenseMatrix dZm = tmp_dZ.subMatrix(start, len);
+			DenseMatrix dXm = tmp_dX.subMatrix(start, len);
 
 			dZm.setAll(0);
 			dXm.setAll(0);
@@ -172,36 +170,40 @@ public class ConvolutionalLayer extends Layer {
 	 */
 	@Override
 	public DenseTensor forward(Object I) {
-		DenseTensor X = (DenseTensor) I;
+		DenseTensor X = null;
+
+		if (I instanceof Pair) {
+			Pair<DenseTensor, DenseTensor> p = (Pair<DenseTensor, DenseTensor>) I;
+			X = p.getSecond();
+		} else {
+			X = (DenseTensor) I;
+		}
+
 		this.X = X;
 
-		int data_size = X.rowSize();
+		DenseTensor Y = new DenseTensor();
+		DenseTensor Z = new DenseTensor();
+
+		Y.ensureCapacity(X.size());
+		Z.ensureCapacity(X.size());
 
 		VectorUtils.enlarge(tmp_Y, X.sizeOfInnerVectors(), num_filters);
 		VectorUtils.enlarge(tmp_Z, X.sizeOfInnerVectors(), filter_size);
 
-		Y = new DenseTensor();
-		Y.ensureCapacity(data_size);
-
-		Z = new DenseTensor();
-		Z.ensureCapacity(data_size);
-
-		for (int i = 0, start = 0; i < data_size; i++) {
+		for (int i = 0, start = 0; i < X.size(); i++) {
 			DenseMatrix Xm = X.get(i);
-			int len = Xm.rowSize();
+			int sent_len = Xm.rowSize();
 
 			/*
 			 * sentence length = # of feature maps
 			 */
-			int num_feature_maps = len;
-
-			tmp_Z.rows(start, num_feature_maps);
+			int num_feat_maps = sent_len;
 
 			/*
 			 * Zm = feature maps x filter size (concatenated embeddings)
 			 */
 
-			DenseMatrix Zm = tmp_Z.rows(start, num_feature_maps);
+			DenseMatrix Zm = tmp_Z.subMatrix(start, num_feat_maps);
 			Zm.setAll(0);
 
 			/*
@@ -209,9 +211,9 @@ public class ConvolutionalLayer extends Layer {
 			 * window size)
 			 */
 
-			for (int j = 0; j < num_feature_maps; j++) {
+			for (int j = 0; j < num_feat_maps; j++) {
 				DenseVector z = Zm.row(j);
-				for (int k = j, l = 0; k < j + window_size && k < num_feature_maps; k++) {
+				for (int k = j, l = 0; k < j + window_size && k < num_feat_maps; k++) {
 					DenseVector x = Xm.row(k);
 					ArrayUtils.copy(x.values(), 0, z.values(), l, x.size());
 					l += x.size();
@@ -224,7 +226,8 @@ public class ConvolutionalLayer extends Layer {
 			 * Ym = feature maps X filters
 			 */
 
-			DenseMatrix Ym = tmp_Y.rows(start, num_feature_maps);
+			DenseMatrix Ym = tmp_Y.subMatrix(start, num_feat_maps);
+			Ym.setAll(0);
 
 			VectorMath.product(Zm, W, Ym, false);
 
@@ -232,9 +235,11 @@ public class ConvolutionalLayer extends Layer {
 
 			Y.add(Ym);
 
-			start += data_size;
-
+			start += sent_len;
 		}
+
+		this.Y = Y;
+		this.Z = Z;
 
 		return Y;
 	}

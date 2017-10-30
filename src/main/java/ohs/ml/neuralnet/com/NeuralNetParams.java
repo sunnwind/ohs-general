@@ -111,7 +111,7 @@ public class NeuralNetParams {
 		return thread_size;
 	}
 
-	public int getTruncatedBackPropagationThroughTime() {
+	public int getBPTTSize() {
 		return bptt;
 	}
 

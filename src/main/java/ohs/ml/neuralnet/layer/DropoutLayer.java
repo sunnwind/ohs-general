@@ -6,6 +6,8 @@ import java.io.ObjectOutputStream;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
+import ohs.matrix.DenseTensor;
+import ohs.types.generic.Pair;
 
 /**
  * http://cs231n.github.io/neural-networks-2/
@@ -39,11 +41,24 @@ public class DropoutLayer extends Layer {
 	}
 
 	@Override
-	public DenseMatrix backward(Object I) {
-		DenseMatrix dY = (DenseMatrix) I;
-		VectorUtils.enlarge(tmp_dX, dY.rowSize(), dY.colSize());
-		DenseMatrix dX = tmp_dX.rows(dY.rowSize());
-		VectorUtils.copy(dY, dX);
+	public DenseTensor backward(Object I) {
+		DenseTensor dY = (DenseTensor) I;
+		VectorUtils.enlarge(tmp_dX, dY.sizeOfInnerVectors(), dY.row(0).colSize());
+
+		DenseTensor dX = new DenseTensor();
+		dX.ensureCapacity(dY.size());
+
+		int start = 0;
+
+		for (DenseMatrix dYm : dY) {
+			DenseMatrix dXm = tmp_dX.subMatrix(start, dYm.rowSize());
+			start += dYm.rowSize();
+
+			VectorUtils.copy(dYm, dXm);
+
+			dX.add(dXm);
+		}
+
 		return dX;
 	}
 
@@ -53,26 +68,45 @@ public class DropoutLayer extends Layer {
 	}
 
 	@Override
-	public DenseMatrix forward(Object I) {
-		DenseMatrix X = (DenseMatrix) I;
-		int data_size = X.rowSize();
+	public Object forward(Object I) {
+		DenseTensor X = null;
 
-		VectorUtils.enlarge(tmp_Y, data_size, X.colSize());
-
-		DenseMatrix Y = tmp_Y.rows(data_size);
-
-		if (is_testing) {
-			VectorUtils.copy(X, Y);
+		if (I instanceof Pair) {
+			Pair<DenseTensor, DenseTensor> p = (Pair<DenseTensor, DenseTensor>) I;
+			X = p.getSecond();
 		} else {
-			VectorUtils.enlarge(tmp_M, data_size, X.colSize());
-
-			DenseMatrix M = tmp_M.rows(data_size);
-			VectorMath.random(0, 1, M);
-			VectorMath.mask(M, p);
-			M.multiply(1f / p); // inverted drop-out
-
-			VectorMath.multiply(X, M, Y);
+			X = (DenseTensor) I;
 		}
+
+		VectorUtils.enlarge(tmp_Y, X.sizeOfInnerVectors(), X.get(0).colSize());
+
+		DenseTensor Y = new DenseTensor();
+		Y.ensureCapacity(X.size());
+
+		int start = 0;
+		for (DenseMatrix Xm : X) {
+			DenseMatrix Ym = tmp_Y.subMatrix(start, Xm.rowSize());
+			Ym.setAll(0);
+
+			start += Xm.rowSize();
+
+			if (is_testing) {
+				VectorUtils.copy(Xm, Ym);
+			} else {
+				VectorUtils.enlarge(tmp_M, Xm.rowSize(), Xm.colSize());
+
+				DenseMatrix M = tmp_M.subMatrix(Xm.rowSize());
+				M.setAll(0);
+
+				VectorMath.random(0, 1, M);
+				VectorMath.mask(M, p);
+				M.multiply(1f / p); // inverted drop-out
+				VectorMath.multiply(Xm, M, Ym);
+			}
+
+			Y.add(Ym);
+		}
+
 		return Y;
 	}
 

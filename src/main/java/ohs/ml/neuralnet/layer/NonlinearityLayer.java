@@ -2,7 +2,6 @@ package ohs.ml.neuralnet.layer;
 
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.sql.Date;
 
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
@@ -23,9 +22,9 @@ public class NonlinearityLayer extends Layer {
 
 	private DenseMatrix tmp_Y = new DenseMatrix(0);
 
-	private Object X;
+	private DenseTensor X;
 
-	private Object Y;
+	private DenseTensor Y;
 
 	public NonlinearityLayer(Nonlinearity non) {
 		this.non = non;
@@ -37,46 +36,30 @@ public class NonlinearityLayer extends Layer {
 
 	@Override
 	public Object backward(Object I) {
-		Object ret = null;
+		DenseTensor dY = (DenseTensor) I;
+		DenseTensor dX = new DenseTensor();
+		dX.ensureCapacity(dY.size());
 
-		if (I instanceof DenseMatrix) {
-			DenseMatrix dY = (DenseMatrix) I;
-			int data_size = dY.rowSize();
+		DenseTensor Y = this.Y;
 
-			VectorUtils.enlarge(tmp_dX, dY.rowSize(), dY.colSize());
+		VectorUtils.enlarge(tmp_dX, dY.sizeOfInnerVectors(), dY.get(0).colSize());
 
-			DenseMatrix Y = (DenseMatrix) this.Y;
+		int start = 0;
 
-			non.backward(Y, Y);
+		for (int i = 0; i < dY.size(); i++) {
+			DenseMatrix dYm = dY.get(i);
+			DenseMatrix Ym = Y.get(i);
+			non.backward(Ym, Ym);
 
-			DenseMatrix dX = tmp_dX.rows(data_size);
-			VectorMath.multiply(dY, Y, dX);
-			ret = dX;
+			DenseMatrix dXm = tmp_dX.subMatrix(start, Ym.rowSize());
+			dXm.setAll(0);
+			start += Ym.rowSize();
 
-		} else if (I instanceof DenseTensor) {
-			DenseTensor dY = (DenseTensor) I;
-
-			VectorUtils.enlarge(tmp_dX, dY.sizeOfInnerVectors(), dY.get(0).colSize());
-
-			DenseTensor Y = (DenseTensor) this.Y;
-			DenseTensor dX = new DenseTensor();
-			dX.ensureCapacity(Y.rowSize());
-
-			for (int i = 0, start = 0; i < Y.rowSize(); i++) {
-				DenseMatrix dYm = dY.get(i);
-				DenseMatrix Ym = Y.get(i);
-				non.backward(Ym, Ym);
-
-				DenseMatrix dXm = tmp_dX.rows(start, Ym.rowSize());
-				VectorMath.multiply(dYm, Ym, dXm);
-				dX.add(dXm);
-
-				start += Ym.rowSize();
-			}
-			ret = dX;
+			VectorMath.multiply(dYm, Ym, dXm);
+			dX.add(dXm);
 		}
 
-		return ret;
+		return dX;
 	}
 
 	@Override
@@ -86,38 +69,27 @@ public class NonlinearityLayer extends Layer {
 
 	@Override
 	public Object forward(Object I) {
-		this.X = I;
+		this.X = (DenseTensor) I;
 
-		if (I instanceof DenseMatrix) {
-			DenseMatrix X = (DenseMatrix) I;
-			int data_size = X.rowSize();
+		DenseTensor X = (DenseTensor) I;
+		DenseTensor Y = new DenseTensor();
+		Y.ensureCapacity(X.size());
 
-			if (tmp_Y.rowSize() < data_size) {
-				tmp_Y = X.copy(true);
-			}
+		VectorUtils.enlarge(tmp_Y, X.sizeOfInnerVectors(), X.get(0).colSize());
+		int start = 0;
 
-			DenseMatrix Y = tmp_Y.rows(data_size);
-			non.forward(X, Y);
-			this.Y = Y;
-		} else if (I instanceof DenseTensor) {
-			DenseTensor X = (DenseTensor) I;
+		for (int i = 0; i < X.size(); i++) {
+			DenseMatrix Xm = X.get(i);
+			DenseMatrix Ym = tmp_Y.subMatrix(start, Xm.rowSize());
+			Ym.setAll(0);
 
-			if (tmp_Y.rowSize() < X.sizeOfInnerVectors()) {
-				tmp_Y = new DenseMatrix(X.sizeOfInnerVectors(), X.get(0).colSize());
-			}
+			start += Xm.rowSize();
 
-			DenseTensor Y = new DenseTensor();
-			Y.ensureCapacity(X.size());
-
-			for (int i = 0, start = 0; i < X.size(); i++) {
-				DenseMatrix Xm = X.get(i);
-				DenseMatrix Ym = tmp_Y.rows(start, Xm.rowSize());
-				non.forward(Xm, Ym);
-				Y.add(Ym);
-				start += Xm.rowSize();
-			}
-			this.Y = Y;
+			non.forward(Xm, Ym);
+			Y.add(Ym);
 		}
+
+		this.Y = Y;
 		return Y;
 	}
 

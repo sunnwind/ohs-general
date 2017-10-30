@@ -36,8 +36,6 @@ public class NeuralNet extends ArrayList<Layer> {
 	 */
 	private static final long serialVersionUID = -8546621903237371147L;
 
-	private static final String RecurrentLayer = null;
-
 	private Indexer<String> labelIdxer;
 
 	private TaskType tt;
@@ -62,7 +60,7 @@ public class NeuralNet extends ArrayList<Layer> {
 		readObject(fileName);
 	}
 
-	public Object backward(DenseMatrix D) {
+	public Object backward(DenseTensor D) {
 		Object dY = D;
 		Object dX = null;
 		for (int i = size() - 1; i >= 0; i--) {
@@ -73,13 +71,21 @@ public class NeuralNet extends ArrayList<Layer> {
 		return dX;
 	}
 
-	public IntegerArray classify(Object I) {
-		DenseMatrix Yh = score(I);
-		IntegerArray yh = new IntegerArray(Yh.rowSize());
-		for (int i = 0; i < Yh.rowSize(); i++) {
-			yh.add(Yh.row(i).argMax());
+	public DenseMatrix classify(Object I) {
+		DenseTensor Yh = (DenseTensor) score(I);
+		DenseMatrix ret = new DenseMatrix();
+		ret.ensureCapacity(Yh.size());
+
+		for (int i = 0; i < Yh.size(); i++) {
+			DenseMatrix Yhm = Yh.get(i);
+			DenseVector P = new DenseVector(Yhm.rowSize());
+
+			for (int j = 0; j < Yhm.rowSize(); j++) {
+				P.add(j, Yhm.row(j).argMax());
+			}
+			ret.add(P);
 		}
-		return yh;
+		return ret;
 	}
 
 	public Object forward(Object I) {
@@ -237,8 +243,8 @@ public class NeuralNet extends ArrayList<Layer> {
 		return O.row(0);
 	}
 
-	public DenseMatrix score(Object I) {
-		return (DenseMatrix) forward(I);
+	public Object score(Object I) {
+		return forward(I);
 	}
 
 	public void setIsTesting(boolean is_testing) {

@@ -13,18 +13,17 @@ import ohs.matrix.SparseMatrix;
 import ohs.ml.neuralnet.com.ParameterUpdater.OptimizerType;
 import ohs.ml.neuralnet.layer.BidirectionalRecurrentLayer;
 import ohs.ml.neuralnet.layer.ConvolutionalLayer;
-import ohs.ml.neuralnet.layer.DiscreteFeatureLayer;
+import ohs.ml.neuralnet.layer.DiscreteFeatureEmbeddingLayer;
 import ohs.ml.neuralnet.layer.DropoutLayer;
 import ohs.ml.neuralnet.layer.EmbeddingLayer;
 import ohs.ml.neuralnet.layer.FullyConnectedLayer;
-import ohs.ml.neuralnet.layer.Layer;
-import ohs.ml.neuralnet.layer.LstmLayer;
 import ohs.ml.neuralnet.layer.MaxPoolingLayer;
 import ohs.ml.neuralnet.layer.NonlinearityLayer;
 import ohs.ml.neuralnet.layer.RecurrentLayer.Type;
 import ohs.ml.neuralnet.layer.RnnLayer;
 import ohs.ml.neuralnet.layer.SoftmaxLayer;
 import ohs.ml.neuralnet.nonlinearity.ReLU;
+import ohs.ml.neuralnet.nonlinearity.Tanh;
 import ohs.nlp.ling.types.MDocument;
 import ohs.nlp.ling.types.MSentence;
 import ohs.nlp.ling.types.MToken;
@@ -34,7 +33,6 @@ import ohs.types.generic.Vocab;
 import ohs.types.generic.Vocab.SYM;
 import ohs.types.number.IntegerArray;
 import ohs.types.number.IntegerMatrix;
-import ohs.types.number.IntegerTensor;
 import ohs.utils.DataSplitter;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
@@ -66,10 +64,10 @@ public class Apps {
 		nnp.setOptimizerType(OptimizerType.ADAM);
 		nnp.setGradientClipCutoff(10);
 
-		IntegerMatrix X = new IntegerMatrix();
-		IntegerMatrix Y = new IntegerMatrix();
-		IntegerMatrix Xt = new IntegerMatrix();
-		IntegerMatrix Yt = new IntegerMatrix();
+		DenseTensor X = new DenseTensor();
+		DenseMatrix Y = new DenseMatrix();
+		DenseTensor Xt = new DenseTensor();
+		DenseMatrix Yt = new DenseMatrix();
 
 		List<String> lines = Generics.newLinkedList();
 
@@ -137,19 +135,19 @@ public class Apps {
 			// }
 			// t.add(vocab.indexOf(SYM.END.getText()));
 
-			IntegerArray x = new IntegerArray(t.size() - 1);
-			IntegerArray y = new IntegerArray(t.size() - 1);
+			DenseVector x = new DenseVector(t.size() - 1);
+			DenseVector y = new DenseVector(t.size() - 1);
 
 			for (int j = 0; j < t.size() - 1; j++) {
-				x.add(t.get(j));
-				y.add(t.get(j + 1));
+				x.add(j, t.get(j));
+				y.add(j, t.get(j + 1));
 			}
 
 			if (i < train_size) {
-				X.add(x);
+				X.add(x.toDenseMatrix());
 				Y.add(y);
 			} else {
-				Xt.add(x);
+				Xt.add(x.toDenseMatrix());
 				Yt.add(y);
 			}
 		}
@@ -161,7 +159,7 @@ public class Apps {
 		int l1_size = 100;
 		int label_size = labelIdxer.size();
 		int type = 2;
-		int bptt = nnp.getTruncatedBackPropagationThroughTime();
+		int bptt = nnp.getBPTTSize();
 
 		NeuralNet nn = new NeuralNet(labelIdxer, vocab, TaskType.SEQ_LABELING);
 
@@ -171,7 +169,7 @@ public class Apps {
 			nn = new NeuralNet(modelFileName);
 			nn.prepare();
 		} else {
-			nn.add(new EmbeddingLayer(voc_size, emb_size, true, TaskType.SEQ_LABELING));
+			nn.add(new EmbeddingLayer(voc_size, emb_size, true));
 			nn.add(new DropoutLayer());
 			// nn.add(new BidirectionalRecurrentLayer(Type.LSTM, emb_size, l1_size,
 			// bptt, new ReLU()));
@@ -201,8 +199,11 @@ public class Apps {
 				for (int j = 0; j < rs.length; j++) {
 					int[] r = rs[j];
 					int r_size = r[1] - r[0];
-					IntegerMatrix Xm = new IntegerMatrix(r_size);
-					IntegerMatrix Ym = new IntegerMatrix(r_size);
+					DenseTensor Xm = new DenseTensor();
+					DenseMatrix Ym = new DenseMatrix();
+
+					Xm.ensureCapacity(r_size);
+					Ym.ensureCapacity(r_size);
 
 					for (int k = r[0]; k < r[1]; k++) {
 						int loc = locs.get(k);
@@ -230,43 +231,75 @@ public class Apps {
 		nnp.setInputSize(100);
 		nnp.setHiddenSize(50);
 		nnp.setOutputSize(10);
-		nnp.setBatchSize(Integer.MAX_VALUE);
+		nnp.setBatchSize(50);
 		nnp.setLearnRate(0.001);
 		nnp.setRegLambda(0.001);
-		nnp.setThreadSize(8);
-		nnp.setGradientClipCutoff(5);
+		nnp.setThreadSize(5);
+		nnp.setGradientClipCutoff(20);
 		nnp.setOptimizerType(OptimizerType.ADAM);
 
-		Pair<SparseMatrix, IntegerArray> train = DataReader.readFromSvmFormat("../../data/ml_data/mnist.txt");
-		Pair<SparseMatrix, IntegerArray> test = DataReader.readFromSvmFormat("../../data/ml_data/mnist.t.txt");
+		DenseTensor X = new DenseTensor();
+		DenseMatrix Y = new DenseMatrix();
 
-		DenseMatrix X = train.getFirst().toDenseMatrix();
-		IntegerArray Y = train.getSecond();
+		DenseTensor Xt = new DenseTensor();
+		DenseMatrix Yt = new DenseMatrix();
 
-		DenseMatrix Xt = test.getFirst().toDenseMatrix(test.getFirst().rowSize(), X.colSize());
-		IntegerArray Yt = test.getSecond();
+		Indexer<String> labelIdxer = Generics.newIndexer();
+		Vocab vocab = new Vocab();
 
-		Set<String> labels = Generics.newTreeSet();
-		for (int y : Y) {
-			labels.add(y + "");
+		{
+
+			Pair<SparseMatrix, IntegerArray> train = DataReader.readFromSvmFormat("../../data/ml_data/mnist.txt");
+			Pair<SparseMatrix, IntegerArray> test = DataReader.readFromSvmFormat("../../data/ml_data/mnist.t.txt");
+
+			DenseMatrix _X = train.getFirst().toDenseMatrix();
+			IntegerArray _Y = train.getSecond();
+
+			DenseMatrix _Xt = test.getFirst().toDenseMatrix(test.getFirst().rowSize(), _X.colSize());
+			IntegerArray _Yt = test.getSecond();
+
+			Set<String> labels = Generics.newTreeSet();
+			for (int y : _Y) {
+				labels.add(y + "");
+			}
+
+			labelIdxer = Generics.newIndexer(labels);
+
+			for (int i = 0; i < _X.colSize(); i++) {
+				vocab.add(i + "");
+			}
+
+			X.ensureCapacity(_X.rowSize());
+			Y = new DenseMatrix(_X.rowSize(), 1);
+
+			for (int i = 0; i < _X.rowSize(); i++) {
+				X.add(_X.row(i).toDenseMatrix());
+				Y.add(i, 0, _Y.get(i));
+			}
+
+			Xt.ensureCapacity(_Xt.rowSize());
+			Yt = new DenseMatrix(_Xt.rowSize(), 1);
+
+			for (int i = 0; i < _Xt.rowSize(); i++) {
+				Xt.add(_Xt.row(i).toDenseMatrix());
+				Yt.add(i, 0, _Yt.get(i));
+			}
 		}
 
-		Indexer<String> labelIdxer = Generics.newIndexer(labels);
-
-		int vocab_size = X.colSize();
-		int l1_size = 200;
-		int l2_size = 50;
-		int output_size = labels.size();
+		int vocab_size = vocab.size();
+		int l1_size = 100;
+		int l2_size = 25;
+		int output_size = labelIdxer.size();
 
 		NeuralNet nn = new NeuralNet(labelIdxer, null, TaskType.CLASSIFICATION);
 
 		nn.add(new FullyConnectedLayer(vocab_size, l1_size));
 		// nn.add(new BatchNormalizationLayer(l1_size));
-		nn.add(new NonlinearityLayer(new ReLU()));
+		nn.add(new NonlinearityLayer(new Tanh()));
 		// nn.add(new DropoutLayer());
 		nn.add(new FullyConnectedLayer(l1_size, l2_size));
 		// nn.add(new BatchNormalizationLayer(l2_size));
-		nn.add(new NonlinearityLayer(new ReLU()));
+		nn.add(new NonlinearityLayer(new Tanh()));
 		// nn.add(new DropoutLayer());
 		nn.add(new FullyConnectedLayer(l2_size, output_size));
 		nn.add(new SoftmaxLayer(output_size));
@@ -286,7 +319,7 @@ public class Apps {
 		nnp.setGradientAccumulatorResetSize(1000);
 		nnp.setLearnRate(0.001);
 		nnp.setLearnRateDecay(0.9);
-		nnp.setLearnRateDecaySize(200);
+		nnp.setLearnRateDecaySize(100);
 		nnp.setRegLambda(0.001);
 		nnp.setThreadSize(5);
 		nnp.setTruncatedBackPropagationThroughTime(1);
@@ -314,14 +347,14 @@ public class Apps {
 
 		int unk = 0;
 
-		IntegerTensor X = new IntegerTensor();
-		IntegerMatrix Y = new IntegerMatrix();
+		DenseTensor X = new DenseTensor();
+		DenseMatrix Y = new DenseMatrix();
 
 		X.ensureCapacity(trainData.size());
 		Y.ensureCapacity(trainData.size());
 
-		IntegerTensor Xt = new IntegerTensor();
-		IntegerMatrix Yt = new IntegerMatrix();
+		DenseTensor Xt = new DenseTensor();
+		DenseMatrix Yt = new DenseMatrix();
 
 		Xt.ensureCapacity(trainData.size());
 		Xt.ensureCapacity(trainData.size());
@@ -355,11 +388,10 @@ public class Apps {
 			for (int i = 0; i < D.size(); i++) {
 				MSentence s = D.get(i);
 
-				IntegerMatrix Xm = new IntegerMatrix();
-				IntegerArray Ym = new IntegerArray();
+				DenseMatrix Xm = new DenseMatrix();
+				DenseVector Ym = new DenseVector(s.size());
 
 				Xm.ensureCapacity(s.size());
-				Ym.ensureCapacity(s.size());
 
 				for (int j = 0; j < s.size(); j++) {
 					MToken t = s.get(j);
@@ -370,14 +402,14 @@ public class Apps {
 						f.add(vocab.getIndex(t.getString(4)));
 						f.addAll((IntegerArray) t.get(5));
 
-						Xm.add(f);
-						Ym.add(labelIdxer.getIndex(t.getString(3)));
+						Xm.add(new DenseVector(f.values()));
+						Ym.add(j, labelIdxer.getIndex(t.getString(3)));
 					} else {
 						f.add(vocab.indexOf(t.getString(4), 0));
 						f.addAll((IntegerArray) t.get(5));
 
-						Xm.add(f);
-						Ym.add(labelIdxer.getIndex(t.getString(3)));
+						Xm.add(new DenseVector(f.values()));
+						Ym.add(j, labelIdxer.getIndex(t.getString(3)));
 					}
 				}
 
@@ -402,11 +434,12 @@ public class Apps {
 		System.out.println(X.sizeOfEntries());
 
 		int voc_size = vocab.size();
-		int emb_size = 100;
+		int word_emb_size = 100;
+		int feat_emb_size = 20;
 		int l1_size = 100;
 		int label_size = labelIdxer.size();
 		int type = 2;
-		int bptt_size = nnp.getTruncatedBackPropagationThroughTime();
+		int bptt_size = nnp.getBPTTSize();
 
 		String modelFileName = "../../data/ml_data/ner_nn.ser";
 
@@ -418,14 +451,14 @@ public class Apps {
 			nn = new NeuralNet(modelFileName);
 			nn.prepare();
 		} else {
-			nn.add(new EmbeddingLayer(voc_size, emb_size, true, nn.getTaskType()));
+			nn.add(new EmbeddingLayer(voc_size, word_emb_size, true));
 
-			DiscreteFeatureLayer l = new DiscreteFeatureLayer(ext.getFeatureIndexer().size(), 10, emb_size, true);
-
+			DiscreteFeatureEmbeddingLayer l = new DiscreteFeatureEmbeddingLayer(ext.getFeatureIndexer().size(),
+					feat_emb_size, word_emb_size, true);
 			nn.add(l);
 			nn.add(new DropoutLayer());
-			// nn.add(new RnnLayer(emb_size, l1_size, bptt_size, new ReLU()));
-			// nn.add(new LstmLayer(emb_size, l1_size, new ReLU()));
+			// nn.add(new RnnLayer(l.getOutputSize(), l1_size, bptt_size, new ReLU()));
+			// nn.add(new LstmLayer(l.getOutputSize(), l1_size));
 			nn.add(new BidirectionalRecurrentLayer(Type.LSTM, l.getOutputSize(), l1_size, bptt_size, new ReLU()));
 			// nn.add(new BatchNormalizationLayer(l1_size));
 			nn.add(new FullyConnectedLayer(l1_size, label_size));
@@ -453,184 +486,11 @@ public class Apps {
 				for (int j = 0; j < rs.length; j++) {
 					int[] r = rs[j];
 					int r_size = r[1] - r[0];
-					IntegerTensor Xm = new IntegerTensor(r_size);
-					IntegerMatrix Ym = new IntegerMatrix(r_size);
+					DenseTensor Xm = new DenseTensor();
+					DenseMatrix Ym = new DenseMatrix();
 
-					for (int k = r[0]; k < r[1]; k++) {
-						int loc = locs.get(k);
-						Xm.add(X.get(loc));
-						Ym.add(Y.get(loc));
-					}
-
-					trainer.train(Xm, Ym, Xt, Yt, 1);
-				}
-			}
-		}
-
-		trainer.finish();
-
-		nn.writeObject(modelFileName);
-	}
-
-	public static void testNEROld() throws Exception {
-		NeuralNetParams nnp = new NeuralNetParams();
-		nnp.setBatchSize(5);
-		nnp.setIsFullSequenceBatch(true);
-		nnp.setIsRandomBatch(true);
-		nnp.setGradientAccumulatorResetSize(1000);
-		nnp.setLearnRate(0.1);
-		nnp.setLearnRateDecay(0.9);
-		nnp.setLearnRateDecaySize(1);
-		nnp.setRegLambda(0.001);
-		nnp.setThreadSize(5);
-		nnp.setTruncatedBackPropagationThroughTime(1);
-		nnp.setOptimizerType(OptimizerType.ADAM);
-		nnp.setGradientClipCutoff(5);
-
-		String trainFileName = "../../data/ml_data/conll2003.bio2/train.dat";
-		String testFileName = "../../data/ml_data/conll2003.bio2/test.dat";
-
-		{
-			Indexer<String> l = Generics.newIndexer();
-			l.add("word");
-			l.add("pos");
-			l.add("chunk");
-			l.add("ner");
-			MToken.INDEXER = l;
-		}
-
-		MDocument trainData = MDocument.newDocument(FileUtils.readFromText(trainFileName));
-		MDocument testData = MDocument.newDocument(FileUtils.readFromText(testFileName));
-
-		Indexer<String> labelIdxer = Generics.newIndexer();
-		Vocab vocab = new Vocab();
-		vocab.add(Vocab.SYM.UNK.getText());
-
-		int unk = 0;
-
-		IntegerMatrix X = new IntegerMatrix();
-		IntegerMatrix Y = new IntegerMatrix();
-
-		IntegerMatrix Xt = new IntegerMatrix();
-		IntegerMatrix Yt = new IntegerMatrix();
-
-		IntegerTensor F = new IntegerTensor();
-		IntegerTensor Ft = new IntegerTensor();
-
-		WordFeatureExtractor ext = new WordFeatureExtractor();
-
-		{
-			MDocument D = new MDocument();
-			D.addAll(trainData);
-			D.addAll(testData);
-
-			Set<String> labels = Generics.newTreeSet();
-
-			for (MToken t : D.getTokens()) {
-				String word = t.getString(0);
-				String ner = t.getString(3);
-				String[] ps = ner.split("-");
-				if (ps.length == 2) {
-					ner = String.format("%s-%s", ps[1], ps[0]);
-				}
-				t.set(3, ner);
-				ext.extract(t);
-
-				labels.add(ner);
-			}
-
-			labels.remove("O");
-			labelIdxer.addAll(labels);
-			labelIdxer.add("O");
-
-			for (int i = 0; i < D.size(); i++) {
-				MSentence s = D.get(i);
-
-				IntegerMatrix T = new IntegerMatrix();
-				T.ensureCapacity(s.size());
-
-				for (int j = 0; j < s.size(); j++) {
-					MToken t = s.get(j);
-					String word1 = t.getString(0);
-					String word2 = t.getString(MToken.INDEXER.size());
-					IntegerArray f = (IntegerArray) t.get(MToken.INDEXER.size() + 1);
-					T.add(f);
-				}
-
-				if (i < trainData.size()) {
-					X.add(new IntegerArray(vocab.getIndexes(s.getTokenStrings(4))));
-					Y.add(new IntegerArray(labelIdxer.indexesOf(s.getTokenStrings(3), 0)));
-					F.add(T);
-				} else {
-					Xt.add(new IntegerArray(vocab.indexesOf(s.getTokenStrings(4), 0)));
-					Yt.add(new IntegerArray(labelIdxer.indexesOf(s.getTokenStrings(3), 0)));
-					Ft.add(T);
-				}
-			}
-		}
-
-		X.trimToSize();
-		Y.trimToSize();
-
-		Xt.trimToSize();
-		Yt.trimToSize();
-
-		System.out.println(vocab.info());
-		System.out.println(labelIdxer.info());
-		System.out.println(X.sizeOfEntries());
-
-		int voc_size = vocab.size();
-		int emb_size = 100;
-		int l1_size = 100;
-		int label_size = labelIdxer.size();
-		int type = 2;
-		int bptt_size = nnp.getTruncatedBackPropagationThroughTime();
-
-		String modelFileName = "../../data/ml_data/ner_nn.ser";
-
-		NeuralNet nn = new NeuralNet(labelIdxer, vocab, TaskType.SEQ_LABELING);
-
-		boolean read_ner_model = false;
-
-		if (read_ner_model && FileUtils.exists(modelFileName)) {
-			nn = new NeuralNet(modelFileName);
-			nn.prepare();
-		} else {
-
-			nn.add(new EmbeddingLayer(voc_size, emb_size, true, TaskType.SEQ_LABELING));
-			// nn.add(new FullyConnectedLayer(voc_size, emb_size));
-			nn.add(new DropoutLayer());
-			// nn.add(new RnnLayer(emb_size, l1_size, bptt_size, new ReLU()));
-			// nn.add(new LstmLayer(emb_size, l1_size, new ReLU()));
-			nn.add(new BidirectionalRecurrentLayer(Type.LSTM, emb_size, l1_size, bptt_size, new ReLU()));
-			// nn.add(new BatchNormalizationLayer(l1_size));
-			nn.add(new FullyConnectedLayer(l1_size, label_size));
-			nn.add(new SoftmaxLayer(label_size));
-			nn.prepare();
-			nn.init();
-		}
-
-		// nn.writeObject(modelFileName);
-
-		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, nnp);
-
-		IntegerArray locs = new IntegerArray(ArrayUtils.range(X.size()));
-
-		int group_size = 10000;
-		int[][] rs = BatchUtils.getBatchRanges(X.size(), group_size);
-
-		int max_iters = 1000;
-
-		for (int u = 0; u < max_iters; u++) {
-			ArrayUtils.shuffle(locs.values());
-
-			for (int i = 0; i < rs.length; i++) {
-				System.out.printf("iters [%d/%d], batches [%d/%d]\n", u + 1, max_iters, i + 1, rs.length);
-				for (int j = 0; j < rs.length; j++) {
-					int[] r = rs[j];
-					int r_size = r[1] - r[0];
-					IntegerMatrix Xm = new IntegerMatrix(r_size);
-					IntegerMatrix Ym = new IntegerMatrix(r_size);
+					Xm.ensureCapacity(r_size);
+					Ym.ensureCapacity(r_size);
 
 					for (int k = r[0]; k < r[1]; k++) {
 						int loc = locs.get(k);
@@ -650,67 +510,107 @@ public class Apps {
 
 	public static void testSentenceClassification() throws Exception {
 		NeuralNetParams nnp = new NeuralNetParams();
-		nnp.setInputSize(100);
-		nnp.setHiddenSize(50);
-		nnp.setOutputSize(10);
-		nnp.setBatchSize(10);
+		nnp.setBatchSize(5);
+		nnp.setIsFullSequenceBatch(true);
+		nnp.setIsRandomBatch(true);
+		nnp.setGradientAccumulatorResetSize(1000);
 		nnp.setLearnRate(0.001);
-		nnp.setRegLambda(0.01);
+		nnp.setLearnRateDecay(0.9);
+		nnp.setLearnRateDecaySize(100);
+		nnp.setRegLambda(0.001);
 		nnp.setThreadSize(5);
-		nnp.setTruncatedBackPropagationThroughTime(10);
+		nnp.setTruncatedBackPropagationThroughTime(1);
+		nnp.setOptimizerType(OptimizerType.ADAM);
+		nnp.setGradientClipCutoff(5);
 
-		IntegerMatrix X = new IntegerMatrix();
-		IntegerArray Y = new IntegerArray();
-		IntegerMatrix Xt = new IntegerMatrix();
-		IntegerArray Yt = new IntegerArray();
-
-		Vocab vocab = new Vocab();
 		Indexer<String> labelIdxer = Generics.newIndexer();
+		labelIdxer.add("pos");
+		labelIdxer.add("neg");
 
 		{
-			List<String> sents = Generics.newLinkedList();
+			Indexer<String> l = Generics.newIndexer();
+			l.add("word");
+			MToken.INDEXER = l;
+		}
 
-			for (String s : FileUtils.readLinesFromText("../../data/sentiment/rt-polarity.pos")) {
-				sents.add(s + "\tpos");
-			}
+		MDocument posData = new MDocument();
+		MDocument negData = new MDocument();
 
-			for (String s : FileUtils.readLinesFromText("../../data/sentiment/rt-polarity.neg")) {
-				sents.add(s + "\tneg");
-			}
+		for (String line : FileUtils.readLinesFromText("../../data/sentiment/rt-polarity.pos")) {
+			line = StrUtils.normalizeSpaces(line);
+			MSentence s = MSentence.newSentence(line.replace(" ", "\n"));
+			posData.add(s);
 
-			IntegerMatrix M = new IntegerMatrix();
-			IntegerArray N = new IntegerArray();
+			s.getAttrMap().put("por", "pos");
+		}
 
-			for (int i = 0; i < sents.size(); i++) {
-				String s = sents.get(i);
-				String[] ps = s.split("\t");
-				String sentiment = ps[1];
-				int label = sentiment.equals("pos") ? 0 : 1;
-				M.add(label, i);
-				N.add(label);
-			}
+		for (String line : FileUtils.readLinesFromText("../../data/sentiment/rt-polarity.neg")) {
+			line = StrUtils.normalizeSpaces(line);
+			MSentence s = MSentence.newSentence(line.replace(" ", "\n"));
+			negData.add(s);
 
-			IntegerMatrix T = DataSplitter.splitGroups(M, new int[] { 5000, 500 });
+			s.getAttrMap().put("por", "neg");
+		}
 
-			for (int i = 0; i < T.size(); i++) {
-				IntegerArray L = T.get(i);
-				for (int loc : L) {
-					String[] ps = sents.get(loc).split("\t");
-					String sent = ps[0];
-					String sentiment = ps[1];
-					int label = N.get(loc);
+		Vocab vocab = new Vocab();
+		vocab.add(SYM.UNK.getText());
 
-					List<Integer> ws = vocab.getIndexes(StrUtils.split(sent));
-					if (i == 0) {
-						X.add(new IntegerArray(ws));
-						Y.add(N.get(loc));
-					} else {
-						Xt.add(new IntegerArray(ws));
-						Yt.add(N.get(loc));
-					}
+		for (MToken t : posData.getTokens()) {
+			vocab.add(t.getString(0));
+		}
+
+		MDocument data = new MDocument();
+		data.addAll(posData);
+		data.addAll(negData);
+
+		IntegerMatrix M = new IntegerMatrix();
+		IntegerArray N = new IntegerArray();
+
+		for (int i = 0; i < data.size(); i++) {
+			MSentence s = data.get(i);
+			String por = s.getAttrMap().get("por");
+			int label = labelIdxer.indexOf(por);
+
+			M.add(label, i);
+			N.add(label);
+		}
+
+		IntegerMatrix T = DataSplitter.splitGroups(M, new int[] { 5000, 500 });
+
+		DenseTensor X = new DenseTensor();
+		DenseMatrix Y = new DenseMatrix();
+		DenseTensor Xt = new DenseTensor();
+		DenseMatrix Yt = new DenseMatrix();
+
+		for (int i = 0; i < T.size(); i++) {
+			IntegerArray L = T.get(i);
+			for (int loc : L) {
+				MSentence s = data.get(loc);
+				String por = s.getAttrMap().get("por");
+				int label = labelIdxer.indexOf(por);
+
+				List<Integer> ws = vocab.indexesOf(s.getTokenStrings(0), 0);
+
+				DenseMatrix Xm = new DenseMatrix(ws.size(), 1);
+				for (int j = 0; j < ws.size(); j++) {
+					Xm.add(j, 0, ws.get(j));
+				}
+
+				if (i == 0) {
+					X.add(Xm);
+					Y.add(new DenseVector(new int[] { label }));
+				} else {
+					Xt.add(Xm);
+					Yt.add(new DenseVector(new int[] { label }));
 				}
 			}
 		}
+
+		X.trimToSize();
+		Y.trimToSize();
+
+		Xt.trimToSize();
+		Yt.trimToSize();
 
 		int size1 = 0;
 		int size2 = 0;
@@ -724,7 +624,6 @@ public class Apps {
 		System.out.printf("min len: [%d]\n", min_len);
 
 		int vocab_size = vocab.size();
-		int input_size = vocab_size;
 		int emb_size = 200;
 		int l1_size = 100;
 		int l2_size = 20;
@@ -738,9 +637,9 @@ public class Apps {
 		if (type == 0) {
 			int num_filters = 100;
 			int window_size = 2;
-			int[] window_sizes = new int[] { 2 };
+			int[] window_sizes = new int[] { 2, 3 };
 
-			nn.add(new EmbeddingLayer(vocab_size, emb_size, true, nn.getTaskType()));
+			nn.add(new EmbeddingLayer(vocab_size, emb_size, true));
 
 			// nn.add(new MultiWindowConvolutionalLayer(emb_size, window_sizes,
 			// num_filters));

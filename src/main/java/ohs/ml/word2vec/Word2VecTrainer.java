@@ -189,7 +189,7 @@ public class Word2VecTrainer {
 				tmp_dW = new DenseMatrix(data_size, param.getHiddenSize());
 			}
 
-			DenseMatrix dWyh0 = tmp_dW.rows(data_size);
+			DenseMatrix dWyh0 = tmp_dW.subMatrix(data_size);
 
 			VectorMath.outerProduct(delta, predicted, dWyh0, false);
 

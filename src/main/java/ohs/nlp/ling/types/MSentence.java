@@ -4,6 +4,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
@@ -41,6 +42,8 @@ public class MSentence extends ArrayList<MToken> {
 		return ret;
 	}
 
+	private Map<String, String> attrMap = Generics.newHashMap();
+
 	public MSentence() {
 
 	}
@@ -51,6 +54,10 @@ public class MSentence extends ArrayList<MToken> {
 
 	public MSentence(List<MToken> ret) {
 		super(ret);
+	}
+
+	public Map<String, String> getAttrMap() {
+		return attrMap;
 	}
 
 	public List<String> getTokenStrings(int idx) {

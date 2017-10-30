@@ -1,7 +1,9 @@
 package ohs.ml.neuralnet.cost;
 
 import ohs.math.VectorMath;
+import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
+import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
 import ohs.types.number.IntegerArray;
 
@@ -25,13 +27,13 @@ public class CrossEntropyCostFunction implements CostFunction {
 		return 0.5 * reg_lambda * (1f / data_size) * VectorMath.sumAfterSquared(W);
 	}
 
-	private DenseMatrix tmp_D;
+	private int cor_cnt = 0;
 
 	private double cost = 0;
 
-	private int cor_cnt = 0;
+	private DenseMatrix tmp_D = new DenseMatrix(0);
 
-	public DenseMatrix evaluate(DenseMatrix Yh, IntegerArray y) {
+	public DenseMatrix evaluate(DenseMatrix Yh, DenseVector y) {
 		cost = 0;
 		cor_cnt = 0;
 
@@ -39,14 +41,14 @@ public class CrossEntropyCostFunction implements CostFunction {
 			tmp_D = Yh.copy(true);
 		}
 
-		DenseMatrix D = tmp_D.rows(Yh.rowSize());
+		DenseMatrix D = tmp_D.subMatrix(Yh.rowSize());
 
 		for (int i = 0; i < Yh.rowSize(); i++) {
 			DenseVector yh = Yh.row(i);
 			DenseVector d = D.row(i);
 
 			int pred = yh.argMax();
-			int ans = y.get(i);
+			int ans = (int) y.value(i);
 
 			if (pred == ans) {
 				cor_cnt++;
@@ -66,6 +68,54 @@ public class CrossEntropyCostFunction implements CostFunction {
 		}
 
 		cost /= Yh.rowSize() * -1f;
+		return D;
+	}
+
+	public DenseTensor evaluate(DenseTensor Yh, DenseMatrix Y) {
+		cost = 0;
+		cor_cnt = 0;
+
+		VectorUtils.enlarge(tmp_D, Yh.sizeOfInnerVectors(), Yh.row(0).colSize());
+
+		DenseTensor D = new DenseTensor();
+		D.ensureCapacity(Yh.size());
+
+		int start = 0;
+
+		for (int i = 0; i < Yh.size(); i++) {
+			DenseMatrix Yhm = Yh.get(i);
+			DenseMatrix Dm = tmp_D.subMatrix(start, Yhm.rowSize());
+			Dm.setAll(0);
+
+			start += Yhm.rowSize();
+
+			DenseVector Ym = Y.row(i);
+
+			for (int j = 0; j < Yhm.rowSize(); j++) {
+				DenseVector yhm = Yhm.row(j);
+				DenseVector dm = Dm.row(j);
+
+				int pred = Yhm.row(j).argMax();
+				int ans = (int) Ym.value(j);
+
+				if (pred == ans) {
+					cor_cnt++;
+				}
+
+				if (yhm.value(ans) != 0) {
+					cost += Math.log(yhm.value(ans));
+				}
+
+				for (int k = 0; k < yhm.size(); k++) {
+					double v = k == ans ? -1 : 0;
+					dm.set(k, yhm.value(k) + v);
+				}
+				dm.summation();
+			}
+			D.add(Dm);
+		}
+
+		cost /= Yh.sizeOfInnerVectors() * -1f;
 		return D;
 	}
 

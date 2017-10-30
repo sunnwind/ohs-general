@@ -3,6 +3,8 @@ package ohs.ml.neuralnet.layer;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
+import javax.swing.colorchooser.DefaultColorSelectionModel;
+
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
@@ -43,9 +45,9 @@ public class FullyConnectedLayer extends Layer {
 	/**
 	 * input of this layer
 	 */
-	private Object X;
+	private DenseTensor X;
 
-	private DenseMatrix Y;
+	private DenseTensor Y;
 
 	public FullyConnectedLayer() {
 
@@ -68,41 +70,32 @@ public class FullyConnectedLayer extends Layer {
 	}
 
 	@Override
-	public DenseMatrix backward(Object I) {
-		DenseMatrix dY = (DenseMatrix) I;
-		DenseMatrix dX = null;
+	public DenseTensor backward(Object I) {
+		DenseTensor dY = (DenseTensor) I;
+		DenseTensor dX = new DenseTensor();
+		dX.ensureCapacity(dY.size());
 
-		if (X instanceof DenseMatrix) {
-			int data_size = dY.rowSize();
-			DenseMatrix X = (DenseMatrix) this.X;
+		VectorUtils.enlarge(tmp_dX, dY.sizeOfInnerVectors(), input_size);
+		int start = 0;
 
-			for (int i = 0; i < X.rowSize(); i++) {
-				VectorMath.outerProduct(X.row(i), dY.row(i), dW, true);
-				VectorMath.add(dY.row(i), db);
+		for (int i = 0; i < dY.size(); i++) {
+			DenseMatrix dYm = dY.get(i);
+			DenseMatrix Xm = X.get(i);
+			DenseMatrix dXm = tmp_dX.subMatrix(start, dYm.rowSize());
+			dXm.setAll(0);
+
+			start += Xm.rowSize();
+
+			for (int j = 0; j < Xm.rowSize(); j++) {
+				DenseVector x = Xm.row(j);
+				DenseVector dy = dYm.row(j);
+
+				VectorMath.outerProduct(x, dy, dW, true);
+				VectorMath.add(dy, db);
 			}
 
-			VectorUtils.enlarge(tmp_dX, data_size, input_size);
-
-			dX = tmp_dX.rows(data_size);
-			VectorMath.productRows(dY, W, dX, false);
-
-		} else if (X instanceof IntegerArray) {
-			IntegerArray X = (IntegerArray) this.X;
-
-			for (int i = 0; i < X.size(); i++) {
-				int idx = X.get(i);
-				DenseVector dw = dW.row(idx);
-				VectorMath.add(dw, dY.row(i), dw);
-			}
-		}
-
-		for (int i = 0; i < dX.rowSize(); i++) {
-			DenseVector dx = dX.row(i);
-			for (int j = 0; j < dx.size(); j++) {
-				if (Math.abs(dx.value(j)) > 10000) {
-					System.out.println();
-				}
-			}
+			VectorMath.productRows(dYm, W, dXm, false);
+			dX.add(dXm);
 		}
 
 		return dX;
@@ -114,31 +107,28 @@ public class FullyConnectedLayer extends Layer {
 	}
 
 	@Override
-	public DenseMatrix forward(Object I) {
-		this.X = I;
+	public DenseTensor forward(Object I) {
+		this.X = (DenseTensor) I;
 
-		int data_size = I instanceof DenseMatrix ? ((DenseMatrix) I).rowSize() : ((IntegerArray) I).size();
+		DenseTensor X = (DenseTensor) I;
+		DenseTensor Y = new DenseTensor();
+		Y.ensureCapacity(X.size());
 
-		VectorUtils.enlarge(tmp_Y, data_size, output_size);
+		VectorUtils.enlarge(tmp_Y, X.sizeOfInnerVectors(), output_size);
+		int start = 0;
 
-		DenseMatrix Y = tmp_Y.rows(data_size);
-		Y.setAll(0);
+		for (DenseMatrix Xm : X) {
+			DenseMatrix Ym = tmp_Y.subMatrix(start, Xm.rowSize());
+			Ym.setAll(0);
 
-		if (I instanceof DenseMatrix) {
-			DenseMatrix X = (DenseMatrix) I;
-			VectorMath.product(X, W, Y, false);
-			VectorMath.add(Y, b, Y);
-		} else if (I instanceof IntegerArray) {
-			IntegerArray X = (IntegerArray) I;
-			for (int i = 0; i < X.size(); i++) {
-				int idx = X.get(i);
-				VectorUtils.copy(W.row(idx), Y.row(i));
-			}
-			VectorMath.add(Y, b, Y);
+			start += Xm.rowSize();
+
+			VectorMath.product(Xm, W, Ym, false);
+			VectorMath.add(Ym, b, Ym);
+			Y.add(Ym);
 		}
 
 		this.Y = Y;
-
 		return Y;
 	}
 

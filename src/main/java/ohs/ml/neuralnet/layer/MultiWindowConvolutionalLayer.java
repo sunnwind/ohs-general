@@ -2,14 +2,13 @@ package ohs.ml.neuralnet.layer;
 
 import java.util.List;
 
-import org.apache.poi.hssf.util.HSSFColor.DARK_TEAL;
-
 import ohs.math.ArrayUtils;
 import ohs.math.VectorMath;
+import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
-import ohs.ml.neuralnet.com.ParameterInitializer;
+import ohs.types.generic.Pair;
 import ohs.utils.Generics;
 
 /**
@@ -134,7 +133,7 @@ public class MultiWindowConvolutionalLayer extends Layer {
 
 			for (int j = 0; j < data_size; j++) {
 				int len = dY.row(j).rowSize();
-				T.add(tmp_dZ.rows(start, len));
+				T.add(tmp_dZ.subMatrix(start, len));
 				start += len;
 			}
 			L1.add(T);
@@ -172,7 +171,7 @@ public class MultiWindowConvolutionalLayer extends Layer {
 
 		for (int i = 0, start = 0; i < data_size; i++) {
 			int len = dY.row(i).rowSize();
-			DenseMatrix dXm = tmp_dX.rows(start, len);
+			DenseMatrix dXm = tmp_dX.subMatrix(start, len);
 			dXm.setAll(0);
 
 			dX.add(dXm);
@@ -208,35 +207,41 @@ public class MultiWindowConvolutionalLayer extends Layer {
 	 */
 	@Override
 	public DenseTensor forward(Object I) {
+		DenseTensor X = null;
+
+		if (I instanceof Pair) {
+			Pair<DenseTensor, DenseTensor> p = (Pair<DenseTensor, DenseTensor>) I;
+			X = p.getSecond();
+		} else {
+			X = (DenseTensor) I;
+		}
+
+		this.X = X;
+
 		List<DenseTensor> L = Generics.newArrayList(cns.size());
 
 		for (ConvolutionalLayer cn : cns) {
 			L.add(cn.forward(I));
 		}
 
-		DenseTensor X = (DenseTensor) I;
-		this.X = X;
+		VectorUtils.enlarge(tmp_Y, X.sizeOfInnerVectors(), num_filters * window_sizes.length);
 
-		{
-			int len = X.sizeOfInnerVectors();
-			if (tmp_Y.rowSize() < len) {
-				tmp_Y = new DenseMatrix(len, num_filters * window_sizes.length);
-			}
-		}
+		DenseTensor Y = new DenseTensor();
+		Y.ensureCapacity(X.size());
 
-		Y = new DenseTensor();
-		Y.ensureCapacity(X.rowSize());
+		for (int i = 0, start = 0; i < X.size(); i++) {
+			DenseMatrix Xm = X.get(i);
+			DenseMatrix Ym = tmp_Y.subMatrix(start, Xm.rowSize());
+			Ym.setAll(0);
 
-		for (int i = 0, start = 0; i < X.rowSize(); i++) {
-			int len = X.row(i).rowSize();
-			DenseMatrix Ym = tmp_Y.rows(start, len);
+			start += Xm.rowSize();
 			Y.add(Ym);
-			start += len;
 		}
 
 		for (int i = 0, start = 0; i < L.size(); i++) {
 			DenseTensor Z = L.get(i);
-			for (int j = 0; j < Z.rowSize(); j++) {
+
+			for (int j = 0; j < Z.size(); j++) {
 				DenseMatrix Zm = Z.row(j);
 				DenseMatrix Ym = Y.row(j);
 
@@ -248,6 +253,7 @@ public class MultiWindowConvolutionalLayer extends Layer {
 			}
 			start += num_filters;
 		}
+		this.Y = Y;
 		return Y;
 	}
 

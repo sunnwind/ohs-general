@@ -73,7 +73,7 @@ public class DenseVector implements Vector {
 		this.vals = new double[vals.length];
 
 		for (int i = 0; i < vals.length; i++) {
-			vals[i] = vals[i];
+			this.vals[i] = vals[i];
 			sum += vals[i];
 		}
 	}
@@ -458,15 +458,23 @@ public class DenseVector implements Vector {
 				break;
 			}
 
-			double value = vals[i];
+			double v = vals[i];
 
 			if (sparse) {
-				if (value != 0) {
-					sb.append(String.format(" %d:%s", i, nf.format(value)));
+				if (v != 0) {
+					if (v % 1 == 0) {
+						sb.append(String.format(" %d:%d", i, (int) v));
+					} else {
+						sb.append(String.format(" %d:%s", i, nf.format(v)));
+					}
 					j++;
 				}
 			} else {
-				sb.append(String.format(" %d:%s", i, nf.format(value)));
+				if (v % 1 == 0) {
+					sb.append(String.format(" %d:%d", i, (int) v));
+				} else {
+					sb.append(String.format(" %d:%s", i, nf.format(v)));
+				}
 				j++;
 			}
 

@@ -714,7 +714,7 @@ public class PhraseClassification {
 
 				locs.trimToSize();
 
-				DenseMatrix Xs = X.rows(locs.values());
+				DenseMatrix Xs = X.subMatrix(locs.values());
 				IntegerArray Ys = Y.subArray(locs.values());
 				trainer.train(Xs, Ys, Xt, Yt, 1);
 			}
@@ -826,7 +826,7 @@ public class PhraseClassification {
 
 				locs.trimToSize();
 
-				DenseMatrix Xs = X.rows(locs.values());
+				DenseMatrix Xs = X.subMatrix(locs.values());
 				IntegerArray Ys = Y.subArray(locs.values());
 				trainer.train(Xs, Ys, Xt, Yt, 1);
 			}

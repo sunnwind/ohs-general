@@ -400,12 +400,12 @@ public class SparseMatrix extends ArrayList<SparseVector> implements Matrix {
 	}
 
 	@Override
-	public SparseMatrix rows(int size) {
-		return rows(0, size);
+	public SparseMatrix subMatrix(int size) {
+		return subMatrix(0, size);
 	}
 
 	@Override
-	public SparseMatrix rows(int start, int size) {
+	public SparseMatrix subMatrix(int start, int size) {
 		int[] idxs = new int[size];
 		SparseVector[] rows = new SparseVector[size];
 		int loc = 0;
@@ -418,7 +418,7 @@ public class SparseMatrix extends ArrayList<SparseVector> implements Matrix {
 	}
 
 	@Override
-	public SparseMatrix rows(int[] is) {
+	public SparseMatrix subMatrix(int[] is) {
 		int[] idxs = new int[is.length];
 		SparseVector[] rows = new SparseVector[is.length];
 		int loc = 0;

@@ -2,7 +2,6 @@ package ohs.ml.neuralnet.layer;
 
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.util.List;
 
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
@@ -10,8 +9,6 @@ import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
 import ohs.ml.neuralnet.com.ParameterInitializer;
-import ohs.ml.neuralnet.nonlinearity.Nonlinearity;
-import ohs.utils.Generics;
 
 /**
  *
@@ -47,7 +44,7 @@ public class LstmLayer extends RecurrentLayer {
 	private static final long serialVersionUID = 2848535801786544922L;
 
 	private DenseVector a;
-	private DenseMatrix C;
+	private DenseTensor C;
 
 	private DenseVector c0;
 	private DenseVector c0_prev;
@@ -63,31 +60,30 @@ public class LstmLayer extends RecurrentLayer {
 
 	private DenseVector doo;
 
-	private DenseMatrix F;
-	private DenseMatrix G;
-	private DenseMatrix H;
+	private DenseTensor F;
+	private DenseTensor G;
+	private DenseTensor H;
 	private DenseVector h0;
 	private DenseVector h0_prev;
 
 	private int hidden_size;
-	private DenseMatrix I;
+	private DenseTensor I;
 	private int input_size;
-	private DenseMatrix O;
+	private DenseTensor O;
 	private DenseVector tmp;
-	private DenseMatrix tmp_C;
-	private DenseMatrix tmp_dC;
+	private DenseMatrix tmp_C = new DenseMatrix(0);
+	private DenseMatrix tmp_dC = new DenseMatrix(0);
 
-	private DenseMatrix tmp_dX;
-	private DenseMatrix tmp_F;
-	private DenseMatrix tmp_G;
-	private DenseMatrix tmp_H;
-	private DenseMatrix tmp_I;
-
-	private DenseMatrix tmp_O;
+	private DenseMatrix tmp_dX = new DenseMatrix(0);
+	private DenseMatrix tmp_F = new DenseMatrix(0);
+	private DenseMatrix tmp_G = new DenseMatrix(0);
+	private DenseMatrix tmp_H = new DenseMatrix(0);
+	private DenseMatrix tmp_I = new DenseMatrix(0);
+	private DenseMatrix tmp_O = new DenseMatrix(0);
 	/**
 	 * input to hidden
 	 */
-	private DenseMatrix X;
+	private DenseTensor X;
 
 	public LstmLayer() {
 
@@ -114,103 +110,12 @@ public class LstmLayer extends RecurrentLayer {
 	}
 
 	public Object backward1(Object IN) {
-		DenseMatrix dH = (DenseMatrix) IN;
-		int data_size = dH.rowSize();
+		DenseTensor dH = (DenseTensor) IN;
+		DenseTensor dX = new DenseTensor();
+		dX.ensureCapacity(dH.size());
 
-		if (tmp_dX == null || tmp_dX.rowSize() < data_size) {
-			tmp_dX = new DenseMatrix(data_size, input_size);
-			tmp_dC = dH.copy(true);
-		}
-
-		if (dh_prev == null) {
-			dh_prev = h0.copy(true);
-			dc_prev = h0.copy(true);
-			dc0 = h0.copy(true);
-
-			di = h0.copy(true);
-			df = h0.copy(true);
-			doo = h0.copy(true);
-			dg = h0.copy(true);
-		}
-
-		dh_prev.setAll(0);
-		dc_prev.setAll(0);
-		dc0.setAll(0);
-
-		DenseMatrix dX = tmp_dX.rows(data_size);
-		DenseMatrix dC = tmp_dC.rows(data_size);
-
-		dX.setAll(0);
-		dC.setAll(0);
-
-		for (int t = data_size - 1; t >= 0; t--) {
-			DenseVector dh = dH.row(t);
-			VectorMath.add(dh, dh_prev, dh);
-
-			DenseVector c = C.row(t);
-			VectorMath.multiply(c, dh, doo);
-
-			DenseVector dc = dC.row(t);
-			DenseVector o = O.row(t);
-
-			VectorMath.tanhGradient(c, tmp);
-			VectorMath.multiply(tmp, o, tmp);
-			VectorMath.multiply(tmp, dh, tmp);
-			VectorMath.add(tmp, dc);
-
-			DenseVector c_prev = t == 0 ? c0_prev : C.row(t - 1);
-			VectorMath.multiply(c_prev, dc, df);
-
-			DenseVector dc_prev = t == 0 ? dc0 : dC.row(t - 1);
-			DenseVector f = F.row(t);
-			VectorMath.multiply(f, dc, tmp);
-			VectorMath.add(tmp, dc_prev);
-
-			DenseVector g = G.row(t);
-			VectorMath.multiply(g, dc, di);
-
-			DenseVector i = I.row(t);
-			VectorMath.multiply(i, dc, dg);
-
-			VectorMath.sigmoidGradient(i, tmp);
-			VectorMath.multiply(tmp, di, di);
-
-			VectorMath.sigmoidGradient(f, tmp);
-			VectorMath.multiply(tmp, df, df);
-
-			VectorMath.sigmoidGradient(o, tmp);
-			VectorMath.multiply(tmp, doo, doo);
-
-			VectorMath.tanhGradient(g, tmp);
-			VectorMath.multiply(tmp, dg, dg);
-
-			VectorUtils.copyRows(new DenseMatrix(new DenseVector[] { di, df, doo, dg }), da);
-
-			DenseVector dx = dX.row(t);
-			VectorMath.productRows(da.toDenseMatrix(), Wxh, dx.toDenseMatrix(), true);
-
-			DenseVector x = X.row(t);
-			VectorMath.outerProduct(x, da, dWxh, true);
-
-			VectorMath.productRows(da.toDenseMatrix(), Whh, dh_prev.toDenseMatrix(), false);
-
-			DenseVector h_prev = t == 0 ? h0_prev : H.row(t - 1);
-
-			VectorMath.outerProduct(h_prev, da, dWhh, true);
-
-			VectorMath.add(da, db);
-		}
-		return dX;
-	}
-
-	public Object backward2(Object IN) {
-		DenseMatrix dH = (DenseMatrix) IN;
-		int data_size = dH.rowSize();
-
-		if (tmp_dX == null || tmp_dX.rowSize() < data_size) {
-			tmp_dX = new DenseMatrix(data_size, input_size);
-			tmp_dC = dH.copy(true);
-		}
+		VectorUtils.enlarge(tmp_dX, dH.sizeOfInnerVectors(), input_size);
+		VectorUtils.enlarge(tmp_dC, dH.sizeOfInnerVectors(), hidden_size);
 
 		if (dh_prev == null) {
 			dh_prev = h0.copy(true);
@@ -223,72 +128,92 @@ public class LstmLayer extends RecurrentLayer {
 			dg = h0.copy(true);
 		}
 
-		dh_prev.setAll(0);
-		dc_prev.setAll(0);
-		dc0.setAll(0);
+		int start = 0;
 
-		DenseMatrix dX = tmp_dX.rows(data_size);
-		DenseMatrix dC = tmp_dC.rows(data_size);
+		for (int u = 0; u < dH.size(); u++) {
+			DenseMatrix dHm = dH.get(u);
+			DenseMatrix Cm = C.get(u);
+			DenseMatrix Im = I.get(u);
+			DenseMatrix Fm = F.get(u);
+			DenseMatrix Om = O.get(u);
+			DenseMatrix Gm = G.get(u);
+			DenseMatrix Xm = X.get(u);
+			DenseMatrix Hm = H.get(u);
 
-		dC.setAll(0);
+			DenseMatrix dXm = tmp_dX.subMatrix(start, dHm.rowSize());
+			DenseMatrix dCm = tmp_dC.subMatrix(start, dHm.rowSize());
+			start += dHm.rowSize();
 
-		for (int t = data_size - 1; t >= 0; t--) {
-			DenseVector dh = dH.row(t);
-			VectorMath.add(dh, dh_prev, dh);
+			dXm.setAll(0);
+			dCm.setAll(0);
 
-			DenseVector c = C.row(t);
+			dh_prev.setAll(0);
+			dc_prev.setAll(0);
+			dc0.setAll(0);
 
-			VectorMath.multiply(c, dh, doo);
+			tmp.setAll(0);
+			c0_prev.setAll(0);
 
-			DenseVector dc = dC.row(t);
-			DenseVector o = O.row(t);
-			VectorMath.tanhGradient(c, tmp);
-			VectorMath.multiply(tmp, o, tmp);
-			VectorMath.multiply(tmp, dh, tmp);
-			VectorMath.add(tmp, dc);
+			for (int t = dHm.rowSize() - 1; t >= 0; t--) {
+				DenseVector dh = dHm.row(t);
+				VectorMath.add(dh, dh_prev, dh);
 
-			DenseVector c_prev = t == 0 ? c0_prev : C.row(t - 1);
-			VectorMath.multiply(c_prev, dc, df);
+				DenseVector c = Cm.row(t);
+				VectorMath.multiply(c, dh, doo);
 
-			DenseVector dc_prev = t == 0 ? dc0 : dC.row(t - 1);
-			DenseVector f = F.row(t);
-			VectorMath.multiply(f, dc, tmp);
-			VectorMath.add(tmp, dc_prev);
+				DenseVector dc = dCm.row(t);
+				DenseVector o = Om.row(t);
 
-			DenseVector g = G.row(t);
-			VectorMath.multiply(g, dc, di);
+				VectorMath.tanhGradient(c, tmp);
+				VectorMath.multiply(tmp, o, tmp);
+				VectorMath.multiply(tmp, dh, tmp);
+				VectorMath.add(tmp, dc);
 
-			DenseVector i = I.row(t);
-			VectorMath.multiply(i, dc, dg);
+				DenseVector c_prev = t == 0 ? c0_prev : Cm.row(t - 1);
+				VectorMath.multiply(c_prev, dc, df);
 
-			VectorMath.sigmoidGradient(i, tmp);
-			VectorMath.multiply(tmp, di, di);
+				DenseVector dc_prev = t == 0 ? dc0 : dCm.row(t - 1);
+				DenseVector f = Fm.row(t);
+				VectorMath.multiply(f, dc, tmp);
+				VectorMath.add(tmp, dc_prev);
 
-			VectorMath.sigmoidGradient(f, tmp);
-			VectorMath.multiply(tmp, df, df);
+				DenseVector g = Gm.row(t);
+				VectorMath.multiply(g, dc, di);
 
-			VectorMath.sigmoidGradient(o, tmp);
-			VectorMath.multiply(tmp, doo, doo);
+				DenseVector i = Im.row(t);
+				VectorMath.multiply(i, dc, dg);
 
-			VectorMath.tanhGradient(g, tmp);
-			VectorMath.multiply(tmp, dg, dg);
+				VectorMath.sigmoidGradient(i, tmp);
+				VectorMath.multiply(tmp, di, di);
 
-			VectorUtils.copyRows(new DenseMatrix(new DenseVector[] { di, df, doo, dg }), da);
+				VectorMath.sigmoidGradient(f, tmp);
+				VectorMath.multiply(tmp, df, df);
 
-			DenseVector dx = dX.row(t);
-			VectorMath.productRows(da.toDenseMatrix(), Wxh, dx.toDenseMatrix(), true);
+				VectorMath.sigmoidGradient(o, tmp);
+				VectorMath.multiply(tmp, doo, doo);
 
-			DenseVector x = X.row(t);
-			VectorMath.outerProduct(x, da, dWxh, true);
+				VectorMath.tanhGradient(g, tmp);
+				VectorMath.multiply(tmp, dg, dg);
 
-			VectorMath.productRows(da.toDenseMatrix(), Whh, dh_prev.toDenseMatrix(), false);
+				VectorUtils.copyRows(new DenseMatrix(new DenseVector[] { di, df, doo, dg }), da);
 
-			DenseVector h_prev = t == 0 ? h0_prev : H.row(t - 1);
+				DenseVector dx = dXm.row(t);
+				VectorMath.productRows(da.toDenseMatrix(), Wxh, dx.toDenseMatrix(), true);
 
-			VectorMath.outerProduct(h_prev, da, dWhh, true);
+				DenseVector x = Xm.row(t);
+				VectorMath.outerProduct(x, da, dWxh, true);
 
-			VectorMath.add(da, db);
+				VectorMath.productRows(da.toDenseMatrix(), Whh, dh_prev.toDenseMatrix(), false);
+
+				DenseVector h_prev = t == 0 ? h0_prev : Hm.row(t - 1);
+
+				VectorMath.outerProduct(h_prev, da, dWhh, true);
+
+				VectorMath.add(da, db);
+			}
+			dX.add(dXm);
 		}
+
 		return dX;
 	}
 
@@ -298,17 +223,32 @@ public class LstmLayer extends RecurrentLayer {
 	}
 
 	@Override
-	public DenseMatrix forward(Object IN) {
-		X = (DenseMatrix) IN;
-		int data_size = X.rowSize();
+	public DenseTensor forward(Object IN) {
+		this.X = (DenseTensor) IN;
 
-		if (tmp_H == null || tmp_H.rowSize() < data_size) {
-			tmp_H = new DenseMatrix(data_size, hidden_size);
-			tmp_I = tmp_H.copy(true);
-			tmp_F = tmp_H.copy(true);
-			tmp_O = tmp_H.copy(true);
-			tmp_G = tmp_H.copy(true);
-			tmp_C = tmp_H.copy(true);
+		DenseTensor X = (DenseTensor) IN;
+		DenseTensor H = new DenseTensor();
+		DenseTensor C = new DenseTensor();
+		DenseTensor I = new DenseTensor();
+		DenseTensor F = new DenseTensor();
+		DenseTensor O = new DenseTensor();
+		DenseTensor G = new DenseTensor();
+
+		H.ensureCapacity(X.size());
+		C.ensureCapacity(X.size());
+		I.ensureCapacity(X.size());
+		F.ensureCapacity(X.size());
+		O.ensureCapacity(X.size());
+		G.ensureCapacity(X.size());
+
+		{
+			int size = X.sizeOfInnerVectors();
+			VectorUtils.enlarge(tmp_H, size, hidden_size);
+			VectorUtils.enlarge(tmp_I, size, hidden_size);
+			VectorUtils.enlarge(tmp_F, size, hidden_size);
+			VectorUtils.enlarge(tmp_O, size, hidden_size);
+			VectorUtils.enlarge(tmp_G, size, hidden_size);
+			VectorUtils.enlarge(tmp_C, size, hidden_size);
 		}
 
 		if (h0 == null) {
@@ -323,61 +263,89 @@ public class LstmLayer extends RecurrentLayer {
 			da = a.copy(true);
 		}
 
-		h0.setAll(0);
-		c0.setAll(0);
+		int start = 0;
 
-		H = tmp_H.rows(data_size);
-		C = tmp_C.rows(data_size);
+		for (int u = 0; u < X.size(); u++) {
+			DenseMatrix Xm = X.get(u);
 
-		I = tmp_I.rows(data_size);
-		F = tmp_F.rows(data_size);
-		O = tmp_O.rows(data_size);
-		G = tmp_G.rows(data_size);
+			h0.setAll(0);
+			c0.setAll(0);
 
-		for (int t = 0; t < data_size; t++) {
-			DenseVector x = X.row(t);
-			DenseVector h_prev = t == 0 ? h0 : H.row(t - 1);
+			DenseMatrix Hm = tmp_H.subMatrix(start, Xm.rowSize());
+			DenseMatrix Cm = tmp_C.subMatrix(start, Xm.rowSize());
+			DenseMatrix Im = tmp_I.subMatrix(start, Xm.rowSize());
+			DenseMatrix Fm = tmp_F.subMatrix(start, Xm.rowSize());
+			DenseMatrix Om = tmp_O.subMatrix(start, Xm.rowSize());
+			DenseMatrix Gm = tmp_G.subMatrix(start, Xm.rowSize());
 
-			VectorMath.product(x, Wxh, a, false);
-			VectorMath.product(h_prev, Whh, a, true);
-			VectorMath.add(b, a);
+			Hm.setAll(0);
+			Cm.setAll(0);
+			Im.setAll(0);
+			Fm.setAll(0);
+			Om.setAll(0);
+			Gm.setAll(0);
 
-			DenseVector i = I.row(t);
-			DenseVector f = F.row(t);
-			DenseVector o = O.row(t);
-			DenseVector g = G.row(t);
+			start += Xm.rowSize();
 
-			for (int j = 0; j < hidden_size; j++) {
-				i.set(j, a.value(j));
-				f.set(j, a.value(hidden_size + j));
-				o.set(j, a.value(hidden_size * 2 + j));
-				g.set(j, a.value(hidden_size * 3 + j));
+			for (int t = 0; t < Xm.rowSize(); t++) {
+				DenseVector x = Xm.row(t);
+				DenseVector h_prev = t == 0 ? h0 : Hm.row(t - 1);
+
+				VectorMath.product(x, Wxh, a, false);
+				VectorMath.product(h_prev, Whh, a, true);
+				VectorMath.add(b, a);
+
+				DenseVector i = Im.row(t);
+				DenseVector f = Fm.row(t);
+				DenseVector o = Om.row(t);
+				DenseVector g = Gm.row(t);
+
+				for (int j = 0; j < hidden_size; j++) {
+					i.set(j, a.value(j));
+					f.set(j, a.value(hidden_size + j));
+					o.set(j, a.value(hidden_size * 2 + j));
+					g.set(j, a.value(hidden_size * 3 + j));
+				}
+
+				VectorMath.sigmoid(i, i);
+				VectorMath.sigmoid(f, f);
+				VectorMath.sigmoid(o, o);
+				VectorMath.tanh(g, g);
+
+				DenseVector c = Cm.row(t);
+				VectorMath.multiply(i, g, tmp);
+				VectorUtils.copy(tmp, c);
+
+				DenseVector c_prev = t == 0 ? c0 : Cm.row(t - 1);
+				VectorMath.multiply(f, c_prev, tmp);
+				VectorMath.add(tmp, c);
+
+				VectorMath.tanh(c, c);
+
+				DenseVector h = Hm.row(t);
+				VectorMath.multiply(o, c, h);
 			}
 
-			VectorMath.sigmoid(i, i);
-			VectorMath.sigmoid(f, f);
-			VectorMath.sigmoid(o, o);
-			VectorMath.tanh(g, g);
+			VectorUtils.copy(h0, h0_prev);
+			VectorUtils.copy(Hm.row(Xm.rowSize() - 1), h0);
 
-			DenseVector c = C.row(t);
-			VectorMath.multiply(i, g, tmp);
-			VectorUtils.copy(tmp, c);
+			VectorUtils.copy(c0, c0_prev);
+			VectorUtils.copy(Cm.row(Xm.rowSize() - 1), c0);
 
-			DenseVector c_prev = t == 0 ? c0 : C.row(t - 1);
-			VectorMath.multiply(f, c_prev, tmp);
-			VectorMath.add(tmp, c);
-
-			VectorMath.tanh(c, c);
-
-			DenseVector h = H.row(t);
-			VectorMath.multiply(o, c, h);
+			H.add(Hm);
+			C.add(Cm);
+			I.add(Im);
+			F.add(Fm);
+			O.add(Om);
+			G.add(Gm);
 		}
 
-		VectorUtils.copy(h0, h0_prev);
-		VectorUtils.copy(H.row(data_size - 1), h0);
-
-		VectorUtils.copy(c0, c0_prev);
-		VectorUtils.copy(C.row(data_size - 1), c0);
+		this.H = H;
+		this.C = C;
+		this.I = I;
+		this.F = F;
+		this.O = O;
+		this.G = G;
 
 		return H;
 	}

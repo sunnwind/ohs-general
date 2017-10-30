@@ -35,9 +35,9 @@ public class WordFeatureExtractor {
 		featIdxer.add("w=<AllCaps>");
 		featIdxer.add("w=<HashDash>");
 
-		for (String f : endingNames) {
-			featIdxer.add(f);
-		}
+		// for (String f : endingNames) {
+		// featIdxer.add(f);
+		// }
 	}
 
 	public IntegerArray extract(MToken t) {
@@ -45,23 +45,23 @@ public class WordFeatureExtractor {
 
 		IntegerArray F = new IntegerArray(new int[featIdxer.size()]);
 
+		if (firstCapPat.matcher(word).matches()) {
+			F.set(0, 1);
+		}
+
 		if (allCapsPat.matcher(word).matches()) {
 			F.set(1, 1);
-		} else {
-			if (firstCapPat.matcher(word).matches()) {
-				F.set(0, 1);
-			}
-
-			if (word.contains("-") || word.contains("_")) {
-				F.set(2, 1);
-			}
 		}
 
-		for (int i = 0; i < endings.length; i++) {
-			if (endingPatterns[i].matcher(word).matches()) {
-				F.set(i + 3, 1);
-			}
+		if (word.contains("-") || word.contains("_")) {
+			F.set(2, 1);
 		}
+
+		// for (int i = 0; i < endings.length; i++) {
+		// if (endingPatterns[i].matcher(word).matches()) {
+		// F.set(i + 3, 1);
+		// }
+		// }
 
 		word = word.toLowerCase();
 		StrUtils.normalizeNumbers(word);

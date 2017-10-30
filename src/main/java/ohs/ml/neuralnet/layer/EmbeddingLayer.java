@@ -7,6 +7,7 @@ import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
+import ohs.matrix.DenseVector;
 import ohs.ml.neuralnet.com.ParameterInitializer;
 import ohs.ml.neuralnet.com.TaskType;
 import ohs.types.number.IntegerArray;
@@ -27,82 +28,44 @@ public class EmbeddingLayer extends Layer {
 
 	private DenseMatrix tmp_Y = new DenseMatrix(0);
 
-	private TaskType tt;
-
 	/**
 	 * words x embedding size
 	 */
 	private DenseMatrix W;
 
-	private Object X;
+	private DenseTensor X;
 
-	private Object Y;
+	private DenseTensor Y;
 
 	public EmbeddingLayer() {
 
 	}
 
-	public EmbeddingLayer(DenseMatrix W, boolean learn_embedding, TaskType tt) {
+	public EmbeddingLayer(DenseMatrix W, boolean learn_embedding) {
 		this.W = W;
 		this.learn_embedding = learn_embedding;
-		this.tt = tt;
 	}
 
-	public EmbeddingLayer(int vocab_size, int emb_size, boolean learn_embedding, TaskType tt) {
-		this(new DenseMatrix(vocab_size, emb_size), learn_embedding, tt);
+	public EmbeddingLayer(int vocab_size, int emb_size, boolean learn_embedding) {
+		this(new DenseMatrix(vocab_size, emb_size), learn_embedding);
 	}
 
 	@Override
 	public Object backward(Object I) {
 		if (I != null && learn_embedding) {
-			if (tt == TaskType.SEQ_LABELING) {
-				IntegerTensor X = (IntegerTensor) this.X;
-				DenseMatrix dY = (DenseMatrix) I;
-				for (IntegerMatrix Xm : X) {
-					for (int i = 0; i < Xm.size(); i++) {
-						int w = Xm.get(i).get(0);
-						VectorMath.add(dY.row(i), dW.row(w));
-					}
-				}
-			}
+			DenseTensor X = (DenseTensor) this.X;
+			DenseTensor dY = (DenseTensor) I;
 
-			// else if (I instanceof DenseTensor) {
-			// IntegerMatrix X = (IntegerMatrix) this.X;
-			// DenseTensor dY = (DenseTensor) I;
-			// for (int i = 0; i < X.size(); i++) {
-			// IntegerArray Xm = X.get(i);
-			// DenseMatrix dYm = dY.get(i);
-			//
-			// for (int j = 0; j < Xm.size(); j++) {
-			// int w = Xm.get(j);
-			// VectorMath.add(dYm.row(j), dW.row(w));
-			// }
-			// }
-			// }
-		}
-		return null;
-	}
+			for (int i = 0; i < X.size(); i++) {
+				DenseMatrix Xm = X.get(i);
+				DenseMatrix dYm = dY.get(i);
 
-	public Object backwardOld(Object I) {
-		if (I != null && learn_embedding) {
-			if (I instanceof DenseMatrix) {
-				IntegerArray X = (IntegerArray) this.X;
-				DenseMatrix dY = (DenseMatrix) I;
-				for (int i = 0; i < X.size(); i++) {
-					int w = X.get(i);
-					VectorMath.add(dY.row(i), dW.row(w));
-				}
-			} else if (I instanceof DenseTensor) {
-				IntegerMatrix X = (IntegerMatrix) this.X;
-				DenseTensor dY = (DenseTensor) I;
-				for (int i = 0; i < X.size(); i++) {
-					IntegerArray Xm = X.get(i);
-					DenseMatrix dYm = dY.get(i);
+				for (int j = 0; j < Xm.rowSize(); j++) {
+					DenseVector xm = Xm.row(j);
+					DenseVector dym = dYm.row(j);
+					int w = (int) xm.value(0);
 
-					for (int j = 0; j < Xm.size(); j++) {
-						int w = Xm.get(j);
-						VectorMath.add(dYm.row(j), dW.row(w));
-					}
+					VectorMath.add(dym, dW.row(w));
 				}
 			}
 		}
@@ -110,120 +73,39 @@ public class EmbeddingLayer extends Layer {
 	}
 
 	public Layer copy() {
-		return new EmbeddingLayer(W, learn_embedding, tt);
+		return new EmbeddingLayer(W, learn_embedding);
 	}
 
 	@Override
 	public Object forward(Object I) {
-		this.X = I;
+		this.X = (DenseTensor) I;
+		DenseTensor X = (DenseTensor) I;
+		DenseTensor Y = new DenseTensor();
 
-		Object ret = null;
+		Y.ensureCapacity(X.size());
 
-		if (tt == TaskType.CLASSIFICATION) {
-			IntegerMatrix X = (IntegerMatrix) I;
-			DenseTensor Y = new DenseTensor();
-			Y.ensureCapacity(X.size());
+		VectorUtils.enlarge(tmp_Y, X.sizeOfInnerVectors(), W.colSize());
+		int start = 0;
 
-			VectorUtils.enlarge(tmp_Y, X.sizeOfEntries(), W.colSize());
-			int start = 0;
-			for (IntegerArray Xm : X) {
-				DenseMatrix Wm = W.rows(Xm.values());
-				DenseMatrix Ym = tmp_Y.rows(start, Xm.size());
-				VectorUtils.copy(Wm, Ym);
-				Y.add(Ym);
-				start += Xm.size();
-			}
-			this.Y = Y;
-			ret = Y;
-		} else if (tt == TaskType.SEQ_CLASSIFICATION) {
-			IntegerArray X = (IntegerArray) I;
-			int data_size = X.size();
-			VectorUtils.enlarge(tmp_Y, data_size, W.colSize());
-			DenseMatrix Wm = W.rows(X.values());
-			DenseMatrix Y = tmp_Y.rows(data_size);
-			VectorUtils.copy(Wm, Y);
-			this.Y = Y;
-			ret = Y;
-		} else if (tt == TaskType.SEQ_LABELING) {
-			IntegerTensor X = (IntegerTensor) I;
+		for (DenseMatrix Xm : X) {
+			IntegerArray ws = new IntegerArray(Xm.rowSize());
 
-			int seq_len = X.sizeOfIntegerArrays();
-
-			VectorUtils.enlarge(tmp_Y, seq_len, W.colSize());
-
-			DenseMatrix Y = tmp_Y.rows(seq_len);
-			Y.setAll(0);
-
-			IntegerArray ws = new IntegerArray(seq_len);
-
-			for (IntegerMatrix Xm : X) {
-				for (IntegerArray xm : Xm) {
-					int w = xm.get(0);
-					ws.add(w);
-				}
+			for (DenseVector xm : Xm) {
+				int w = (int) xm.value(0);
+				ws.add(w);
 			}
 
-			DenseMatrix Wm = W.rows(ws.values());
-			VectorUtils.copy(Wm, Y);
+			DenseMatrix Wm = W.subMatrix(ws.values());
+			DenseMatrix Ym = tmp_Y.subMatrix(start, Xm.rowSize());
+			start += Xm.rowSize();
 
-			this.Y = Y;
+			VectorUtils.copy(Wm, Ym);
 
-			ret = Generics.newPair(X, Y);
+			Y.add(Ym);
 		}
 
-		// if (I instanceof IntegerArray) {
-		// IntegerArray X = (IntegerArray) I;
-		// int data_size = X.size();
-		// VectorUtils.enlarge(tmp_Y, data_size, W.colSize());
-		// DenseMatrix Wm = W.rows(X.values());
-		// DenseMatrix Y = tmp_Y.rows(data_size);
-		// VectorUtils.copy(Wm, Y);
-		// this.Y = Y;
-		// ret = Y;
-		// } else if (I instanceof IntegerMatrix) {
-		// IntegerMatrix X = (IntegerMatrix) I;
-		// DenseTensor Y = new DenseTensor();
-		// Y.ensureCapacity(X.size());
-		//
-		// VectorUtils.enlarge(tmp_Y, X.sizeOfEntries(), W.colSize());
-		// int start = 0;
-		// for (IntegerArray Xm : X) {
-		// DenseMatrix Wm = W.rows(Xm.values());
-		// DenseMatrix Ym = tmp_Y.rows(start, Xm.size());
-		// VectorUtils.copy(Wm, Ym);
-		// Y.add(Ym);
-		// start += Xm.size();
-		// }
-		// this.Y = Y;
-		// ret = Y;
-		// } else if (I instanceof IntegerTensor) {
-		// IntegerTensor X = (IntegerTensor) I;
-		// DenseTensor Y = new DenseTensor();
-		// Y.ensureCapacity(X.size());
-		//
-		// VectorUtils.enlarge(tmp_Y, X.sizeOfIntegerArrays(), W.colSize());
-		//
-		// int start = 0;
-		// for (IntegerMatrix Xm : X) {
-		// IntegerArray ws = new IntegerArray(Xm.size());
-		//
-		// for (IntegerArray xm : Xm) {
-		// int w = xm.get(0);
-		// ws.add(w);
-		// }
-		//
-		// DenseMatrix Wm = W.rows(ws.values());
-		// DenseMatrix Ym = tmp_Y.rows(start, Xm.size());
-		// VectorUtils.copy(Wm, Ym);
-		// Y.add(Ym);
-		// start += Xm.size();
-		// }
-		// this.Y = Y;
-		//
-		// ret = Generics.newPair(X, Y);
-		// }
-
-		return ret;
+		this.Y = Y;
+		return Generics.newPair(X, Y);
 	}
 
 	@Override

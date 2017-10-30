@@ -32,15 +32,19 @@ public class BidirectionalRecurrentLayer extends RecurrentLayer {
 
 	private RecurrentLayer fwd;
 
-	private DenseMatrix H;
-
 	private int input_size;
 
 	private int output_size;
 
 	private DenseMatrix tmp_dX = new DenseMatrix(0);
 
-	private DenseMatrix tmp_H = new DenseMatrix(0);
+	private DenseMatrix tmp_rX = new DenseMatrix(0);
+
+	private DenseMatrix tmp_rY = new DenseMatrix(0);
+
+	private DenseMatrix tmp_Y = new DenseMatrix(0);
+
+	private DenseTensor Y;
 
 	public BidirectionalRecurrentLayer() {
 
@@ -69,23 +73,29 @@ public class BidirectionalRecurrentLayer extends RecurrentLayer {
 
 	@Override
 	public Object backward(Object I) {
-		DenseMatrix dH = (DenseMatrix) I;
-		int data_size = dH.rowSize();
+		DenseTensor dYf = (DenseTensor) I;
+		DenseTensor dYb = reverse(dYf, tmp_rY);
+		DenseTensor dXf = (DenseTensor) fwd.backward(dYf);
+		DenseTensor dXb = (DenseTensor) bwd.backward(dYb);
 
-		VectorUtils.enlarge(tmp_dX, data_size, input_size);
+		VectorUtils.enlarge(tmp_dX, dYf.sizeOfInnerVectors(), dXf.get(0).colSize());
 
-		Object I2 = reverse(I);
-		DenseMatrix dX1 = (DenseMatrix) fwd.backward(I);
-		DenseMatrix dX2 = (DenseMatrix) bwd.backward(I2);
+		DenseTensor dX = new DenseTensor();
+		dX.ensureCapacity(dYf.size());
 
-		DenseMatrix dX = tmp_dX.rows(data_size);
-		dX.setAll(0);
+		int start = 0;
 
-		for (int i = 0; i < data_size; i++) {
-			DenseVector o1 = dX1.row(i);
-			DenseVector o2 = dX2.row(data_size - i - 1);
-			DenseVector o3 = dX.row(i);
-			VectorMath.add(o1, o2, o3);
+		for (int i = 0; i < dYf.size(); i++) {
+			DenseMatrix dXfm = dXf.row(i);
+			DenseMatrix dXbm = dXb.row(i);
+			DenseMatrix dXm = tmp_dX.subMatrix(start, dXfm.rowSize());
+			dXm.setAll(0);
+
+			start += dXfm.rowSize();
+
+			addReversely(dXfm, dXbm, dXm);
+
+			dX.add(dXm);
 		}
 
 		return dX;
@@ -98,25 +108,44 @@ public class BidirectionalRecurrentLayer extends RecurrentLayer {
 
 	@Override
 	public Object forward(Object I) {
-		int data_size = I instanceof IntegerArray ? ((IntegerArray) I).size() : ((DenseMatrix) I).rowSize();
-		Object I2 = reverse(I);
+		DenseTensor Xf = (DenseTensor) I;
+		DenseTensor Xb = reverse(Xf, tmp_rX);
 
-		DenseMatrix O1 = (DenseMatrix) fwd.forward(I);
-		DenseMatrix O2 = (DenseMatrix) bwd.forward(I2);
+		DenseTensor Yf = (DenseTensor) fwd.forward(Xf);
+		DenseTensor Yb = (DenseTensor) bwd.forward(Xb);
 
-		VectorUtils.enlarge(tmp_H, data_size, output_size);
+		DenseTensor Y = new DenseTensor();
+		Y.ensureCapacity(Xf.size());
 
-		H = tmp_H.rows(data_size);
-		H.setAll(0);
+		VectorUtils.enlarge(tmp_Y, Xf.sizeOfInnerVectors(), output_size);
 
-		for (int i = 0; i < data_size; i++) {
-			DenseVector o1 = O1.row(i);
-			DenseVector o2 = O2.row(data_size - i - 1);
-			DenseVector o3 = H.row(i);
-			VectorMath.add(o1, o2, o3);
+		int start = 0;
+
+		for (int i = 0; i < Yf.size(); i++) {
+			DenseMatrix Yfm = Yf.row(i);
+			DenseMatrix Ybm = Yb.row(i);
+			DenseMatrix Ym = tmp_Y.subMatrix(start, Yfm.rowSize());
+			Ym.setAll(0);
+
+			start += Yfm.rowSize();
+
+			addReversely(Yfm, Ybm, Ym);
+
+			Y.add(Ym);
 		}
 
-		return H;
+		this.Y = Y;
+
+		return Y;
+	}
+
+	private void addReversely(DenseMatrix Xf, DenseMatrix Xb, DenseMatrix X) {
+		for (int i = 0; i < Xf.rowSize(); i++) {
+			DenseVector xf = Xf.row(i);
+			DenseVector xb = Xb.row(Xf.rowSize() - i - 1);
+			DenseVector x = X.row(i);
+			VectorMath.add(xf, xb, x);
+		}
 	}
 
 	@Override
@@ -195,31 +224,38 @@ public class BidirectionalRecurrentLayer extends RecurrentLayer {
 		bwd.resetH0();
 	}
 
-	private Object reverse(Object I) {
-		Object ret = null;
-
-		if (I instanceof IntegerArray) {
-			IntegerArray x = (IntegerArray) I;
-			int[] vs = ArrayUtils.copy(x.values());
-			ArrayUtils.reverse(vs);
-			ret = new IntegerArray(vs);
-		} else if (I instanceof DenseMatrix) {
-			DenseMatrix X = (DenseMatrix) I;
-			int data_size = X.rowSize();
-			List<DenseVector> R = Generics.newArrayList(data_size);
-			for (int i = 0; i < X.rowSize(); i++) {
-				R.add(X.row(data_size - i - 1));
-			}
-			ret = new DenseMatrix(R);
-		}
-		return ret;
-	}
-
 	@Override
 	public void writeObject(ObjectOutputStream oos) throws Exception {
 		oos.writeUTF(fwd.getClass().getName());
 		fwd.writeObject(oos);
 		bwd.writeObject(oos);
+	}
+
+	private DenseTensor reverse(DenseTensor X, DenseMatrix T) {
+		VectorUtils.enlarge(T, X.sizeOfInnerVectors(), X.get(0).colSize());
+
+		DenseTensor R = new DenseTensor();
+		R.ensureCapacity(X.size());
+
+		int start = 0;
+
+		for (int i = 0; i < X.size(); i++) {
+			DenseMatrix Xm = X.get(i);
+			DenseMatrix Rm = T.subMatrix(start, Xm.rowSize());
+			start += Xm.rowSize();
+
+			VectorUtils.copy(Xm, Rm);
+
+			int mid = Xm.rowSize() / 2;
+
+			for (int j = 0; j < mid; j++) {
+				Rm.swapRows(j, Xm.rowSize() - 1 - j);
+			}
+
+			R.add(Rm);
+		}
+
+		return R;
 	}
 
 }

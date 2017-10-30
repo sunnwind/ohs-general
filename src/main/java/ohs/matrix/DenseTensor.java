@@ -36,6 +36,20 @@ public class DenseTensor extends ArrayList<DenseMatrix> {
 		unwrapValues();
 	}
 
+	public DenseTensor subTensor(int[] is) {
+		DenseTensor ret = new DenseTensor();
+		ret.ensureCapacity(is.length);
+
+		for (int i = 0; i < is.length; i++) {
+			ret.add(get(is[i]));
+		}
+		return ret;
+	}
+
+	public DenseTensor subTensor(int i, int j) {
+		return new DenseTensor(subList(i, j));
+	}
+
 	public DenseTensor(double[][][] vals) {
 		ensureCapacity(vals.length);
 
@@ -167,10 +181,6 @@ public class DenseTensor extends ArrayList<DenseMatrix> {
 		return new DenseTensor(ret);
 	}
 
-	public int rowSize() {
-		return size();
-	}
-
 	public void setAll(double v) {
 		for (DenseMatrix a : this) {
 			a.setAll(v);
@@ -216,7 +226,13 @@ public class DenseTensor extends ArrayList<DenseMatrix> {
 				sb.append(String.format("\n(%d, %d, %d)\t[", i, j, dv.size()));
 
 				for (int k = 0; k < dv.size(); k++) {
-					sb.append(Double.toString(dv.value(k)));
+					double v = dv.value(k);
+
+					if (v % 1 == 0) {
+						sb.append(Integer.toString((int) v));
+					} else {
+						sb.append(Double.toString(dv.value(k)));
+					}
 
 					if (k == size3) {
 						sb.append(" ...");

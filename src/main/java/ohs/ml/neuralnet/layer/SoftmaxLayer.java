@@ -6,7 +6,7 @@ import java.io.ObjectOutputStream;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
-import ohs.matrix.DenseVector;
+import ohs.matrix.DenseTensor;
 
 public class SoftmaxLayer extends Layer {
 
@@ -43,17 +43,20 @@ public class SoftmaxLayer extends Layer {
 
 	@Override
 	public Object forward(Object I) {
-		DenseMatrix X = (DenseMatrix) I;
-		int data_size = X.rowSize();
+		DenseTensor X = (DenseTensor) I;
+		DenseTensor Y = new DenseTensor();
+		X.ensureCapacity(X.size());
 
-		VectorUtils.enlarge(tmp_Y, data_size, X.colSize());
+		VectorUtils.enlarge(tmp_Y, X.sizeOfInnerVectors(), X.get(0).colSize());
+		int start = 0;
 
-		DenseMatrix Y = tmp_Y.rows(data_size);
-		try {
-			VectorMath.softmax(X, Y);
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		for (DenseMatrix Xm : X) {
+			DenseMatrix Ym = tmp_Y.subMatrix(start, Xm.rowSize());
+			Ym.setAll(0);
+			start += Ym.size();
+
+			VectorMath.softmax(Xm, Ym);
+			Y.add(Ym);
 		}
 		return Y;
 	}
