@@ -1,5 +1,6 @@
 package ohs.ml.neuralnet.com;
 
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import ohs.nlp.ling.types.MToken;
@@ -31,9 +32,11 @@ public class WordFeatureExtractor {
 
 		featIdxer = Generics.newIndexer();
 
-		featIdxer.add("w=<FirstCap>");
+		featIdxer.add("w=<Noninfo>");
+		featIdxer.add("w=<Lowercase>");
 		featIdxer.add("w=<AllCaps>");
-		featIdxer.add("w=<HashDash>");
+		featIdxer.add("w=<FirstCap>");
+		featIdxer.add("w=<MixedCaps>");
 
 		// for (String f : endingNames) {
 		// featIdxer.add(f);
@@ -45,26 +48,44 @@ public class WordFeatureExtractor {
 
 		IntegerArray F = new IntegerArray(new int[featIdxer.size()]);
 
-		if (firstCapPat.matcher(word).matches()) {
-			F.set(0, 1);
+		Set<Integer> caps = Generics.newHashSet();
+		Set<Integer> lowers = Generics.newHashSet();
+
+		for (int i = 0; i < word.length(); i++) {
+			char ch = word.charAt(i);
+			if (Character.isUpperCase(ch)) {
+				caps.add(i);
+			} else if (Character.isLowerCase(ch)) {
+				lowers.add(i);
+			}
 		}
 
-		if (allCapsPat.matcher(word).matches()) {
-			F.set(1, 1);
+		// all caps
+		if (caps.size() == word.length()) {
+			F.set(featIdxer.indexOf("w=<AllCaps>"), 1);
 		}
 
-		if (word.contains("-") || word.contains("_")) {
-			F.set(2, 1);
+		// first cap
+		if (caps.contains(0)) {
+			F.set(featIdxer.indexOf("w=<FirstCap>"), 1);
 		}
 
-		// for (int i = 0; i < endings.length; i++) {
-		// if (endingPatterns[i].matcher(word).matches()) {
-		// F.set(i + 3, 1);
-		// }
-		// }
+		// mixed caps
+		if (!caps.contains(0) && caps.size() > 0) {
+			F.set(featIdxer.indexOf("w=<MixedCaps>"), 1);
+		}
+
+		// all lowercases
+		if (lowers.size() == word.length()) {
+			F.set(featIdxer.indexOf("w=<Lowercase>"), 1);
+		}
+
+		if (caps.size() == 0 && lowers.size() == 0) {
+			F.set(featIdxer.indexOf("w=<Noninfo>"), 1);
+		}
 
 		word = word.toLowerCase();
-		StrUtils.normalizeNumbers(word);
+		word = StrUtils.normalizeNumbers(word);
 
 		t.add(word);
 		t.add(F);

@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import ohs.math.ArrayMath;
 import ohs.math.ArrayUtils;
+import ohs.math.VectorMath;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
@@ -61,8 +62,15 @@ public class NeuralNetTrainer {
 				DenseTensor Xm = X.subTensor(locs);
 				DenseMatrix Ym = Y.subMatrix(locs);
 
-				DenseTensor _Yh = (DenseTensor) nn.forward(Xm);
-				DenseTensor D = cf.evaluate(_Yh, Ym);
+				DenseTensor Yhm = (DenseTensor) nn.forward(Xm);
+				DenseMatrix Cm = cf.checkCorrectness(Yhm, Ym);
+
+				// for (int i = 0; i < locs.length; i++) {
+				// VectorMath.add(Cm.get(i), CC.get(locs[i]));
+				// UU.get(locs[i]).add(1);
+				// }
+
+				DenseTensor D = cf.evaluate(Yhm, Ym);
 
 				cost += cf.getCost();
 				correct_cnt += cf.getCorrectCnt();
@@ -189,68 +197,6 @@ public class NeuralNetTrainer {
 		}
 
 		nnmr.shutdown();
-
-		// VectorUtils.copy(W_best, W);
-	}
-
-	private void prepare(NeuralNet nn, int thread_size, int batch_size, double learn_rate, double reg_lambda,
-			double grad_clip_cutoff, OptimizerType ot, boolean is_full_seq_batch, boolean is_random_batch,
-			int grad_acc_reset_size, double weight_decay, double learn_rate_decay, int learn_rate_decay_size)
-			throws Exception {
-		this.learn_rate = learn_rate;
-		this.reg_lambda = reg_lambda;
-		this.batch_size = batch_size;
-		this.is_full_seq_batch = is_full_seq_batch;
-		this.is_random_batch = is_random_batch;
-		this.grad_acc_reset_size = grad_acc_reset_size;
-		this.weight_decay = weight_decay;
-		this.learn_rate_decay = learn_rate_decay;
-		this.learn_rate_decay_size = learn_rate_decay_size;
-
-		this.tt = nn.getTaskType();
-
-		nns = Generics.newArrayList(thread_size);
-		nns.add(nn);
-
-		for (int i = 0; i < thread_size - 1; i++) {
-			NeuralNet n = copy(nn);
-			n.prepare();
-
-			nns.add(n);
-		}
-
-		int tmp_data_size = 1000000;
-
-		pus = Generics.newArrayList(thread_size);
-
-		for (NeuralNet n : nns) {
-			ParameterUpdater pu = new ParameterUpdater(n, tmp_data_size);
-			pu.setLearningRate(learn_rate);
-			// pu.setWeightDecay(reg_lambda, learn_rate, tmp_data_size);
-			pu.setOptimizerType(ot);
-			pu.setGradientClipCutoff(grad_clip_cutoff);
-			pu.setWeightDecay(weight_decay);
-			pus.add(pu);
-		}
-
-		{
-			List<DenseVector> l = Generics.newLinkedList();
-
-			for (DenseMatrix w : nn.getW(true)) {
-				l.addAll(w);
-			}
-			W = new DenseMatrix(l);
-		}
-
-		tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
-
-		ws = Generics.newArrayList(thread_size);
-
-		for (int i = 0; i < thread_size; i++) {
-			ws.add(new Worker(pus.get(i)));
-		}
-
-		nnmr = new NeuralNetMultiRunner(nns);
 	}
 
 	public void train(DenseTensor X, DenseMatrix Y, DenseTensor Xt, DenseMatrix Yt, int max_iters) throws Exception {
@@ -345,6 +291,66 @@ public class NeuralNetTrainer {
 			}
 
 		}
+	}
+
+	private void prepare(NeuralNet nn, int thread_size, int batch_size, double learn_rate, double reg_lambda,
+			double grad_clip_cutoff, OptimizerType ot, boolean is_full_seq_batch, boolean is_random_batch,
+			int grad_acc_reset_size, double weight_decay, double learn_rate_decay, int learn_rate_decay_size)
+			throws Exception {
+		this.learn_rate = learn_rate;
+		this.reg_lambda = reg_lambda;
+		this.batch_size = batch_size;
+		this.is_full_seq_batch = is_full_seq_batch;
+		this.is_random_batch = is_random_batch;
+		this.grad_acc_reset_size = grad_acc_reset_size;
+		this.weight_decay = weight_decay;
+		this.learn_rate_decay = learn_rate_decay;
+		this.learn_rate_decay_size = learn_rate_decay_size;
+
+		this.tt = nn.getTaskType();
+
+		nns = Generics.newArrayList(thread_size);
+		nns.add(nn);
+
+		for (int i = 0; i < thread_size - 1; i++) {
+			NeuralNet n = copy(nn);
+			n.prepare();
+
+			nns.add(n);
+		}
+
+		int tmp_data_size = 1000000;
+
+		pus = Generics.newArrayList(thread_size);
+
+		for (NeuralNet n : nns) {
+			ParameterUpdater pu = new ParameterUpdater(n);
+			pu.setLearningRate(learn_rate);
+			// pu.setWeightDecay(reg_lambda, learn_rate, tmp_data_size);
+			pu.setOptimizerType(ot);
+			pu.setGradientClipCutoff(grad_clip_cutoff);
+			pu.setWeightDecay(weight_decay);
+			pus.add(pu);
+		}
+
+		{
+			List<DenseVector> l = Generics.newLinkedList();
+
+			for (DenseMatrix w : nn.getW(true)) {
+				l.addAll(w);
+			}
+			W = new DenseMatrix(l);
+		}
+
+		tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
+
+		ws = Generics.newArrayList(thread_size);
+
+		for (int i = 0; i < thread_size; i++) {
+			ws.add(new Worker(pus.get(i)));
+		}
+
+		nnmr = new NeuralNetMultiRunner(nns);
 	}
 
 }

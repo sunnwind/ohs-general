@@ -7,8 +7,6 @@ import ohs.math.VectorMath;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
-import ohs.ml.neuralnet.layer.EmbeddingLayer;
-import ohs.ml.neuralnet.layer.Layer;
 import ohs.utils.Generics;
 
 /**
@@ -54,18 +52,11 @@ public class ParameterUpdater {
 
 	private DenseTensor Rs2;
 
-	private double weight_decay = 0.99999;
+	private double weight_decay = 1;
 
 	private DenseTensor Ws;
 
-	/**
-	 * @param W
-	 * @param dW
-	 * @param rW1
-	 * @param rW2
-	 * @param batch_size
-	 */
-	public ParameterUpdater(NeuralNet nn, int batch_size) {
+	public ParameterUpdater(NeuralNet nn) {
 		this.nn = nn;
 
 		Ws = nn.getW(false);
@@ -115,6 +106,10 @@ public class ParameterUpdater {
 		this.ot = ot;
 	}
 
+	public void setWeightDecay(double weight_decay) {
+		this.weight_decay = weight_decay;
+	}
+
 	/**
 	 * http://neuralnetworksanddeeplearning.com/chap3.html#overfitting_and_regularization
 	 * 
@@ -124,10 +119,6 @@ public class ParameterUpdater {
 	 */
 	public void setWeightDecay(double reg_lambda, double learn_rate, long data_size) {
 		weight_decay = (1 - reg_lambda * learn_rate / data_size);
-	}
-
-	public void setWeightDecay(double weight_decay) {
-		this.weight_decay = weight_decay;
 	}
 
 	public void update() {

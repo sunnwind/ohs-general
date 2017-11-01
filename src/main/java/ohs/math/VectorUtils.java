@@ -55,6 +55,22 @@ public class VectorUtils {
 		return sum;
 	}
 
+	/**
+	 * @param a
+	 * @param m
+	 *            start of a
+	 * @param b
+	 * @param n
+	 *            start of b
+	 * @param size
+	 * @return
+	 */
+	public static double copy(DenseVector a, int m, DenseVector b, int n, int size) {
+		double sum = ArrayUtils.copy(a.values(), m, b.values(), n, size);
+		b.setSum(sum);
+		return sum;
+	}
+
 	public static double copy(Vector a, Vector b) {
 		if (VectorChecker.isSparse(a) && VectorChecker.isSparse(b)) {
 			ArrayUtils.copy(a.indexes(), b.indexes());

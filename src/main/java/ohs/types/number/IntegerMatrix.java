@@ -46,6 +46,10 @@ public class IntegerMatrix extends ArrayList<IntegerArray> {
 		ensure(i).add(v);
 	}
 
+	public void set(int i, int j, int v) {
+		get(i).set(j, v);
+	}
+
 	public ByteSize byteSize() {
 		return new ByteSize(Integer.BYTES * sizeOfEntries());
 	}

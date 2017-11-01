@@ -18,10 +18,16 @@ public class MDocument extends ArrayList<MSentence> {
 		MDocument ret = new MDocument(ps.length);
 		for (int i = 0; i < ps.length; i++) {
 			ps[i] = ps[i].trim();
+
 			if (ps[i].length() == 0) {
 				continue;
 			}
-			ret.add(MSentence.newSentence(ps[i]));
+
+			MSentence sent = MSentence.newSentence(ps[i]);
+			
+			if (sent.size() > 0) {
+				ret.add(sent);
+			}
 		}
 		return ret;
 	}

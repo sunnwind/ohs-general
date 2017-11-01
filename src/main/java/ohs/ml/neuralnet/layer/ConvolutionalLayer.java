@@ -46,8 +46,6 @@ public class ConvolutionalLayer extends Layer {
 
 	private int num_filters;
 
-	private int pad_size;
-
 	private DenseMatrix tmp_dX = new DenseMatrix(0);
 
 	private DenseMatrix tmp_dZ = new DenseMatrix(0);
@@ -95,8 +93,6 @@ public class ConvolutionalLayer extends Layer {
 
 		filter_size = W.rowSize();
 		num_filters = W.colSize();
-
-		pad_size = window_size - 1;
 	}
 
 	public ConvolutionalLayer(int emb_size, int window_size, int num_filters) {
@@ -161,7 +157,7 @@ public class ConvolutionalLayer extends Layer {
 	}
 
 	@Override
-	public Layer copy() {
+	public ConvolutionalLayer copy() {
 		return new ConvolutionalLayer(W, b, window_size, emb_size);
 	}
 
@@ -235,7 +231,7 @@ public class ConvolutionalLayer extends Layer {
 
 			Y.add(Ym);
 
-			start += sent_len;
+			start += num_feat_maps;
 		}
 
 		this.Y = Y;
@@ -272,6 +268,10 @@ public class ConvolutionalLayer extends Layer {
 	@Override
 	public int getInputSize() {
 		return W.rowSize();
+	}
+
+	public int getNumFilters() {
+		return num_filters;
 	}
 
 	@Override

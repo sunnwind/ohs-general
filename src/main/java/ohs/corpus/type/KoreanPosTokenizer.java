@@ -27,7 +27,7 @@ public class KoreanPosTokenizer extends StringTokenizer {
 					tt.add(word);
 					tt.add(pos);
 
-					ret.add(tt.toString().replace(" / ", "_/_"));
+//					ret.add(tt.toString().replace(" / ", "_/_"));
 				}
 			}
 		}

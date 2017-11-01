@@ -195,7 +195,7 @@ public class PhraseNumberPredictor {
 	}
 
 	public static void vectorizeData() throws Exception {
-		List<String> ins = FileUtils.readLinesFromText(KPPath.KP_DIR + "ext/label_data.txt");
+		List<String> ins = FileUtils.readLinesFromText(KPPath.KP_DIR + "ext/train_data.txt");
 
 		List<SparseVector> X = Generics.newArrayList(ins.size());
 		List<Integer> Y = Generics.newArrayList(ins.size());

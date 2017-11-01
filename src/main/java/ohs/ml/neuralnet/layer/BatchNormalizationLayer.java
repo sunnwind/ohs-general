@@ -39,7 +39,7 @@ public class BatchNormalizationLayer extends Layer {
 
 	private double momentum = 0.9;
 
-	private DenseVector mu;
+	private DenseVector mu = new DenseVector(0);
 
 	private DenseVector runMeans;
 
@@ -47,25 +47,29 @@ public class BatchNormalizationLayer extends Layer {
 
 	private DenseVector std;
 
-	private DenseMatrix tmp_dX;
+	private DenseMatrix tmp_dX = new DenseMatrix(0);
 
-	private DenseMatrix tmp_dxc;
+	private DenseMatrix tmp_dXC = new DenseMatrix(0);
 
-	private DenseMatrix tmp_dxn = new DenseMatrix(0);
+	private DenseMatrix tmp_dXN = new DenseMatrix(0);
 
 	private DenseMatrix tmp_T = new DenseMatrix(0);
 
-	private DenseMatrix tmp_xc = new DenseMatrix(0);
+	private DenseMatrix tmp_XC = new DenseMatrix(0);
 
-	private DenseMatrix tmp_xn = new DenseMatrix(0);
+	private DenseMatrix tmp_XN = new DenseMatrix(0);
 
 	private DenseMatrix tmp_Y = new DenseMatrix(0);
 
-	private DenseVector var;
+	private DenseVector var = new DenseVector(0);
 
-	private DenseMatrix xc;
+	private DenseTensor X;
 
-	private DenseMatrix xn;
+	private DenseTensor XC;
+
+	private DenseTensor XN;
+
+	private DenseTensor Y;
 
 	public BatchNormalizationLayer(DenseVector runMeans, DenseVector runVars, DenseVector gamma, DenseVector beta) {
 		this.runMeans = runMeans;
@@ -85,54 +89,67 @@ public class BatchNormalizationLayer extends Layer {
 
 	@Override
 	public Object backward(Object I) {
-		DenseMatrix dY = (DenseMatrix) I;
+		DenseTensor dY = (DenseTensor) I;
+		DenseTensor dX = new DenseTensor();
+		dX.ensureCapacity(dY.size());
 
-		if (I == null) {
-			return null;
+		VectorUtils.enlarge(tmp_dX, dY.sizeOfInnerVectors(), dY.row(0).colSize());
+		VectorUtils.enlarge(tmp_dXC, dY.sizeOfInnerVectors(), dY.row(0).colSize());
+		VectorUtils.enlarge(tmp_dXN, dY.sizeOfInnerVectors(), dY.row(0).colSize());
+		VectorUtils.enlarge(tmp_T, dY.sizeOfInnerVectors(), dY.row(0).colSize());
+
+		int start = 0;
+
+		for (int i = 0; i < dY.size(); i++) {
+			DenseMatrix dYm = dY.get(i);
+			DenseMatrix XNm = XN.get(i);
+			DenseMatrix XCm = XC.get(i);
+			DenseMatrix Tm = tmp_T.subMatrix(start, dYm.rowSize());
+			DenseMatrix dXm = tmp_dX.subMatrix(start, dYm.rowSize());
+			DenseMatrix dXCm = tmp_dXC.subMatrix(start, dYm.rowSize());
+			DenseMatrix dXNm = tmp_dXN.subMatrix(start, dYm.rowSize());
+
+			Tm.setAll(0);
+			dXm.setAll(0);
+			dXCm.setAll(0);
+			dXNm.setAll(0);
+
+			start += dYm.rowSize();
+
+			VectorMath.sumColumns(dYm, dbeta);
+
+			VectorMath.multiply(XNm, dYm, Tm);
+			VectorMath.sumColumns(Tm, dgamma);
+
+			VectorMath.multiply(dYm, gamma, dXNm);
+
+			VectorMath.divide(dXNm, std, dXCm);
+
+			VectorMath.multiply(dXNm, XCm, Tm);
+			DenseVector std_sq = std.copy();
+			VectorMath.pow(std_sq, 2, std_sq);
+			VectorMath.divide(Tm, std_sq, Tm);
+			DenseVector dstd = gamma.copy(true);
+			VectorMath.sumColumns(Tm, dstd);
+			dstd.multiply(-1);
+
+			DenseVector dvar = gamma.copy(true);
+			VectorMath.divide(dstd, std, dvar);
+			dvar.multiply(0.5);
+
+			Tm.setAll(2f / dYm.rowSize());
+
+			VectorMath.multiply(Tm, XCm, Tm);
+			VectorMath.multiply(Tm, dvar, Tm);
+			VectorMath.add(dXCm, Tm, dXCm);
+
+			DenseVector dmu = gamma.copy(true);
+			VectorMath.meanColumns(dXCm, dmu);
+
+			VectorMath.subtract(dXCm, dmu, dXm);
+
+			dX.add(dXm);
 		}
-
-		int data_size = dY.rowSize();
-
-		if (tmp_dxn.rowSize() < data_size) {
-			tmp_dxc = dY.copy(true);
-			tmp_dxn = dY.copy(true);
-			tmp_dX = dY.copy(true);
-		}
-
-		VectorMath.sumColumns(dY, dbeta);
-
-		DenseMatrix T = tmp_T.subMatrix(data_size);
-		VectorMath.multiply(xn, dY, T);
-		VectorMath.sumColumns(T, dgamma);
-
-		DenseMatrix dxn = tmp_dxn.subMatrix(data_size);
-		VectorMath.multiply(dY, gamma, dxn);
-
-		DenseMatrix dxc = tmp_dxc.subMatrix(data_size);
-		VectorMath.divide(dxn, std, dxc);
-
-		VectorMath.multiply(dxn, xc, T);
-		DenseVector std_sq = std.copy();
-		VectorMath.pow(std_sq, 2, std_sq);
-		VectorMath.divide(T, std_sq, T);
-		DenseVector dstd = gamma.copy(true);
-		VectorMath.sumColumns(T, dstd);
-		dstd.multiply(-1);
-
-		DenseVector dvar = gamma.copy(true);
-		VectorMath.divide(dstd, std, dvar);
-		dvar.multiply(0.5);
-
-		T.setAll(2f / data_size);
-		VectorMath.multiply(T, xc, T);
-		VectorMath.multiply(T, dvar, T);
-		VectorMath.add(dxc, T, dxc);
-
-		DenseVector dmu = gamma.copy(true);
-		VectorMath.meanColumns(dxc, dmu);
-
-		DenseMatrix dX = tmp_dX.subMatrix(data_size);
-		VectorMath.subtract(dxc, dmu, dX);
 
 		return dX;
 	}
@@ -144,71 +161,103 @@ public class BatchNormalizationLayer extends Layer {
 
 	@Override
 	public Object forward(Object I) {
-		DenseMatrix X = (DenseMatrix) I;
+		DenseTensor X = (DenseTensor) I;
+		DenseTensor Y = new DenseTensor();
+		DenseTensor XN = new DenseTensor();
+		DenseTensor XC = new DenseTensor();
 
-		if (tmp_Y.rowSize() < X.rowSize()) {
-			tmp_Y = X.copy(true);
+		Y.ensureCapacity(X.size());
+		XN.ensureCapacity(X.size());
+		XC.ensureCapacity(X.size());
+
+		this.X = X;
+
+		VectorUtils.enlarge(tmp_Y, X.sizeOfInnerVectors(), X.row(0).colSize());
+
+		if (!is_testing) {
+			int size = X.sizeOfInnerVectors();
+			VectorUtils.enlarge(tmp_T, size, X.row(0).colSize());
+			VectorUtils.enlarge(tmp_XC, size, X.row(0).colSize());
+			VectorUtils.enlarge(tmp_XN, size, X.row(0).colSize());
 		}
 
-		DenseMatrix Y = tmp_Y.subMatrix(X.rowSize());
-
-		if (is_testing) {
-			DenseVector std = runVars.copy();
-			std.add(eps);
-
-			VectorMath.sqrt(std, std);
-			VectorMath.subtract(X, runMeans, Y);
-			VectorMath.divide(Y, std, Y);
-			VectorMath.multiply(Y, gamma, Y);
-			VectorMath.add(Y, beta, Y);
-		} else {
-			if (tmp_T == null || tmp_T.rowSize() < X.rowSize()) {
-				tmp_T = X.copy(true);
-				tmp_xc = X.copy(true);
-				tmp_xn = X.copy(true);
-			}
-
-			if (mu == null) {
-				mu = gamma.copy(true);
-				var = gamma.copy(true);
-				std = gamma.copy(true);
-			}
-
-			int data_size = X.rowSize();
-			DenseMatrix T = tmp_T.subMatrix(data_size);
-			xc = tmp_xc.subMatrix(data_size);
-			xn = tmp_xn.subMatrix(data_size);
-
-			/*
-			 * step 1: calculate mean
-			 */
-			VectorMath.meanColumns(X, mu);
-
-			// step 2: subtract mean vector of every training example
-
-			VectorMath.subtract(X, mu, xc);
-
-			// step 3: following the lower branch - calculation DENOMINATOR
-
-			VectorMath.pow(xc, 2, T);
-
-			// step 4: calculate variance
-
-			VectorMath.meanColumns(T, var);
-
-			// step 5: add eps for numerical stability, then sqrt
-
-			VectorUtils.copy(var, std);
-			std.add(eps);
-			VectorMath.sqrt(std, std);
-			VectorMath.divide(xc, std, xn);
-
-			VectorMath.multiply(xn, gamma, Y);
-			VectorMath.add(Y, beta, Y);
-
-			VectorMath.addAfterMultiply(runMeans, momentum, mu, (1 - momentum), runMeans);
-			VectorMath.addAfterMultiply(runVars, momentum, var, (1 - momentum), runVars);
+		if (mu.size() == 0) {
+			mu = gamma.copy(true);
+			var = gamma.copy(true);
+			std = gamma.copy(true);
 		}
+
+		int start = 0;
+
+		for (DenseMatrix Xm : X) {
+			if (is_testing) {
+				DenseMatrix Ym = tmp_Y.subMatrix(start, Xm.rowSize());
+				Ym.setAll(0);
+
+				start += Xm.rowSize();
+
+				DenseVector std = runVars.copy();
+				std.add(eps);
+
+				VectorMath.sqrt(std, std);
+				VectorMath.subtract(Xm, runMeans, Ym);
+				VectorMath.divide(Ym, std, Ym);
+				VectorMath.multiply(Ym, gamma, Ym);
+				VectorMath.add(Ym, beta, Ym);
+
+				Y.add(Ym);
+			} else {
+				DenseMatrix Ym = tmp_Y.subMatrix(start, Xm.rowSize());
+				DenseMatrix Tm = tmp_T.subMatrix(start, Xm.rowSize());
+				DenseMatrix XCm = tmp_XC.subMatrix(start, Xm.rowSize());
+				DenseMatrix XNm = tmp_XN.subMatrix(start, Xm.rowSize());
+
+				Ym.setAll(0);
+				Tm.setAll(0);
+				XCm.setAll(0);
+				XNm.setAll(0);
+
+				start += Xm.rowSize();
+
+				/*
+				 * step 1: calculate mean
+				 */
+				VectorMath.meanColumns(Xm, mu);
+
+				// step 2: subtract mean vector of every training example
+
+				VectorMath.subtract(Xm, mu, XCm);
+
+				// step 3: following the lower branch - calculation DENOMINATOR
+
+				VectorMath.pow(XCm, 2, Tm);
+
+				// step 4: calculate variance
+
+				VectorMath.meanColumns(Tm, var);
+
+				// step 5: add eps for numerical stability, then sqrt
+
+				VectorUtils.copy(var, std);
+				std.add(eps);
+				VectorMath.sqrt(std, std);
+				VectorMath.divide(XCm, std, XNm);
+
+				VectorMath.multiply(XNm, gamma, Ym);
+				VectorMath.add(Ym, beta, Ym);
+
+				VectorMath.addAfterMultiply(runMeans, momentum, mu, (1 - momentum), runMeans);
+				VectorMath.addAfterMultiply(runVars, momentum, var, (1 - momentum), runVars);
+
+				Y.add(Ym);
+				XN.add(XNm);
+				XC.add(XCm);
+			}
+		}
+
+		this.Y = Y;
+		this.XN = XN;
+		this.XC = XC;
 
 		return Y;
 	}

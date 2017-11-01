@@ -30,7 +30,11 @@ public class MSentence extends ArrayList<MToken> {
 			MToken t = new MToken(min_attrs);
 
 			for (int j = 0; j < min_attrs; j++) {
-				t.add(ps.get(j));
+				String str = ps.get(j).trim();
+				if (str.length() == 0) {
+					continue;
+				}
+				t.add(str);
 			}
 
 			if (num_attrs == t.size()) {

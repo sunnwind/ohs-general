@@ -37,7 +37,7 @@ public class MaxPoolingLayer extends Layer {
 	}
 
 	@Override
-	public Object backward(Object I) {
+	public DenseTensor backward(Object I) {
 
 		/*
 		 * data size x filters
@@ -119,12 +119,12 @@ public class MaxPoolingLayer extends Layer {
 	// }
 
 	@Override
-	public Layer copy() {
+	public MaxPoolingLayer copy() {
 		return new MaxPoolingLayer(num_filters);
 	}
 
 	@Override
-	public Object forward(Object I) {
+	public DenseTensor forward(Object I) {
 		this.X = (DenseTensor) I;
 
 		/*
@@ -158,8 +158,8 @@ public class MaxPoolingLayer extends Layer {
 			Ym.setAll(-Double.MAX_VALUE);
 			Lm.setAll(0);
 
-			int num_feature_maps = Xm.rowSize();
-			for (int feat_map_idx = 0; feat_map_idx < num_feature_maps; feat_map_idx++) {
+			int num_feat_maps = Xm.rowSize();
+			for (int feat_map_idx = 0; feat_map_idx < num_feat_maps; feat_map_idx++) {
 				DenseVector filters = Xm.row(feat_map_idx);
 
 				for (int filter_idx = 0; filter_idx < num_filters; filter_idx++) {

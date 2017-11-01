@@ -44,9 +44,9 @@ public class Apps {
 
 		// testMNIST();
 		// testCharRNN();
-		testNER();
+		// testNER();
 
-		// testSentenceClassification();
+		testSentenceClassification();
 
 		System.out.println("process ends.");
 	}
@@ -320,6 +320,7 @@ public class Apps {
 		nnp.setLearnRate(0.001);
 		nnp.setLearnRateDecay(0.9);
 		nnp.setLearnRateDecaySize(100);
+		nnp.setWeightDecay(1);
 		nnp.setRegLambda(0.001);
 		nnp.setThreadSize(5);
 		nnp.setTruncatedBackPropagationThroughTime(1);
@@ -434,8 +435,8 @@ public class Apps {
 		System.out.println(X.sizeOfEntries());
 
 		int voc_size = vocab.size();
-		int word_emb_size = 100;
-		int feat_emb_size = 20;
+		int word_emb_size = 50;
+		int feat_emb_size = 10;
 		int l1_size = 100;
 		int label_size = labelIdxer.size();
 		int type = 2;
@@ -456,7 +457,7 @@ public class Apps {
 			DiscreteFeatureEmbeddingLayer l = new DiscreteFeatureEmbeddingLayer(ext.getFeatureIndexer().size(),
 					feat_emb_size, word_emb_size, true);
 			nn.add(l);
-			nn.add(new DropoutLayer());
+			// nn.add(new DropoutLayer());
 			// nn.add(new RnnLayer(l.getOutputSize(), l1_size, bptt_size, new ReLU()));
 			// nn.add(new LstmLayer(l.getOutputSize(), l1_size));
 			nn.add(new BidirectionalRecurrentLayer(Type.LSTM, l.getOutputSize(), l1_size, bptt_size, new ReLU()));
@@ -471,36 +472,40 @@ public class Apps {
 
 		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, nnp);
 
-		IntegerArray locs = new IntegerArray(ArrayUtils.range(X.size()));
-
-		int group_size = 200;
-		int[][] rs = BatchUtils.getBatchRanges(X.size(), group_size);
-
 		int max_iters = 1000;
+		boolean use_batches = true;
 
-		for (int u = 0; u < max_iters; u++) {
-			ArrayUtils.shuffle(locs.values());
+		if (use_batches) {
+			IntegerArray locs = new IntegerArray(ArrayUtils.range(X.size()));
+			int group_size = 10000;
+			int[][] rs = BatchUtils.getBatchRanges(X.size(), group_size);
 
-			for (int i = 0; i < rs.length; i++) {
-				System.out.printf("iters [%d/%d], batches [%d/%d]\n", u + 1, max_iters, i + 1, rs.length);
-				for (int j = 0; j < rs.length; j++) {
-					int[] r = rs[j];
-					int r_size = r[1] - r[0];
-					DenseTensor Xm = new DenseTensor();
-					DenseMatrix Ym = new DenseMatrix();
+			for (int u = 0; u < max_iters; u++) {
+				ArrayUtils.shuffle(locs.values());
 
-					Xm.ensureCapacity(r_size);
-					Ym.ensureCapacity(r_size);
+				for (int i = 0; i < rs.length; i++) {
+					System.out.printf("iters [%d/%d], batches [%d/%d]\n", u + 1, max_iters, i + 1, rs.length);
+					for (int j = 0; j < rs.length; j++) {
+						int[] r = rs[j];
+						int r_size = r[1] - r[0];
+						DenseTensor Xm = new DenseTensor();
+						DenseMatrix Ym = new DenseMatrix();
 
-					for (int k = r[0]; k < r[1]; k++) {
-						int loc = locs.get(k);
-						Xm.add(X.get(loc));
-						Ym.add(Y.get(loc));
+						Xm.ensureCapacity(r_size);
+						Ym.ensureCapacity(r_size);
+
+						for (int k = r[0]; k < r[1]; k++) {
+							int loc = locs.get(k);
+							Xm.add(X.get(loc));
+							Ym.add(Y.get(loc));
+						}
+
+						trainer.train(Xm, Ym, Xt, Yt, 1);
 					}
-
-					trainer.train(Xm, Ym, Xt, Yt, 1);
 				}
 			}
+		} else {
+			trainer.train(X, Y, Xt, Yt, max_iters);
 		}
 
 		trainer.finish();
@@ -636,14 +641,12 @@ public class Apps {
 
 		if (type == 0) {
 			int num_filters = 100;
-			int window_size = 2;
 			int[] window_sizes = new int[] { 2, 3 };
 
 			nn.add(new EmbeddingLayer(vocab_size, emb_size, true));
 
-			// nn.add(new MultiWindowConvolutionalLayer(emb_size, window_sizes,
-			// num_filters));
-			nn.add(new ConvolutionalLayer(emb_size, window_size, num_filters));
+//			nn.add(new MultiWindowConvolutionalLayer(emb_size, window_sizes, num_filters));
+			 nn.add(new ConvolutionalLayer(emb_size, window_sizes[0], num_filters));
 			nn.add(new NonlinearityLayer(new ReLU()));
 			nn.add(new MaxPoolingLayer(num_filters));
 			nn.add(new DropoutLayer());

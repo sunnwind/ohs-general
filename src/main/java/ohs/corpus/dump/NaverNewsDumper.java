@@ -99,7 +99,7 @@ public class NaverNewsDumper extends TextDumper {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 
-		NaverNewsDumper dh = new NaverNewsDumper(FNPath.FN_COL_RAW_DIR, FNPath.FN_COL_LINE_DIR);
+		NaverNewsDumper dh = new NaverNewsDumper(FNPath.NAVER_NEWS_COL_RAW_DIR, FNPath.NAVER_NEWS_COL_LINE_DIR);
 		dh.setThreadSize(10);
 		dh.setBatchSize(40000);
 		dh.dump();

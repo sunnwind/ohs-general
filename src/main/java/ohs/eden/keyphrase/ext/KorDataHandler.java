@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.text.DecimalFormat;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
@@ -47,18 +48,46 @@ public class KorDataHandler {
 		System.out.println("process begins.");
 		KorDataHandler dh = new KorDataHandler();
 		// dh.tagPOS();
+		// dh.getLabelData();
+		// dh.splitLabeData();
 		// dh.getLabelData2();
+
 		// dh.merge();
 
 		// dh.getKeyphraseDocuments();
 		// dh.trainGlove();
 		// dh.getLabelData();
-		// dh.getKeyphrases();
-		// dh.getKeyphrasePatterns();
+//		dh.getKeyphrases();
+		dh.getKeyphrasePatterns();
 
-		dh.test();
+		// dh.test();
 
 		System.out.println("process ends.");
+	}
+
+	public void splitLabeData() throws Exception {
+		List<String> data = FileUtils.readLinesFromText(KPPath.KP_DIR + "ext/label_data.txt");
+
+		Collections.shuffle(data);
+		Collections.shuffle(data);
+
+		int test_size = 10000;
+
+		List<String> trainData = Generics.newArrayList(data.size() - test_size);
+		List<String> testData = Generics.newArrayList(test_size);
+
+		for (int i = 0; i < data.size(); i++) {
+			String s = data.get(i);
+			if (i < test_size) {
+				testData.add(s);
+			} else {
+				trainData.add(s);
+			}
+		}
+
+		FileUtils.writeStringCollectionAsText(KPPath.KP_DIR + "ext/train_data.txt", trainData);
+		FileUtils.writeStringCollectionAsText(KPPath.KP_DIR + "ext/test_data.txt", testData);
+
 	}
 
 	public void test() throws Exception {
@@ -120,7 +149,7 @@ public class KorDataHandler {
 			res.add(cn);
 			res.add(k);
 			res.add(d.replace("\n", "<nl>"));
-			
+
 			res = StrUtils.wrap(res);
 
 			outs.add(StrUtils.join("\t", res));

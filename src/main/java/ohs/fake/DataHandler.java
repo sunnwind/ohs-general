@@ -15,7 +15,9 @@ import org.bitbucket.eunjeon.seunjeon.Morpheme;
 
 import ohs.corpus.type.RawDocumentCollection;
 import ohs.io.FileUtils;
+import ohs.io.TextFileReader;
 import ohs.io.TextFileWriter;
+import ohs.ir.weight.TermWeighting;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.SparseVector;
@@ -25,6 +27,7 @@ import ohs.nlp.ling.types.MToken;
 import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
 import ohs.types.generic.Indexer;
+import ohs.types.generic.Vocab;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
 import scala.collection.mutable.WrappedArray;
@@ -49,10 +52,11 @@ public class DataHandler {
 			while ((file_loc = file_cnt.getAndIncrement()) < files.size()) {
 				File file = files.get(file_loc);
 
-				List<String> lines = FileUtils.readLinesFromText(file);
+				List<String> ins = FileUtils.readLinesFromText(file);
+				List<String> outs = Generics.newArrayList(ins.size());
 
-				for (int i = 0; i < lines.size(); i++) {
-					String line = lines.get(i);
+				for (int i = 0; i < ins.size(); i++) {
+					String line = ins.get(i);
 
 					List<String> ps = StrUtils.split("\t", line);
 					ps = StrUtils.unwrap(ps);
@@ -84,14 +88,27 @@ public class DataHandler {
 							String word = m.surface();
 							String pos = vals[0];
 
+							if (word.length() == 0) {
+								continue;
+							}
+
 							MToken t = new MToken(2);
 							t.add(word);
 							t.add(pos);
 							sent.add(t);
 						}
+
+						if (sent.size() == 0) {
+							continue;
+						}
+
 						doc.add(sent);
 					}
 					doc.trimToSize();
+
+					if (doc.size() == 0) {
+						continue;
+					}
 
 					// MDocument taggedContent = getText(komoran.analyze(content, 1));
 
@@ -105,10 +122,10 @@ public class DataHandler {
 
 					ps = StrUtils.wrap(ps);
 
-					lines.set(i, StrUtils.join("\t", ps));
+					outs.add(StrUtils.join("\t", ps));
 				}
 
-				FileUtils.writeStringCollectionAsText(file.getPath().replace("line", "line_pos"), lines);
+				FileUtils.writeStringCollectionAsText(file.getPath().replace("line", "line_pos"), outs);
 			}
 			return (int) 0;
 		}
@@ -118,16 +135,41 @@ public class DataHandler {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 		DataHandler dh = new DataHandler();
-		dh.tagPOS4NaverNews();
+		// dh.tagPOS4NaverNews();
+		// dh.selectSubset1();
 		// dh.extractVocab();
+
+		dh.test();
 
 		System.out.println("process ends.");
 	}
 
-	public void extractVocab() throws Exception {
-		RawDocumentCollection rdc = new RawDocumentCollection(FNPath.FN_COL_DC_DIR);
+	public void test() throws Exception {
+		Counter<String> c = Generics.newCounter();
+		TextFileReader reader = new TextFileReader(FNPath.NAVER_DATA_DIR + "news_2007.txt");
+		reader.setPrintSize(10000);
+		
+		while (reader.hasNext()) {
+			
+			String line = reader.next();
+			List<String> ps1 = StrUtils.unwrap(StrUtils.split("\t", line));
 
-		TextFileWriter writer = new TextFileWriter(FNPath.DATA_DIR + "dissam_docs.txt");
+			int j = 0;
+			String cat = ps1.get(j++);
+			String content = ps1.get(j++);
+			c.incrementCount(cat, 1);
+		}
+		reader.printProgress();
+		reader.close();
+
+		System.out.println(c.toString());
+
+	}
+
+	public void selectSubset2() throws Exception {
+		RawDocumentCollection rdc = new RawDocumentCollection(FNPath.NAVER_NEWS_COL_DC_DIR);
+
+		TextFileWriter writer = new TextFileWriter(FNPath.NAVER_DATA_DIR + "dissam_docs.txt");
 		int cnt = 0;
 
 		for (int i = 0; i < rdc.size(); i++) {
@@ -213,11 +255,130 @@ public class DataHandler {
 		}
 		rdc.close();
 		writer.close();
+	}
+
+	static {
+		Indexer<String> idxer = Generics.newIndexer();
+		idxer.add("word");
+		idxer.add("pos");
+
+		MToken.INDEXER = idxer;
+	}
+
+	public void extractVocab() throws Exception {
+		List<File> files = FileUtils.getFilesUnder(FNPath.NAVER_NEWS_COL_LINE_POS_DIR);
+		Counter<String> wordCnts = Generics.newCounter();
+		Counter<String> docFreqs = Generics.newCounter();
+		int num_docs = 0;
+
+		for (int i = 0; i < files.size(); i++) {
+			File file = files.get(i);
+
+			if (!file.getName().startsWith("2017")) {
+				continue;
+			}
+
+			// if (num_docs > 10000) {
+			// break;
+			// }
+
+			List<String> lines = FileUtils.readLinesFromText(file);
+
+			num_docs += lines.size();
+
+			for (String line : lines) {
+				List<String> ps = StrUtils.split("\t", line);
+				ps = StrUtils.unwrap(ps);
+
+				int j = 0;
+				String id = ps.get(j++);
+				String oid = ps.get(j++);
+				String cat = ps.get(j++);
+				String date = ps.get(j++);
+				String content = ps.get(j++);
+				String url = ps.get(j++);
+
+				MDocument d = MDocument.newDocument(content);
+
+				Counter<String> c = Generics.newCounter();
+
+				for (MToken t : d.getTokens()) {
+					c.incrementCount(t.getString(0), 1);
+				}
+
+				wordCnts.incrementAll(c);
+				docFreqs.incrementAll(c.keySet(), 1);
+			}
+
+		}
+
+		Counter<String> tfidfs = Generics.newCounter(wordCnts.size());
+
+		for (String word : wordCnts.keySet()) {
+			double cnt = wordCnts.getCount(word);
+			double doc_freq = docFreqs.getCount(word);
+			double tfidf = TermWeighting.tfidf(cnt, num_docs, doc_freq);
+			tfidfs.setCount(word, tfidf);
+		}
+
+		TextFileWriter writer = new TextFileWriter(FNPath.NAVER_DATA_DIR + "vocab.txt");
+
+		for (String word : tfidfs.getSortedKeys()) {
+			double tfidf = tfidfs.getCount(word);
+			int cnt = (int) wordCnts.getCount(word);
+			int doc_freq = (int) docFreqs.getCount(word);
+			writer.write(String.format("%s\t%d\t%d\t%f\n", word, cnt, doc_freq, tfidf));
+		}
+		writer.close();
 
 	}
 
+	public void selectSubset1() throws Exception {
+		List<File> files = FileUtils.getFilesUnder(FNPath.NAVER_NEWS_COL_LINE_POS_DIR);
+
+		TextFileWriter writer = new TextFileWriter(FNPath.NAVER_DATA_DIR + "news_2007.txt");
+
+		for (int i = 0; i < files.size(); i++) {
+			File file = files.get(i);
+
+			if (!file.getName().startsWith("2017")) {
+				continue;
+			}
+
+			// if (num_docs > 10000) {
+			// break;
+			// }
+
+			List<String> ins = FileUtils.readLinesFromText(file);
+			List<String> outs = Generics.newLinkedList();
+
+			for (String line : ins) {
+				List<String> ps1 = StrUtils.unwrap(StrUtils.split("\t", line));
+
+				int j = 0;
+				String id = ps1.get(j++);
+				String oid = ps1.get(j++);
+				String cat = ps1.get(j++);
+				String date = ps1.get(j++);
+				String content = ps1.get(j++);
+				String url = ps1.get(j++);
+
+				List<String> ps2 = Generics.newArrayList();
+				ps2.add(cat);
+				ps2.add(content);
+
+				ps2 = StrUtils.wrap(ps2);
+
+				outs.add(StrUtils.join("\t", ps2));
+			}
+			writer.write(StrUtils.join("\n", outs) + "\n");
+		}
+
+		writer.close();
+	}
+
 	public void tagPOS4NaverNews() throws Exception {
-		FileUtils.deleteFilesUnder(FNPath.FN_COL_LINE_POS_DIR);
+		FileUtils.deleteFilesUnder(FNPath.NAVER_NEWS_COL_LINE_POS_DIR);
 
 		AtomicInteger file_cnt = new AtomicInteger(0);
 
@@ -227,7 +388,7 @@ public class DataHandler {
 
 		List<Future<Integer>> fs = Generics.newArrayList(thread_size);
 
-		List<File> files = FileUtils.getFilesUnder(FNPath.FN_COL_LINE_DIR);
+		List<File> files = FileUtils.getFilesUnder(FNPath.NAVER_NEWS_COL_LINE_DIR);
 
 		for (int i = 0; i < thread_size; i++) {
 			fs.add(tpe.submit(new PosTaggingWorker(files, file_cnt)));

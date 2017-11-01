@@ -7,11 +7,12 @@ import java.util.Arrays;
 import java.util.List;
 
 import edu.stanford.nlp.math.ArrayMath;
-import ohs.eden.keyphrase.cluster.KPPath;
+import ohs.fake.FNPath;
 import ohs.io.ByteArray;
 import ohs.io.ByteArrayMatrix;
 import ohs.io.ByteBufferWrapper;
 import ohs.io.FileUtils;
+import ohs.nlp.ling.types.MDocument;
 import ohs.types.number.IntegerArray;
 import ohs.types.number.LongArray;
 import ohs.utils.Generics;
@@ -76,7 +77,46 @@ public class RawDocumentCollectionCreator {
 		rdcc.checkCollectionSize();
 		rdcc.close();
 		System.out.printf("[%d, %s]\n", doc_cnt, timer.stop());
+	}
 
+	public static void createFromNaverNews(String inDir, RawDocumentCollectionCreator rdcc) throws Exception {
+		Timer timer = Timer.newTimer();
+		int doc_cnt = 0;
+
+		for (File file : FileUtils.getFilesUnder(inDir)) {
+			if (!file.getName().startsWith("2017")) {
+				continue;
+			}
+
+			for (String line : FileUtils.readLinesFromText(file)) {
+				String[] ps = StrUtils.unwrap(line.split("\t"));
+
+				for (int i = 0; i < ps.length; i++) {
+
+					if (i == 4) {
+						MDocument d = MDocument.newDocument(ps[i]);
+
+						List<String> l = Generics.newArrayList(d.size());
+
+						for (int j = 0; j < d.size(); j++) {
+							l.add(StrUtils.join(" ", d.get(j).getTokenStrings(0)));
+						}
+
+						String s = StrUtils.join("\n", l);
+
+						ps[i] = s;
+					}
+
+					ps[i] = ps[i].replace(StrUtils.LINE_REP, "\n");
+					ps[i] = ps[i].replace(StrUtils.TAB_REP, "\t");
+
+				}
+				rdcc.addValues(ps);
+			}
+		}
+		rdcc.checkCollectionSize();
+		rdcc.close();
+		System.out.printf("[%d, %s]\n", doc_cnt, timer.stop());
 	}
 
 	public static void main(String[] args) throws Exception {
@@ -224,46 +264,60 @@ public class RawDocumentCollectionCreator {
 		// createFromTokenizedData(inDir, rdcc);
 		// }
 
-//		{
-//			String[] attrs = { "id", "oid", "cat1", "date", "title", "body", "url" };
-//			String inDir = FNPath.FN_COL_LINE_POS_DIR;
-//			String outDir = FNPath.FN_COL_DC_DIR;
-//			boolean append = false;
-//			RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
-//			rdcc.setEncode(encode);
-//			rdcc.addAttrs(Generics.newArrayList(attrs));
-//			createFromTokenizedData(inDir, rdcc);
-//		}
+		// {
+		// String[] attrs = { "id", "oid", "cat1", "date", "title", "body", "url" };
+		// String inDir = FNPath.NAVER_NEWS_COL_LINE_POS_DIR;
+		// String outDir = FNPath.NAVER_NEWS_COL_DC_DIR;
+		// boolean append = false;
+		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir,
+		// append);
+		// rdcc.setEncode(encode);
+		// rdcc.addAttrs(Generics.newArrayList(attrs));
+		// createFromTokenizedData(inDir, rdcc);
+		// }
 
 		{
-			String[] attrs = { "type", "cn", "kor_kwds", "eng_kwds", "kor_title", "eng_title", "kor_abs", "eng_abs",
-					"kor_pos_kwds", "kor_pos_title", "kor_pos_abs" };
-			String inDir = KPPath.COL_LINE_POS_DIR;
-			String outDir = KPPath.COL_DC_DIR;
+			String[] attrs = { "id", "oid", "cat", "date", "content", "url" };
+			String inDir = FNPath.NAVER_NEWS_COL_LINE_POS_DIR;
+			String outDir = FNPath.NAVER_NEWS_COL_DC_DIR;
 			boolean append = false;
 			RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir, append);
 			rdcc.setEncode(encode);
 			rdcc.addAttrs(Generics.newArrayList(attrs));
-
-			Timer timer = Timer.newTimer();
-			int doc_cnt = 0;
-
-			for (File dir : new File(inDir).listFiles()) {
-				for (File file : FileUtils.getFilesUnder(dir)) {
-					for (String line : FileUtils.readLinesFromText(file)) {
-						String[] vals = StrUtils.unwrap(line.split("\t"));
-						for (int i = 0; i < vals.length; i++) {
-							vals[i] = vals[i].replace(StrUtils.LINE_REP, "\n");
-							vals[i] = vals[i].replace(StrUtils.TAB_REP, "\t");
-						}
-						rdcc.addValues(vals);
-					}
-				}
-			}
-
-			rdcc.checkCollectionSize();
-			rdcc.close();
+			createFromNaverNews(inDir, rdcc);
 		}
+
+		// {
+		// String[] attrs = { "type", "cn", "kor_kwds", "eng_kwds", "kor_title",
+		// "eng_title", "kor_abs", "eng_abs",
+		// "kor_pos_kwds", "kor_pos_title", "kor_pos_abs" };
+		// String inDir = KPPath.COL_LINE_POS_DIR;
+		// String outDir = KPPath.COL_DC_DIR;
+		// boolean append = false;
+		// RawDocumentCollectionCreator rdcc = new RawDocumentCollectionCreator(outDir,
+		// append);
+		// rdcc.setEncode(encode);
+		// rdcc.addAttrs(Generics.newArrayList(attrs));
+		//
+		// Timer timer = Timer.newTimer();
+		// int doc_cnt = 0;
+		//
+		// for (File dir : new File(inDir).listFiles()) {
+		// for (File file : FileUtils.getFilesUnder(dir)) {
+		// for (String line : FileUtils.readLinesFromText(file)) {
+		// String[] vals = StrUtils.unwrap(line.split("\t"));
+		// for (int i = 0; i < vals.length; i++) {
+		// vals[i] = vals[i].replace(StrUtils.LINE_REP, "\n");
+		// vals[i] = vals[i].replace(StrUtils.TAB_REP, "\t");
+		// }
+		// rdcc.addValues(vals);
+		// }
+		// }
+		// }
+		//
+		// rdcc.checkCollectionSize();
+		// rdcc.close();
+		// }
 
 		// {
 		// List<String> inDirNames = Generics.newArrayList();

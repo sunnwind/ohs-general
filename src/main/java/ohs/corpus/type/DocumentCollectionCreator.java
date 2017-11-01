@@ -11,7 +11,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import ohs.eden.keyphrase.cluster.KPPath;
+import ohs.fake.FNPath;
 import ohs.io.ByteArray;
 import ohs.io.ByteArrayMatrix;
 import ohs.io.ByteArrayUtils;
@@ -317,17 +317,19 @@ public class DocumentCollectionCreator {
 		// }
 
 		{
-			// String[] attrs = { "id", "oid", "cat1", "date", "title", "body", "url" };
+			String[] attrs = { "id", "oid", "cat", "date", "content", "url" };
 			// dcc.setStringTokenizer(new KoreanPosTokenizer());
-			// dcc.create(FNPath.FN_COL_DC_DIR, 0, new int[] { 4, 5 });
+			dcc.setStringTokenizer(new StringTokenizer(new StringNormalizer()));
+			dcc.create(FNPath.NAVER_NEWS_COL_DC_DIR, 0, new int[] { 4 });
 		}
 
-		{
-			String[] attrs = { "type", "cn", "kor_kwds", "eng_kwds", "kor_title", "eng_title", "kor_abs", "eng_abs",
-					"kor_pos_kwds", "kor_pos_title", "kor_pos_abs" };
-			dcc.setStringTokenizer(new KoreanPosTokenizer());
-			dcc.create(KPPath.COL_DC_DIR, 0, new int[] { 9, 10 });
-		}
+		// {
+		// String[] attrs = { "type", "cn", "kor_kwds", "eng_kwds", "kor_title",
+		// "eng_title", "kor_abs", "eng_abs",
+		// "kor_pos_kwds", "kor_pos_title", "kor_pos_abs" };
+		// dcc.setStringTokenizer(new KoreanPosTokenizer());
+		// dcc.create(KPPath.COL_DC_DIR, 0, new int[] { 9, 10 });
+		// }
 
 		System.out.println("process ends.");
 	}

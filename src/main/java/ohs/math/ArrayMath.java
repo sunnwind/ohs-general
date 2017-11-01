@@ -1324,33 +1324,33 @@ public class ArrayMath {
 
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
-		
+
 		{
 			Random r = new Random(System.currentTimeMillis());
 			double sum = 10;
-			
+
 			for (int i = 0; i < 10; i++) {
 				double rv = sum * r.nextDouble();
 				System.out.println(rv);
 			}
-			
+
 			System.exit(0);
 		}
 
 		{
 			double[] probs = { 10, 10, 10, 10, 90, 10, 10, 10, 10, 10 };
-			
+
 			normalize(probs);
 			cumulate(probs, probs);
-			
+
 			int[] samples = sample(probs, 50);
-			
-			Counter<Integer> c= Generics.newCounter();
-			
-			for(int s : samples) {
+
+			Counter<Integer> c = Generics.newCounter();
+
+			for (int s : samples) {
 				c.incrementCount(s, 1);
 			}
-			
+
 			System.out.println(c.toStringSortedByValues(true, true, c.size(), "\t"));
 
 			System.exit(0);
@@ -2774,8 +2774,13 @@ public class ArrayMath {
 
 	/**
 	 * @param a
-	 *            M x K @param b K x 1 @param c M x 1 @return @throws
-	 *            Exception @throws
+	 *            M x K
+	 * @param b
+	 *            K x 1
+	 * @param c
+	 *            M x 1
+	 * @param thread_size
+	 * @return
 	 */
 	public static double productByThreads(double[][] a, double[] b, double[] c, int thread_size) {
 		if (!ArrayChecker.isProductable(a, b, c)) {

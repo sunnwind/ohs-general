@@ -30,8 +30,8 @@ public class HMMTrainer {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 
-		// test01();
-		test02();
+		test01();
+		// test02();
 
 		System.out.println("process ends.");
 	}
@@ -69,13 +69,15 @@ public class HMMTrainer {
 
 		// M.forward(obs);
 
-		// M.viterbi(obs);
+		M.viterbi(obs);
 
 		// M.backward(obs);
 
 		HMMTrainer t = new HMMTrainer();
 
 		t.train(M, obs, 1);
+
+		M.viterbi(obs);
 	}
 
 	public static void test02() throws Exception {

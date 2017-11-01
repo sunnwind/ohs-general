@@ -42,7 +42,7 @@ public class DiscreteFeatureEmbeddingLayer extends Layer {
 	 */
 	private DenseMatrix W;
 
-	private int word_emb_size;
+	private int prev_emb_size;
 
 	private DenseTensor X;
 
@@ -52,17 +52,17 @@ public class DiscreteFeatureEmbeddingLayer extends Layer {
 
 	}
 
-	public DiscreteFeatureEmbeddingLayer(DenseMatrix W, int word_emb_size, boolean is_learning) {
+	public DiscreteFeatureEmbeddingLayer(DenseMatrix W, int prev_emb_size, boolean is_learning) {
 		this.W = W;
-		this.word_emb_size = word_emb_size;
+		this.prev_emb_size = prev_emb_size;
 		this.is_learning = is_learning;
 
 		extra_emb_size = W.rowSize() * W.colSize();
-		new_emb_size = word_emb_size + extra_emb_size;
+		new_emb_size = prev_emb_size + extra_emb_size;
 	}
 
-	public DiscreteFeatureEmbeddingLayer(int feat_size, int feat_emb_size, int word_emb_size, boolean learn_embedding) {
-		this(new DenseMatrix(feat_size, feat_emb_size), word_emb_size, learn_embedding);
+	public DiscreteFeatureEmbeddingLayer(int feat_size, int feat_emb_size, int prev_emb_size, boolean learn_embedding) {
+		this(new DenseMatrix(feat_size, feat_emb_size), prev_emb_size, learn_embedding);
 	}
 
 	@Override
@@ -73,7 +73,7 @@ public class DiscreteFeatureEmbeddingLayer extends Layer {
 
 		dX.ensureCapacity(dY.size());
 
-		VectorUtils.enlarge(tmp_dX, dY.sizeOfInnerVectors(), word_emb_size);
+		VectorUtils.enlarge(tmp_dX, dY.sizeOfInnerVectors(), prev_emb_size);
 
 		int start = 0;
 		int feat_size = W.rowSize();
@@ -91,11 +91,11 @@ public class DiscreteFeatureEmbeddingLayer extends Layer {
 				DenseVector dy = dYm.row(i);
 				DenseVector dx = dXm.row(i);
 
-				for (int j = 0; j < word_emb_size; j++) {
+				for (int j = 0; j < prev_emb_size; j++) {
 					dx.add(j, dy.value(j));
 				}
 
-				int pos = word_emb_size;
+				int pos = prev_emb_size;
 
 				if (is_learning) {
 					for (int j = 0; j < feat_size; j++) {
@@ -113,7 +113,7 @@ public class DiscreteFeatureEmbeddingLayer extends Layer {
 	}
 
 	public Layer copy() {
-		return new DiscreteFeatureEmbeddingLayer(W, word_emb_size, is_learning);
+		return new DiscreteFeatureEmbeddingLayer(W, prev_emb_size, is_learning);
 	}
 
 	@Override
@@ -148,8 +148,8 @@ public class DiscreteFeatureEmbeddingLayer extends Layer {
 
 				for (int k = 0, pos = 0; k < f.size(); k++) {
 					if (k == 0) {
-						ArrayUtils.copy(x.values(), 0, y.values(), pos, word_emb_size);
-						pos += word_emb_size;
+						ArrayUtils.copy(x.values(), 0, y.values(), pos, prev_emb_size);
+						pos += prev_emb_size;
 					} else {
 						double feat_flag = f.value(k);
 
@@ -207,10 +207,10 @@ public class DiscreteFeatureEmbeddingLayer extends Layer {
 	public void readObject(ObjectInputStream ois) throws Exception {
 		W = new DenseMatrix(ois);
 		is_learning = ois.readBoolean();
-		word_emb_size = ois.readInt();
+		prev_emb_size = ois.readInt();
 
 		extra_emb_size = W.rowSize() * W.colSize();
-		new_emb_size = word_emb_size + extra_emb_size;
+		new_emb_size = prev_emb_size + extra_emb_size;
 	}
 
 	public void setLearnEmbedding(boolean is_learning) {
@@ -221,7 +221,7 @@ public class DiscreteFeatureEmbeddingLayer extends Layer {
 	public void writeObject(ObjectOutputStream oos) throws Exception {
 		W.writeObject(oos);
 		oos.writeBoolean(is_learning);
-		oos.writeInt(word_emb_size);
+		oos.writeInt(prev_emb_size);
 	}
 
 }

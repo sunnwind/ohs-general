@@ -38,9 +38,9 @@ public class KeyphraseExtractor {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 
-		// run1();
+		run1();
 		// run2();
-		run3();
+		// run3();
 
 		System.out.println("process ends.");
 	}
@@ -82,7 +82,29 @@ public class KeyphraseExtractor {
 
 	public static void run1() throws Exception {
 		Counter<String> phrsPats = FileUtils.readStringCounterFromText(KPPath.KP_DIR + "ext/phrs_pat.txt");
-		phrsPats.pruneKeysBelowThreshold(2);
+		
+		{
+			Counter<String> c = Generics.newCounter();
+			for (String pat : phrsPats.keySet()) {
+				double cnt = phrsPats.getCount(pat);
+				if (cnt < 20) {
+					continue;
+				}
+
+				List<String> poss = StrUtils.split(pat);
+
+				if (!poss.get(poss.size() - 1).startsWith("NN")) {
+					continue;
+				}
+
+				if (poss.get(0).startsWith("J")) {
+					continue;
+				}
+
+				c.setCount(pat, cnt);
+			}
+			phrsPats = c;
+		}
 
 		Vocab featIdxer = DocumentCollection.readVocab(KPPath.KP_DIR + "ext/vocab_num_pred.ser");
 
@@ -105,9 +127,9 @@ public class KeyphraseExtractor {
 		double pred_cnt = 0;
 
 		for (int i = 0; i < ins.size(); i++) {
-			// if (i == 500) {
-			// break;
-			// }
+			if (i == 10000) {
+				break;
+			}
 
 			String line = ins.get(i);
 			List<String> ps = StrUtils.split("\t", line);
@@ -123,7 +145,7 @@ public class KeyphraseExtractor {
 				for (MToken t : ms) {
 					sb.append(t.get(0) + " ");
 				}
-				anss.add(sb.toString().trim());
+				anss.add(sb.toString().replace(" ", ""));
 			}
 
 			MDocument md2 = MDocument.newDocument(ps.get(2));
@@ -141,6 +163,17 @@ public class KeyphraseExtractor {
 			String X = sb.toString().trim();
 
 			Counter<String> preds = ext.extract(ps.get(2));
+
+			pred_cnt += preds.size();
+
+			for (String pred : preds.keySet()) {
+				pred = pred.replace(" ", "");
+				if (anss.contains(pred)) {
+					cor_cnt++;
+				}
+			}
+
+			ans_cnt += anss.size();
 
 			writer.write(String.format("No:\t%d", i + 1));
 			writer.write(String.format("\n<Input>:\n%s", X));
@@ -353,7 +386,7 @@ public class KeyphraseExtractor {
 		KeyphraseExtractor ext = new KeyphraseExtractor(pnp, pr);
 
 		String jsonStr = FileUtils.readFromText(KPPath.KP_DIR + "ext/json.txt");
-		
+
 		System.out.printf("<Input>\n%s\n\n", jsonStr);
 
 		Counter<String> phrsScores = ext.extractFromJsonString(jsonStr);

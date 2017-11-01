@@ -36,7 +36,7 @@ public class PhraseRanker {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 
-		Counter<String> phrsCnts = FileUtils.readStringCounterFromText(KPPath.KP_DIR + "ext/phrs.txt");
+		Counter<String> phrsCnts = FileUtils.readStringCounterFromText(KPPath.KP_DIR + "ext/phrs_pat.txt");
 
 		List<String> ins = FileUtils.readLinesFromText(KPPath.KP_DIR + "ext/label_data.txt");
 
