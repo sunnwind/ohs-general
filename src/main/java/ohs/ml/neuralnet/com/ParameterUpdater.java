@@ -56,6 +56,33 @@ public class ParameterUpdater {
 
 	private DenseTensor Ws;
 
+	public ParameterUpdater(DenseTensor Ws, DenseTensor dWs) {
+		this.Ws = Ws;
+		this.dWs = dWs;
+
+		Rs1 = new DenseTensor();
+		Rs2 = new DenseTensor();
+
+		Rs1.ensureCapacity(Ws.size());
+		Rs2.ensureCapacity(Ws.size());
+
+		for (int i = 0; i < Ws.size(); i++) {
+			DenseMatrix W = Ws.get(i);
+			DenseMatrix rW1 = W.copy(true);
+			DenseMatrix rW2 = W.copy(true);
+
+			Rs1.add(rW1);
+			Rs2.add(rW2);
+		}
+	}
+
+	public ParameterUpdater(DenseTensor Ws, DenseTensor dWs, DenseTensor Rs1, DenseTensor Rs2) {
+		this.Ws = Ws;
+		this.dWs = dWs;
+		this.Rs1 = Rs1;
+		this.Rs2 = Rs2;
+	}
+
 	public ParameterUpdater(NeuralNet nn) {
 		this.nn = nn;
 
@@ -75,7 +102,6 @@ public class ParameterUpdater {
 			Rs1.add(rW1);
 			Rs2.add(rW2);
 		}
-
 	}
 
 	public List<DenseTensor> getGradientAccumulators() {

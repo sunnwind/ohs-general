@@ -51,7 +51,7 @@ public class ParsimoniousLanguageModelEstimator {
 		this.dc = dc;
 	}
 
-	public SparseVector estimate(SparseVector dv) {
+	public SparseVector estimateOld(SparseVector dv) {
 		SparseVector lm = dv.copy();
 		// lm.setAll(1f / lm.size());
 		lm.normalize();
@@ -97,7 +97,7 @@ public class ParsimoniousLanguageModelEstimator {
 		return lm;
 	}
 
-	public SparseVector estimateOld(SparseVector dv) {
+	public SparseVector estimate(SparseVector dv) {
 		SparseVector lm = dv.copy();
 		lm.normalize();
 
@@ -108,10 +108,10 @@ public class ParsimoniousLanguageModelEstimator {
 		nf.setMinimumFractionDigits(2);
 		nf.setGroupingUsed(false);
 
-		System.out.println("<=== start ===>");
+		// System.out.println("<=== start ===>");
 
 		for (int i = 0; i < max_iters; i++) {
-			System.out.println(VectorUtils.toCounter(lm, dc.getVocab()));
+			// System.out.println(VectorUtils.toCounter(lm, dc.getVocab()));
 
 			SparseVector lm_old = lm.copy();
 

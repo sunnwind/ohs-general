@@ -65,14 +65,14 @@ public class DocumentCollectionCreator {
 			int range_loc = 0;
 
 			while ((range_loc = range_cnt.getAndIncrement()) < ranges.size()) {
-				IntegerArray range = ranges.get(range_loc);
+				IntegerArray r = ranges.get(range_loc);
 
-				ListList<String> data = rdc.getValues(range.values());
+				ListList<String> data = rdc.getValues(r.values());
 				Counter<String> cnts = Generics.newCounter();
 				Counter<String> freqs = Generics.newCounter();
 
 				for (int i = 0; i < data.size(); i++) {
-					int dseq = range.get(0) + i;
+					int dseq = r.get(0) + i;
 					int type = rdc.getColSeq(dseq);
 					IntegerArray target_locs = target_loc_data.get(type);
 
@@ -167,22 +167,21 @@ public class DocumentCollectionCreator {
 			int unk = vocab.indexOf(Vocab.SYM.UNK.getText());
 
 			while ((range_loc = range_cnt.getAndIncrement()) < ranges.size()) {
-				IntegerArray range = ranges.get(range_loc);
-				IntegerMatrix subranges = new IntegerMatrix(
-						BatchUtils.getBatchRanges(range.get(1) - range.get(0), 100));
+				IntegerArray r = ranges.get(range_loc);
+				IntegerMatrix subrs = new IntegerMatrix(BatchUtils.getBatchRanges(r.get(1) - r.get(0), 100));
 
 				File outFile = new File(tmpDir, new DecimalFormat("00000000").format(range_loc) + ".ser");
 				FileChannel out = FileUtils.openFileChannel(outFile, "rw");
 
-				for (int i = 0; i < subranges.size(); i++) {
-					IntegerArray subrange = subranges.get(i);
-					subrange.set(0, range.get(0) + subrange.get(0));
-					subrange.set(1, range.get(0) + subrange.get(1));
+				for (int i = 0; i < subrs.size(); i++) {
+					IntegerArray subr = subrs.get(i);
+					subr.set(0, r.get(0) + subr.get(0));
+					subr.set(1, r.get(0) + subr.get(1));
 
-					ListList<String> ps = rdc.getValues(subrange.values());
+					ListList<String> ps = rdc.getValues(subr.values());
 
 					for (int j = 0; j < ps.size(); j++) {
-						int dseq = subrange.get(0) + j;
+						int dseq = subr.get(0) + j;
 						int type = rdc.getColSeq(dseq);
 						IntegerArray target_locs = target_loc_data.get(type);
 						List<String> vals = ps.get(j);

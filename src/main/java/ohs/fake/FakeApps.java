@@ -1,4 +1,4 @@
-package ohs.ml.neuralnet.com;
+package ohs.fake;
 
 import java.io.File;
 import java.util.List;
@@ -6,7 +6,6 @@ import java.util.Set;
 
 import ohs.corpus.type.DocumentCollection;
 import ohs.corpus.type.EnglishTokenizer;
-import ohs.fake.FNPath;
 import ohs.io.FileUtils;
 import ohs.io.RandomAccessDenseMatrix;
 import ohs.ir.search.app.WordSearcher;
@@ -15,17 +14,25 @@ import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
 import ohs.matrix.SparseMatrix;
+import ohs.ml.neuralnet.com.BatchUtils;
+import ohs.ml.neuralnet.com.DataReader;
+import ohs.ml.neuralnet.com.NeuralNet;
+import ohs.ml.neuralnet.com.NeuralNetParams;
+import ohs.ml.neuralnet.com.NeuralNetTrainer;
 import ohs.ml.neuralnet.com.ParameterUpdater.OptimizerType;
+import ohs.ml.neuralnet.com.SentenceGenerator;
+import ohs.ml.neuralnet.com.TaskType;
+import ohs.ml.neuralnet.com.WordFeatureExtractor;
 import ohs.ml.neuralnet.layer.BidirectionalRecurrentLayer;
 import ohs.ml.neuralnet.layer.DiscreteFeatureEmbeddingLayer;
 import ohs.ml.neuralnet.layer.DropoutLayer;
 import ohs.ml.neuralnet.layer.EmbeddingLayer;
 import ohs.ml.neuralnet.layer.FullyConnectedLayer;
-import ohs.ml.neuralnet.layer.LstmLayer;
 import ohs.ml.neuralnet.layer.MultiWindowConvolutionalLayer;
 import ohs.ml.neuralnet.layer.MultiWindowMaxPoolingLayer;
 import ohs.ml.neuralnet.layer.NonlinearityLayer;
 import ohs.ml.neuralnet.layer.RecurrentLayer.Type;
+import ohs.ml.neuralnet.layer.RnnLayer;
 import ohs.ml.neuralnet.layer.SoftmaxLayer;
 import ohs.ml.neuralnet.nonlinearity.ReLU;
 import ohs.ml.neuralnet.nonlinearity.Tanh;
@@ -43,17 +50,17 @@ import ohs.utils.DataSplitter;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
 
-public class Apps {
+public class FakeApps {
 
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 
 		// testMNIST();
 		// testCharRNN();
-		testNER();
+		// testNER();
 
 		// testSentenceClassification();
-		// testDocumentClassification();
+		testDocumentClassification();
 
 		System.out.println("process ends.");
 	}
@@ -164,8 +171,8 @@ public class Apps {
 			nn.add(new DropoutLayer());
 			// nn.add(new BidirectionalRecurrentLayer(Type.LSTM, emb_size, l1_size,
 			// bptt, new ReLU()));
-			nn.add(new LstmLayer(emb_size, l1_size));
-			// nn.add(new RnnLayer(emb_size, l1_size, bptt, new ReLU()));
+			// nn.add(new LstmLayer(emb_size, l1_size, new ReLU()));
+			nn.add(new RnnLayer(emb_size, l1_size, bptt, new ReLU()));
 			// nn.add(new BatchNormalizationLayer(l1_size));
 			nn.add(new FullyConnectedLayer(l1_size, label_size));
 			nn.add(new SoftmaxLayer(label_size));
@@ -204,14 +211,14 @@ public class Apps {
 
 					trainer.train(Xm, Ym, null, null, 1);
 				}
-			}
 
-			// if (u % 10 == 0) {
-			for (int j = 0; j < 10; j++) {
-				String s = sg.generate(100);
-				System.out.println(s);
+				if (u % 10 == 0) {
+					for (int j = 0; j < 10; j++) {
+						String s = sg.generate(100);
+						System.out.println(s);
+					}
+				}
 			}
-			// }
 		}
 
 		trainer.finish();
@@ -447,12 +454,11 @@ public class Apps {
 
 			DiscreteFeatureEmbeddingLayer l = new DiscreteFeatureEmbeddingLayer(ext.getFeatureIndexer().size(),
 					feat_emb_size, word_emb_size, true);
-			
 			nn.add(l);
-			nn.add(new DropoutLayer());
+			// nn.add(new DropoutLayer());
 			// nn.add(new RnnLayer(l.getOutputSize(), l1_size, bptt_size, new ReLU()));
 			// nn.add(new LstmLayer(l.getOutputSize(), l1_size));
-			nn.add(new BidirectionalRecurrentLayer(Type.RNN, l.getOutputSize(), l1_size, bptt_size, new ReLU()));
+			nn.add(new BidirectionalRecurrentLayer(Type.LSTM, l.getOutputSize(), l1_size, bptt_size, new ReLU()));
 			// nn.add(new BatchNormalizationLayer(l1_size));
 			nn.add(new FullyConnectedLayer(l1_size, label_size));
 			nn.add(new SoftmaxLayer(label_size));

@@ -22,31 +22,21 @@ public class CentroidClassifier {
 		System.out.println("process ends.");
 	}
 
-	private static double powi(double base, int times) {
-		double tmp = base, ret = 1.0;
-		for (int t = times; t > 0; t /= 2) {
-			if (t % 2 == 1)
-				ret *= tmp;
-			tmp = tmp * tmp;
-		}
-		return ret;
-	}
-
-	public static CentroidClassifier train(List<SparseVector> trainData, List<Integer> labels) {
+	public static CentroidClassifier train(List<SparseVector> X, List<Integer> Y) {
 		ListMap<Integer, SparseVector> labelDocs = new ListMap<Integer, SparseVector>();
 		Counter<Integer> docFreqs = new Counter<Integer>();
 
-		TermWeighting.tfidf(trainData);
+		TermWeighting.tfidf(X);
 
-		for (int i = 0; i < trainData.size(); i++) {
-			labelDocs.put(labels.get(i), trainData.get(i));
+		for (int i = 0; i < X.size(); i++) {
+			labelDocs.put(Y.get(i), X.get(i));
 		}
 
-		Map<Integer, SparseVector> centroids = new TreeMap<Integer, SparseVector>();
-		SparseVector labelPriors = new SparseVector(labelDocs.size());
+		Map<Integer, SparseVector> C = new TreeMap<Integer, SparseVector>();
+		SparseVector priors = new SparseVector(labelDocs.size());
 
-		for (int i = 0; i < labels.size(); i++) {
-			int label = labels.get(i);
+		for (int i = 0; i < Y.size(); i++) {
+			int label = Y.get(i);
 			List<SparseVector> docs = labelDocs.get(label);
 			Counter<Integer> c = new Counter<Integer>();
 			for (SparseVector doc : docs) {
@@ -59,41 +49,51 @@ public class CentroidClassifier {
 			SparseVector centroid = VectorUtils.toSparseVector(c);
 			centroid.multiply(1f / docs.size());
 
-			centroids.put(label, centroid);
-			labelPriors.addAt(i, label, docs.size());
+			C.put(label, centroid);
+			priors.addAt(i, label, docs.size());
 		}
 
-		labelPriors.normalizeAfterSummation();
-		VectorMath.unitVector(labelPriors);
+		priors.normalizeAfterSummation();
+		VectorMath.unitVector(priors);
 
-		return new CentroidClassifier(null, null, centroids, labelPriors, 1, KernelType.LINEAR, 1f / docFreqs.size(), 0, 3);
+		return new CentroidClassifier(null, null, C, priors, 1, KernelType.LINEAR, 1f / docFreqs.size(), 0, 3);
 	}
 
-	private Map<Integer, SparseVector> centroids;
+	private static double powi(double base, int times) {
+		double tmp = base, ret = 1.0;
+		for (int t = times; t > 0; t /= 2) {
+			if (t % 2 == 1)
+				ret *= tmp;
+			tmp = tmp * tmp;
+		}
+		return ret;
+	}
 
-	private double gamma;
+	private Map<Integer, SparseVector> C;
 
 	private double coef0;
 
 	private int degree;
 
-	private int scoreType;
+	private Indexer<String> featIdxer;
 
-	private SparseVector labelBias;
+	private double gamma;
 
 	private KernelType kernelType;
 
-	private Indexer featIndexer;
+	private SparseVector labelBias;
 
-	private Indexer labelIndexer;
+	private Indexer<String> labelIdxer;
+
+	private int scoreType;
 
 	public CentroidClassifier(Indexer<String> labelIndexer, Indexer<String> featIndexer,
 
-			Map<Integer, SparseVector> centroids, SparseVector labelBias, int scoreType, KernelType kernelType, double gamma, double coef0,
-			int degree) {
+			Map<Integer, SparseVector> centroids, SparseVector labelBias, int scoreType, KernelType kernelType,
+			double gamma, double coef0, int degree) {
 		this.labelBias = labelBias;
 
-		this.centroids = centroids;
+		this.C = centroids;
 
 		this.scoreType = scoreType;
 
@@ -107,15 +107,15 @@ public class CentroidClassifier {
 	}
 
 	public SparseVector getCentroid(int label) {
-		return centroids.get(label);
+		return C.get(label);
 	}
 
-	public Indexer getFeatureIndexer() {
-		return featIndexer;
+	public Indexer<String> getFeatureIndexer() {
+		return featIdxer;
 	}
 
-	public Indexer getLabelIndexer() {
-		return labelIndexer;
+	public Indexer<String> getLabelIndexer() {
+		return labelIdxer;
 	}
 
 	public List<SparseVector> score(List<SparseVector> inputData) {
@@ -138,7 +138,8 @@ public class CentroidClassifier {
 	//
 	// for (int i = 0; i < outputData.size(); i++) {
 	// SparseVector output = outputData.get(i);
-	// Counter<String> topic_score = VectorUtils.toCounter(output, info.topicIndexer());
+	// Counter<String> topic_score = VectorUtils.toCounter(output,
+	// info.topicIndexer());
 	// String answer = info.topicIndexer().getObject(output.label());
 	//
 	// answers.add(answer);
@@ -156,7 +157,8 @@ public class CentroidClassifier {
 	//
 	// for (int i = 0; i < testData.size(); i++) {
 	// SparseVector term_count = testData.get(i);
-	// Counter<String> topic_score = VectorUtils.toCounter(score(term_count), info.topicIndexer());
+	// Counter<String> topic_score = VectorUtils.toCounter(score(term_count),
+	// info.topicIndexer());
 	// String answer = info.topicIndexer().getObject(term_count.label());
 	//
 	// answers.add(answer);
@@ -169,14 +171,14 @@ public class CentroidClassifier {
 	// }
 
 	public SparseVector score(SparseVector x) {
-		return score(x, centroids.keySet());
+		return score(x, C.keySet());
 	}
 
 	public SparseVector score(SparseVector x, Set<Integer> labelSet) {
 		SparseVector ret = new SparseVector(labelSet.size());
 		int i = 0;
 		for (int label : labelSet) {
-			SparseVector c = centroids.get(label);
+			SparseVector c = C.get(label);
 			double sim = 0;
 			double dot_product = 0;
 
@@ -199,12 +201,12 @@ public class CentroidClassifier {
 		return ret;
 	}
 
-	public void setFeatureIndexer(Indexer featIndexer) {
-		this.featIndexer = featIndexer;
+	public void setFeatureIndexer(Indexer<String> featIndexer) {
+		this.featIdxer = featIndexer;
 	}
 
-	public void setLabelIndexer(Indexer labelIndexer) {
-		this.labelIndexer = labelIndexer;
+	public void setLabelIndexer(Indexer<String> labelIndexer) {
+		this.labelIdxer = labelIndexer;
 	}
 
 	public void setTopicBias(SparseVector topic_bias) {

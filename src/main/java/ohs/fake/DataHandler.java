@@ -50,9 +50,10 @@ public class DataHandler {
 		public Integer call() throws Exception {
 			int file_loc = 0;
 			while ((file_loc = file_cnt.getAndIncrement()) < files.size()) {
-				File file = files.get(file_loc);
+				File inFile = files.get(file_loc);
+				File outFile = new File(inFile.getPath().replace("line", "line_pos"));
 
-				List<String> ins = FileUtils.readLinesFromText(file);
+				List<String> ins = FileUtils.readLinesFromText(inFile);
 				List<String> outs = Generics.newArrayList(ins.size());
 
 				for (int i = 0; i < ins.size(); i++) {
@@ -125,7 +126,7 @@ public class DataHandler {
 					outs.add(StrUtils.join("\t", ps));
 				}
 
-				FileUtils.writeStringCollectionAsText(file.getPath().replace("line", "line_pos"), outs);
+				FileUtils.writeStringCollectionAsText(outFile.getPath(), outs);
 			}
 			return (int) 0;
 		}
@@ -135,22 +136,124 @@ public class DataHandler {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 		DataHandler dh = new DataHandler();
+		// dh.tagPos();
 		// dh.tagPOS4NaverNews();
 		// dh.selectSubset1();
 		// dh.extractVocab();
 
-		dh.test();
+		// dh.test();
 
 		System.out.println("process ends.");
+	}
+
+	public void tagPos() throws Exception {
+		for (File inFile : FileUtils.getFilesUnder(FNPath.DATA_DIR + "샘플데이터_1차수정본")) {
+			File outFile = new File(inFile.getParent(), inFile.getName().replace(".csv", ".txt"));
+			String input = FileUtils.readFromText(inFile);
+
+			List<String> ins = StrUtils.split("\r\n", input);
+			List<String> outs = Generics.newLinkedList();
+
+			for (int i = 1; i < ins.size(); i++) {
+
+				String line = ins.get(i);
+				String tmp = line;
+				// List<String> ps = StrUtils.split("\",\"", line);
+
+				String id = "";
+				String title = "";
+				String body = "";
+				String label = "";
+
+				{
+					int idx = line.indexOf(",");
+					id = line.substring(0, idx);
+					line = line.substring(idx + 1);
+				}
+
+				{
+					int idx = line.lastIndexOf(",");
+					label = line.substring(idx + 1);
+					line = line.substring(0, idx);
+				}
+
+				{
+					List<String> ps = StrUtils.split("\",\"", line);
+					if (ps.size() == 2) {
+						title = ps.get(0);
+						body = ps.get(1);
+
+						title = title.substring(1, title.length());
+						body = body.substring(0, body.length() - 1);
+						body = body.replaceAll("\\.( |$)", "\\.\n");
+					}
+				}
+
+				{
+					if (title.length() == 0 || body.length() == 0) {
+						List<String> ps = StrUtils.split(",\"", line);
+						if (ps.size() == 2) {
+							title = ps.get(0);
+							body = ps.get(1);
+
+							body = body.substring(0, body.length() - 1);
+							body = body.replaceAll("\\.( |$)", "\\.\n");
+						}
+
+					}
+				}
+
+				MDocument d = new MDocument();
+
+				{
+					String c = title + "\n" + body;
+
+					for (String p : c.split("\n")) {
+						p = p.trim();
+
+						if (p.length() == 0) {
+							continue;
+						}
+
+						MSentence s = new MSentence();
+						for (LNode node : Analyzer.parseJava(p)) {
+							Morpheme m = node.morpheme();
+							WrappedArray<String> fs = m.feature();
+							String[] vals = (String[]) fs.array();
+							String word = m.surface();
+							String pos = vals[0];
+
+							MToken t = new MToken(2);
+							t.add(word);
+							t.add(pos);
+							s.add(t);
+						}
+						d.add(s);
+					}
+				}
+
+				List<String> l = Generics.newArrayList(4);
+
+				l.add(id);
+				l.add(label);
+				l.add(d.toString().replace("\n", "<nl>"));
+
+				l = StrUtils.wrap(l);
+
+				outs.add(StrUtils.join("\t", l));
+			}
+
+			FileUtils.writeStringCollectionAsText(outFile.getPath(), outs);
+		}
 	}
 
 	public void test() throws Exception {
 		Counter<String> c = Generics.newCounter();
 		TextFileReader reader = new TextFileReader(FNPath.NAVER_DATA_DIR + "news_2007.txt");
 		reader.setPrintSize(10000);
-		
+
 		while (reader.hasNext()) {
-			
+
 			String line = reader.next();
 			List<String> ps1 = StrUtils.unwrap(StrUtils.split("\t", line));
 
@@ -338,6 +441,8 @@ public class DataHandler {
 
 		TextFileWriter writer = new TextFileWriter(FNPath.NAVER_DATA_DIR + "news_2007.txt");
 
+		Counter<String> c = Generics.newCounter();
+
 		for (int i = 0; i < files.size(); i++) {
 			File file = files.get(i);
 
@@ -370,25 +475,42 @@ public class DataHandler {
 				ps2 = StrUtils.wrap(ps2);
 
 				outs.add(StrUtils.join("\t", ps2));
+
+				c.incrementCount(cat, 1);
 			}
 			writer.write(StrUtils.join("\n", outs) + "\n");
 		}
-
 		writer.close();
+
+		System.out.println(c.toString());
+		System.out.println((int) c.totalCount());
 	}
 
 	public void tagPOS4NaverNews() throws Exception {
-		FileUtils.deleteFilesUnder(FNPath.NAVER_NEWS_COL_LINE_POS_DIR);
+		// FileUtils.deleteFilesUnder(FNPath.NAVER_NEWS_COL_LINE_POS_DIR);
 
 		AtomicInteger file_cnt = new AtomicInteger(0);
 
-		int thread_size = 3;
+		int thread_size = 4;
 
 		ThreadPoolExecutor tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
 
 		List<Future<Integer>> fs = Generics.newArrayList(thread_size);
 
 		List<File> files = FileUtils.getFilesUnder(FNPath.NAVER_NEWS_COL_LINE_DIR);
+
+		{
+			List<File> l = Generics.newArrayList();
+
+			for (File f : files) {
+				if (f.getName().startsWith("201707") || f.getName().startsWith("201708")
+						|| f.getName().startsWith("201709")) {
+					l.add(f);
+				}
+			}
+
+			files = l;
+		}
 
 		for (int i = 0; i < thread_size; i++) {
 			fs.add(tpe.submit(new PosTaggingWorker(files, file_cnt)));

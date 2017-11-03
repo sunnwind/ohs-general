@@ -102,7 +102,7 @@ public class NaverNewsDumper extends TextDumper {
 		NaverNewsDumper dh = new NaverNewsDumper(FNPath.NAVER_NEWS_COL_RAW_DIR, FNPath.NAVER_NEWS_COL_LINE_DIR);
 		dh.setThreadSize(10);
 		dh.setBatchSize(40000);
-		dh.dump();
+//		dh.dump();
 
 		System.out.println("process ends.");
 	}
@@ -117,13 +117,15 @@ public class NaverNewsDumper extends TextDumper {
 	public void dump() throws Exception {
 		System.out.printf("dump [%s] to [%s].\n", inPathName, outPathName);
 
-		FileUtils.deleteFilesUnder(outPathName);
+		// FileUtils.deleteFilesUnder(outPathName);
 
 		List<File> files = Generics.newArrayList();
 
 		for (File f1 : new File(inPathName).listFiles()) {
 			for (File f2 : f1.listFiles()) {
-				files.add(f2);
+				if (f2.getName().startsWith("2017.07") || f2.getName().startsWith("2017.08")
+						|| f2.getName().startsWith("2017.09"))
+					files.add(f2);
 			}
 		}
 

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import ohs.fake.FNPath;
 import ohs.io.ByteArray;
 import ohs.io.ByteArrayMatrix;
 import ohs.io.ByteArrayUtils;
@@ -42,42 +43,46 @@ public class DocumentCollection {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 
-//		{
-//			String[] dirs = { MIRPath.OHSUMED_COL_DC_DIR, MIRPath.TREC_CDS_2014_COL_DC_DIR, MIRPath.TREC_CDS_2016_COL_DC_DIR,
-//					MIRPath.WIKI_COL_DC_DIR, MIRPath.BIOASQ_COL_DC_DIR };
-//
-//			for (int j = 0; j < dirs.length && j < 1; j++) {
-//				String dir = dirs[j];
-//
-//				System.out.println(dir);
-//
-//				DocumentCollection dc = new DocumentCollection(dir);
-//				int[][] ranges = BatchUtils.getBatchRanges(dc.size(), 500);
-//
-//				Timer timer = Timer.newTimer();
-//
-//				System.out.println(dc.getText(0));
-//
-//				// for (int i = 0; i < ranges.length; i++) {
-//				// List<Pair<String, IntegerArray>> res = dc.getRange(ranges[i][0], ranges[i][1], false);
-//				//
-//				// for (int k = 0; k < res.size(); k++) {
-//				// IntegerArrayMatrix doc = DocumentCollection.toMultiSentences(res.get(k).getSecond());
-//				// String s = DocumentCollection.getText(dc.getVocab(), doc);
-//				//
-//				// System.out.println(s);
-//				// System.out.println();
-//				// }
-//				// }
-//
-//				System.out.println(timer.stop());
-//
-//				System.out.println();
-//			}
-//		}
+		// {
+		// String[] dirs = { MIRPath.OHSUMED_COL_DC_DIR,
+		// MIRPath.TREC_CDS_2014_COL_DC_DIR, MIRPath.TREC_CDS_2016_COL_DC_DIR,
+		// MIRPath.WIKI_COL_DC_DIR, MIRPath.BIOASQ_COL_DC_DIR };
+		//
+		// for (int j = 0; j < dirs.length && j < 1; j++) {
+		// String dir = dirs[j];
+		//
+		// System.out.println(dir);
+		//
+		// DocumentCollection dc = new DocumentCollection(dir);
+		// int[][] ranges = BatchUtils.getBatchRanges(dc.size(), 500);
+		//
+		// Timer timer = Timer.newTimer();
+		//
+		// System.out.println(dc.getText(0));
+		//
+		// // for (int i = 0; i < ranges.length; i++) {
+		// // List<Pair<String, IntegerArray>> res = dc.getRange(ranges[i][0],
+		// ranges[i][1], false);
+		// //
+		// // for (int k = 0; k < res.size(); k++) {
+		// // IntegerArrayMatrix doc =
+		// DocumentCollection.toMultiSentences(res.get(k).getSecond());
+		// // String s = DocumentCollection.getText(dc.getVocab(), doc);
+		// //
+		// // System.out.println(s);
+		// // System.out.println();
+		// // }
+		// // }
+		//
+		// System.out.println(timer.stop());
+		//
+		// System.out.println();
+		// }
+		// }
 
 		// {
-		// String[] dirs = { MIRPath.OHSUMED_COL_DC_DIR, MIRPath.TREC_CDS_2016_COL_DC_DIR, MIRPath.TREC_CDS_2014_COL_DC_DIR };
+		// String[] dirs = { MIRPath.OHSUMED_COL_DC_DIR,
+		// MIRPath.TREC_CDS_2016_COL_DC_DIR, MIRPath.TREC_CDS_2014_COL_DC_DIR };
 		//
 		// for (int j = 0; j < dirs.length; j++) {
 		// String dir = dirs[j];
@@ -129,6 +134,23 @@ public class DocumentCollection {
 		//
 		// System.out.println(1f * ldc.getLength() / Integer.MAX_VALUE * 100);
 		// }
+
+		{
+			DocumentCollection dc = new DocumentCollection(FNPath.NAVER_NEWS_COL_DC_DIR);
+			System.out.println(dc.info());
+
+			List<Pair<String, String>> ps = dc.getText(0, 5);
+
+			for (int i = 0; i < ps.size(); i++) {
+				Pair<String, String> p = ps.get(i);
+				String text = p.getSecond();
+				String[] sents = text.split("\n");
+				System.out.println(p.getFirst());
+				System.out.println(StrUtils.join("\n", sents, 0, 10));
+				System.out.println("----------------------------------");
+			}
+			System.out.println(1f * dc.getLength() / Integer.MAX_VALUE * 100);
+		}
 
 		System.out.println("process ends.");
 	}
@@ -311,7 +333,8 @@ public class DocumentCollection {
 	}
 
 	public DocumentCollection copyShallow() throws Exception {
-		return new DocumentCollection(FileUtils.openFileChannel(new File(dataDir, DATA_NAME), "r"), starts, lens, vocab, cache, use_cache);
+		return new DocumentCollection(FileUtils.openFileChannel(new File(dataDir, DATA_NAME), "r"), starts, lens, vocab,
+				cache, use_cache);
 	}
 
 	public Pair<String, IntegerArray> get(int i) throws Exception {
@@ -330,7 +353,8 @@ public class DocumentCollection {
 				long start = starts.get(i);
 				fc.position(start);
 				int len = lens.get(i);
-				// data = new ByteBufferWrapper(FileUtils.readByteArray(fc, len)).readByteArrayMatrix();
+				// data = new ByteBufferWrapper(FileUtils.readByteArray(fc,
+				// len)).readByteArrayMatrix();
 				data = FileUtils.readByteArrayMatrix(fc, len);
 			}
 

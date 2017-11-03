@@ -5,6 +5,7 @@ import java.util.List;
 import ohs.math.ArrayMath;
 import ohs.math.VectorMath;
 import ohs.matrix.DenseMatrix;
+import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
 import ohs.matrix.SparseVector;
 import ohs.ml.neuralnet.layer.Layer;
@@ -43,8 +44,14 @@ public class SentenceGenerator {
 				break;
 			}
 
-			DenseMatrix Yh = (DenseMatrix) nn.forward(new IntegerArray(s1));
-			DenseVector yh = Yh.row(Yh.rowSize() - 1);
+			DenseMatrix X = new DenseMatrix();
+
+			for (int i = 0; i < s1.size(); i++) {
+				X.add(new DenseVector(new double[] { s1.get(i) }));
+			}
+
+			DenseTensor Yh = (DenseTensor) nn.forward(X.toDenseTensor());
+			DenseVector yh = Yh.get(0).row(Yh.get(0).size() - 1);
 
 			VectorMath.cumulateAfterNormalize(yh, yh);
 
@@ -52,7 +59,7 @@ public class SentenceGenerator {
 			int cnt = 0;
 
 			do {
-				if(cnt++ > 10) {
+				if (cnt++ > 10) {
 					SparseVector sv = yh.toSparseVector();
 					w = sv.argMax();
 					break;

@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import ohs.corpus.type.DataCompression;
 import ohs.corpus.type.DocumentCollection;
+import ohs.fake.FNPath;
 import ohs.io.ByteArray;
 import ohs.io.ByteArrayMatrix;
 import ohs.io.ByteArrayUtils;
@@ -98,7 +99,8 @@ public class TermBlockInvertedIndexCreator {
 				in.close();
 				// inFile.delete();
 
-				// System.out.printf("[read, %s, %d, %s]\n", inFile.getName(), cnt, timer.stop());
+				// System.out.printf("[read, %s, %d, %s]\n", inFile.getName(), cnt,
+				// timer.stop());
 
 				IntegerArray ws = new IntegerArray(lmm.keySet());
 				ws.sort(false);
@@ -135,7 +137,8 @@ public class TermBlockInvertedIndexCreator {
 				out.close();
 				pls = null;
 
-				// System.out.printf("[write, %s, %d, %s]\n", inFile.getName(), cnt, timer.stop());
+				// System.out.printf("[write, %s, %d, %s]\n", inFile.getName(), cnt,
+				// timer.stop());
 
 				int prog = BatchUtils.progress(file_loc + 1, files.size());
 
@@ -162,8 +165,8 @@ public class TermBlockInvertedIndexCreator {
 
 		private List<File> outFiles;
 
-		public PostingWorker(DocumentCollection dc, AtomicInteger range_cnt, AtomicInteger doc_cnt, IntegerMatrix ranges,
-				List<File> outFiles, Timer timer) {
+		public PostingWorker(DocumentCollection dc, AtomicInteger range_cnt, AtomicInteger doc_cnt,
+				IntegerMatrix ranges, List<File> outFiles, Timer timer) {
 			super();
 			this.dc = dc;
 			this.range_cnt = range_cnt;
@@ -283,6 +286,7 @@ public class TermBlockInvertedIndexCreator {
 		// iic.create("../../data/medical_ir/scopus/col/dc/");
 		// iic.create(MIRPath.DATA_DIR + "merged/col/dc/");
 		// iic.create(MIRPath.CLUEWEB_COL_DC_DIR);
+		// iic.create(FNPath.NAVER_NEWS_COL_DC_DIR);
 
 		// FrequentPhraseDetector.main(args);
 

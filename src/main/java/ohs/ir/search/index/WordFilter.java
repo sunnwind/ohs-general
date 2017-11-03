@@ -27,7 +27,32 @@ public class WordFilter {
 		this.vocab = vocab;
 		this.stopwords = stopwords;
 		buildStopIds();
+	}
 
+	public void buildStopIds(Set<String> stopwords) {
+		stopIds = Generics.newHashSet();
+
+		if (stopwords != null) {
+			for (String word : stopwords) {
+				int w = vocab.indexOf(word);
+				if (w != -1) {
+					stopIds.add(w);
+				}
+			}
+		}
+
+		for (int w = 0; w < vocab.size(); w++) {
+			String word = vocab.getObject(w);
+			if (word.contains("<nu") || puncPat.matcher(word).find()) {
+				stopIds.add(w);
+			}
+		}
+
+		int unk = vocab.indexOf(Vocab.SYM.UNK.getText());
+
+		if (unk != -1) {
+			stopIds.add(unk);
+		}
 	}
 
 	public void buildStopIds() {
@@ -62,18 +87,11 @@ public class WordFilter {
 		if (stopwords != null) {
 			for (int w = 0; w < vocab.size(); w++) {
 				String word = vocab.getObject(w);
-				if (stopwords.contains(word) || puncPat.matcher(word).find()) {
+				if ((stopIds != null && stopwords.contains(word) || puncPat.matcher(word).find())) {
 					stopIds.add(w);
 				}
 			}
 		}
-
-		// for (int w = 0; w < vocab.size(); w++) {
-		// String word = vocab.getObject(w);
-		// if (puncPat.matcher(word).find()) {
-		// ret.add(w);
-		// }
-		// }
 
 		int unk = vocab.indexOf(Vocab.SYM.UNK.getText());
 		if (unk != -1) {

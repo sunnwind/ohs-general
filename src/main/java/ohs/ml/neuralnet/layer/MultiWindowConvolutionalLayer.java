@@ -185,10 +185,12 @@ public class MultiWindowConvolutionalLayer extends Layer {
 
 		for (int i = 0; i < X.size(); i++) {
 			DenseMatrix Xm = X.get(i);
-			DenseMatrix Ym = tmp_Y.subMatrix(start, Xm.rowSize() * windowSizes.size());
+			int num_feat_maps = Xm.rowSize() * windowSizes.size();
+
+			DenseMatrix Ym = tmp_Y.subMatrix(start, num_feat_maps);
 			Ym.setAll(0);
 
-			start += Xm.rowSize() * windowSizes.size();
+			start += num_feat_maps;
 
 			int j = 0;
 

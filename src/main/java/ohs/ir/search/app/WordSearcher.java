@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import ohs.corpus.type.DocumentCollection;
+import ohs.fake.FNPath;
 import ohs.io.RandomAccessDenseMatrix;
 import ohs.ir.medical.general.MIRPath;
 import ohs.math.ArrayUtils;
@@ -93,11 +95,12 @@ public class WordSearcher {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 
-		String dir = MIRPath.WIKI_DIR;
-		String emdFileName = dir + "glove_model_raf.ser";
-		String vocabFileName = dir + "col/dc/vocab.ser.gz";
+//		String dir = MIRPath.WIKI_DIR;
+		String dir = FNPath.NAVER_DATA_DIR;
+		String emdFileName = dir + "emb/glove_ra.ser";
+		String vocabFileName = dir + "col/dc/vocab.ser";
 
-		Vocab vocab = new Vocab(vocabFileName);
+		Vocab vocab = DocumentCollection.readVocab(vocabFileName);
 
 		RandomAccessDenseMatrix ram = new RandomAccessDenseMatrix(emdFileName, true);
 

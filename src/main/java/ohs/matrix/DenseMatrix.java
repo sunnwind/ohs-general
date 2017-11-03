@@ -110,14 +110,6 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 		return new ByteSize(bytes);
 	}
 
-	private boolean checkRange(int i) {
-		boolean ret = true;
-		if (i < 0 || i >= rowSize()) {
-			ret = false;
-		}
-		return ret;
-	}
-
 	@Override
 	public int colSize() {
 		return size() > 0 ? get(0).size() : 0;
@@ -238,30 +230,6 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 	}
 
 	@Override
-	public DenseMatrix subMatrix(int size) {
-		return new DenseMatrix(subMatrix(0, size));
-	}
-
-	@Override
-	public DenseMatrix subMatrix(int start, int size) {
-		DenseVector[] ret = new DenseVector[size];
-		for (int i = start, j = 0; i < start + size; i++, j++) {
-			ret[j] = get(i);
-		}
-		return new DenseMatrix(ret);
-	}
-
-	@Override
-	public DenseMatrix subMatrix(int[] is) {
-		DenseVector[] ret = new DenseVector[is.length];
-		for (int i = 0; i < is.length; i++) {
-			int loc = is[i];
-			ret[i] = get(loc);
-		}
-		return new DenseMatrix(ret);
-	}
-
-	@Override
 	public int rowSize() {
 		return size();
 	}
@@ -317,14 +285,6 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 		unwrapValues();
 	}
 
-	public int sizeOfEntries() {
-		int ret = 0;
-		for (DenseVector row : this) {
-			ret += row.size();
-		}
-		return ret;
-	}
-
 	public void setValues(double[][] vals) {
 		clear();
 		ensureCapacity(vals.length);
@@ -333,6 +293,38 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 		for (int i = 0; i < vals.length; i++) {
 			add(new DenseVector(vals[i]));
 		}
+	}
+
+	public int sizeOfEntries() {
+		int ret = 0;
+		for (DenseVector row : this) {
+			ret += row.size();
+		}
+		return ret;
+	}
+
+	@Override
+	public DenseMatrix subMatrix(int size) {
+		return new DenseMatrix(subMatrix(0, size));
+	}
+
+	@Override
+	public DenseMatrix subMatrix(int start, int size) {
+		DenseVector[] ret = new DenseVector[size];
+		for (int i = start, j = 0; i < start + size; i++, j++) {
+			ret[j] = get(i);
+		}
+		return new DenseMatrix(ret);
+	}
+
+	@Override
+	public DenseMatrix subMatrix(int[] is) {
+		DenseVector[] ret = new DenseVector[is.length];
+		for (int i = 0; i < is.length; i++) {
+			int loc = is[i];
+			ret[i] = get(loc);
+		}
+		return new DenseMatrix(ret);
 	}
 
 	@Override
@@ -370,6 +362,13 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 
 		set(i, b);
 		set(j, a);
+	}
+
+	public DenseTensor toDenseTensor() {
+		DenseTensor ret = new DenseTensor();
+		ret.ensureCapacity(1);
+		ret.add(this);
+		return ret;
 	}
 
 	public DenseVector toDenseVector() {
@@ -446,6 +445,14 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 		ObjectOutputStream oos = FileUtils.openObjectOutputStream(fileName);
 		writeObject(oos);
 		oos.close();
+	}
+
+	private boolean checkRange(int i) {
+		boolean ret = true;
+		if (i < 0 || i >= rowSize()) {
+			ret = false;
+		}
+		return ret;
 	}
 
 }

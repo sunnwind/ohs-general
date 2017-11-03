@@ -71,7 +71,8 @@ public class DataHandler {
 		// dh.computeKeywordWeights();
 		// dh.mapKeywords();
 		// dh.getCocounts();
-		dh.getYearCocounts();
+		dh.getCocounts2();
+		// dh.getYearCocounts();
 		// dh.format();
 
 		System.out.println("process ends.");
@@ -358,6 +359,131 @@ public class DataHandler {
 
 		{
 			TextFileWriter writer = new TextFileWriter(KPPath.DATA_DIR + "scenario/kwds_target_cooccur.txt");
+
+			for (String k1 : cmm.getOutKeyCountSums().getSortedKeys()) {
+				CounterMap<String, String> cm = cmm.getCounterMap(k1);
+
+				for (String k2 : cm.getOutKeyCountSums().getSortedKeys()) {
+					Counter<String> c = cm.getCounter(k2);
+					writer.write(String.format("%s\t%s\t%s\n", k1, k2, c.toString(c.size())));
+				}
+			}
+			writer.close();
+		}
+	}
+
+	public void getCocounts2() throws Exception {
+		Set<String> targets = Generics
+				.newHashSet(FileUtils.readLinesFromText(KPPath.DATA_DIR + "scenario/kwds_target.txt"));
+
+		CounterMap<String, String> cm = Generics.newCounterMap();
+
+		for (String line : FileUtils.readLinesFromText(KPPath.DATA_DIR + "scenario/doc_kwds.txt")) {
+			String[] ps = line.split("\t");
+			String type = ps[0];
+			String year = ps[1];
+			Counter<String> c = Generics.newCounter(ps.length - 2);
+
+			for (int i = 2; i < ps.length; i++) {
+				String p = ps[i];
+				String[] two = StrUtils.split2Two(":", p);
+				c.incrementCount(two[0], Double.parseDouble(two[1]));
+			}
+
+			List<String> kwds = c.getSortedKeys();
+
+			for (int i = 0; i < kwds.size(); i++) {
+				String k1 = kwds.get(i);
+				double cnt1 = c.getCount(k1);
+
+				if (!targets.contains(k1)) {
+					continue;
+				}
+
+				for (int j = 0; j < kwds.size(); j++) {
+					String k2 = kwds.get(j);
+					double cnt2 = c.getCount(k2);
+					if (i == j) {
+						continue;
+					}
+					String key = String.format("%s\t%s\t%s", k1, k2, year);
+					cm.incrementCount(key, type, Math.min(cnt1, cnt2));
+				}
+			}
+		}
+
+		{
+			CounterMap<String, String> cm2 = Generics.newCounterMap();
+
+			for (String key : Generics.newTreeSet(cm.keySet())) {
+				List<String> ps = StrUtils.split("\t", key);
+				String k1 = ps.get(0);
+				String k2 = ps.get(1);
+				String year = ps.get(2);
+
+				for (Entry<String, Double> e : cm.getCounter(key).entrySet()) {
+					String type = e.getKey();
+					double cnt = e.getValue();
+
+					String key2 = String.format("%s\t%s\t%s", k1, k2, type);
+					cm2.incrementCount(key2, year, cnt);
+				}
+			}
+
+			cm = cm2;
+		}
+
+		{
+			TextFileWriter writer = new TextFileWriter(KPPath.DATA_DIR + "scenario/kwds_target_cooccur_2.txt");
+
+			for (String k1 : Generics.newTreeSet(cm.keySet())) {
+				Counter<String> c = cm.getCounter(k1);
+				writer.write(k1 + "\t" + c.toString(c.size()) + "\n");
+			}
+			writer.close();
+		}
+	}
+
+	public void getYearCocounts2() throws Exception {
+
+		Set<String> targets = Generics.newHashSet();
+
+		for (String line : FileUtils.readLinesFromText(KPPath.DATA_DIR + "scenario/kwds_target_cooccur.txt")) {
+			String[] ps = line.split("\t");
+			targets.add(ps[0]);
+			targets.add(ps[1]);
+		}
+
+		CounterMapMap<String, String, String> cmm = Generics.newCounterMapMap();
+
+		for (String line : FileUtils.readLinesFromText(KPPath.DATA_DIR + "scenario/doc_kwds.txt")) {
+			String[] ps = line.split("\t");
+			String type = ps[0];
+			String year = ps[1];
+			Counter<String> c = Generics.newCounter(ps.length - 2);
+
+			for (int i = 2; i < ps.length; i++) {
+				String p = ps[i];
+				String[] two = StrUtils.split2Two(":", p);
+				c.incrementCount(two[0], Double.parseDouble(two[1]));
+			}
+
+			List<String> kwds = c.getSortedKeys();
+
+			for (int i = 0; i < kwds.size(); i++) {
+				String k1 = kwds.get(i);
+				double cnt1 = c.getCount(k1);
+
+				if (!targets.contains(k1)) {
+					continue;
+				}
+
+				cmm.incrementCount(k1, type, year, cnt1);
+			}
+		}
+
+		{
+			TextFileWriter writer = new TextFileWriter(KPPath.DATA_DIR + "scenario/kwds_target_year.txt");
 
 			for (String k1 : cmm.getOutKeyCountSums().getSortedKeys()) {
 				CounterMap<String, String> cm = cmm.getCounterMap(k1);

@@ -257,7 +257,7 @@ public class VectorUtils {
 					continue;
 				}
 				double value = x.valueAt(i);
-				ret.setCount(idx, value);
+				ret.incrementCount(idx, value);
 			}
 		}
 		return ret;
@@ -271,7 +271,7 @@ public class VectorUtils {
 				continue;
 			}
 			double value = x.valueAt(i);
-			ret.setCount(index, value);
+			ret.incrementCount(index, value);
 		}
 		return ret;
 	}
@@ -291,7 +291,7 @@ public class VectorUtils {
 			if (obj == null) {
 				continue;
 			}
-			ret.setCount(obj, value);
+			ret.incrementCount(obj, value);
 		}
 
 		return ret;

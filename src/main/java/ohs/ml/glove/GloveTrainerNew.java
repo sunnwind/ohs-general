@@ -8,15 +8,16 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import ohs.corpus.type.DocumentCollection;
-import ohs.fake.FNPath;
 import ohs.io.FileUtils;
-import ohs.math.ArrayMath;
+import ohs.ir.medical.general.MIRPath;
 import ohs.math.ArrayUtils;
 import ohs.math.VectorMath;
+import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseVector;
 import ohs.matrix.SparseMatrix;
 import ohs.matrix.SparseVector;
 import ohs.ml.neuralnet.com.BatchUtils;
+import ohs.ml.neuralnet.com.ParameterUpdater;
 import ohs.types.generic.Vocab;
 import ohs.utils.Generics;
 import ohs.utils.Timer;
@@ -26,27 +27,21 @@ import ohs.utils.Timer;
  * 
  * @author ohs
  */
-public class GloveTrainer {
+public class GloveTrainerNew {
 
 	public class Worker implements Callable<Double> {
 
-		private int[] cw_locs;
-
-		private int[] range;
+		private double alpha = param.getAlpha();
 
 		private SparseMatrix C;
 
-		private double eps = 0.00000001;
-
-		private double beta1 = 0.9;
-
-		private double beta2 = 0.999;
+		private int[] cw_locs;
 
 		private double learn_rate = param.getLearningRate();
 
-		private double alpha = param.getAlpha();
-
 		private double max_x = param.getMaxX();
+
+		private int[] range;
 
 		public Worker() {
 
@@ -55,138 +50,96 @@ public class GloveTrainer {
 		@Override
 		public Double call() throws Exception {
 			double cost = 0;
-			double dx1 = 0;
-			double dx2 = 0;
-			double tmp1 = 0;
-			double tmp2 = 0;
 
-			int hidden_size = M.getW1().colSize();
+			DenseMatrix Wm = new DenseMatrix();
+			DenseMatrix dWm = new DenseMatrix();
+			DenseMatrix R1m = new DenseMatrix();
+			DenseMatrix R2m = new DenseMatrix();
 
-			if (use_adam) {
-				for (int i = range[0]; i < range[1]; i++) {
-					SparseVector row = C.rowAt(cw_locs[i]);
-					int center_w = C.indexAt(cw_locs[i]);
+			for (int i = range[0]; i < range[1]; i++) {
+				SparseVector row = C.rowAt(cw_locs[i]);
+				int center_w = C.indexAt(cw_locs[i]);
 
-					DenseVector w1 = M.getW1().row(center_w);
-					DenseVector b1 = M.getB1();
+				DenseVector w1 = W.getW1().row(center_w);
+				DenseVector b1 = W.getB1();
 
-					DenseVector rw11 = R1.getW1().row(center_w);
-					DenseVector rw21 = R2.getW1().row(center_w);
+				DenseVector dw1 = dW.getW1().row(center_w);
+				DenseVector db1 = dW.getB1();
 
-					int[] ctw_locs = ArrayUtils.range(row.size());
+				DenseVector rw11 = R1.getW1().row(center_w);
+				DenseVector rw21 = R2.getW1().row(center_w);
 
-					ArrayUtils.shuffle(ctw_locs);
+				DenseVector rb11 = R1.getB1();
+				DenseVector rb21 = R2.getB1();
 
-					for (int j = 0; j < ctw_locs.length; j++) {
-						int ctw_loc = ctw_locs[j];
-						int ctx_w = row.indexAt(ctw_loc);
-						double cocnt = row.valueAt(ctw_loc);
+				int[] ctw_locs = ArrayUtils.range(row.size());
 
-						DenseVector w2 = M.getW2().row(ctx_w);
-						DenseVector b2 = M.getB2();
-						DenseVector rw12 = R1.getW2().row(ctx_w);
-						DenseVector rw22 = R2.getW2().row(ctx_w);
+				ArrayUtils.shuffle(ctw_locs);
 
-						double diff = VectorMath.dotProduct(w1, w2) + b1.value(center_w) + b2.value(ctx_w)
-								- Math.log(cocnt);
-						double fdiff = cocnt < max_x ? Math.pow(cocnt / max_x, alpha) * diff : diff;
-						cost += 0.5 * diff * fdiff;
+				for (int j = 0; j < ctw_locs.length; j++) {
+					int ctw_loc = ctw_locs[j];
+					int ctx_w = row.indexAt(ctw_loc);
+					double cocnt = row.valueAt(ctw_loc);
 
-						for (int k = 0; k < hidden_size; k++) {
-							dx1 = fdiff * w2.value(k);
-							tmp1 = ArrayMath.addAfterMultiply(rw11.value(k), beta1, dx1);
-							tmp2 = ArrayMath.addAfterMultiply(rw21.value(k), beta2, Math.pow(dx1, 2));
-							rw11.set(k, tmp1);
-							rw21.set(k, tmp2);
-							tmp1 /= (1 - beta1);
-							tmp2 /= (1 - beta2);
-							w1.set(k, w1.value(k) - learn_rate / Math.sqrt(tmp2 + eps) * tmp1);
+					DenseVector w2 = W.getW2().row(ctx_w);
+					DenseVector b2 = W.getB2();
 
-							dx2 = fdiff * w1.value(k);
-							tmp1 = ArrayMath.addAfterMultiply(rw12.value(k), beta1, dx2);
-							tmp2 = ArrayMath.addAfterMultiply(rw22.value(k), beta2, Math.pow(dx2, 2));
-							rw12.set(k, tmp1);
-							rw22.set(k, tmp2);
-							tmp1 /= (1 - beta1);
-							tmp2 /= (1 - beta2);
-							w2.set(k, w2.value(k) - learn_rate / Math.sqrt(tmp2 + eps) * tmp1);
-						}
+					DenseVector dw2 = dW.getW2().row(ctx_w);
+					DenseVector db2 = dW.getB2();
 
-						DenseVector rb11 = R1.getB1();
-						DenseVector rb21 = R2.getB1();
+					DenseVector rw12 = R1.getW2().row(ctw_loc);
+					DenseVector rw22 = R2.getW2().row(ctw_loc);
 
-						dx1 = fdiff;
-						tmp1 = ArrayMath.addAfterMultiply(rb11.value(center_w), beta1, dx1);
-						tmp2 = ArrayMath.addAfterMultiply(rb21.value(center_w), beta2, Math.pow(dx1, 2));
-						rb11.set(center_w, tmp1);
-						rb21.set(center_w, tmp2);
-						tmp1 /= (1 - beta1);
-						tmp2 /= (1 - beta2);
-						b1.set(center_w, b1.value(center_w) - learn_rate / Math.sqrt(tmp2 + eps) * tmp1);
+					DenseVector rb12 = R1.getB2();
+					DenseVector rb22 = R2.getB2();
 
-						DenseVector rb12 = R1.getB2();
-						DenseVector rb22 = R2.getB2();
+					double diff = VectorMath.dotProduct(w1, w2) + b1.value(center_w) + b2.value(ctx_w)
+							- Math.log(cocnt);
+					double fdiff = cocnt < max_x ? Math.pow(cocnt / max_x, alpha) * diff : diff;
+					cost += 0.5 * diff * fdiff;
 
-						dx2 = fdiff;
-						tmp1 = ArrayMath.addAfterMultiply(rb12.value(ctx_w), beta1, dx2);
-						tmp2 = ArrayMath.addAfterMultiply(rb22.value(ctx_w), beta2, Math.pow(dx2, 2));
-						rb12.set(ctx_w, tmp1);
-						rb22.set(ctx_w, tmp2);
-						tmp1 /= (1 - beta1);
-						tmp2 /= (1 - beta2);
-						b2.set(ctx_w, b2.value(ctx_w) - learn_rate / Math.sqrt(tmp2 + eps) * tmp1);
-					}
-				}
-			} else {
-				for (int i = range[0]; i < range[1]; i++) {
-					SparseVector row = C.rowAt(cw_locs[i]);
-					int center_w = C.indexAt(cw_locs[i]);
+					VectorMath.addAfterMultiply(w2, fdiff, dw1);
+					VectorMath.addAfterMultiply(w1, fdiff, dw2);
 
-					DenseVector w1 = M.getW1().row(center_w);
-					DenseVector b1 = M.getB1();
-					DenseVector rw1 = R1.getW1().row(center_w);
+					db1.setAll(0);
+					db2.setAll(0);
 
-					int[] ctw_locs = ArrayUtils.range(row.size());
+					db1.add(center_w, fdiff);
+					db2.add(ctx_w, fdiff);
 
-					ArrayUtils.shuffle(ctw_locs);
+					Wm.clear();
+					dWm.clear();
+					R1m.clear();
+					R2m.clear();
 
-					for (int j = 0; j < ctw_locs.length; j++) {
-						int ctw_loc = ctw_locs[j];
-						int ctx_w = row.indexAt(ctw_loc);
-						double cocnt = row.valueAt(ctw_loc);
+					Wm.add(w1);
+					Wm.add(w2);
+					Wm.add(b1);
+					Wm.add(b2);
 
-						DenseVector w2 = M.getW2().row(ctx_w);
-						DenseVector b2 = M.getB2();
-						DenseVector rw2 = R1.getW2().row(ctx_w);
+					dWm.add(dw1);
+					dWm.add(dw2);
+					dWm.add(db1);
+					dWm.add(db2);
 
-						double diff = VectorMath.dotProduct(w1, w2) + b1.value(center_w) + b2.value(ctx_w)
-								- Math.log(cocnt);
-						double fdiff = cocnt < max_x ? Math.pow(cocnt / max_x, alpha) * diff : diff;
-						cost += 0.5 * diff * fdiff;
+					R1m.add(rw11);
+					R1m.add(rw12);
+					R1m.add(rb11);
+					R1m.add(rb12);
 
-						for (int k = 0; k < hidden_size; k++) {
-							dx1 = fdiff * w2.value(k);
-							dx2 = fdiff * w1.value(k);
+					R2m.add(rw21);
+					R2m.add(rw22);
+					R2m.add(rb21);
+					R2m.add(rb22);
 
-							rw1.add(k, Math.pow(dx1, 2));
-							rw2.add(k, Math.pow(dx2, 2));
-
-							w1.set(k, w1.value(k) - learn_rate / Math.sqrt(rw1.value(k) + eps) * dx1);
-							w2.set(k, w2.value(k) - learn_rate / Math.sqrt(rw2.value(k) + eps) * dx2);
-						}
-
-						DenseVector rb1 = R1.getB1();
-						DenseVector rb2 = R1.getB2();
-
-						rb1.add(center_w, Math.pow(fdiff, 2));
-						rb2.add(ctx_w, Math.pow(fdiff, 2));
-
-						b1.set(center_w,
-								b1.value(center_w) - learn_rate / Math.sqrt(rb1.value(center_w) + eps) * fdiff);
-						b2.set(ctx_w, b2.value(ctx_w) - learn_rate / Math.sqrt(rb2.value(ctx_w) + eps) * fdiff);
-					}
+					ParameterUpdater pu = new ParameterUpdater(Wm.toDenseTensor(), dWm.toDenseTensor(),
+							R1m.toDenseTensor(), R2m.toDenseTensor());
+					pu.setGradientClipCutoff(Double.MAX_VALUE);
+					pu.setLearningRate(learn_rate);
+					pu.update();
 				}
 			}
+
 			return cost / (range[1] - range[0]);
 		}
 
@@ -211,7 +164,8 @@ public class GloveTrainer {
 		// MIRPath.TREC_CDS_2016_COL_DC_DIR, MIRPath.WIKI_COL_DC_DIR,
 		// MIRPath.BIOASQ_COL_DC_DIR };
 
-		String[] dataDirs = { FNPath.NAVER_NEWS_COL_DC_DIR };
+		// String[] dataDirs = { FNPath.NAVER_NEWS_COL_DC_DIR };
+		String[] dataDirs = { MIRPath.OHSUMED_COL_DC_DIR };
 		int thread_size = 15;
 		int hidden_size = 200;
 		int max_iters = 100;
@@ -219,7 +173,7 @@ public class GloveTrainer {
 		int batch_size = 100;
 		double learn_rate = 0.001;
 		boolean use_adam = true;
-		boolean read_all_files = false;
+		boolean read_all_files = true;
 		boolean count = false;
 
 		// if (use_adam) {
@@ -228,8 +182,8 @@ public class GloveTrainer {
 
 		for (int u = 0; u < dataDirs.length; u++) {
 			File dataDir = new File(dataDirs[u]);
-			File cocntDir = new File("/data1/ohs/tmp_cocnt/");
-			File outFile = new File(dataDir.getParentFile().getParentFile(), "emb/glove.ser.gz");
+			File cocntDir = new File("G:", "/cocnt/");
+			File outFile = new File("G:", "emb/glove.ser.gz");
 
 			DocumentCollection dc = null;
 
@@ -238,7 +192,7 @@ public class GloveTrainer {
 				cc.setWindowSize(window_size);
 				cc.setCountThreadSize(5);
 				cc.setSymmetric(true);
-				cc.setOutputFileSize(4000);
+				cc.setOutputFileSize(100);
 				cc.setBatchSize(10000);
 				cc.setMinWordCount(10);
 				cc.count();
@@ -253,7 +207,7 @@ public class GloveTrainer {
 			param.setThreadSize(thread_size);
 			param.setLearnRate(learn_rate);
 
-			GloveTrainer trainer = new GloveTrainer();
+			GloveTrainerNew trainer = new GloveTrainerNew();
 			GloveModel M = trainer.train(param, vocab, cocntDir.getPath(), max_iters, read_all_files, use_adam);
 			M.getAveragedModel().writeObject(outFile.getPath());
 
@@ -263,9 +217,11 @@ public class GloveTrainer {
 		System.out.println("process ends.");
 	}
 
-	private GloveParam param;
+	private GloveModel dW;
 
-	private GloveModel M;
+	private GloveModel W;
+
+	private GloveParam param;
 
 	private GloveModel R1;
 
@@ -273,7 +229,7 @@ public class GloveTrainer {
 
 	private boolean use_adam;
 
-	public GloveTrainer() {
+	public GloveTrainerNew() {
 
 	}
 
@@ -286,9 +242,10 @@ public class GloveTrainer {
 
 		List<File> files = FileUtils.getFilesUnder(dataDir);
 
-		M = new GloveModel(param.getVocabSize(), param.getHiddenSize());
-		M.init();
+		W = new GloveModel(param.getVocabSize(), param.getHiddenSize());
+		W.init();
 
+		dW = new GloveModel(param.getVocabSize(), param.getHiddenSize());
 		R1 = new GloveModel(param.getVocabSize(), param.getHiddenSize());
 		R2 = new GloveModel(param.getVocabSize(), param.getHiddenSize());
 
@@ -346,7 +303,7 @@ public class GloveTrainer {
 				}
 				fs.clear();
 
-				double norm = VectorMath.normL2(M.getW());
+				double norm = VectorMath.normL2(W.getW());
 
 				System.out.printf("%dth, cost: %f, time: %s (%s), norm: %f, learn-rate: %f\n", iters, cost,
 						timer2.stop(), timer1.stop(), norm, param.getLearningRate());
@@ -393,7 +350,7 @@ public class GloveTrainer {
 					fs.clear();
 				}
 
-				double norm = VectorMath.normL2(M.getW());
+				double norm = VectorMath.normL2(W.getW());
 
 				System.out.printf("%dth, cost: %f, time: %s (%s), norm: %f, learn-rate: %f\n", iters, cost,
 						timer2.stop(), timer1.stop(), norm, param.getLearningRate());
@@ -407,7 +364,7 @@ public class GloveTrainer {
 
 		tpe.shutdown();
 
-		return M;
+		return W;
 	}
 
 }
