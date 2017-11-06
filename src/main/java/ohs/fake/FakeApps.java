@@ -56,11 +56,11 @@ public class FakeApps {
 		System.out.println("process begins.");
 
 		// testMNIST();
-		// testCharRNN();
+		testCharRNN();
 		// testNER();
 
 		// testSentenceClassification();
-		testDocumentClassification();
+		// testDocumentClassification();
 
 		System.out.println("process ends.");
 	}
@@ -69,7 +69,7 @@ public class FakeApps {
 		NeuralNetParams nnp = new NeuralNetParams();
 		nnp.setBatchSize(5);
 		nnp.setIsFullSequenceBatch(true);
-		nnp.setIsRandomBatch(true);
+		nnp.setIsRandomBatch(false);
 		nnp.setGradientAccumulatorResetSize(100);
 		nnp.setLearnRate(0.001);
 		nnp.setRegLambda(0.001);

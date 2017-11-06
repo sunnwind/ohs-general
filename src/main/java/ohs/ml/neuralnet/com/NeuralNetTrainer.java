@@ -251,32 +251,39 @@ public class NeuralNetTrainer {
 
 	public void train(DenseTensor X, DenseMatrix Y, DenseTensor Xt, DenseMatrix Yt, int max_iters) throws Exception {
 
-		if (Y.colSize() > 0 && !is_full_seq_batch) {
-			List<DenseMatrix> _X = Generics.newLinkedList();
-			List<DenseVector> _Y = Generics.newLinkedList();
+		if (Y.colSize() > 0) {
 
-			for (int i = 0; i < X.size(); i++) {
-				DenseMatrix Xm = X.get(i);
-				DenseVector Ym = Y.get(i);
+			if (is_full_seq_batch) {
+				data_locs = ArrayUtils.range(Y.sizeOfEntries());
+				ranges = BatchUtils.getBatchRanges(Y.rowSize(), batch_size);
+			} else {
+				List<DenseMatrix> _X = Generics.newLinkedList();
+				List<DenseVector> _Y = Generics.newLinkedList();
 
-				for (int j = 0; j < Xm.rowSize();) {
-					int size = batch_size;
+				for (int i = 0; i < X.size(); i++) {
+					DenseMatrix Xm = X.get(i);
+					DenseVector Ym = Y.get(i);
 
-					if (Xm.rowSize() - j < batch_size) {
-						size = Xm.rowSize() - j;
+					for (int j = 0; j < Xm.rowSize();) {
+						int size = batch_size;
+
+						if (Xm.rowSize() - j < batch_size) {
+							size = Xm.rowSize() - j;
+						}
+
+						_X.add(Xm.subMatrix(j, size));
+						_Y.add(Ym.subVector(j, size));
+						j += size;
 					}
-
-					_X.add(Xm.subMatrix(j, size));
-					_Y.add(Ym.subVector(j, size));
-					j += size;
 				}
+
+				X = new DenseTensor(_X);
+				Y = new DenseMatrix(_Y);
+
+				data_locs = ArrayUtils.range(Y.rowSize());
+				ranges = BatchUtils.getBatchRanges(Y.rowSize(), 1);
 			}
 
-			X = new DenseTensor(_X);
-			Y = new DenseMatrix(_Y);
-
-			data_locs = ArrayUtils.range(Y.rowSize());
-			ranges = BatchUtils.getBatchRanges(Y.rowSize(), 1);
 		} else {
 			data_locs = ArrayUtils.range(Y.rowSize());
 			ranges = BatchUtils.getBatchRanges(Y.rowSize(), batch_size);

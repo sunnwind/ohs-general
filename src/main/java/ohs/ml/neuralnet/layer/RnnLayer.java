@@ -39,13 +39,17 @@ public class RnnLayer extends RecurrentLayer {
 	 */
 	private static final long serialVersionUID = 2848535801786544922L;
 
+	private DenseMatrix tmp_dA = new DenseMatrix(0);
+
+	private DenseMatrix tmp_dX = new DenseMatrix(0);
+
+	private DenseMatrix tmp_H = new DenseMatrix(0);
+
 	private DenseVector dh_prev = new DenseVector(0);
 
 	private DenseVector dh_raw = new DenseVector(0);
 
 	private DenseVector dh_raw2;
-
-	private DenseTensor H;
 
 	private DenseVector h0 = new DenseVector(0);
 
@@ -57,13 +61,13 @@ public class RnnLayer extends RecurrentLayer {
 
 	private Nonlinearity non;
 
-	private DenseMatrix tmp_dA = new DenseMatrix(0);
-
-	private DenseMatrix tmp_dX = new DenseMatrix(0);
-
-	private DenseMatrix tmp_H = new DenseMatrix(0);
-
 	private DenseTensor X;
+
+	private DenseTensor H;
+
+	private DenseTensor dX;
+
+	private DenseTensor dH;
 
 	public RnnLayer() {
 
@@ -104,6 +108,8 @@ public class RnnLayer extends RecurrentLayer {
 	 * @return
 	 */
 	private Object backward1(Object I) {
+		this.dH = (DenseTensor) I;
+
 		DenseTensor dH = (DenseTensor) I;
 		DenseTensor dX = new DenseTensor();
 		dX.ensureCapacity(dH.size());
@@ -180,6 +186,8 @@ public class RnnLayer extends RecurrentLayer {
 			dX.add(dXm);
 		}
 
+		this.dX = dX;
+
 		return dX;
 	}
 
@@ -190,12 +198,7 @@ public class RnnLayer extends RecurrentLayer {
 
 	@Override
 	public DenseTensor forward(Object I) {
-		try {
-			this.X = (DenseTensor) I;
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		this.X = (DenseTensor) I;
 
 		DenseTensor X = (DenseTensor) I;
 		DenseTensor H = new DenseTensor();
