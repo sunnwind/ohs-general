@@ -104,7 +104,6 @@ public class EmbeddingLayer extends Layer {
 			start += Xm.rowSize();
 
 			VectorUtils.copy(Wm, Ym);
-
 			Y.add(Ym);
 		}
 

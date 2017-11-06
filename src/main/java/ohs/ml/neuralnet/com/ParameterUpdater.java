@@ -48,6 +48,10 @@ public class ParameterUpdater {
 
 	private double weight_decay_L2 = 1;
 
+	private double scale_down_factor = 1d / 100000;
+
+	private boolean use_hard_grad_clipping = false;
+
 	private NeuralNet nn;
 
 	private DenseTensor Rs1;
@@ -132,6 +136,10 @@ public class ParameterUpdater {
 		this.ot = ot;
 	}
 
+	public void setUseHardGradClipping(boolean use_hard_grad_clipping) {
+		this.use_hard_grad_clipping = use_hard_grad_clipping;
+	}
+
 	public void setWeightDecay(double weight_decay) {
 		this.weight_decay_L2 = weight_decay;
 	}
@@ -158,7 +166,11 @@ public class ParameterUpdater {
 			if (grad_clip_cutoff != Double.MAX_VALUE) {
 				double norm = VectorMath.normL2(dW);
 				if (norm > grad_clip_cutoff) {
-					dW.multiply(grad_clip_cutoff / norm);
+					if (use_hard_grad_clipping) {
+						VectorMath.clip(dW, -grad_clip_cutoff, grad_clip_cutoff, dW);
+					} else {
+						dW.multiply(grad_clip_cutoff / norm);
+					}
 				}
 			}
 
@@ -168,15 +180,15 @@ public class ParameterUpdater {
 			double dxa1 = 0;
 			double dxa2 = 0;
 
-			// synchronized (W) {
-			for (int j = 0; j < W.rowSize(); j++) {
-				DenseVector dw = dW.row(j);
-				DenseVector w = W.row(j);
-				DenseVector r1 = R1.row(j);
-				DenseVector r2 = R2.row(j);
+			synchronized (W) {
+				for (int j = 0; j < W.rowSize(); j++) {
+					DenseVector dw = dW.row(j);
+					DenseVector w = W.row(j);
+					DenseVector r1 = R1.row(j);
+					DenseVector r2 = R2.row(j);
 
-				// if (g.sum() != 0) {
-				synchronized (w) {
+					// if (g.sum() != 0) {
+					// synchronized (w) {
 					sum = 0;
 					if (ot == OptimizerType.SIMPLE) {
 						for (int k = 0; k < dw.size(); k++) {
@@ -210,7 +222,8 @@ public class ParameterUpdater {
 						}
 					} else if (ot == OptimizerType.ADAM) {
 						for (int k = 0; k < dw.size(); k++) {
-							dx = dw.value(k);
+							dx = dw.value(k) * scale_down_factor;
+
 							dxa1 = ArrayMath.addAfterMultiply(r1.value(k), beta1, dx);
 							dxa2 = ArrayMath.addAfterMultiply(r2.value(k), beta2, Math.pow(dx, 2));
 							r1.set(k, dxa1);
@@ -220,20 +233,19 @@ public class ParameterUpdater {
 							dxa2 = dxa2 / (1 - beta2);
 
 							x = w.value(k) * weight_decay_L2;
+							// x = clipWeight(x);
 							x -= learn_rate / Math.sqrt(dxa2 + eps) * dxa1;
 							w.set(k, x);
 							sum += x;
-
-							// m.add(j, -learn_rate / Math.sqrt(rrv + eps) * rv);
 						}
 					}
 
 					w.setSum(sum);
+					// }
+					dw.setAll(0);
+					// }
 				}
-				dw.setAll(0);
-				// }
 			}
-			// }
 		}
 	}
 

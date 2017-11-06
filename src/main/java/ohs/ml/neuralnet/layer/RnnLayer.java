@@ -3,6 +3,7 @@ package ohs.ml.neuralnet.layer;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
+import ohs.math.ArrayMath;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
@@ -236,6 +237,13 @@ public class RnnLayer extends RecurrentLayer {
 				non.forward(h.toDenseMatrix(), h.toDenseMatrix());
 			}
 			H.add(Hm);
+
+			double norm = VectorMath.normL2(Hm);
+
+			if (norm > 10000) {
+				int iiii = 0;
+				iiii += 1;
+			}
 
 			VectorUtils.copy(Hm.row(Xm.rowSize() - 1), h0);
 		}

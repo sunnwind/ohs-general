@@ -61,6 +61,7 @@ public class NeuralNetTrainer {
 
 				DenseTensor Xm = X.subTensor(locs);
 				DenseMatrix Ym = Y.subMatrix(locs);
+
 				DenseTensor Yhm = (DenseTensor) nn.forward(Xm);
 				DenseTensor D = cf.evaluate(Yhm, Ym);
 				cost += cf.getCost();

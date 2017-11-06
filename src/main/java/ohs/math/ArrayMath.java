@@ -681,6 +681,27 @@ public class ArrayMath {
 		return ret;
 	}
 
+	public static double clip(double[] a, double min, double max, double[] b) {
+		double sum = 0;
+		for (int i = 0; i < a.length; i++) {
+			if (a[i] < min) {
+				b[i] = min;
+			} else if (a[i] > max) {
+				b[i] = max;
+			}
+			sum += b[i];
+		}
+		return sum;
+	}
+
+	public static double clip(double[][] a, double min, double max, double[][] b) {
+		double sum = 0;
+		for (int i = 0; i < a.length; i++) {
+			sum += clip(a[i], min, max, b[i]);
+		}
+		return sum;
+	}
+
 	public static double correlationKendall(double[] a, double[] b) {
 		double numConcordant = 0;
 		double numDiscordant = 0;
@@ -1327,8 +1348,16 @@ public class ArrayMath {
 		System.out.println("process begins.");
 
 		{
-			double e = 1e-1;
-			System.out.println(e);
+
+			DenseVector a = new DenseVector(new double[] { 1000, 20000, 4000 });
+			DenseVector b = new DenseVector(a.size());
+
+			a.multiply(-1);
+
+			softmax(a.values(), b.values());
+
+			System.out.println(b.toString());
+
 			System.exit(0);
 		}
 
@@ -3840,6 +3869,7 @@ public class ArrayMath {
 				intermediate += Math.exp(x[i] - max);
 			}
 		}
+
 		for (int i = maxIndex + 1; i < len; i++) {
 			if (x[i] >= cutoff) {
 				anyAdded = true;

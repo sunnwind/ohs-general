@@ -278,6 +278,20 @@ public class VectorMath {
 		b.scale(1f / a.size());
 	}
 
+	public static double clip(DenseMatrix a, double min, double max, DenseMatrix b) {
+		double sum = 0;
+		for (int i = 0; i < a.rowSize(); i++) {
+			sum += clip(a.row(i), min, max, b.row(i));
+		}
+		return sum;
+	}
+
+	public static double clip(DenseVector a, double min, double max, DenseVector b) {
+		double sum = ArrayMath.clip(a.values(), min, max, b.values());
+		b.setSum(sum);
+		return sum;
+	}
+
 	public static double cosine(Vector a, Vector b) {
 		double[] norms = new double[2];
 		return ArrayMath.cosine(dotProduct(a, b, norms), norms);
@@ -1510,6 +1524,14 @@ public class VectorMath {
 		return ArrayMath.sumAfterLog(a.values());
 	}
 
+	public static double sumAfterSquared(DenseMatrix a) {
+		return ArrayMath.sumAfterSquared(a.values());
+	}
+
+	public static double sumAfterSquared(DenseVector a) {
+		return ArrayMath.sumAfterSquared(a.values());
+	}
+
 	public static double sumColumn(DenseMatrix a, int j) {
 		return ArrayMath.sumColumn(a.values(), j);
 	}
@@ -1530,14 +1552,6 @@ public class VectorMath {
 		double sum = ArrayMath.sumLogProbs(x.values());
 		x.setSum(sum);
 		return sum;
-	}
-
-	public static double sumAfterSquared(DenseMatrix a) {
-		return ArrayMath.sumAfterSquared(a.values());
-	}
-
-	public static double sumAfterSquared(DenseVector a) {
-		return ArrayMath.sumAfterSquared(a.values());
 	}
 
 	public static double tanh(DenseMatrix a, DenseMatrix b) {

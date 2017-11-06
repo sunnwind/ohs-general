@@ -60,14 +60,14 @@ public class Apps {
 
 	public static void testCharRNN() throws Exception {
 		NeuralNetParams nnp = new NeuralNetParams();
-		nnp.setBatchSize(5);
-		nnp.setIsFullSequenceBatch(true);
+		nnp.setBatchSize(25);
+		nnp.setIsFullSequenceBatch(false);
 		nnp.setIsRandomBatch(false);
 		nnp.setGradientAccumulatorResetSize(100);
 		nnp.setLearnRate(0.001);
 		nnp.setRegLambda(0.001);
 		nnp.setThreadSize(5);
-		nnp.setWeightDecayL2(1);
+		nnp.setWeightDecayL2(0.999999);
 		nnp.setBPTT(5);
 		nnp.setOptimizerType(OptimizerType.ADAM);
 		nnp.setGradientClipCutoff(5);
@@ -87,7 +87,7 @@ public class Apps {
 
 		lines = Generics.newArrayList(lines);
 
-		// lines = lines.subList(0, 100);
+		lines = lines.subList(0, 1000);
 
 		int test_size = 1000;
 		// int train_size = lines.size() - test_size;
@@ -146,7 +146,7 @@ public class Apps {
 		Indexer<String> labelIdxer = Generics.newIndexer(vocab.getObjects());
 
 		int voc_size = vocab.size();
-		int emb_size = 50;
+		int emb_size = 100;
 		int l1_size = 100;
 		int label_size = labelIdxer.size();
 		int type = 2;

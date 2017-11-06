@@ -3,10 +3,12 @@ package ohs.ml.neuralnet.layer;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
+import ohs.math.ArrayMath;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
+import ohs.matrix.DenseVector;
 
 public class SoftmaxLayer extends Layer {
 
@@ -57,6 +59,7 @@ public class SoftmaxLayer extends Layer {
 
 			VectorMath.softmax(Xm, Ym);
 			Y.add(Ym);
+
 		}
 		return Y;
 	}
