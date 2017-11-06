@@ -190,7 +190,12 @@ public class RnnLayer extends RecurrentLayer {
 
 	@Override
 	public DenseTensor forward(Object I) {
-		this.X = (DenseTensor) I;
+		try {
+			this.X = (DenseTensor) I;
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 
 		DenseTensor X = (DenseTensor) I;
 		DenseTensor H = new DenseTensor();

@@ -25,34 +25,34 @@ public class ParameterUpdater {
 		ADAGRAD, ADAM, RMSPROP, SIMPLE
 	}
 
+	private OptimizerType ot = OptimizerType.ADAM;
+
 	private double beta1 = 0.9;
 
 	private double beta2 = 0.999;
 
 	private double decay_rate = 0.9;
 
-	private DenseTensor dWs;
-
 	private double eps = 0.00000001;
+
+	private DenseTensor dWs;
 
 	/**
 	 * Lample, G., Ballesteros, M., Subramanian, S., Kawakami, K., & Dyer, C.
-	 * (2016). Neural Architectures for Named Entity Recognition. Arxiv, 1–10.
+	 * (2016). Neural Architectures for Named Entity Recognition. Arxiv, 1��10.
 	 * Retrieved from http://arxiv.org/abs/1603.01360
 	 */
 	private double grad_clip_cutoff = 5;
 
 	private double learn_rate = 0.001;
 
-	private NeuralNet nn;
+	private double weight_decay_L2 = 1;
 
-	private OptimizerType ot = OptimizerType.ADAM;
+	private NeuralNet nn;
 
 	private DenseTensor Rs1;
 
 	private DenseTensor Rs2;
-
-	private double weight_decay = 1;
 
 	private DenseTensor Ws;
 
@@ -133,7 +133,7 @@ public class ParameterUpdater {
 	}
 
 	public void setWeightDecay(double weight_decay) {
-		this.weight_decay = weight_decay;
+		this.weight_decay_L2 = weight_decay;
 	}
 
 	/**
@@ -144,7 +144,7 @@ public class ParameterUpdater {
 	 * @param data_size
 	 */
 	public void setWeightDecay(double reg_lambda, double learn_rate, long data_size) {
-		weight_decay = (1 - reg_lambda * learn_rate / data_size);
+		weight_decay_L2 = (1 - reg_lambda * learn_rate / data_size);
 	}
 
 	public void update() {
@@ -165,8 +165,8 @@ public class ParameterUpdater {
 			double sum = 0;
 			double x = 0;
 			double dx = 0;
-			double rv1 = 0;
-			double rv2 = 0;
+			double dxa1 = 0;
+			double dxa2 = 0;
 
 			// synchronized (W) {
 			for (int j = 0; j < W.rowSize(); j++) {
@@ -181,7 +181,7 @@ public class ParameterUpdater {
 					if (ot == OptimizerType.SIMPLE) {
 						for (int k = 0; k < dw.size(); k++) {
 							dx = dw.value(k);
-							x = w.value(k) * weight_decay;
+							x = w.value(k) * weight_decay_L2;
 							x -= learn_rate * dx;
 							w.set(k, x);
 							sum += x;
@@ -191,7 +191,7 @@ public class ParameterUpdater {
 							dx = dw.value(k);
 							r1.add(k, Math.pow(dx, 2));
 
-							x = w.value(k) * weight_decay;
+							x = w.value(k) * weight_decay_L2;
 							x -= learn_rate / Math.sqrt(r1.value(k) + eps) * dx;
 							w.set(k, x);
 							sum += x;
@@ -200,27 +200,27 @@ public class ParameterUpdater {
 						sum = 0;
 						for (int k = 0; k < dw.size(); k++) {
 							dx = dw.value(k);
-							rv1 = ArrayMath.addAfterMultiply(r1.value(k), decay_rate, Math.pow(dx, 2), 1 - decay_rate);
-							r1.set(k, rv1);
+							dxa1 = ArrayMath.addAfterMultiply(r1.value(k), decay_rate, Math.pow(dx, 2), 1 - decay_rate);
+							r1.set(k, dxa1);
 
-							x = w.value(k) * weight_decay;
-							x -= -learn_rate / Math.sqrt(rv1 + eps) * dx;
+							x = w.value(k) * weight_decay_L2;
+							x -= -learn_rate / Math.sqrt(dxa1 + eps) * dx;
 							w.set(k, x);
 							sum += x;
 						}
 					} else if (ot == OptimizerType.ADAM) {
 						for (int k = 0; k < dw.size(); k++) {
 							dx = dw.value(k);
-							rv1 = ArrayMath.addAfterMultiply(r1.value(k), beta1, dx);
-							rv2 = ArrayMath.addAfterMultiply(r2.value(k), beta2, Math.pow(dx, 2));
-							r1.set(k, rv1);
-							r2.set(k, rv2);
+							dxa1 = ArrayMath.addAfterMultiply(r1.value(k), beta1, dx);
+							dxa2 = ArrayMath.addAfterMultiply(r2.value(k), beta2, Math.pow(dx, 2));
+							r1.set(k, dxa1);
+							r2.set(k, dxa2);
 
-							rv1 = rv1 / (1 - beta1);
-							rv2 = rv2 / (1 - beta2);
+							dxa1 = dxa1 / (1 - beta1);
+							dxa2 = dxa2 / (1 - beta2);
 
-							x = w.value(k) * weight_decay;
-							x -= learn_rate / Math.sqrt(rv2 + eps) * rv1;
+							x = w.value(k) * weight_decay_L2;
+							x -= learn_rate / Math.sqrt(dxa2 + eps) * dxa1;
 							w.set(k, x);
 							sum += x;
 

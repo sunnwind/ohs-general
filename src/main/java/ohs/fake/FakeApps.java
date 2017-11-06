@@ -74,7 +74,7 @@ public class FakeApps {
 		nnp.setLearnRate(0.001);
 		nnp.setRegLambda(0.001);
 		nnp.setThreadSize(5);
-		nnp.setTruncatedBackPropagationThroughTime(1);
+		nnp.setBPTT(1);
 		nnp.setOptimizerType(OptimizerType.ADAM);
 		nnp.setGradientClipCutoff(10);
 
@@ -318,10 +318,10 @@ public class FakeApps {
 		nnp.setLearnRate(0.001);
 		nnp.setLearnRateDecay(0.9);
 		nnp.setLearnRateDecaySize(100);
-		nnp.setWeightDecay(1);
+		nnp.setWeightDecayL2(1);
 		nnp.setRegLambda(0.001);
 		nnp.setThreadSize(5);
-		nnp.setTruncatedBackPropagationThroughTime(1);
+		nnp.setBPTT(1);
 		nnp.setOptimizerType(OptimizerType.ADAM);
 		nnp.setGradientClipCutoff(5);
 
@@ -522,7 +522,7 @@ public class FakeApps {
 		nnp.setLearnRateDecaySize(100);
 		nnp.setRegLambda(0.001);
 		nnp.setThreadSize(5);
-		nnp.setTruncatedBackPropagationThroughTime(1);
+		nnp.setBPTT(1);
 		nnp.setOptimizerType(OptimizerType.ADAM);
 		nnp.setGradientClipCutoff(5);
 
@@ -658,7 +658,7 @@ public class FakeApps {
 		nnp.setLearnRateDecaySize(100);
 		nnp.setRegLambda(0.001);
 		nnp.setThreadSize(5);
-		nnp.setTruncatedBackPropagationThroughTime(1);
+		nnp.setBPTT(1);
 		nnp.setOptimizerType(OptimizerType.ADAM);
 		nnp.setGradientClipCutoff(5);
 

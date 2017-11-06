@@ -22,8 +22,6 @@ public class EmbeddingLayer extends Layer {
 	 */
 	private static final long serialVersionUID = -428617482088657354L;
 
-	private DenseMatrix dW;
-
 	private boolean learn_embedding = true;
 
 	private DenseMatrix tmp_Y = new DenseMatrix(0);
@@ -33,9 +31,13 @@ public class EmbeddingLayer extends Layer {
 	 */
 	private DenseMatrix W;
 
+	private DenseMatrix dW;
+
 	private DenseTensor X;
 
 	private DenseTensor Y;
+
+	private boolean output_word_indexes = true;
 
 	public EmbeddingLayer() {
 
@@ -72,8 +74,10 @@ public class EmbeddingLayer extends Layer {
 		return null;
 	}
 
-	public Layer copy() {
-		return new EmbeddingLayer(W, learn_embedding);
+	public EmbeddingLayer copy() {
+		EmbeddingLayer l = new EmbeddingLayer(W, learn_embedding);
+		l.setOutputWordIndexes(output_word_indexes);
+		return l;
 	}
 
 	@Override
@@ -105,7 +109,12 @@ public class EmbeddingLayer extends Layer {
 		}
 
 		this.Y = Y;
-		return Generics.newPair(X, Y);
+
+		if (output_word_indexes) {
+			return Generics.newPair(X, Y);
+		} else {
+			return Y;
+		}
 	}
 
 	@Override
@@ -149,6 +158,10 @@ public class EmbeddingLayer extends Layer {
 
 	public void setLearnEmbedding(boolean learn_embedding) {
 		this.learn_embedding = learn_embedding;
+	}
+
+	public void setOutputWordIndexes(boolean output_word_indexes) {
+		this.output_word_indexes = output_word_indexes;
 	}
 
 	@Override

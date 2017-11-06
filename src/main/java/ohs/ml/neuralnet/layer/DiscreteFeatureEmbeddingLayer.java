@@ -23,15 +23,13 @@ public class DiscreteFeatureEmbeddingLayer extends Layer {
 	 */
 	private static final long serialVersionUID = -428617482088657354L;
 
-	private DenseMatrix dW;
+	private int new_emb_size;
 
-	private int extra_emb_size;
-
-	private DenseTensor F;
+	private int prev_emb_size;
 
 	private boolean is_learning = true;
 
-	private int new_emb_size;
+	private int extra_emb_size;
 
 	private DenseMatrix tmp_dX = new DenseMatrix(0);
 
@@ -42,7 +40,9 @@ public class DiscreteFeatureEmbeddingLayer extends Layer {
 	 */
 	private DenseMatrix W;
 
-	private int prev_emb_size;
+	private DenseMatrix dW;
+
+	private DenseTensor F;
 
 	private DenseTensor X;
 

@@ -12,5 +12,5 @@ public interface CostFunction extends Serializable {
 
 	public double getCost();
 
-	public int getCorrectCnt();
+	public int getCorrectCount();
 }

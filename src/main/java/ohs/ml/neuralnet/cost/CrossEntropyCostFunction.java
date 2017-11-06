@@ -105,17 +105,20 @@ public class CrossEntropyCostFunction implements CostFunction {
 				if (yhm.value(ans) != 0) {
 					cost += Math.log(yhm.value(ans));
 				}
+				
+				VectorUtils.copy(yhm, dm);
+				dm.add(ans, -1);
 
-				for (int k = 0; k < yhm.size(); k++) {
-					double v = k == ans ? -1 : 0;
-					dm.set(k, yhm.value(k) + v);
-				}
-				dm.summation();
+				// for (int k = 0; k < yhm.size(); k++) {
+				// double v = k == ans ? -1 : 0;
+				// dm.set(k, yhm.value(k) + v);
+				// }
+				// dm.summation();
 			}
 			D.add(Dm);
 		}
 
-		cost /= Yh.sizeOfInnerVectors() * -1f;
+		cost /= Yh.sizeOfInnerVectors() * -1d;
 		return D;
 	}
 
@@ -141,7 +144,7 @@ public class CrossEntropyCostFunction implements CostFunction {
 	}
 
 	@Override
-	public int getCorrectCnt() {
+	public int getCorrectCount() {
 		return cor_cnt;
 	}
 

@@ -12,6 +12,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.DoubleStream;
 
+import org.apache.commons.math.stat.descriptive.SynchronizedMultivariateSummaryStatistics;
 import org.apache.commons.math.stat.inference.TTestImpl;
 
 import ohs.math.ThreadWokers.AddAfterMultiplyWorker1;
@@ -1326,14 +1327,8 @@ public class ArrayMath {
 		System.out.println("process begins.");
 
 		{
-			Random r = new Random(System.currentTimeMillis());
-			double sum = 10;
-
-			for (int i = 0; i < 10; i++) {
-				double rv = sum * r.nextDouble();
-				System.out.println(rv);
-			}
-
+			double e = 1e-1;
+			System.out.println(e);
 			System.exit(0);
 		}
 

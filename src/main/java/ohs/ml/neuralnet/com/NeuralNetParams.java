@@ -38,7 +38,7 @@ public class NeuralNetParams {
 
 	private int thread_size = 10;
 
-	private double weight_decay = 0.999;
+	private double weight_decay_L2 = 1;
 
 	public NeuralNetParams() {
 
@@ -61,6 +61,10 @@ public class NeuralNetParams {
 
 	public int getBatchSize() {
 		return batch_size;
+	}
+
+	public int getBPTTSize() {
+		return bptt;
 	}
 
 	public int getGradientAccumulatorResetSize() {
@@ -111,12 +115,8 @@ public class NeuralNetParams {
 		return thread_size;
 	}
 
-	public int getBPTTSize() {
-		return bptt;
-	}
-
-	public double getWeightDecay() {
-		return weight_decay;
+	public double getWeightDecayL2() {
+		return weight_decay_L2;
 	}
 
 	public boolean isFullSequenceBatch() {
@@ -129,6 +129,10 @@ public class NeuralNetParams {
 
 	public void setBatchSize(int batch_size) {
 		this.batch_size = batch_size;
+	}
+
+	public void setBPTT(int bptt) {
+		this.bptt = bptt;
 	}
 
 	public void setGradientAccumulatorResetSize(int grad_acc_reset_size) {
@@ -159,6 +163,14 @@ public class NeuralNetParams {
 		this.learn_rate = learning_rate;
 	}
 
+	public void setLearnRateDecay(double learn_rate_decay) {
+		this.learn_rate_decay = learn_rate_decay;
+	}
+
+	public void setLearnRateDecaySize(int learn_rate_decay_size) {
+		this.learn_rate_decay_size = learn_rate_decay_size;
+	}
+
 	public void setMomentum(double momentum) {
 		this.momentum = momentum;
 	}
@@ -179,20 +191,8 @@ public class NeuralNetParams {
 		this.thread_size = thread_size;
 	}
 
-	public void setTruncatedBackPropagationThroughTime(int bptt) {
-		this.bptt = bptt;
-	}
-
-	public void setWeightDecay(double weight_decay) {
-		this.weight_decay = weight_decay;
-	}
-
-	public void setLearnRateDecay(double learn_rate_decay) {
-		this.learn_rate_decay = learn_rate_decay;
-	}
-
-	public void setLearnRateDecaySize(int learn_rate_decay_size) {
-		this.learn_rate_decay_size = learn_rate_decay_size;
+	public void setWeightDecayL2(double weight_decay_L2) {
+		this.weight_decay_L2 = weight_decay_L2;
 	}
 
 	@Override
