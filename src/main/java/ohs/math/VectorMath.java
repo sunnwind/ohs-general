@@ -13,6 +13,7 @@ import ohs.math.ThreadWokers.SRowByColumnProductWorker;
 import ohs.math.ThreadWokers.SRowBySRowProductWorker;
 import ohs.math.ThreadWokers.SelfSRowProductWorker;
 import ohs.matrix.DenseMatrix;
+import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
 import ohs.matrix.Matrix;
 import ohs.matrix.SparseMatrix;
@@ -281,6 +282,14 @@ public class VectorMath {
 	public static double clip(DenseMatrix a, double min, double max, DenseMatrix b) {
 		double sum = 0;
 		for (int i = 0; i < a.rowSize(); i++) {
+			sum += clip(a.row(i), min, max, b.row(i));
+		}
+		return sum;
+	}
+
+	public static double clip(DenseTensor a, double min, double max, DenseTensor b) {
+		double sum = 0;
+		for (int i = 0; i < a.size(); i++) {
 			sum += clip(a.row(i), min, max, b.row(i));
 		}
 		return sum;
@@ -811,6 +820,10 @@ public class VectorMath {
 	}
 
 	public static double normL2(DenseMatrix a) {
+		return ArrayMath.normL2(a.values());
+	}
+
+	public static double normL2(DenseTensor a) {
 		return ArrayMath.normL2(a.values());
 	}
 

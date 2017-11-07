@@ -702,6 +702,14 @@ public class ArrayMath {
 		return sum;
 	}
 
+	public static double clip(double[][][] a, double min, double max, double[][][] b) {
+		double sum = 0;
+		for (int i = 0; i < a.length; i++) {
+			sum += clip(a[i], min, max, b[i]);
+		}
+		return sum;
+	}
+
 	public static double correlationKendall(double[] a, double[] b) {
 		double numConcordant = 0;
 		double numDiscordant = 0;

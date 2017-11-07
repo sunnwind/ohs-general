@@ -27,9 +27,9 @@ public class DiscreteFeatureEmbeddingLayer extends Layer {
 
 	private int prev_emb_size;
 
-	private boolean is_learning = true;
-
 	private int extra_emb_size;
+
+	private boolean is_learning = true;
 
 	private DenseMatrix tmp_dX = new DenseMatrix(0);
 

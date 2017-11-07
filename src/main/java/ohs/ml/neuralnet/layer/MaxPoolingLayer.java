@@ -1,5 +1,8 @@
 package ohs.ml.neuralnet.layer;
 
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+
 import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
@@ -9,11 +12,6 @@ public class MaxPoolingLayer extends Layer {
 
 	private static final long serialVersionUID = -5068216034849402227L;
 
-	/**
-	 * data x filters
-	 */
-	private DenseTensor L;
-
 	private int num_filters;
 
 	private DenseMatrix tmp_dX = new DenseMatrix(0);
@@ -21,6 +19,11 @@ public class MaxPoolingLayer extends Layer {
 	private DenseMatrix tmp_L = new DenseMatrix(0);
 
 	private DenseMatrix tmp_Y = new DenseMatrix(0);
+
+	/**
+	 * data x filters
+	 */
+	private DenseTensor L;
 
 	/**
 	 * data x filter maps x filters
@@ -73,50 +76,6 @@ public class MaxPoolingLayer extends Layer {
 
 		return dX;
 	}
-
-	// public Object backwardOld(Object I) {
-	//
-	// /*
-	// * data size x filters
-	// */
-	// DenseMatrix dY = (DenseMatrix) I;
-	//
-	// int len = X.sizeOfInnerVectors();
-	//
-	// if (tmp_dX.rowSize() < len) {
-	// tmp_dX = new DenseMatrix(len, num_filters);
-	// }
-	//
-	// int data_size = dY.rowSize();
-	//
-	// DenseTensor dX = new DenseTensor();
-	// dX.ensureCapacity(data_size);
-	//
-	// for (int u = 0, start = 0; u < data_size; u++) {
-	// DenseVector dYm = dY.row(u);
-	// DenseMatrix Xm = X.row(u);
-	// IntegerArray Lm = L.get(u);
-	//
-	// int num_filters = Lm.size();
-	// int num_feature_maps = Xm.rowSize();
-	//
-	// DenseMatrix dXm = tmp_dX.subMatrix(start, num_feature_maps);
-	// dXm.setAll(0);
-	//
-	// for (int filter_idx = 0; filter_idx < num_filters; filter_idx++) {
-	// int max_feat_map_idx = Lm.get(filter_idx);
-	// double v = 0;
-	// v = Xm.value(max_feat_map_idx, filter_idx) * dYm.value(filter_idx);
-	// dXm.add(max_feat_map_idx, filter_idx, v);
-	// }
-	//
-	// dX.add(dXm);
-	//
-	// start += num_feature_maps;
-	// }
-	//
-	// return dX;
-	// }
 
 	@Override
 	public MaxPoolingLayer copy() {
@@ -188,9 +147,63 @@ public class MaxPoolingLayer extends Layer {
 		return Y;
 	}
 
+	// public Object backwardOld(Object I) {
+	//
+	// /*
+	// * data size x filters
+	// */
+	// DenseMatrix dY = (DenseMatrix) I;
+	//
+	// int len = X.sizeOfInnerVectors();
+	//
+	// if (tmp_dX.rowSize() < len) {
+	// tmp_dX = new DenseMatrix(len, num_filters);
+	// }
+	//
+	// int data_size = dY.rowSize();
+	//
+	// DenseTensor dX = new DenseTensor();
+	// dX.ensureCapacity(data_size);
+	//
+	// for (int u = 0, start = 0; u < data_size; u++) {
+	// DenseVector dYm = dY.row(u);
+	// DenseMatrix Xm = X.row(u);
+	// IntegerArray Lm = L.get(u);
+	//
+	// int num_filters = Lm.size();
+	// int num_feature_maps = Xm.rowSize();
+	//
+	// DenseMatrix dXm = tmp_dX.subMatrix(start, num_feature_maps);
+	// dXm.setAll(0);
+	//
+	// for (int filter_idx = 0; filter_idx < num_filters; filter_idx++) {
+	// int max_feat_map_idx = Lm.get(filter_idx);
+	// double v = 0;
+	// v = Xm.value(max_feat_map_idx, filter_idx) * dYm.value(filter_idx);
+	// dXm.add(max_feat_map_idx, filter_idx, v);
+	// }
+	//
+	// dX.add(dXm);
+	//
+	// start += num_feature_maps;
+	// }
+	//
+	// return dX;
+	// }
+
 	@Override
 	public int getOutputSize() {
 		return num_filters;
+	}
+
+	@Override
+	public void readObject(ObjectInputStream ois) throws Exception {
+		num_filters = ois.readInt();
+	}
+
+	@Override
+	public void writeObject(ObjectOutputStream oos) throws Exception {
+		oos.writeInt(num_filters);
 	}
 
 }

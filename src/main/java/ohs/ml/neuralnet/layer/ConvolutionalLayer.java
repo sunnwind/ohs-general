@@ -1,5 +1,8 @@
 package ohs.ml.neuralnet.layer;
 
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+
 import ohs.math.ArrayUtils;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
@@ -28,15 +31,6 @@ public class ConvolutionalLayer extends Layer {
 	 */
 	private static final long serialVersionUID = -997396529874765085L;
 
-	/**
-	 * filter biases
-	 */
-	private DenseVector b;
-
-	private DenseVector db;
-
-	private DenseMatrix dW;
-
 	private int emb_size;
 
 	/**
@@ -46,6 +40,8 @@ public class ConvolutionalLayer extends Layer {
 
 	private int num_filters;
 
+	private int window_size;
+
 	private DenseMatrix tmp_dX = new DenseMatrix(0);
 
 	private DenseMatrix tmp_dZ = new DenseMatrix(0);
@@ -54,12 +50,36 @@ public class ConvolutionalLayer extends Layer {
 
 	private DenseMatrix tmp_Z = new DenseMatrix(0);
 
+	@Override
+	public void writeObject(ObjectOutputStream oos) throws Exception {
+		W.writeObject(oos);
+		b.writeObject(oos);
+		oos.writeInt(window_size);
+	}
+
+	@Override
+	public void readObject(ObjectInputStream ois) throws Exception {
+		W = new DenseMatrix(ois);
+		b = new DenseVector(ois);
+
+		filter_size = W.rowSize();
+		num_filters = W.colSize();
+		window_size = ois.readInt();
+	}
+
+	/**
+	 * filter biases
+	 */
+	private DenseVector b;
+
+	private DenseVector db;
+
+	private DenseMatrix dW;
+
 	/**
 	 * filters x filter size (embedding size x window size)
 	 */
 	private DenseMatrix W;
-
-	private int window_size;
 
 	/**
 	 * data x words x embeddings

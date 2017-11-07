@@ -67,7 +67,7 @@ public class NeuralNetTrainer {
 				cost += cf.getCost();
 				correct_cnt += cf.getCorrectCount();
 				nn.backward(D);
-				pu.update();
+				pu.update(Ym.sizeOfEntries());
 			}
 
 			return Generics.newPair(cost, correct_cnt);
@@ -89,19 +89,29 @@ public class NeuralNetTrainer {
 
 	private int[] data_locs;
 
-	private PerformanceEvaluator eval = new PerformanceEvaluator();
+	private double learn_rate;
+
+	private double learn_rate_decay;
+
+	private double weight_decay;
+
+	private double reg_lambda;
 
 	private int grad_acc_reset_size;
+
+	private int learn_rate_decay_size;
+
+	private int[][] ranges;
+
+	private int total_iters = 0;
 
 	private boolean is_full_seq_batch;
 
 	private boolean is_random_batch;
 
-	private double learn_rate;
+	private PerformanceEvaluator eval = new PerformanceEvaluator();
 
-	private double learn_rate_decay;
-
-	private int learn_rate_decay_size;
+	private Timer timer1 = Timer.newTimer();
 
 	private NeuralNetMultiRunner nnmr;
 
@@ -111,21 +121,11 @@ public class NeuralNetTrainer {
 
 	private AtomicInteger range_cnt;
 
-	private int[][] ranges;
-
-	private double reg_lambda;
-
-	private Timer timer1 = Timer.newTimer();
-
-	private int total_iters = 0;
-
 	private ThreadPoolExecutor tpe;
 
 	private TaskType tt;
 
 	private DenseMatrix W;
-
-	private double weight_decay;
 
 	private List<Worker> ws;
 
@@ -137,7 +137,7 @@ public class NeuralNetTrainer {
 		prepare(nn, nnp.getThreadSize(), nnp.getBatchSize(), nnp.getLearnRate(), nnp.getRegLambda(),
 				nnp.getGradientClipCutoff(), nnp.getOptimizerType(), nnp.isFullSequenceBatch(), nnp.isRandomBatch(),
 				nnp.getGradientAccumulatorResetSize(), nnp.getWeightDecayL2(), nnp.getLearnRateDecay(),
-				nnp.getLearnRateDecaySize());
+				nnp.getLearnRateDecaySize(), nnp.getScaleDownFactor());
 	}
 
 	public Performance evaluate(DenseTensor X, DenseMatrix Y) throws Exception {
@@ -194,8 +194,8 @@ public class NeuralNetTrainer {
 
 	private void prepare(NeuralNet nn, int thread_size, int batch_size, double learn_rate, double reg_lambda,
 			double grad_clip_cutoff, OptimizerType ot, boolean is_full_seq_batch, boolean is_random_batch,
-			int grad_acc_reset_size, double weight_decay, double learn_rate_decay, int learn_rate_decay_size)
-			throws Exception {
+			int grad_acc_reset_size, double weight_decay, double learn_rate_decay, int learn_rate_decay_size,
+			double grad_scale_down_factor) throws Exception {
 		this.learn_rate = learn_rate;
 		this.reg_lambda = reg_lambda;
 		this.batch_size = batch_size;
@@ -227,6 +227,7 @@ public class NeuralNetTrainer {
 			pu.setOptimizerType(ot);
 			pu.setGradientClipCutoff(grad_clip_cutoff);
 			pu.setWeightDecay(weight_decay);
+			pu.setGradientScaleDownFactor(grad_scale_down_factor);
 			pus.add(pu);
 		}
 
@@ -255,7 +256,7 @@ public class NeuralNetTrainer {
 		if (Y.colSize() > 0) {
 
 			if (is_full_seq_batch) {
-				data_locs = ArrayUtils.range(Y.sizeOfEntries());
+				data_locs = ArrayUtils.range(Y.rowSize());
 				ranges = BatchUtils.getBatchRanges(Y.rowSize(), batch_size);
 			} else {
 				List<DenseMatrix> _X = Generics.newLinkedList();

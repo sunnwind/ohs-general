@@ -40,6 +40,8 @@ public class NeuralNetParams {
 
 	private double weight_decay_L2 = 1;
 
+	private double scale_down_factor = 1d / 1000000;
+
 	public NeuralNetParams() {
 
 	}
@@ -109,6 +111,10 @@ public class NeuralNetParams {
 
 	public double getRegLambda() {
 		return reg_lambda;
+	}
+
+	public double getScaleDownFactor() {
+		return scale_down_factor;
 	}
 
 	public int getThreadSize() {
@@ -185,6 +191,10 @@ public class NeuralNetParams {
 
 	public void setRegLambda(double regularize_mixture) {
 		this.reg_lambda = regularize_mixture;
+	}
+
+	public void setGradientScaleDownFactor(double scale_down_factor) {
+		this.scale_down_factor = scale_down_factor;
 	}
 
 	public void setThreadSize(int thread_size) {

@@ -49,8 +49,8 @@ public class Apps {
 		System.out.println("process begins.");
 
 		// testMNIST();
-		testCharRNN();
-		// testNER();
+		// testCharRNN();
+		testNER();
 
 		// testSentenceClassification();
 		// testDocumentClassification();
@@ -67,8 +67,9 @@ public class Apps {
 		nnp.setLearnRate(0.001);
 		nnp.setRegLambda(0.001);
 		nnp.setThreadSize(5);
-		nnp.setWeightDecayL2(0.999999);
-		nnp.setBPTT(5);
+		nnp.setWeightDecayL2(0.9999);
+		nnp.setGradientScaleDownFactor(1);
+		nnp.setBPTT(1);
 		nnp.setOptimizerType(OptimizerType.ADAM);
 		nnp.setGradientClipCutoff(5);
 
@@ -498,8 +499,9 @@ public class Apps {
 		nnp.setLearnRateDecay(0.9);
 		nnp.setLearnRateDecaySize(100);
 		nnp.setWeightDecayL2(1);
+		nnp.setGradientScaleDownFactor(1d / 10000);
 		nnp.setRegLambda(0.001);
-		nnp.setThreadSize(10);
+		nnp.setThreadSize(5);
 		nnp.setBPTT(1);
 		nnp.setOptimizerType(OptimizerType.ADAM);
 		nnp.setGradientClipCutoff(5);
@@ -638,7 +640,7 @@ public class Apps {
 			nn.add(new DropoutLayer());
 			// nn.add(new RnnLayer(l.getOutputSize(), l1_size, bptt_size, new ReLU()));
 			// nn.add(new LstmLayer(l.getOutputSize(), l1_size));
-			nn.add(new BidirectionalRecurrentLayer(Type.RNN, l.getOutputSize(), l1_size, bptt_size, new ReLU()));
+			nn.add(new BidirectionalRecurrentLayer(Type.LSTM, l.getOutputSize(), l1_size, bptt_size, new ReLU()));
 			// nn.add(new BatchNormalizationLayer(l1_size));
 			nn.add(new FullyConnectedLayer(l1_size, label_size));
 			nn.add(new SoftmaxLayer(label_size));
