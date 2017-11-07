@@ -68,7 +68,7 @@ public class Apps {
 		nnp.setRegLambda(0.001);
 		nnp.setThreadSize(5);
 		nnp.setWeightDecayL2(0.9999);
-		nnp.setGradientScaleDownFactor(1);
+		nnp.setGradientDecay(1);
 		nnp.setBPTT(1);
 		nnp.setOptimizerType(OptimizerType.ADAM);
 		nnp.setGradientClipCutoff(5);
@@ -234,6 +234,7 @@ public class Apps {
 		nnp.setLearnRate(0.001);
 		nnp.setLearnRateDecay(0.9);
 		nnp.setLearnRateDecaySize(100);
+		nnp.setWeightDecayL2(1);
 		nnp.setRegLambda(0.001);
 		nnp.setThreadSize(5);
 		nnp.setBPTT(1);
@@ -491,7 +492,7 @@ public class Apps {
 
 	public static void testNER() throws Exception {
 		NeuralNetParams nnp = new NeuralNetParams();
-		nnp.setBatchSize(5);
+		nnp.setBatchSize(1);
 		nnp.setIsFullSequenceBatch(true);
 		nnp.setIsRandomBatch(true);
 		nnp.setGradientAccumulatorResetSize(1000);
@@ -499,9 +500,10 @@ public class Apps {
 		nnp.setLearnRateDecay(0.9);
 		nnp.setLearnRateDecaySize(100);
 		nnp.setWeightDecayL2(1);
-		nnp.setGradientScaleDownFactor(1d / 10000);
+		nnp.setGradientDecay(1);
 		nnp.setRegLambda(0.001);
 		nnp.setThreadSize(5);
+		nnp.setUseAverageGradients(false);
 		nnp.setBPTT(1);
 		nnp.setOptimizerType(OptimizerType.ADAM);
 		nnp.setGradientClipCutoff(5);
@@ -609,12 +611,32 @@ public class Apps {
 		Xt.trimToSize();
 		Yt.trimToSize();
 
+		DenseMatrix T = new DenseMatrix(labelIdxer.size(), labelIdxer.size());
+		DenseMatrix E = new DenseMatrix(labelIdxer.size(), vocab.size());
+
+		for (int i = 0; i < X.size(); i++) {
+			DenseMatrix Xm = X.get(i);
+			DenseVector Ym = Y.row(i);
+
+			for (int j = 1; j < Ym.size(); j++) {
+				int y_prev = (int) Ym.value(j - 1);
+				int y = (int) Ym.value(j);
+				T.add(y_prev, y, 1);
+			}
+
+			for (int j = 0; j < Ym.size(); j++) {
+				int x = (int) Xm.row(j).value(0);
+				int y = (int) Ym.value(j);
+				E.add(y, x, 1);
+			}
+		}
+
 		System.out.println(vocab.info());
 		System.out.println(labelIdxer.info());
 		System.out.println(X.sizeOfEntries());
 
 		int voc_size = vocab.size();
-		int word_emb_size = 50;
+		int word_emb_size = 100;
 		int feat_emb_size = 10;
 		int l1_size = 100;
 		int label_size = labelIdxer.size();
@@ -657,7 +679,7 @@ public class Apps {
 
 		if (use_batches) {
 			IntegerArray locs = new IntegerArray(ArrayUtils.range(X.size()));
-			int group_size = 10000;
+			int group_size = 1000;
 			int[][] rs = BatchUtils.getBatchRanges(X.size(), group_size);
 
 			for (int u = 0; u < max_iters; u++) {
@@ -665,6 +687,7 @@ public class Apps {
 
 				for (int i = 0; i < rs.length; i++) {
 					System.out.printf("iters [%d/%d], batches [%d/%d]\n", u + 1, max_iters, i + 1, rs.length);
+					
 					for (int j = 0; j < rs.length; j++) {
 						int[] r = rs[j];
 						int r_size = r[1] - r[0];

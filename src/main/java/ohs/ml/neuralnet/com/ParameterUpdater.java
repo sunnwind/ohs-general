@@ -3,7 +3,6 @@ package ohs.ml.neuralnet.com;
 import java.util.List;
 
 import ohs.math.ArrayMath;
-import ohs.math.CommonMath;
 import ohs.math.VectorMath;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
@@ -36,8 +35,6 @@ public class ParameterUpdater {
 
 	private double eps = 0.00000001;
 
-	private DenseTensor dWs;
-
 	/**
 	 * Lample, G., Ballesteros, M., Subramanian, S., Kawakami, K., & Dyer, C.
 	 * (2016). Neural Architectures for Named Entity Recognition. Arxiv, 1��10.
@@ -49,17 +46,21 @@ public class ParameterUpdater {
 
 	private double weight_decay_L2 = 1;
 
-	private double grad_scale_down_factor = 1d / 100000;
+	private double grad_decay = 1;
 
 	private boolean use_hard_grad_clipping = false;
 
+	private boolean use_avg_grad = false;
+
 	private NeuralNet nn;
+
+	private DenseTensor Ws;
+
+	private DenseTensor dWs;
 
 	private DenseTensor Rs1;
 
 	private DenseTensor Rs2;
-
-	private DenseTensor Ws;
 
 	public ParameterUpdater(DenseTensor Ws, DenseTensor dWs) {
 		this.Ws = Ws;
@@ -129,8 +130,8 @@ public class ParameterUpdater {
 		this.grad_clip_cutoff = grad_clip_cutoff;
 	}
 
-	public void setGradientScaleDownFactor(double scale_down_factor) {
-		this.grad_scale_down_factor = scale_down_factor;
+	public void setGradientDecay(double grad_decay) {
+		this.grad_decay = grad_decay;
 	}
 
 	public void setLearningRate(double learn_rate) {
@@ -139,6 +140,10 @@ public class ParameterUpdater {
 
 	public void setOptimizerType(OptimizerType ot) {
 		this.ot = ot;
+	}
+
+	public void setUseAverageGradients(boolean use_avg_grad) {
+		this.use_avg_grad = use_avg_grad;
 	}
 
 	public void setUseHardGradClipping(boolean use_hard_grad_clipping) {
@@ -167,10 +172,13 @@ public class ParameterUpdater {
 			DenseMatrix R1 = Rs1.get(i);
 			DenseMatrix R2 = Rs2.get(i);
 
-			dW.multiply(1d / batch_size);
+			if (use_avg_grad && batch_size > 0) {
+				dW.multiply(1d / batch_size);
+			}
 
 			if (grad_clip_cutoff != Double.MAX_VALUE) {
 				double norm = VectorMath.normL2(dW);
+
 				if (norm > grad_clip_cutoff) {
 					if (use_hard_grad_clipping) {
 						VectorMath.clip(dW, -grad_clip_cutoff, grad_clip_cutoff, dW);
@@ -186,19 +194,19 @@ public class ParameterUpdater {
 			double dxa1 = 0;
 			double dxa2 = 0;
 
-			synchronized (W) {
-				for (int j = 0; j < W.rowSize(); j++) {
-					DenseVector dw = dW.row(j);
-					DenseVector w = W.row(j);
-					DenseVector r1 = R1.row(j);
-					DenseVector r2 = R2.row(j);
+			// synchronized (W) {
+			for (int j = 0; j < W.rowSize(); j++) {
+				DenseVector dw = dW.row(j);
+				DenseVector w = W.row(j);
+				DenseVector r1 = R1.row(j);
+				DenseVector r2 = R2.row(j);
 
-					// if (g.sum() != 0) {
-					// synchronized (w) {
+				// if (g.sum() != 0) {
+				synchronized (w) {
 					sum = 0;
 					if (ot == OptimizerType.SIMPLE) {
 						for (int k = 0; k < dw.size(); k++) {
-							dx = dw.value(k) * grad_scale_down_factor;
+							dx = dw.value(k) * grad_decay;
 							x = w.value(k) * weight_decay_L2;
 
 							x -= learn_rate * dx;
@@ -207,7 +215,7 @@ public class ParameterUpdater {
 						}
 					} else if (ot == OptimizerType.ADAGRAD) {
 						for (int k = 0; k < dw.size(); k++) {
-							dx = dw.value(k) * grad_scale_down_factor;
+							dx = dw.value(k) * grad_decay;
 							x = w.value(k) * weight_decay_L2;
 
 							r1.add(k, Math.pow(dx, 2));
@@ -219,7 +227,7 @@ public class ParameterUpdater {
 					} else if (ot == OptimizerType.RMSPROP) {
 						sum = 0;
 						for (int k = 0; k < dw.size(); k++) {
-							dx = dw.value(k) * grad_scale_down_factor;
+							dx = dw.value(k) * grad_decay;
 							x = w.value(k) * weight_decay_L2;
 
 							dxa1 = ArrayMath.addAfterMultiply(r1.value(k), decay_rate, Math.pow(dx, 2), 1 - decay_rate);
@@ -231,7 +239,7 @@ public class ParameterUpdater {
 						}
 					} else if (ot == OptimizerType.ADAM) {
 						for (int k = 0; k < dw.size(); k++) {
-							dx = dw.value(k) * grad_scale_down_factor;
+							dx = dw.value(k) * grad_decay;
 							x = w.value(k) * weight_decay_L2;
 
 							dxa1 = ArrayMath.addAfterMultiply(r1.value(k), beta1, dx);
@@ -252,9 +260,9 @@ public class ParameterUpdater {
 					w.setSum(sum);
 					// }
 					dw.setAll(0);
-					// }
 				}
 			}
+			// }
 		}
 	}
 
@@ -294,7 +302,7 @@ public class ParameterUpdater {
 					sum = 0;
 					if (ot == OptimizerType.SIMPLE) {
 						for (int k = 0; k < dw.size(); k++) {
-							dx = dw.value(k) * grad_scale_down_factor;
+							dx = dw.value(k) * grad_decay;
 							x = w.value(k) * weight_decay_L2;
 							x -= learn_rate * dx;
 							w.set(k, x);
@@ -302,7 +310,7 @@ public class ParameterUpdater {
 						}
 					} else if (ot == OptimizerType.ADAGRAD) {
 						for (int k = 0; k < dw.size(); k++) {
-							dx = dw.value(k) * grad_scale_down_factor;
+							dx = dw.value(k) * grad_decay;
 							r1.add(k, Math.pow(dx, 2));
 
 							x = w.value(k) * weight_decay_L2;
@@ -313,7 +321,7 @@ public class ParameterUpdater {
 					} else if (ot == OptimizerType.RMSPROP) {
 						sum = 0;
 						for (int k = 0; k < dw.size(); k++) {
-							dx = dw.value(k) * grad_scale_down_factor;
+							dx = dw.value(k) * grad_decay;
 							dxa1 = ArrayMath.addAfterMultiply(r1.value(k), decay_rate, Math.pow(dx, 2), 1 - decay_rate);
 							r1.set(k, dxa1);
 
@@ -324,7 +332,7 @@ public class ParameterUpdater {
 						}
 					} else if (ot == OptimizerType.ADAM) {
 						for (int k = 0; k < dw.size(); k++) {
-							dx = dw.value(k) * grad_scale_down_factor;
+							dx = dw.value(k) * grad_decay;
 
 							dxa1 = ArrayMath.addAfterMultiply(r1.value(k), beta1, dx);
 							dxa2 = ArrayMath.addAfterMultiply(r2.value(k), beta2, Math.pow(dx, 2));

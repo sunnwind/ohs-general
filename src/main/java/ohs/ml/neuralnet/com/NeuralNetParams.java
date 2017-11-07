@@ -4,6 +4,20 @@ import ohs.ml.neuralnet.com.ParameterUpdater.OptimizerType;
 
 public class NeuralNetParams {
 
+	private double grad_clip_cutoff = Double.MAX_VALUE;
+
+	private double learn_rate = 0.01;
+
+	private double learn_rate_decay = 0.9;
+
+	private double momentum = 0.9;
+
+	private double reg_lambda = 0.1;
+
+	private double weight_decay_L2 = 1;
+
+	private double grad_decay = 1d / 1000000;
+
 	private int annealing_size = 20000;
 
 	private int batch_size = 50;
@@ -12,35 +26,23 @@ public class NeuralNetParams {
 
 	private int grad_acc_reset_size = 100;
 
-	private double grad_clip_cutoff = Double.MAX_VALUE;
-
 	private int hidden_size = 5;
 
 	private int input_size = 10;
+
+	private int learn_rate_decay_size = 1000;
+
+	private int output_size = 10;
+
+	private int thread_size = 10;
 
 	private boolean is_full_seq_batch = false;
 
 	private boolean is_random_batch = true;
 
-	private double learn_rate = 0.01;
-
-	private double learn_rate_decay = 0.9;
-
-	private int learn_rate_decay_size = 1000;
-
-	private double momentum = 0.9;
+	private boolean use_avg_grad = false;
 
 	private OptimizerType ot = OptimizerType.ADAM;
-
-	private int output_size = 10;
-
-	private double reg_lambda = 0.1;
-
-	private int thread_size = 10;
-
-	private double weight_decay_L2 = 1;
-
-	private double scale_down_factor = 1d / 1000000;
 
 	public NeuralNetParams() {
 
@@ -75,6 +77,10 @@ public class NeuralNetParams {
 
 	public double getGradientClipCutoff() {
 		return grad_clip_cutoff;
+	}
+
+	public double getGradientDecay() {
+		return grad_decay;
 	}
 
 	public int getHiddenSize() {
@@ -113,12 +119,12 @@ public class NeuralNetParams {
 		return reg_lambda;
 	}
 
-	public double getScaleDownFactor() {
-		return scale_down_factor;
-	}
-
 	public int getThreadSize() {
 		return thread_size;
+	}
+
+	public boolean getUseAverageGradients() {
+		return use_avg_grad;
 	}
 
 	public double getWeightDecayL2() {
@@ -147,6 +153,10 @@ public class NeuralNetParams {
 
 	public void setGradientClipCutoff(double grad_clip_cutoff) {
 		this.grad_clip_cutoff = grad_clip_cutoff;
+	}
+
+	public void setGradientDecay(double grad_decay) {
+		this.grad_decay = grad_decay;
 	}
 
 	public void setHiddenSize(int hidden_size) {
@@ -193,12 +203,12 @@ public class NeuralNetParams {
 		this.reg_lambda = regularize_mixture;
 	}
 
-	public void setGradientScaleDownFactor(double scale_down_factor) {
-		this.scale_down_factor = scale_down_factor;
-	}
-
 	public void setThreadSize(int thread_size) {
 		this.thread_size = thread_size;
+	}
+
+	public void setUseAverageGradients(boolean use_avg_grad) {
+		this.use_avg_grad = use_avg_grad;
 	}
 
 	public void setWeightDecayL2(double weight_decay_L2) {

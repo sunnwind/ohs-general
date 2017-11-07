@@ -33,6 +33,27 @@ public class CrossEntropyCostFunction implements CostFunction {
 
 	private DenseMatrix tmp_D = new DenseMatrix(0);
 
+	public DenseMatrix checkCorrectness(DenseTensor Yh, DenseMatrix Y) {
+		DenseMatrix C = Y.copy(true);
+		for (int i = 0; i < Yh.size(); i++) {
+			DenseMatrix Yhm = Yh.get(i);
+			DenseVector Ym = Y.row(i);
+			DenseVector Cm = C.row(i);
+
+			for (int j = 0; j < Yhm.rowSize(); j++) {
+				DenseVector yhm = Yhm.row(j);
+
+				int pred = yhm.argMax();
+				int ans = (int) Ym.value(j);
+
+				if (pred == ans) {
+					Cm.add(j, 1);
+				}
+			}
+		}
+		return C;
+	}
+
 	public DenseMatrix evaluate(DenseMatrix Yh, DenseVector y) {
 		cost = 0;
 		cor_cnt = 0;
@@ -105,7 +126,7 @@ public class CrossEntropyCostFunction implements CostFunction {
 				if (yhm.value(ans) != 0) {
 					cost += Math.log(yhm.value(ans));
 				}
-				
+
 				VectorUtils.copy(yhm, dm);
 				dm.add(ans, -1);
 
@@ -120,27 +141,6 @@ public class CrossEntropyCostFunction implements CostFunction {
 
 		cost /= Yh.sizeOfInnerVectors() * -1d;
 		return D;
-	}
-
-	public DenseMatrix checkCorrectness(DenseTensor Yh, DenseMatrix Y) {
-		DenseMatrix C = Y.copy(true);
-		for (int i = 0; i < Yh.size(); i++) {
-			DenseMatrix Yhm = Yh.get(i);
-			DenseVector Ym = Y.row(i);
-			DenseVector Cm = C.row(i);
-
-			for (int j = 0; j < Yhm.rowSize(); j++) {
-				DenseVector yhm = Yhm.row(j);
-
-				int pred = yhm.argMax();
-				int ans = (int) Ym.value(j);
-
-				if (pred == ans) {
-					Cm.add(j, 1);
-				}
-			}
-		}
-		return C;
 	}
 
 	@Override

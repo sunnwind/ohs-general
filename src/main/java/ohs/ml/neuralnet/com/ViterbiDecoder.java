@@ -9,6 +9,7 @@ import ohs.math.ArrayUtils;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
+import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
 import ohs.matrix.SparseMatrix;
 import ohs.matrix.SparseVector;
@@ -93,11 +94,94 @@ public class ViterbiDecoder {
 		E.normalizeRows();
 	}
 
+	public static DenseVector decode(DenseVector O, DenseVector S, DenseMatrix T, DenseMatrix E) {
+		int seq_len = O.size();
+		int state_size = T.rowSize();
+
+		DenseMatrix F = new DenseMatrix(seq_len, state_size);
+		DenseMatrix backPointers = new DenseMatrix(seq_len, state_size);
+
+		VectorMath.multiply(S, E.row((int) O.value(0)), F.row(0));
+
+		DenseVector tmp = new DenseVector(state_size);
+
+		for (int t = 1; t < seq_len; t++) {
+
+			for (int s = 0; s < state_size; s++) {
+				tmp.setAll(0);
+
+				for (int s_prev = 0; s_prev < state_size; s_prev++) {
+					tmp.set(s_prev, F.value(t - 1, s_prev) * T.value(s_prev, s));
+				}
+
+				int s_max = tmp.argMax();
+
+				F.set(t, s, tmp.value(s_max) * E.value(s, (int) O.value(t)));
+
+				backPointers.set(t, s, s_max);
+			}
+		}
+
+		DenseVector ret = new DenseVector(seq_len);
+
+		VectorUtils.copy(F.row(F.rowSize() - 1), tmp);
+
+		int q = tmp.argMax();
+
+		for (int t = seq_len - 1; t >= 0; t--) {
+			ret.set(t, q);
+			q = (int) backPointers.value(t, q);
+		}
+
+		return ret;
+	}
+
+	public DenseVector decode(DenseVector O) {
+		int seq_len = O.size();
+
+		DenseMatrix F = new DenseMatrix(seq_len, state_size);
+		DenseMatrix backPointers = new DenseMatrix(seq_len, state_size);
+
+		VectorMath.multiply(S, E.row((int) O.value(0)), F.row(0));
+
+		DenseVector tmp = new DenseVector(state_size);
+
+		for (int t = 1; t < seq_len; t++) {
+
+			for (int s = 0; s < state_size; s++) {
+				tmp.setAll(0);
+
+				for (int s_prev = 0; s_prev < state_size; s_prev++) {
+					tmp.set(s_prev, F.value(t - 1, s_prev) * T.value(s_prev, s));
+				}
+
+				int s_max = tmp.argMax();
+
+				F.set(t, s, tmp.value(s_max) * E.value(s, (int) O.value(t)));
+
+				backPointers.set(t, s, s_max);
+			}
+		}
+
+		DenseVector bestPath = new DenseVector(seq_len);
+
+		VectorUtils.copy(F.row(F.rowSize() - 1), tmp);
+
+		int q = tmp.argMax();
+
+		for (int t = seq_len - 1; t >= 0; t--) {
+			bestPath.set(t, q);
+			q = (int) backPointers.value(t, q);
+		}
+
+		return bestPath;
+	}
+
 	public IntegerArray decode(IntegerArray O) {
 		int seq_len = O.size();
 
 		DenseMatrix F = new DenseMatrix(seq_len, state_size);
-		IntegerMatrix backPointers = new IntegerMatrix(ArrayMath.matrixInt(state_size, seq_len));
+		DenseMatrix backPointers = new DenseMatrix(seq_len, state_size);
 
 		VectorMath.multiply(S, E.row(O.get(0)), F.row(0));
 
@@ -116,7 +200,7 @@ public class ViterbiDecoder {
 
 				F.set(t, s, tmp.value(s_max) * E.value(s, O.get(t)));
 
-				backPointers.set(s, t, s_max);
+				backPointers.set(t, s, s_max);
 			}
 		}
 
@@ -128,7 +212,7 @@ public class ViterbiDecoder {
 
 		for (int t = seq_len - 1; t >= 0; t--) {
 			bestPath.set(t, q);
-			q = backPointers.get(q).get(t);
+			q = (int) backPointers.value(t, q);
 		}
 
 		return bestPath;
