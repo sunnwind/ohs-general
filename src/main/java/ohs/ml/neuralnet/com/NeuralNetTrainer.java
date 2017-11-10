@@ -75,14 +75,6 @@ public class NeuralNetTrainer {
 
 	}
 
-	public static NeuralNet copy(NeuralNet nn) {
-		NeuralNet ret = new NeuralNet();
-		for (Layer l : nn) {
-			ret.add(l.copy());
-		}
-		return ret;
-	}
-
 	private int batch_size;
 
 	private int mini_batch_size;
@@ -135,7 +127,8 @@ public class NeuralNetTrainer {
 		prepare(nn, nnp.getThreadSize(), nnp.getBatchSize(), nnp.getLearnRate(), nnp.getRegLambda(),
 				nnp.getGradientClipCutoff(), nnp.getOptimizerType(), nnp.isFullSequenceBatch(), nnp.isRandomBatch(),
 				nnp.getGradientAccumulatorResetSize(), nnp.getWeightDecayL2(), nnp.getLearnRateDecay(),
-				nnp.getLearnRateDecaySize(), nnp.getGradientDecay(), nnp.getUseAverageGradients());
+				nnp.getLearnRateDecaySize(), nnp.getGradientDecay(), nnp.getUseAverageGradients(),
+				nnp.getUseHardGradientClipping());
 	}
 
 	public Performance evaluate(DenseTensor X, DenseMatrix Y) throws Exception {
@@ -193,8 +186,8 @@ public class NeuralNetTrainer {
 	private void prepare(NeuralNet nn, int thread_size, int batch_size, double learn_rate, double reg_lambda,
 			double grad_clip_cutoff, OptimizerType ot, boolean is_full_seq_batch, boolean is_random_batch,
 			int grad_acc_reset_size, double weight_decay, double learn_rate_decay, int learn_rate_decay_size,
-			double grad_decay, boolean use_avg_grad) throws Exception {
-		
+			double grad_decay, boolean use_avg_grad, boolean use_hard_grad_clipping) throws Exception {
+
 		this.learn_rate = learn_rate;
 		this.reg_lambda = reg_lambda;
 		this.batch_size = batch_size;
@@ -210,7 +203,7 @@ public class NeuralNetTrainer {
 		nns.add(nn);
 
 		for (int i = 0; i < thread_size - 1; i++) {
-			NeuralNet n = copy(nn);
+			NeuralNet n = nn.copy();
 			n.prepare();
 
 			nns.add(n);
@@ -227,6 +220,7 @@ public class NeuralNetTrainer {
 			pu.setWeightDecay(weight_decay);
 			pu.setGradientDecay(grad_decay);
 			pu.setUseAverageGradients(use_avg_grad);
+			pu.setUseHardGradClipping(use_hard_grad_clipping);
 			pus.add(pu);
 		}
 

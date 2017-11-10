@@ -8,6 +8,7 @@ import ohs.corpus.type.DocumentCollection;
 import ohs.corpus.type.EnglishTokenizer;
 import ohs.io.FileUtils;
 import ohs.io.RandomAccessDenseMatrix;
+import ohs.io.TextFileWriter;
 import ohs.ir.search.app.WordSearcher;
 import ohs.math.ArrayUtils;
 import ohs.matrix.DenseMatrix;
@@ -17,6 +18,7 @@ import ohs.matrix.SparseMatrix;
 import ohs.ml.neuralnet.com.BatchUtils;
 import ohs.ml.neuralnet.com.DataReader;
 import ohs.ml.neuralnet.com.NeuralNet;
+import ohs.ml.neuralnet.com.NeuralNetMultiRunner;
 import ohs.ml.neuralnet.com.NeuralNetParams;
 import ohs.ml.neuralnet.com.NeuralNetTrainer;
 import ohs.ml.neuralnet.com.ParameterUpdater.OptimizerType;
@@ -56,172 +58,261 @@ public class FakeApps {
 		System.out.println("process begins.");
 
 		// testMNIST();
-		testCharRNN();
-		// testNER();
+		// testCharRNN();
+		// testNER();s
 
 		// testSentenceClassification();
-		// testDocumentClassification();
+		runM1();
 
 		System.out.println("process ends.");
 	}
 
-	public static void testCharRNN() throws Exception {
+	public static void runM1() throws Exception {
 		NeuralNetParams nnp = new NeuralNetParams();
-		nnp.setBatchSize(5);
-		nnp.setIsFullSequenceBatch(true);
-		nnp.setIsRandomBatch(false);
-		nnp.setGradientAccumulatorResetSize(100);
+
 		nnp.setLearnRate(0.001);
+		nnp.setLearnRateDecay(0.9);
+		nnp.setLearnRateDecaySize(100);
+		nnp.setWeightDecayL2(1);
+		nnp.setGradientDecay(1);
 		nnp.setRegLambda(0.001);
+		nnp.setGradientClipCutoff(5);
+
 		nnp.setThreadSize(5);
+		nnp.setBatchSize(1);
+		nnp.setGradientAccumulatorResetSize(1000);
 		nnp.setBPTT(1);
+
+		nnp.setIsFullSequenceBatch(true);
+		nnp.setIsRandomBatch(true);
+		nnp.setUseAverageGradients(false);
+		nnp.setUseHardGradientClipping(false);
+
 		nnp.setOptimizerType(OptimizerType.ADAM);
-		nnp.setGradientClipCutoff(10);
 
-		DenseTensor X = new DenseTensor();
-		DenseMatrix Y = new DenseMatrix();
-		DenseTensor Xt = new DenseTensor();
-		DenseMatrix Yt = new DenseMatrix();
+		Indexer<String> labelIdxer = Generics.newIndexer();
+		labelIdxer.add("non-fake");
+		labelIdxer.add("fake");
 
-		List<String> lines = Generics.newLinkedList();
-
-		EnglishTokenizer et = new EnglishTokenizer();
-
-		for (String line : FileUtils.readFromText("../../data/ml_data/shakespeare_input.txt").split("\n\n")) {
-			lines.add(StrUtils.join(" ", et.tokenize(line)));
+		{
+			Indexer<String> l = Generics.newIndexer();
+			l.add("word");
+			l.add("pos");
+			MToken.INDEXER = l;
 		}
 
-		lines = Generics.newArrayList(lines);
+		String[] fileNames = { "M1_train_pos.txt", "M1_test_pos" };
 
-		int test_size = 1000;
-		// int train_size = lines.size() - test_size;
-		int train_size = 10000;
+		File inFile = new File(FNPath.DATA_DIR + "data", fileNames[0]);
+
+		MCollection train = new MCollection();
+		MCollection test = new MCollection();
+
+		for (File file : FileUtils.getFilesUnder(FNPath.DATA_DIR + "data")) {
+			if (file.getName().startsWith("M1_train_pos")) {
+				for (String line : FileUtils.readLinesFromText(inFile)) {
+					List<String> ps = StrUtils.split("\t", line);
+					ps = StrUtils.unwrap(ps);
+
+					{
+						String label = ps.get(1);
+						label = label.equals("0") ? "non-fake" : "fake";
+						MDocument d = MDocument.newDocument(ps.get(2));
+						d.getAttrMap().put("label", label);
+
+						if (ps.get(3).length() > 0) {
+							d.getAttrMap().put("cor_title", ps.get(3));
+						}
+						train.add(d);
+					}
+				}
+			} else if (file.getName().startsWith("M1_test_pos")) {
+				for (String line : FileUtils.readLinesFromText(inFile)) {
+					List<String> ps = StrUtils.split("\t", line);
+					ps = StrUtils.unwrap(ps);
+					MDocument d = MDocument.newDocument(ps.get(2));
+					d.getAttrMap().put("id", ps.get(0));
+					test.add(d);
+				}
+			}
+		}
+
+		DataGenerator dg = new DataGenerator(train);
+		MCollection extData = dg.generate();
+
+		train.addAll(extData);
+
+		System.out.printf("train size:\t%d\n", train.size());
+		System.out.printf("test size:\t%d\n", test.size());
+		System.out.println();
 
 		Vocab vocab = new Vocab();
 		vocab.add(SYM.UNK.getText());
-		vocab.add(SYM.START.getText());
-		vocab.add(SYM.END.getText());
+
+		IntegerMatrix M = new IntegerMatrix();
+		IntegerArray N = new IntegerArray();
+
+		for (int i = 0; i < train.size(); i++) {
+			MDocument d = train.get(i);
+			String label = d.getAttrMap().get("label");
+			int l = labelIdxer.indexOf(label);
+
+			M.add(l, i);
+			N.add(l);
+		}
+
+		// IntegerMatrix T = DataSplitter.splitGroups(M, new int[] { 150, 25 });
+
+		IntegerMatrix T = DataSplitter.splitGroups(M, new double[] { 0.9, 0.1 });
+
+		DenseTensor X = new DenseTensor();
+		DenseMatrix Y = new DenseMatrix();
+
+		DenseTensor Xv = new DenseTensor();
+		DenseMatrix Yv = new DenseMatrix();
+
+		DenseTensor Xt = new DenseTensor();
+
+		for (int loc : T.get(0)) {
+			MDocument d = train.get(loc);
+			for (String word : d.getTokens().getTokenStrings(0)) {
+				vocab.add(word);
+			}
+		}
+
+		for (int i = 0; i < T.size(); i++) {
+			IntegerArray L = T.get(i);
+			for (int loc : L) {
+				MDocument d = train.get(loc);
+				String label = d.getAttrMap().get("label");
+				int lb = labelIdxer.indexOf(label);
+
+				List<Integer> ws = vocab.indexesOf(d.getTokens().getTokenStrings(0), 0);
+
+				DenseMatrix Xm = new DenseMatrix(ws.size(), 1);
+				for (int j = 0; j < ws.size(); j++) {
+					Xm.add(j, 0, ws.get(j));
+				}
+
+				if (i == 0) {
+					X.add(Xm);
+					Y.add(new DenseVector(new int[] { lb }));
+				} else {
+					Xv.add(Xm);
+					Yv.add(new DenseVector(new int[] { lb }));
+				}
+			}
+		}
+
+		for (MDocument d : test) {
+			String label = d.getAttrMap().get("label");
+
+			List<Integer> ws = vocab.indexesOf(d.getTokens().getTokenStrings(0), 0);
+
+			DenseMatrix Xm = new DenseMatrix(ws.size(), 1);
+
+			for (int j = 0; j < ws.size(); j++) {
+				Xm.add(j, 0, ws.get(j));
+			}
+
+			Xt.add(Xm);
+		}
+
+		X.trimToSize();
+		Y.trimToSize();
+
+		Xv.trimToSize();
+		Yv.trimToSize();
+
+		int size1 = 0;
+		int size2 = 0;
+		int max_len = 0;
+		int min_len = Integer.MAX_VALUE;
+
+		System.out.printf("data size: [%d -> %d]\n", size1, size2);
+		System.out.printf("max len: [%d]\n", max_len);
+		System.out.printf("min len: [%d]\n", min_len);
+
+		int vocab_size = vocab.size();
+		int emb_size = 200;
+		int l1_size = 100;
+
+		int l2_size = 20;
+		int output_size = 2;
+		int type = 0;
+
+		System.out.println(vocab.info());
+
+		DenseMatrix E = new DenseMatrix();
 
 		{
-			Set<String> set = Generics.newTreeSet();
+			String dir = FNPath.NAVER_DATA_DIR;
+			String emdFileName = dir + "emb/glove_ra.ser";
+			String vocabFileName = dir + "col/dc/vocab.ser";
 
-			for (int i = 0; i < lines.size() && i < train_size; i++) {
-				String s = lines.get(i);
-				for (int j = 0; j < s.length(); j++) {
-					set.add(s.charAt(j) + "");
+			Vocab v = DocumentCollection.readVocab(vocabFileName);
+
+			WordSearcher ws = new WordSearcher(v, new RandomAccessDenseMatrix(emdFileName, false), null);
+
+			List<DenseVector> es = Generics.newArrayList(vocab_size);
+
+			for (int i = 0; i < vocab.size(); i++) {
+				String word = vocab.getObject(i);
+				DenseVector e = ws.getVector(word);
+
+				if (e == null) {
+					e = new DenseVector(ws.getEmbeddingMatrix().colSize());
+				} else {
+					es.add(e);
 				}
-
-				// for (String word : StrUtils.split(s)) {
-				// vocab.add(word);
-				// }
 			}
 
-			for (String s : set) {
-				vocab.add(s);
-			}
+			E = new DenseMatrix(es);
+
+			// E.add(1d / VectorMath.normL2(E));
+
+			emb_size = E.colSize();
 		}
 
-		for (int i = 0; i < lines.size(); i++) {
-			String s = lines.get(i);
+		NeuralNet nn = new NeuralNet(labelIdxer, vocab, TaskType.SEQ_CLASSIFICATION);
 
-			IntegerArray t = new IntegerArray(s.length());
-			t.add(vocab.indexOf(SYM.START.getText()));
+		if (type == 0) {
+			int num_filters = 100;
+			int[] window_sizes = new int[] { 2, 3, 5 };
 
-			for (int j = 0; j < s.length(); j++) {
-				t.add(vocab.indexOf(s.charAt(j) + "", 0));
-			}
+			nn.add(new EmbeddingLayer(vocab_size, emb_size, true));
 
-			t.add(vocab.indexOf(SYM.END.getText()));
-
-			DenseVector x = new DenseVector(t.size() - 1);
-			DenseVector y = new DenseVector(t.size() - 1);
-
-			for (int j = 0; j < t.size() - 1; j++) {
-				x.add(j, t.get(j));
-				y.add(j, t.get(j + 1));
-			}
-
-			if (i < train_size) {
-				X.add(x.toDenseMatrix());
-				Y.add(y);
-			} else {
-				Xt.add(x.toDenseMatrix());
-				Yt.add(y);
-			}
-		}
-
-		Indexer<String> labelIdxer = Generics.newIndexer(vocab.getObjects());
-
-		int voc_size = vocab.size();
-		int emb_size = 100;
-		int l1_size = 100;
-		int label_size = labelIdxer.size();
-		int type = 2;
-		int bptt = nnp.getBPTTSize();
-
-		NeuralNet nn = new NeuralNet(labelIdxer, vocab, TaskType.SEQ_LABELING);
-
-		String modelFileName = "../../data/ml_data/char-rnn.ser";
-
-		if (FileUtils.exists(modelFileName)) {
-			nn = new NeuralNet(modelFileName);
-			nn.prepare();
-		} else {
-			nn.add(new EmbeddingLayer(voc_size, emb_size, true));
+			nn.add(new MultiWindowConvolutionalLayer(emb_size, window_sizes, num_filters));
+			// nn.add(new ConvolutionalLayer(emb_size, 4, num_filters));
+			nn.add(new NonlinearityLayer(new ReLU()));
+			// nn.add(new MaxPoolingLayer(num_filters));
+			nn.add(new MultiWindowMaxPoolingLayer(num_filters, window_sizes));
 			nn.add(new DropoutLayer());
-			// nn.add(new BidirectionalRecurrentLayer(Type.LSTM, emb_size, l1_size,
-			// bptt, new ReLU()));
-			// nn.add(new LstmLayer(emb_size, l1_size, new ReLU()));
-			nn.add(new RnnLayer(emb_size, l1_size, bptt, new ReLU()));
-			// nn.add(new BatchNormalizationLayer(l1_size));
-			nn.add(new FullyConnectedLayer(l1_size, label_size));
-			nn.add(new SoftmaxLayer(label_size));
+			nn.add(new FullyConnectedLayer(num_filters * window_sizes.length, output_size));
+			nn.add(new SoftmaxLayer(output_size));
 			nn.prepare();
 			nn.init();
+
+			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, nnp);
+			trainer.train(X, Y, Xv, Yv, 1);
+
+			trainer.finish();
 		}
 
-		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, nnp);
+		{
+			DenseTensor Yt = (DenseTensor) nn.forward(Xt);
 
-		IntegerArray locs = new IntegerArray(ArrayUtils.range(X.size()));
+			TextFileWriter writer = new TextFileWriter(FNPath.DATA_DIR + "M1_test_out.txt");
 
-		int group_size = 1000;
-		int[][] rs = BatchUtils.getBatchRanges(X.size(), group_size);
-
-		int max_iters = 1000;
-
-		SentenceGenerator sg = new SentenceGenerator(nn, vocab);
-
-		for (int u = 0; u < max_iters; u++) {
-			for (int i = 0; i < rs.length; i++) {
-				System.out.printf("iters [%d/%d], batches [%d/%d]\n", u + 1, max_iters, i + 1, rs.length);
-				for (int j = 0; j < rs.length; j++) {
-					int[] r = rs[j];
-					int r_size = r[1] - r[0];
-					DenseTensor Xm = new DenseTensor();
-					DenseMatrix Ym = new DenseMatrix();
-
-					Xm.ensureCapacity(r_size);
-					Ym.ensureCapacity(r_size);
-
-					for (int k = r[0]; k < r[1]; k++) {
-						int loc = locs.get(k);
-						Xm.add(X.get(loc));
-						Ym.add(Y.get(loc));
-					}
-
-					trainer.train(Xm, Ym, null, null, 1);
-				}
-
-				if (u % 10 == 0) {
-					for (int j = 0; j < 10; j++) {
-						String s = sg.generate(100);
-						System.out.println(s);
-					}
-				}
+			for (int i = 0; i < Yt.size(); i++) {
+				DenseVector yh = Yt.row(i).row(0);
+				MDocument d = test.get(i);
+				String id = d.getAttrMap().get("id");
+				writer.write(String.format("%s\t%f\n", id, yh.value(1)));
 			}
+			writer.close();
 		}
 
-		trainer.finish();
 	}
 
 	public static void testMNIST() throws Exception {
@@ -309,520 +400,4 @@ public class FakeApps {
 		trainer.finish();
 	}
 
-	public static void testNER() throws Exception {
-		NeuralNetParams nnp = new NeuralNetParams();
-		nnp.setBatchSize(5);
-		nnp.setIsFullSequenceBatch(true);
-		nnp.setIsRandomBatch(true);
-		nnp.setGradientAccumulatorResetSize(1000);
-		nnp.setLearnRate(0.001);
-		nnp.setLearnRateDecay(0.9);
-		nnp.setLearnRateDecaySize(100);
-		nnp.setWeightDecayL2(1);
-		nnp.setRegLambda(0.001);
-		nnp.setThreadSize(5);
-		nnp.setBPTT(1);
-		nnp.setOptimizerType(OptimizerType.ADAM);
-		nnp.setGradientClipCutoff(5);
-
-		String trainFileName = "../../data/ml_data/conll2003.bio2/train.dat";
-		String testFileName = "../../data/ml_data/conll2003.bio2/test.dat";
-
-		{
-			Indexer<String> l = Generics.newIndexer();
-			l.add("word");
-			l.add("pos");
-			l.add("chunk");
-			l.add("ner");
-			MToken.INDEXER = l;
-		}
-
-		MDocument trainData = MDocument.newDocument(FileUtils.readFromText(trainFileName));
-		MDocument testData = MDocument.newDocument(FileUtils.readFromText(testFileName));
-
-		Indexer<String> labelIdxer = Generics.newIndexer();
-		Vocab vocab = new Vocab();
-		vocab.add(Vocab.SYM.UNK.getText());
-
-		int unk = 0;
-
-		DenseTensor X = new DenseTensor();
-		DenseMatrix Y = new DenseMatrix();
-
-		X.ensureCapacity(trainData.size());
-		Y.ensureCapacity(trainData.size());
-
-		DenseTensor Xt = new DenseTensor();
-		DenseMatrix Yt = new DenseMatrix();
-
-		Xt.ensureCapacity(trainData.size());
-		Xt.ensureCapacity(trainData.size());
-
-		WordFeatureExtractor ext = new WordFeatureExtractor();
-
-		{
-			MDocument D = new MDocument();
-			D.addAll(trainData);
-			D.addAll(testData);
-
-			Set<String> labels = Generics.newTreeSet();
-
-			for (MToken t : D.getTokens()) {
-				String word = t.getString(0);
-				String ner = t.getString(3);
-				String[] ps = ner.split("-");
-				if (ps.length == 2) {
-					ner = String.format("%s-%s", ps[1], ps[0]);
-				}
-				t.set(3, ner);
-				ext.extract(t);
-
-				labels.add(ner);
-			}
-
-			labels.remove("O");
-			labelIdxer.addAll(labels);
-			labelIdxer.add("O");
-
-			for (int i = 0; i < D.size(); i++) {
-				MSentence s = D.get(i);
-
-				DenseMatrix Xm = new DenseMatrix();
-				DenseVector Ym = new DenseVector(s.size());
-
-				Xm.ensureCapacity(s.size());
-
-				for (int j = 0; j < s.size(); j++) {
-					MToken t = s.get(j);
-
-					IntegerArray f = new IntegerArray(1 + ext.getFeatureIndexer().size());
-
-					if (i < trainData.size()) {
-						f.add(vocab.getIndex(t.getString(4)));
-						f.addAll((IntegerArray) t.get(5));
-
-						Xm.add(new DenseVector(f.values()));
-						Ym.add(j, labelIdxer.getIndex(t.getString(3)));
-					} else {
-						f.add(vocab.indexOf(t.getString(4), 0));
-						f.addAll((IntegerArray) t.get(5));
-
-						Xm.add(new DenseVector(f.values()));
-						Ym.add(j, labelIdxer.getIndex(t.getString(3)));
-					}
-				}
-
-				if (i < trainData.size()) {
-					X.add(Xm);
-					Y.add(Ym);
-				} else {
-					Xt.add(Xm);
-					Yt.add(Ym);
-				}
-			}
-		}
-
-		X.trimToSize();
-		Y.trimToSize();
-
-		Xt.trimToSize();
-		Yt.trimToSize();
-
-		System.out.println(vocab.info());
-		System.out.println(labelIdxer.info());
-		System.out.println(X.sizeOfEntries());
-
-		int voc_size = vocab.size();
-		int word_emb_size = 50;
-		int feat_emb_size = 10;
-		int l1_size = 100;
-		int label_size = labelIdxer.size();
-		int type = 2;
-		int bptt_size = nnp.getBPTTSize();
-
-		String modelFileName = "../../data/ml_data/ner_nn.ser";
-
-		NeuralNet nn = new NeuralNet(labelIdxer, vocab, TaskType.SEQ_LABELING);
-
-		boolean read_ner_model = false;
-
-		if (read_ner_model && FileUtils.exists(modelFileName)) {
-			nn = new NeuralNet(modelFileName);
-			nn.prepare();
-		} else {
-			nn.add(new EmbeddingLayer(voc_size, word_emb_size, true));
-
-			DiscreteFeatureEmbeddingLayer l = new DiscreteFeatureEmbeddingLayer(ext.getFeatureIndexer().size(),
-					feat_emb_size, word_emb_size, true);
-			nn.add(l);
-			// nn.add(new DropoutLayer());
-			// nn.add(new RnnLayer(l.getOutputSize(), l1_size, bptt_size, new ReLU()));
-			// nn.add(new LstmLayer(l.getOutputSize(), l1_size));
-			nn.add(new BidirectionalRecurrentLayer(Type.LSTM, l.getOutputSize(), l1_size, bptt_size, new ReLU()));
-			// nn.add(new BatchNormalizationLayer(l1_size));
-			nn.add(new FullyConnectedLayer(l1_size, label_size));
-			nn.add(new SoftmaxLayer(label_size));
-			nn.prepare();
-			nn.init();
-		}
-
-		// nn.writeObject(modelFileName);
-
-		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, nnp);
-
-		int max_iters = 1000;
-		boolean use_batches = true;
-
-		if (use_batches) {
-			IntegerArray locs = new IntegerArray(ArrayUtils.range(X.size()));
-			int group_size = 10000;
-			int[][] rs = BatchUtils.getBatchRanges(X.size(), group_size);
-
-			for (int u = 0; u < max_iters; u++) {
-				ArrayUtils.shuffle(locs.values());
-
-				for (int i = 0; i < rs.length; i++) {
-					System.out.printf("iters [%d/%d], batches [%d/%d]\n", u + 1, max_iters, i + 1, rs.length);
-					for (int j = 0; j < rs.length; j++) {
-						int[] r = rs[j];
-						int r_size = r[1] - r[0];
-						DenseTensor Xm = new DenseTensor();
-						DenseMatrix Ym = new DenseMatrix();
-
-						Xm.ensureCapacity(r_size);
-						Ym.ensureCapacity(r_size);
-
-						for (int k = r[0]; k < r[1]; k++) {
-							int loc = locs.get(k);
-							Xm.add(X.get(loc));
-							Ym.add(Y.get(loc));
-						}
-
-						trainer.train(Xm, Ym, Xt, Yt, 1);
-					}
-				}
-			}
-		} else {
-			trainer.train(X, Y, Xt, Yt, max_iters);
-		}
-
-		trainer.finish();
-
-		nn.writeObject(modelFileName);
-	}
-
-	public static void testSentenceClassification() throws Exception {
-		NeuralNetParams nnp = new NeuralNetParams();
-		nnp.setBatchSize(5);
-		nnp.setIsFullSequenceBatch(true);
-		nnp.setIsRandomBatch(true);
-		nnp.setGradientAccumulatorResetSize(1000);
-		nnp.setLearnRate(0.001);
-		nnp.setLearnRateDecay(0.9);
-		nnp.setLearnRateDecaySize(100);
-		nnp.setRegLambda(0.001);
-		nnp.setThreadSize(5);
-		nnp.setBPTT(1);
-		nnp.setOptimizerType(OptimizerType.ADAM);
-		nnp.setGradientClipCutoff(5);
-
-		Indexer<String> labelIdxer = Generics.newIndexer();
-		labelIdxer.add("pos");
-		labelIdxer.add("neg");
-
-		{
-			Indexer<String> l = Generics.newIndexer();
-			l.add("word");
-			MToken.INDEXER = l;
-		}
-
-		MDocument posData = new MDocument();
-		MDocument negData = new MDocument();
-
-		for (String line : FileUtils.readLinesFromText("../../data/sentiment/rt-polarity.pos")) {
-			line = StrUtils.normalizeSpaces(line);
-			MSentence s = MSentence.newSentence(line.replace(" ", "\n"));
-			posData.add(s);
-
-			s.getAttrMap().put("por", "pos");
-		}
-
-		for (String line : FileUtils.readLinesFromText("../../data/sentiment/rt-polarity.neg")) {
-			line = StrUtils.normalizeSpaces(line);
-			MSentence s = MSentence.newSentence(line.replace(" ", "\n"));
-			negData.add(s);
-
-			s.getAttrMap().put("por", "neg");
-		}
-
-		Vocab vocab = new Vocab();
-		vocab.add(SYM.UNK.getText());
-
-		for (MToken t : posData.getTokens()) {
-			vocab.add(t.getString(0));
-		}
-
-		MDocument data = new MDocument();
-		data.addAll(posData);
-		data.addAll(negData);
-
-		IntegerMatrix M = new IntegerMatrix();
-		IntegerArray N = new IntegerArray();
-
-		for (int i = 0; i < data.size(); i++) {
-			MSentence s = data.get(i);
-			String por = s.getAttrMap().get("por");
-			int label = labelIdxer.indexOf(por);
-
-			M.add(label, i);
-			N.add(label);
-		}
-
-		IntegerMatrix T = DataSplitter.splitGroups(M, new int[] { 4000, 1500 });
-
-		DenseTensor X = new DenseTensor();
-		DenseMatrix Y = new DenseMatrix();
-		DenseTensor Xt = new DenseTensor();
-		DenseMatrix Yt = new DenseMatrix();
-
-		for (int i = 0; i < T.size(); i++) {
-			IntegerArray L = T.get(i);
-			for (int loc : L) {
-				MSentence s = data.get(loc);
-				String por = s.getAttrMap().get("por");
-				int label = labelIdxer.indexOf(por);
-
-				List<Integer> ws = vocab.indexesOf(s.getTokenStrings(0), 0);
-
-				DenseMatrix Xm = new DenseMatrix(ws.size(), 1);
-				for (int j = 0; j < ws.size(); j++) {
-					Xm.add(j, 0, ws.get(j));
-				}
-
-				if (i == 0) {
-					X.add(Xm);
-					Y.add(new DenseVector(new int[] { label }));
-				} else {
-					Xt.add(Xm);
-					Yt.add(new DenseVector(new int[] { label }));
-				}
-			}
-		}
-
-		X.trimToSize();
-		Y.trimToSize();
-
-		Xt.trimToSize();
-		Yt.trimToSize();
-
-		int vocab_size = vocab.size();
-		int emb_size = 50;
-		int output_size = labelIdxer.size();
-		int type = 0;
-
-		System.out.println(vocab.info());
-
-		NeuralNet nn = new NeuralNet(labelIdxer, vocab, TaskType.SEQ_CLASSIFICATION);
-
-		if (type == 0) {
-			int num_filters = 100;
-			int[] window_sizes = new int[] { 3, 4, 5 };
-
-			nn.add(new EmbeddingLayer(vocab_size, emb_size, true));
-
-			nn.add(new MultiWindowConvolutionalLayer(emb_size, window_sizes, num_filters));
-			// nn.add(new ConvolutionalLayer(emb_size, window_sizes[0], num_filters));
-			nn.add(new NonlinearityLayer(new ReLU()));
-			// nn.add(new MaxPoolingLayer(num_filters));
-			nn.add(new MultiWindowMaxPoolingLayer(num_filters, window_sizes));
-			nn.add(new DropoutLayer());
-			nn.add(new FullyConnectedLayer(num_filters * window_sizes.length, output_size));
-			nn.add(new SoftmaxLayer(output_size));
-			nn.prepare();
-			nn.init();
-
-			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, nnp);
-			trainer.train(X, Y, Xt, Yt, 10000);
-			trainer.finish();
-		}
-	}
-
-	public static void testDocumentClassification() throws Exception {
-		NeuralNetParams nnp = new NeuralNetParams();
-		nnp.setBatchSize(5);
-		nnp.setIsFullSequenceBatch(true);
-		nnp.setIsRandomBatch(true);
-		nnp.setGradientAccumulatorResetSize(1000);
-		nnp.setLearnRate(0.001);
-		nnp.setLearnRateDecay(0.9);
-		nnp.setLearnRateDecaySize(100);
-		nnp.setRegLambda(0.001);
-		nnp.setThreadSize(5);
-		nnp.setBPTT(1);
-		nnp.setOptimizerType(OptimizerType.ADAM);
-		nnp.setGradientClipCutoff(5);
-
-		Indexer<String> labelIdxer = Generics.newIndexer();
-		labelIdxer.add("non-fake");
-		labelIdxer.add("fake");
-
-		{
-			Indexer<String> l = Generics.newIndexer();
-			l.add("word");
-			MToken.INDEXER = l;
-		}
-
-		String[] fileNames = { "Mission1_sample_1차수정본.txt", "Mission2_sample_1차수정본.txt" };
-
-		File inFile = new File(FNPath.DATA_DIR + "샘플데이터_1차수정본", fileNames[0]);
-
-		MCollection data = new MCollection();
-
-		for (String line : FileUtils.readLinesFromText(inFile)) {
-			List<String> ps = StrUtils.split("\t", line);
-			ps = StrUtils.unwrap(ps);
-
-			String label = ps.get(1);
-			label = label.equals("0") ? "non-fake" : "fake";
-
-			MDocument d = MDocument.newDocument(ps.get(2));
-			d.getAttrMap().put("label", label);
-
-			data.add(d);
-		}
-
-		Vocab vocab = new Vocab();
-		vocab.add(SYM.UNK.getText());
-
-		IntegerMatrix M = new IntegerMatrix();
-		IntegerArray N = new IntegerArray();
-
-		for (int i = 0; i < data.size(); i++) {
-			MDocument d = data.get(i);
-			String label = d.getAttrMap().get("label");
-			int l = labelIdxer.indexOf(label);
-
-			M.add(l, i);
-			N.add(l);
-		}
-
-		IntegerMatrix T = DataSplitter.splitGroups(M, new int[] { 150, 25 });
-
-		DenseTensor X = new DenseTensor();
-		DenseMatrix Y = new DenseMatrix();
-		DenseTensor Xt = new DenseTensor();
-		DenseMatrix Yt = new DenseMatrix();
-
-		for (int loc : T.get(0)) {
-			MDocument d = data.get(loc);
-
-			for (String word : d.getTokens().getTokenStrings(0)) {
-				vocab.add(word);
-			}
-		}
-
-		for (int i = 0; i < T.size(); i++) {
-			IntegerArray L = T.get(i);
-			for (int loc : L) {
-				MDocument d = data.get(loc);
-				String label = d.getAttrMap().get("label");
-				int lb = labelIdxer.indexOf(label);
-
-				List<Integer> ws = vocab.indexesOf(d.getTokens().getTokenStrings(0), 0);
-
-				DenseMatrix Xm = new DenseMatrix(ws.size(), 1);
-				for (int j = 0; j < ws.size(); j++) {
-					Xm.add(j, 0, ws.get(j));
-				}
-
-				if (i == 0) {
-					X.add(Xm);
-					Y.add(new DenseVector(new int[] { lb }));
-				} else {
-					Xt.add(Xm);
-					Yt.add(new DenseVector(new int[] { lb }));
-				}
-			}
-		}
-
-		X.trimToSize();
-		Y.trimToSize();
-
-		Xt.trimToSize();
-		Yt.trimToSize();
-
-		int size1 = 0;
-		int size2 = 0;
-		int max_len = 0;
-		int min_len = Integer.MAX_VALUE;
-
-		System.out.printf("data size: [%d -> %d]\n", size1, size2);
-		System.out.printf("max len: [%d]\n", max_len);
-		System.out.printf("min len: [%d]\n", min_len);
-
-		int vocab_size = vocab.size();
-		int emb_size = 200;
-		int l1_size = 100;
-
-		int l2_size = 20;
-		int output_size = 2;
-		int type = 0;
-
-		System.out.println(vocab.info());
-
-		DenseMatrix E = new DenseMatrix();
-
-		{
-			String dir = FNPath.NAVER_DATA_DIR;
-			String emdFileName = dir + "emb/glove_ra.ser";
-			String vocabFileName = dir + "col/dc/vocab.ser";
-
-			Vocab v = DocumentCollection.readVocab(vocabFileName);
-
-			WordSearcher ws = new WordSearcher(v, new RandomAccessDenseMatrix(emdFileName, false), null);
-
-			List<DenseVector> es = Generics.newArrayList(vocab_size);
-
-			for (int i = 0; i < vocab.size(); i++) {
-				String word = vocab.getObject(i);
-				DenseVector e = ws.getVector(word);
-
-				if (e == null) {
-					e = new DenseVector(ws.getEmbeddingMatrix().colSize());
-				} else {
-					es.add(e);
-				}
-			}
-
-			E = new DenseMatrix(es);
-
-			// E.add(1d / VectorMath.normL2(E));
-
-			emb_size = E.colSize();
-		}
-
-		NeuralNet nn = new NeuralNet(labelIdxer, vocab, TaskType.SEQ_CLASSIFICATION);
-
-		if (type == 0) {
-			int num_filters = 100;
-			int[] window_sizes = new int[] { 2, 3, 5 };
-
-			nn.add(new EmbeddingLayer(vocab_size, emb_size, false));
-
-			nn.add(new MultiWindowConvolutionalLayer(emb_size, window_sizes, num_filters));
-			// nn.add(new ConvolutionalLayer(emb_size, 4, num_filters));
-			nn.add(new NonlinearityLayer(new ReLU()));
-			// nn.add(new MaxPoolingLayer(num_filters));
-			nn.add(new MultiWindowMaxPoolingLayer(num_filters, window_sizes));
-			nn.add(new DropoutLayer());
-			nn.add(new FullyConnectedLayer(num_filters * window_sizes.length, output_size));
-			nn.add(new SoftmaxLayer(output_size));
-			nn.prepare();
-			nn.init();
-
-			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, nnp);
-			trainer.train(X, Y, Xt, Yt, 10000);
-			trainer.finish();
-		}
-	}
 }

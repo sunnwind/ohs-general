@@ -41,10 +41,15 @@ public class DataSplitter {
 		ArrayMath.cumulate(foldMaxIdxs, foldMaxIdxs);
 
 		IntegerMatrix ret = new IntegerMatrix(fold_size);
-		ret.ensure(fold_size - 1);
+		ret.ensureCapacity(fold_size);
 
 		for (int i = 0; i < fold_size; i++) {
 			foldMaxIdxs[i] = Math.rint(foldMaxIdxs[i] * x.size());
+			int size = (int) foldMaxIdxs[i];
+			if (i > 0) {
+				size -= foldMaxIdxs[i - 1];
+			}
+			ret.add(new IntegerArray(size));
 		}
 
 		for (int i = 0, j = 0; i < x.size(); i++) {
@@ -52,7 +57,7 @@ public class DataSplitter {
 			if (i >= max_idx && j < fold_size) {
 				j++;
 			}
-			ret.get(i).add(x.get(i));
+			ret.get(j).add(x.get(i));
 		}
 		return ret;
 	}

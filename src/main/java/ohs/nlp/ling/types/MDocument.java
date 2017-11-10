@@ -74,20 +74,19 @@ public class MDocument extends ArrayList<MSentence> {
 	@Override
 	public String toString() {
 		StringBuffer sb = new StringBuffer();
-		sb.append("[attr map]");
-
-		if (attrMap.size() > 0) {
-			for (String attr : Generics.newTreeSet(attrMap.keySet())) {
-				String val = attrMap.get(attr);
-				sb.append(String.format("\n%s:\t%s", attr, val));
-			}
-		}
-
-		sb.append("\n\n");
+		// sb.append("[attr map]");
+		//
+		// if (attrMap.size() > 0) {
+		// for (String attr : Generics.newTreeSet(attrMap.keySet())) {
+		// String val = attrMap.get(attr);
+		// sb.append(String.format("\n%s:\t%s", attr, val));
+		// }
+		// }
+		// sb.append("\n\n");
 
 		for (int i = 0; i < size(); i++) {
-			sb.append(String.format("[sent-%d]", i + 1));
-			sb.append("\n" + get(i).toString());
+			// sb.append(String.format("[sent-%d]", i + 1));
+			sb.append(get(i).toString());
 			if (i != size() - 1) {
 				sb.append("\n\n");
 			}

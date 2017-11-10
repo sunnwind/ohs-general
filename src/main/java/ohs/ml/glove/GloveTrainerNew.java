@@ -136,7 +136,7 @@ public class GloveTrainerNew {
 							R1m.toDenseTensor(), R2m.toDenseTensor());
 					pu.setGradientClipCutoff(Double.MAX_VALUE);
 					pu.setLearningRate(learn_rate);
-					pu.update();
+					pu.update(1);
 				}
 			}
 

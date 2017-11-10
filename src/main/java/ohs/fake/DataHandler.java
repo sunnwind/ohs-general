@@ -21,6 +21,7 @@ import ohs.ir.weight.TermWeighting;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.SparseVector;
+import ohs.nlp.ling.types.MCollection;
 import ohs.nlp.ling.types.MDocument;
 import ohs.nlp.ling.types.MSentence;
 import ohs.nlp.ling.types.MToken;
@@ -133,10 +134,18 @@ public class DataHandler {
 
 	}
 
+	static {
+		Indexer<String> idxer = Generics.newIndexer();
+		idxer.add("word");
+		idxer.add("pos");
+
+		MToken.INDEXER = idxer;
+	}
+
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 		DataHandler dh = new DataHandler();
-		// dh.tagPos();
+		dh.tagPos();
 		// dh.tagPOS4NaverNews();
 		// dh.selectSubset1();
 		// dh.extractVocab();
@@ -146,126 +155,71 @@ public class DataHandler {
 		System.out.println("process ends.");
 	}
 
-	public void tagPos() throws Exception {
-		for (File inFile : FileUtils.getFilesUnder(FNPath.DATA_DIR + "샘플데이터_1차수정본")) {
-			File outFile = new File(inFile.getParent(), inFile.getName().replace(".csv", ".txt"));
-			String input = FileUtils.readFromText(inFile);
+	public void extractVocab() throws Exception {
+		List<File> files = FileUtils.getFilesUnder(FNPath.NAVER_NEWS_COL_LINE_POS_DIR);
+		Counter<String> wordCnts = Generics.newCounter();
+		Counter<String> docFreqs = Generics.newCounter();
+		int num_docs = 0;
 
-			List<String> ins = StrUtils.split("\r\n", input);
-			List<String> outs = Generics.newLinkedList();
+		for (int i = 0; i < files.size(); i++) {
+			File file = files.get(i);
 
-			for (int i = 1; i < ins.size(); i++) {
-
-				String line = ins.get(i);
-				String tmp = line;
-				// List<String> ps = StrUtils.split("\",\"", line);
-
-				String id = "";
-				String title = "";
-				String body = "";
-				String label = "";
-
-				{
-					int idx = line.indexOf(",");
-					id = line.substring(0, idx);
-					line = line.substring(idx + 1);
-				}
-
-				{
-					int idx = line.lastIndexOf(",");
-					label = line.substring(idx + 1);
-					line = line.substring(0, idx);
-				}
-
-				{
-					List<String> ps = StrUtils.split("\",\"", line);
-					if (ps.size() == 2) {
-						title = ps.get(0);
-						body = ps.get(1);
-
-						title = title.substring(1, title.length());
-						body = body.substring(0, body.length() - 1);
-						body = body.replaceAll("\\.( |$)", "\\.\n");
-					}
-				}
-
-				{
-					if (title.length() == 0 || body.length() == 0) {
-						List<String> ps = StrUtils.split(",\"", line);
-						if (ps.size() == 2) {
-							title = ps.get(0);
-							body = ps.get(1);
-
-							body = body.substring(0, body.length() - 1);
-							body = body.replaceAll("\\.( |$)", "\\.\n");
-						}
-
-					}
-				}
-
-				MDocument d = new MDocument();
-
-				{
-					String c = title + "\n" + body;
-
-					for (String p : c.split("\n")) {
-						p = p.trim();
-
-						if (p.length() == 0) {
-							continue;
-						}
-
-						MSentence s = new MSentence();
-						for (LNode node : Analyzer.parseJava(p)) {
-							Morpheme m = node.morpheme();
-							WrappedArray<String> fs = m.feature();
-							String[] vals = (String[]) fs.array();
-							String word = m.surface();
-							String pos = vals[0];
-
-							MToken t = new MToken(2);
-							t.add(word);
-							t.add(pos);
-							s.add(t);
-						}
-						d.add(s);
-					}
-				}
-
-				List<String> l = Generics.newArrayList(4);
-
-				l.add(id);
-				l.add(label);
-				l.add(d.toString().replace("\n", "<nl>"));
-
-				l = StrUtils.wrap(l);
-
-				outs.add(StrUtils.join("\t", l));
+			if (!file.getName().startsWith("2017")) {
+				continue;
 			}
 
-			FileUtils.writeStringCollectionAsText(outFile.getPath(), outs);
+			// if (num_docs > 10000) {
+			// break;
+			// }
+
+			List<String> lines = FileUtils.readLinesFromText(file);
+
+			num_docs += lines.size();
+
+			for (String line : lines) {
+				List<String> ps = StrUtils.split("\t", line);
+				ps = StrUtils.unwrap(ps);
+
+				int j = 0;
+				String id = ps.get(j++);
+				String oid = ps.get(j++);
+				String cat = ps.get(j++);
+				String date = ps.get(j++);
+				String content = ps.get(j++);
+				String url = ps.get(j++);
+
+				MDocument d = MDocument.newDocument(content);
+
+				Counter<String> c = Generics.newCounter();
+
+				for (MToken t : d.getTokens()) {
+					c.incrementCount(t.getString(0), 1);
+				}
+
+				wordCnts.incrementAll(c);
+				docFreqs.incrementAll(c.keySet(), 1);
+			}
+
 		}
-	}
 
-	public void test() throws Exception {
-		Counter<String> c = Generics.newCounter();
-		TextFileReader reader = new TextFileReader(FNPath.NAVER_DATA_DIR + "news_2007.txt");
-		reader.setPrintSize(10000);
+		Counter<String> tfidfs = Generics.newCounter(wordCnts.size());
 
-		while (reader.hasNext()) {
-
-			String line = reader.next();
-			List<String> ps1 = StrUtils.unwrap(StrUtils.split("\t", line));
-
-			int j = 0;
-			String cat = ps1.get(j++);
-			String content = ps1.get(j++);
-			c.incrementCount(cat, 1);
+		for (String word : wordCnts.keySet()) {
+			double cnt = wordCnts.getCount(word);
+			double doc_freq = docFreqs.getCount(word);
+			double tfidf = TermWeighting.tfidf(cnt, num_docs, doc_freq);
+			tfidfs.setCount(word, tfidf);
 		}
-		reader.printProgress();
-		reader.close();
 
-		System.out.println(c.toString());
+		TextFileWriter writer = new TextFileWriter(FNPath.NAVER_DATA_DIR + "vocab.txt");
+
+		for (String word : tfidfs.getSortedKeys()) {
+			double tfidf = tfidfs.getCount(word);
+			int cnt = (int) wordCnts.getCount(word);
+			int doc_freq = (int) docFreqs.getCount(word);
+			writer.write(String.format("%s\t%d\t%d\t%f\n", word, cnt, doc_freq, tfidf));
+		}
+		writer.close();
 
 	}
 
@@ -360,83 +314,7 @@ public class DataHandler {
 		writer.close();
 	}
 
-	static {
-		Indexer<String> idxer = Generics.newIndexer();
-		idxer.add("word");
-		idxer.add("pos");
-
-		MToken.INDEXER = idxer;
-	}
-
-	public void extractVocab() throws Exception {
-		List<File> files = FileUtils.getFilesUnder(FNPath.NAVER_NEWS_COL_LINE_POS_DIR);
-		Counter<String> wordCnts = Generics.newCounter();
-		Counter<String> docFreqs = Generics.newCounter();
-		int num_docs = 0;
-
-		for (int i = 0; i < files.size(); i++) {
-			File file = files.get(i);
-
-			if (!file.getName().startsWith("2017")) {
-				continue;
-			}
-
-			// if (num_docs > 10000) {
-			// break;
-			// }
-
-			List<String> lines = FileUtils.readLinesFromText(file);
-
-			num_docs += lines.size();
-
-			for (String line : lines) {
-				List<String> ps = StrUtils.split("\t", line);
-				ps = StrUtils.unwrap(ps);
-
-				int j = 0;
-				String id = ps.get(j++);
-				String oid = ps.get(j++);
-				String cat = ps.get(j++);
-				String date = ps.get(j++);
-				String content = ps.get(j++);
-				String url = ps.get(j++);
-
-				MDocument d = MDocument.newDocument(content);
-
-				Counter<String> c = Generics.newCounter();
-
-				for (MToken t : d.getTokens()) {
-					c.incrementCount(t.getString(0), 1);
-				}
-
-				wordCnts.incrementAll(c);
-				docFreqs.incrementAll(c.keySet(), 1);
-			}
-
-		}
-
-		Counter<String> tfidfs = Generics.newCounter(wordCnts.size());
-
-		for (String word : wordCnts.keySet()) {
-			double cnt = wordCnts.getCount(word);
-			double doc_freq = docFreqs.getCount(word);
-			double tfidf = TermWeighting.tfidf(cnt, num_docs, doc_freq);
-			tfidfs.setCount(word, tfidf);
-		}
-
-		TextFileWriter writer = new TextFileWriter(FNPath.NAVER_DATA_DIR + "vocab.txt");
-
-		for (String word : tfidfs.getSortedKeys()) {
-			double tfidf = tfidfs.getCount(word);
-			int cnt = (int) wordCnts.getCount(word);
-			int doc_freq = (int) docFreqs.getCount(word);
-			writer.write(String.format("%s\t%d\t%d\t%f\n", word, cnt, doc_freq, tfidf));
-		}
-		writer.close();
-
-	}
-
-	public void selectSubset1() throws Exception {
+	public void selectSubsetNews() throws Exception {
 		List<File> files = FileUtils.getFilesUnder(FNPath.NAVER_NEWS_COL_LINE_POS_DIR);
 
 		TextFileWriter writer = new TextFileWriter(FNPath.NAVER_DATA_DIR + "news_2007.txt");
@@ -449,10 +327,6 @@ public class DataHandler {
 			if (!file.getName().startsWith("2017")) {
 				continue;
 			}
-
-			// if (num_docs > 10000) {
-			// break;
-			// }
 
 			List<String> ins = FileUtils.readLinesFromText(file);
 			List<String> outs = Generics.newLinkedList();
@@ -486,7 +360,112 @@ public class DataHandler {
 		System.out.println((int) c.totalCount());
 	}
 
-	public void tagPOS4NaverNews() throws Exception {
+	public void tagPos() throws Exception {
+		for (File inFile : FileUtils.getFilesUnder(FNPath.DATA_DIR + "data")) {
+
+			if (!inFile.getName().contains("test")) {
+				continue;
+			}
+
+			if (inFile.getName().contains("pos")) {
+				continue;
+			}
+
+			File outFile = new File(inFile.getParentFile(), inFile.getName().replace(".txt", "_pos.txt"));
+			String input = FileUtils.readFromText(inFile.getPath(), "euc-kr");
+
+			List<String> ins = StrUtils.split("\r\n", input);
+			List<String> outs = Generics.newLinkedList();
+
+			for (int i = 1; i < ins.size(); i++) {
+				String line = ins.get(i);
+
+				String id = "";
+				String title = "";
+				String body = "";
+				String label = "";
+				String corTitle = "";
+
+				List<String> ps = StrUtils.split("\t", line);
+
+				{
+					int j = 0;
+					id = ps.get(j++);
+					title = ps.get(j++);
+					body = ps.get(j++);
+
+					if (ps.size() >= 4) {
+						label = ps.get(j++);
+					}
+
+					if (ps.size() >= 5) {
+						corTitle = ps.get(j++);
+						corTitle = StrUtils.normalizeSpaces(corTitle);
+					}
+				}
+
+				{
+					StringBuffer sb = new StringBuffer();
+					for (String s : body.replace(". ", ".\n").split("\n")) {
+						s = StrUtils.normalizeSpaces(s);
+
+						if (s.length() == 0) {
+							continue;
+						}
+						sb.append(s + "\n");
+					}
+					body = sb.toString().trim();
+				}
+
+				MCollection data = new MCollection();
+
+				String[] items = new String[] { title + "\n" + body, corTitle };
+
+				for (String item : items) {
+					MDocument d = new MDocument();
+					for (String p : item.split("\n")) {
+						p = p.trim();
+
+						if (p.length() == 0) {
+							continue;
+						}
+
+						MSentence s = new MSentence();
+						for (LNode node : Analyzer.parseJava(p)) {
+							Morpheme m = node.morpheme();
+							WrappedArray<String> fs = m.feature();
+							String[] vals = (String[]) fs.array();
+							String word = m.surface();
+							String pos = vals[0];
+
+							MToken t = new MToken(2);
+							t.add(word);
+							t.add(pos);
+							s.add(t);
+						}
+						d.add(s);
+					}
+
+					data.add(d);
+				}
+
+				List<String> l = Generics.newArrayList(4);
+
+				l.add(id);
+				l.add(label);
+				l.add(data.get(0).toString().replace("\n", "<nl>"));
+				l.add(data.get(1).toString().replace("\n", "<nl>"));
+
+				l = StrUtils.wrap(l);
+
+				outs.add(StrUtils.join("\t", l));
+			}
+
+			FileUtils.writeStringCollectionAsText(outFile.getPath(), outs);
+		}
+	}
+
+	public void tagPosNews() throws Exception {
 		// FileUtils.deleteFilesUnder(FNPath.NAVER_NEWS_COL_LINE_POS_DIR);
 
 		AtomicInteger file_cnt = new AtomicInteger(0);
@@ -521,6 +500,27 @@ public class DataHandler {
 		}
 
 		tpe.shutdown();
+	}
+
+	public void test() throws Exception {
+		Counter<String> c = Generics.newCounter();
+		TextFileReader reader = new TextFileReader(FNPath.NAVER_DATA_DIR + "news_2007.txt");
+		reader.setPrintSize(10000);
+
+		while (reader.hasNext()) {
+			String line = reader.next();
+			List<String> ps1 = StrUtils.unwrap(StrUtils.split("\t", line));
+
+			int j = 0;
+			String cat = ps1.get(j++);
+			String content = ps1.get(j++);
+			c.incrementCount(cat, 1);
+		}
+		reader.printProgress();
+		reader.close();
+
+		System.out.println(c.toString());
+
 	}
 
 }

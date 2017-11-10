@@ -1,4 +1,4 @@
-package ohs.ml.neuralnet.com;
+package ohs.ml.hmm;
 
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -19,34 +19,34 @@ import ohs.types.number.IntegerMatrix;
 
 public class ViterbiDecoder {
 
-	/**
-	 * emission probabilities
-	 */
-	private DenseMatrix E;
+	private Indexer<String> stateIndexer;
 
-	/**
-	 * start probabilities
-	 */
-	private DenseVector S;
+	private Indexer<String> wordIndexer;
 
 	/**
 	 * number of states
 	 */
 	private int state_size;
 
-	private Indexer<String> stateIndexer;
-
-	/**
-	 * transition probabilities
-	 */
-	private DenseMatrix T;
-
 	/**
 	 * number of unique observations in vocabulary
 	 */
 	private int vocab_size;
 
-	private Indexer<String> wordIndexer;
+	/**
+	 * transition probabilities: labels x labels
+	 */
+	private DenseMatrix T;
+
+	/**
+	 * emission probabilities: labels x features
+	 */
+	private DenseMatrix E;
+
+	/**
+	 * start probabilities: labels
+	 */
+	private DenseVector S;
 
 	public ViterbiDecoder(DenseVector S, DenseMatrix T, DenseMatrix E) {
 		this.T = T;

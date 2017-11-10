@@ -95,16 +95,16 @@ public class RawDocumentCollectionCreator {
 
 					if (i == 4) {
 						MDocument d = MDocument.newDocument(ps[i]);
+						//
+						// List<String> l = Generics.newArrayList(d.size());
+						//
+						// for (int j = 0; j < d.size(); j++) {
+						// l.add(StrUtils.join(" ", d.get(j).getTokenStrings(0)));
+						// }
+						//
+						// String s = StrUtils.join("\n", l);
 
-						List<String> l = Generics.newArrayList(d.size());
-
-						for (int j = 0; j < d.size(); j++) {
-							l.add(StrUtils.join(" ", d.get(j).getTokenStrings(0)));
-						}
-
-						String s = StrUtils.join("\n", l);
-
-						ps[i] = s;
+						ps[i] = d.toString();
 					}
 
 					ps[i] = ps[i].replace(StrUtils.LINE_REP, "\n");

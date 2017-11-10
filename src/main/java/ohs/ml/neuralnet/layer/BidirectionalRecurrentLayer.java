@@ -63,8 +63,8 @@ public class BidirectionalRecurrentLayer extends RecurrentLayer {
 			fwd = new RnnLayer(input_size, hidden_size, bptt_size, non);
 			bwd = new RnnLayer(input_size, hidden_size, bptt_size, non);
 		} else if (type == Type.LSTM) {
-			fwd = new LstmLayer(input_size, hidden_size);
-			bwd = new LstmLayer(input_size, hidden_size);
+			fwd = new LstmLayer(input_size, hidden_size, bptt_size);
+			bwd = new LstmLayer(input_size, hidden_size, bptt_size);
 		}
 
 		this.input_size = fwd.getInputSize();
@@ -74,7 +74,7 @@ public class BidirectionalRecurrentLayer extends RecurrentLayer {
 	@Override
 	public Object backward(Object I) {
 		DenseTensor dYf = (DenseTensor) I;
-		DenseTensor dYb = reverse(dYf, tmp_rY);
+		DenseTensor dYb = reverse(dYf);
 		DenseTensor dXf = (DenseTensor) fwd.backward(dYf);
 		DenseTensor dXb = (DenseTensor) bwd.backward(dYb);
 
@@ -109,7 +109,7 @@ public class BidirectionalRecurrentLayer extends RecurrentLayer {
 	@Override
 	public Object forward(Object I) {
 		DenseTensor Xf = (DenseTensor) I;
-		DenseTensor Xb = reverse(Xf, tmp_rX);
+		DenseTensor Xb = reverse(Xf);
 
 		DenseTensor Yf = (DenseTensor) fwd.forward(Xf);
 		DenseTensor Yb = (DenseTensor) bwd.forward(Xb);
@@ -255,6 +255,26 @@ public class BidirectionalRecurrentLayer extends RecurrentLayer {
 			R.add(Rm);
 		}
 
+		return R;
+	}
+
+	private DenseTensor reverse(DenseTensor X) {
+		DenseTensor R = new DenseTensor();
+		R.ensureCapacity(X.size());
+
+		for (int i = 0; i < X.size(); i++) {
+			DenseMatrix Xm = X.get(i);
+			DenseMatrix Rm = new DenseMatrix();
+			Rm.addAll(Xm);
+
+			int mid = Xm.rowSize() / 2;
+
+			for (int j = 0; j < mid; j++) {
+				Rm.swapRows(j, Xm.rowSize() - 1 - j);
+			}
+
+			R.add(Rm);
+		}
 		return R;
 	}
 

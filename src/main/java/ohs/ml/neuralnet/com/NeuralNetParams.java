@@ -42,6 +42,8 @@ public class NeuralNetParams {
 
 	private boolean use_avg_grad = false;
 
+	private boolean use_hard_grad_clipping = false;
+
 	private OptimizerType ot = OptimizerType.ADAM;
 
 	public NeuralNetParams() {
@@ -127,6 +129,10 @@ public class NeuralNetParams {
 		return use_avg_grad;
 	}
 
+	public boolean getUseHardGradientClipping() {
+		return use_hard_grad_clipping;
+	}
+
 	public double getWeightDecayL2() {
 		return weight_decay_L2;
 	}
@@ -209,6 +215,10 @@ public class NeuralNetParams {
 
 	public void setUseAverageGradients(boolean use_avg_grad) {
 		this.use_avg_grad = use_avg_grad;
+	}
+
+	public void setUseHardGradientClipping(boolean use_hard_grad_clipping) {
+		this.use_hard_grad_clipping = use_hard_grad_clipping;
 	}
 
 	public void setWeightDecayL2(double weight_decay_L2) {

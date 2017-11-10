@@ -88,6 +88,16 @@ public class NeuralNet extends ArrayList<Layer> {
 		return ret;
 	}
 
+	public NeuralNet copy() {
+		NeuralNet ret = new NeuralNet(labelIdxer, vocab, tt);
+		ret.ensureCapacity(size());
+
+		for (Layer l : this) {
+			ret.add(l.copy());
+		}
+		return ret;
+	}
+
 	public Object forward(Object I) {
 		Object X = I;
 		Object Y = null;

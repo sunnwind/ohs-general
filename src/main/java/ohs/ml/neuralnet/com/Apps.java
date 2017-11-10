@@ -50,10 +50,10 @@ public class Apps {
 
 		// testMNIST();
 		// testCharRNN();
-		testNER();
+		// testNER();
 
 		// testSentenceClassification();
-		// testDocumentClassification();
+		testDocumentClassification();
 
 		System.out.println("process ends.");
 	}
@@ -251,9 +251,9 @@ public class Apps {
 			MToken.INDEXER = l;
 		}
 
-		String[] fileNames = { "Mission1_sample_1차수정본.txt", "Mission2_sample_1차수정본.txt" };
+		String[] fileNames = { "Mission1_sample_1차수정본.txt"};
 
-		File inFile = new File(FNPath.DATA_DIR + "샘플데이터_1차수정본", fileNames[0]);
+		File inFile = new File(FNPath.DATA_DIR + "train_01", fileNames[0]);
 
 		MCollection data = new MCollection();
 
@@ -492,21 +492,26 @@ public class Apps {
 
 	public static void testNER() throws Exception {
 		NeuralNetParams nnp = new NeuralNetParams();
-		nnp.setBatchSize(1);
-		nnp.setIsFullSequenceBatch(true);
-		nnp.setIsRandomBatch(true);
-		nnp.setGradientAccumulatorResetSize(1000);
+
 		nnp.setLearnRate(0.001);
 		nnp.setLearnRateDecay(0.9);
 		nnp.setLearnRateDecaySize(100);
 		nnp.setWeightDecayL2(1);
 		nnp.setGradientDecay(1);
 		nnp.setRegLambda(0.001);
-		nnp.setThreadSize(5);
-		nnp.setUseAverageGradients(false);
-		nnp.setBPTT(1);
-		nnp.setOptimizerType(OptimizerType.ADAM);
 		nnp.setGradientClipCutoff(5);
+
+		nnp.setThreadSize(5);
+		nnp.setBatchSize(1);
+		nnp.setGradientAccumulatorResetSize(1000);
+		nnp.setBPTT(1);
+
+		nnp.setIsFullSequenceBatch(true);
+		nnp.setIsRandomBatch(true);
+		nnp.setUseAverageGradients(false);
+		nnp.setUseHardGradientClipping(false);
+
+		nnp.setOptimizerType(OptimizerType.ADAM);
 
 		String trainFileName = "../../data/ml_data/conll2003.bio2/train.dat";
 		String testFileName = "../../data/ml_data/conll2003.bio2/test.dat";
@@ -636,7 +641,7 @@ public class Apps {
 		System.out.println(X.sizeOfEntries());
 
 		int voc_size = vocab.size();
-		int word_emb_size = 100;
+		int word_emb_size = 50;
 		int feat_emb_size = 10;
 		int l1_size = 100;
 		int label_size = labelIdxer.size();
@@ -661,7 +666,7 @@ public class Apps {
 			nn.add(l);
 			nn.add(new DropoutLayer());
 			// nn.add(new RnnLayer(l.getOutputSize(), l1_size, bptt_size, new ReLU()));
-			// nn.add(new LstmLayer(l.getOutputSize(), l1_size));
+			// nn.add(new LstmLayer(l.getOutputSize(), l1_size, bptt_size));
 			nn.add(new BidirectionalRecurrentLayer(Type.LSTM, l.getOutputSize(), l1_size, bptt_size, new ReLU()));
 			// nn.add(new BatchNormalizationLayer(l1_size));
 			nn.add(new FullyConnectedLayer(l1_size, label_size));
@@ -687,7 +692,7 @@ public class Apps {
 
 				for (int i = 0; i < rs.length; i++) {
 					System.out.printf("iters [%d/%d], batches [%d/%d]\n", u + 1, max_iters, i + 1, rs.length);
-					
+
 					for (int j = 0; j < rs.length; j++) {
 						int[] r = rs[j];
 						int r_size = r[1] - r[0];

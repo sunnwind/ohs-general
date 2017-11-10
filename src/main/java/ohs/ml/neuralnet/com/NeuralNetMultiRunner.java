@@ -34,9 +34,6 @@ public class NeuralNetMultiRunner {
 				DenseTensor Xm = X.subTensor(r[0], r[1]);
 				DenseMatrix Yhm = nn.classify(Xm);
 
-				// DenseTensor Sm = (DenseTensor) nn.score(Xm);
-				// DenseTensor Pm = ViterbiDecoder.decode(Sm);
-
 				for (int i = 0; i < Yhm.rowSize(); i++) {
 					Yh.set(r[0] + i, Yhm.row(i));
 				}

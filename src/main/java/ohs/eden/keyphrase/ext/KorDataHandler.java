@@ -57,8 +57,8 @@ public class KorDataHandler {
 		// dh.getKeyphraseDocuments();
 		// dh.trainGlove();
 		// dh.getLabelData();
-//		dh.getKeyphrases();
-		dh.getKeyphrasePatterns();
+		// dh.getKeyphrases();
+		// dh.getKeyphrasePatterns();
 
 		// dh.test();
 
