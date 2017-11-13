@@ -295,7 +295,7 @@ public class EmbeddingConceptBiasEstimator {
 
 		RandomAccessDenseMatrix E = new RandomAccessDenseMatrix(dir + "emb/glove_ra.ser");
 		Vocab vocab = DocumentCollection.readVocab(dir + "col/dc/vocab.ser");
-		Set<String> stopwords = FileUtils.readStringSetFromText(MIRPath.STOPWORD_INQUERY_FILE);
+		Set<String> stopwords = FileUtils.readStringHashSetFromText(MIRPath.STOPWORD_INQUERY_FILE);
 		WordFilter wf = new WordFilter(vocab, stopwords);
 
 		DenseMatrix X = getFeatureMatrix1(E, phrsIdxer, vocab, wf);

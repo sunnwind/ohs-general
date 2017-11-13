@@ -1206,7 +1206,7 @@ public class FileUtils {
 		return ret;
 	}
 
-	public static HashSet<String> readStringSetFromText(String fileName) throws Exception {
+	public static Set<String> readStringHashSetFromText(String fileName) throws Exception {
 		return new HashSet<String>(readLinesFromText(fileName));
 	}
 

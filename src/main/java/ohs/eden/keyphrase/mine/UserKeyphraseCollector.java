@@ -430,7 +430,7 @@ public class UserKeyphraseCollector {
 		String sep = " = ";
 		Counter<String> c = Generics.newCounter();
 
-		Set<String> stopwords = FileUtils.readStringSetFromText(MIRPath.STOPWORD_INQUERY_FILE);
+		Set<String> stopwords = FileUtils.readStringHashSetFromText(MIRPath.STOPWORD_INQUERY_FILE);
 
 		{
 			TextFileReader reader = new TextFileReader(MIRPath.MESH_COL_RAW_DESCRIPTOR_FILE);

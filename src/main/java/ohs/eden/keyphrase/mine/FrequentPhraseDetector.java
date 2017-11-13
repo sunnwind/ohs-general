@@ -400,7 +400,7 @@ public class FrequentPhraseDetector {
 
 		{
 
-			Set<String> stopwords = FileUtils.readStringSetFromText(MIRPath.STOPWORD_INQUERY_FILE);
+			Set<String> stopwords = FileUtils.readStringHashSetFromText(MIRPath.STOPWORD_INQUERY_FILE);
 
 			String[] dirs = { MIRPath.OHSUMED_COL_DC_DIR, MIRPath.TREC_CDS_2016_COL_DC_DIR, MIRPath.BIOASQ_COL_DC_DIR,
 					MIRPath.WIKI_COL_DIR };

@@ -96,33 +96,35 @@ public class DataGenerator {
 					}
 
 					Collections.shuffle(locs1);
-
-					int idx1 = locs1.get(0);
-
 					Collections.shuffle(locs2);
 
-					int idx2 = locs2.get(0);
+					int size = Math.min(locs1.size(), locs2.size());
 
-					IntPair p1 = map.get(idx1);
-					IntPair p2 = map.get(idx2);
+					for (int i = 0; i < size; i++) {
+						int idx1 = locs1.get(i);
+						int idx2 = locs2.get(i);
 
-					MToken t1 = d.get(p1.getFirst()).get(p1.getSecond());
-					MToken t2 = d.get(p2.getFirst()).get(p2.getSecond());
+						IntPair p1 = map.get(idx1);
+						IntPair p2 = map.get(idx2);
 
-					if (t1.getString(0).equals(t2.getString(0))) {
-						continue;
+						MToken t1 = d.get(p1.getFirst()).get(p1.getSecond());
+						MToken t2 = d.get(p2.getFirst()).get(p2.getSecond());
+
+						if (t1.getString(0).equals(t2.getString(0))) {
+							continue;
+						}
+
+						System.out.println(t1.toString());
+						System.out.println(t2.toString());
+						System.out.println();
+
+						MDocument d2 = MDocument.newDocument(d.toString());
+						d2.get(p1.getFirst()).set(p1.getSecond(), t2);
+						d2.get(p2.getFirst()).set(p2.getSecond(), t1);
+						d2.getAttrMap().put("label", "fake");
+
+						ret.add(d2);
 					}
-
-					System.out.println(t1.toString());
-					System.out.println(t2.toString());
-					System.out.println();
-
-					MDocument d2 = MDocument.newDocument(d.toString());
-					d2.get(p1.getFirst()).set(p1.getSecond(), t2);
-					d2.get(p2.getFirst()).set(p2.getSecond(), t1);
-					d2.getAttrMap().put("label", "fake");
-					
-					ret.add(d2);
 				}
 			}
 		}

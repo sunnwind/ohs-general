@@ -133,7 +133,7 @@ public class ConceptCountCollector {
 		// DocumentCollection dc = new DocumentCollection(MIRPath.DATA_DIR +
 		// "merged/col/dc/");
 		DocumentCollection dc = new DocumentCollection(MIRPath.TREC_CDS_2016_COL_DC_DIR);
-		WordFilter wf = new WordFilter(dc.getVocab(), FileUtils.readStringSetFromText(MIRPath.STOPWORD_INQUERY_FILE));
+		WordFilter wf = new WordFilter(dc.getVocab(), FileUtils.readStringHashSetFromText(MIRPath.STOPWORD_INQUERY_FILE));
 
 		ConceptCountCollector dpe = new ConceptCountCollector(dc, wf, phrss);
 		dpe.setBatchSize(2000);

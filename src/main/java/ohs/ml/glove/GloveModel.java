@@ -29,7 +29,7 @@ public class GloveModel {
 
 		DocumentCollection ldc = new DocumentCollection(dir + "col/dc/");
 
-		Set<String> stopwords = FileUtils.readStringSetFromText(MIRPath.STOPWORD_INQUERY_FILE);
+		Set<String> stopwords = FileUtils.readStringHashSetFromText(MIRPath.STOPWORD_INQUERY_FILE);
 
 		WordSearcher.interact(new WordSearcher(ldc.getVocab(), M.getAveragedModel(), stopwords));
 		System.out.println("process ends.");

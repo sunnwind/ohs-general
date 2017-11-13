@@ -276,7 +276,7 @@ public class DocumentSearcher {
 		scorer = new LanguageModelScorer(vocab, dc, ii);
 
 		if (stopwordFileName != null) {
-			Set<String> stopwords = FileUtils.readStringSetFromText(stopwordFileName);
+			Set<String> stopwords = FileUtils.readStringHashSetFromText(stopwordFileName);
 			wf = new WordFilter(vocab, stopwords);
 		} else {
 			wf = new WordFilter(vocab, null);

@@ -1,8 +1,10 @@
 package ohs.ml.neuralnet.com;
 
+import java.util.List;
 import java.util.Set;
-import java.util.regex.Pattern;
 
+import ohs.matrix.DenseVector;
+import ohs.nlp.ling.types.MSentence;
 import ohs.nlp.ling.types.MToken;
 import ohs.types.generic.Indexer;
 import ohs.types.number.IntegerArray;
@@ -11,87 +13,151 @@ import ohs.utils.StrUtils;
 
 public class WordFeatureExtractor {
 
-	private static String[] endings = new String[] { "ing", "ed", "ogy", "s", "ly", "ion", "tion", "ity", "ies" };
-
-	private Pattern allCapsPat = Pattern.compile("^[\\p{Upper}]+$");
-	private final String[] endingNames = new String[endings.length];
-
-	private final Pattern[] endingPatterns = new Pattern[endings.length];
-
 	private Indexer<String> featIdxer;
 
-	private Pattern firstCapPat = Pattern.compile("^[\\p{Upper}].*");
+	private DenseVector featTypeSizes;
 
 	public WordFeatureExtractor() {
-		for (int i = 0; i < endings.length; i++) {
-			endingPatterns[i] = Pattern.compile(".*" + endings[i] + "$");
-			for (int j = 0; j < 3; j++) {
-				endingNames[i] = "w=<END" + endings[i] + ">";
+
+	}
+
+	public static final String[] FEAT_TYPES = { "cap", "suf", "per", "org", "loc", "misc" };
+
+	public WordFeatureExtractor(Set<String> caps, Set<String> suffixes, Set<String> pers, Set<String> orgs,
+			Set<String> locs, Set<String> miscs) {
+
+		featIdxer = Generics
+				.newIndexer(caps.size() + pers.size() + orgs.size() + locs.size() + miscs.size() + suffixes.size());
+
+		featTypeSizes = new DenseVector(FEAT_TYPES.length);
+
+		{
+
+			List<Set<String>> F = Generics.newArrayList();
+			F.add(caps);
+			F.add(suffixes);
+			F.add(pers);
+			F.add(orgs);
+			F.add(locs);
+			F.add(miscs);
+
+			for (int i = 0; i < FEAT_TYPES.length; i++) {
+				String type = FEAT_TYPES[i];
+				Set<String> feats = F.get(i);
+
+				for (String feat : feats) {
+					feat = feat.replaceAll("[\\s\u2029]+", "").trim();
+					featIdxer.add(String.format("%s=%s", type, feat));
+				}
+
+				featTypeSizes.add(i++, feats.size());
+			}
+		}
+	}
+
+	public void extract(MSentence s) {
+
+		for (int i = 0; i < s.size(); i++) {
+			MToken t = s.get(i);
+			t.add(t.getString(0).toLowerCase());
+			t.add(new DenseVector(FEAT_TYPES.length));
+			extractTokenFeatures(t);
+		}
+
+		extractChunkFeatures(s);
+	}
+
+	public void extractChunkFeatures(MSentence s) {
+
+		List<String> words = s.getTokenStrings(s.get(0).size() - 2);
+		boolean[][] feat_flags = new boolean[words.size()][4];
+
+		int win_size = 5;
+
+		for (int i = 0; i < s.size(); i++) {
+			for (int j = i + 1; j < Math.min(s.size(), i + win_size); j++) {
+				String substr = StrUtils.join("", words, i, j);
+
+				for (int k = 2; k < FEAT_TYPES.length; k++) {
+					String feat = String.format("%s=%s", FEAT_TYPES[k], substr);
+
+					if (featIdxer.contains(feat)) {
+						for (int u = i; u < j; u++) {
+							feat_flags[u][k - 2] = true;
+						}
+					}
+				}
 			}
 		}
 
-		featIdxer = Generics.newIndexer();
+		for (int i = 0; i < s.size(); i++) {
+			MToken t = s.get(i);
+			DenseVector F = (DenseVector) t.get(t.size() - 1);
+			boolean[] flags = feat_flags[i];
 
-		featIdxer.add("w=<Noninfo>");
-		featIdxer.add("w=<Lowercase>");
-		featIdxer.add("w=<AllCaps>");
-		featIdxer.add("w=<FirstCap>");
-		featIdxer.add("w=<MixedCaps>");
+			for (int j = 0; j < flags.length; j++) {
+				if (flags[j]) {
+					F.set(j, 1);
+				}
+			}
 
-		// for (String f : endingNames) {
-		// featIdxer.add(f);
-		// }
+		}
 	}
 
-	public IntegerArray extract(MToken t) {
+	public void extractTokenFeatures(MToken t) {
 		String word = t.getString(0);
 
-		IntegerArray F = new IntegerArray(new int[featIdxer.size()]);
-
-		Set<Integer> caps = Generics.newHashSet();
-		Set<Integer> lowers = Generics.newHashSet();
+		Set<Integer> caps = Generics.newHashSet(word.length());
 
 		for (int i = 0; i < word.length(); i++) {
 			char ch = word.charAt(i);
 			if (Character.isUpperCase(ch)) {
 				caps.add(i);
-			} else if (Character.isLowerCase(ch)) {
-				lowers.add(i);
 			}
 		}
 
-		// all caps
-		if (caps.size() == word.length()) {
-			F.set(featIdxer.indexOf("w=<AllCaps>"), 1);
+		DenseVector F = (DenseVector) t.get(t.size() - 1);
+
+		int feat_type_idx = 0;
+
+		{
+			String feat = "nocaps";
+
+			if (caps.size() == word.length()) {
+				feat = "allcaps";
+			} else {
+				if (caps.contains(0)) {
+					feat = "initcap";
+				} else {
+					feat = "hascap";
+				}
+			}
+
+			int f = featIdxer.indexOf(String.format("%s=%s", FEAT_TYPES[feat_type_idx], feat));
+			F.add(feat_type_idx, f);
 		}
 
-		// first cap
-		if (caps.contains(0)) {
-			F.set(featIdxer.indexOf("w=<FirstCap>"), 1);
-		}
-
-		// mixed caps
-		if (!caps.contains(0) && caps.size() > 0) {
-			F.set(featIdxer.indexOf("w=<MixedCaps>"), 1);
-		}
-
-		// all lowercases
-		if (lowers.size() == word.length()) {
-			F.set(featIdxer.indexOf("w=<Lowercase>"), 1);
-		}
-
-		if (caps.size() == 0 && lowers.size() == 0) {
-			F.set(featIdxer.indexOf("w=<Noninfo>"), 1);
-		}
+		feat_type_idx++;
 
 		word = word.toLowerCase();
-		word = StrUtils.normalizeNumbers(word);
 
-		t.add(word);
-		t.add(F);
+		{
+			List<String> suffixes = Generics.newArrayList();
+			for (int j = 0; j < word.length(); j++) {
+				String suffix = String.format("%s=%s", FEAT_TYPES[1],
+						word.substring(word.length() - j - 1, word.length()));
 
-		return F;
+				if (featIdxer.contains(suffix)) {
+					suffixes.add(suffix);
+				}
+			}
 
+			if (suffixes.size() > 0) {
+				F.add(feat_type_idx, featIdxer.indexOf(suffixes.get(suffixes.size() - 1)));
+			} else {
+				F.add(feat_type_idx, -1);
+			}
+		}
 	}
 
 	public Indexer<String> getFeatureIndexer() {

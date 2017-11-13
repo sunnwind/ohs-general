@@ -347,7 +347,7 @@ public class MeSHHandler {
 		Counter<String> c = Generics.newCounter();
 
 		DocumentCollection dc = new DocumentCollection(MIRPath.TREC_CDS_2016_COL_DC_DIR);
-		Set<String> stopwords = FileUtils.readStringSetFromText(MIRPath.STOPWORD_INQUERY_FILE);
+		Set<String> stopwords = FileUtils.readStringHashSetFromText(MIRPath.STOPWORD_INQUERY_FILE);
 		WordFilter filter = new WordFilter(dc.getVocab(), stopwords);
 
 		EnglishNormalizer sn = new EnglishNormalizer();

@@ -345,7 +345,7 @@ public class Word2VecTrainer {
 
 		System.out.println(sc.getVocab().getObjects());
 
-		Set<String> stopwords = FileUtils.readStringSetFromText(MIRPath.STOPWORD_INQUERY_FILE);
+		Set<String> stopwords = FileUtils.readStringHashSetFromText(MIRPath.STOPWORD_INQUERY_FILE);
 
 		WordSearcher.interact(new WordSearcher(ldc.getVocab(), M.getAveragedModel(), stopwords));
 

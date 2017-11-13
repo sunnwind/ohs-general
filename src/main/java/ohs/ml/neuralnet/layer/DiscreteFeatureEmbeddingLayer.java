@@ -29,6 +29,8 @@ public class DiscreteFeatureEmbeddingLayer extends Layer {
 
 	private int extra_emb_size;
 
+	private int feat_type_size;
+
 	private boolean is_learning = true;
 
 	private DenseMatrix tmp_dX = new DenseMatrix(0);
@@ -52,17 +54,19 @@ public class DiscreteFeatureEmbeddingLayer extends Layer {
 
 	}
 
-	public DiscreteFeatureEmbeddingLayer(DenseMatrix W, int prev_emb_size, boolean is_learning) {
+	public DiscreteFeatureEmbeddingLayer(DenseMatrix W, int feat_type_size, int prev_emb_size, boolean is_learning) {
 		this.W = W;
 		this.prev_emb_size = prev_emb_size;
 		this.is_learning = is_learning;
+		this.feat_type_size = feat_type_size;
 
-		extra_emb_size = W.rowSize() * W.colSize();
+		extra_emb_size = feat_type_size * W.colSize();
 		new_emb_size = prev_emb_size + extra_emb_size;
 	}
 
-	public DiscreteFeatureEmbeddingLayer(int feat_size, int feat_emb_size, int prev_emb_size, boolean learn_embedding) {
-		this(new DenseMatrix(feat_size, feat_emb_size), prev_emb_size, learn_embedding);
+	public DiscreteFeatureEmbeddingLayer(int feat_size, int feat_type_size, int feat_emb_size, int prev_emb_size,
+			boolean learn_embedding) {
+		this(new DenseMatrix(feat_size, feat_emb_size), feat_type_size, prev_emb_size, learn_embedding);
 	}
 
 	@Override
@@ -70,6 +74,7 @@ public class DiscreteFeatureEmbeddingLayer extends Layer {
 		DenseTensor dY = (DenseTensor) I;
 		DenseTensor dX = new DenseTensor();
 		DenseTensor X = this.X;
+		DenseTensor F = this.F;
 
 		dX.ensureCapacity(dY.size());
 
@@ -82,6 +87,7 @@ public class DiscreteFeatureEmbeddingLayer extends Layer {
 		for (int u = 0; u < dY.size(); u++) {
 			DenseMatrix dYm = dY.get(u);
 			DenseMatrix Xm = X.get(u);
+			DenseMatrix Fm = F.get(u);
 			DenseMatrix dXm = tmp_dX.subMatrix(start, dYm.rowSize());
 			dXm.setAll(0);
 
@@ -90,6 +96,7 @@ public class DiscreteFeatureEmbeddingLayer extends Layer {
 			for (int i = 0; i < dYm.rowSize(); i++) {
 				DenseVector dy = dYm.row(i);
 				DenseVector dx = dXm.row(i);
+				DenseVector fm = Fm.row(i);
 
 				for (int j = 0; j < prev_emb_size; j++) {
 					dx.add(j, dy.value(j));
@@ -98,11 +105,16 @@ public class DiscreteFeatureEmbeddingLayer extends Layer {
 				int pos = prev_emb_size;
 
 				if (is_learning) {
-					for (int j = 0; j < feat_size; j++) {
-						DenseVector dw = dW.row(j);
-						for (int k = 0; k < feat_emb_size; k++) {
-							dw.add(k, dy.value(pos++));
+					for (int j = 1; j < fm.size(); j++) {
+						int feat_idx = (int) fm.value(j);
+						if (feat_idx >= 0) {
+							DenseVector dw = dW.row(feat_idx);
+							int _pos = pos;
+							for (int k = 0; k < feat_emb_size; k++) {
+								dw.add(k, dy.value(_pos++));
+							}
 						}
+						pos += feat_emb_size;
 					}
 				}
 			}
@@ -113,7 +125,7 @@ public class DiscreteFeatureEmbeddingLayer extends Layer {
 	}
 
 	public Layer copy() {
-		return new DiscreteFeatureEmbeddingLayer(W, prev_emb_size, is_learning);
+		return new DiscreteFeatureEmbeddingLayer(W, feat_type_size, prev_emb_size, is_learning);
 	}
 
 	@Override
@@ -151,10 +163,8 @@ public class DiscreteFeatureEmbeddingLayer extends Layer {
 						ArrayUtils.copy(x.values(), 0, y.values(), pos, prev_emb_size);
 						pos += prev_emb_size;
 					} else {
-						double feat_flag = f.value(k);
-
-						if (feat_flag == 1d) {
-							int feat_idx = k - 1;
+						int feat_idx = (int) f.value(k);
+						if (feat_idx >= 0) {
 							DenseVector w = W.row(feat_idx);
 							ArrayUtils.copy(w.values(), 0, y.values(), pos, feat_emb_size);
 						}
@@ -168,6 +178,7 @@ public class DiscreteFeatureEmbeddingLayer extends Layer {
 		this.Y = Y;
 
 		return Y;
+
 	}
 
 	@Override

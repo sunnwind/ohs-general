@@ -247,7 +247,6 @@ public class NeuralNetTrainer {
 	public void train(DenseTensor X, DenseMatrix Y, DenseTensor Xt, DenseMatrix Yt, int max_iters) throws Exception {
 
 		if (Y.colSize() > 0) {
-
 			if (is_full_seq_batch) {
 				data_locs = ArrayUtils.range(Y.rowSize());
 				ranges = BatchUtils.getBatchRanges(Y.rowSize(), batch_size);
@@ -360,7 +359,7 @@ public class NeuralNetTrainer {
 				}
 			}
 
-			if (iters % learn_rate_decay_size == 0) {
+			if (iters % learn_rate_decay_size == 0 && learn_rate_decay < 1.0) {
 				learn_rate = learn_rate * learn_rate_decay;
 
 				for (ParameterUpdater pu : pus) {

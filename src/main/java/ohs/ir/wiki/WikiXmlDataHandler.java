@@ -237,7 +237,7 @@ public class WikiXmlDataHandler {
 			}
 		}
 
-		Set<String> stopwords = FileUtils.readStringSetFromText(MIRPath.STOPWORD_INQUERY_FILE);
+		Set<String> stopwords = FileUtils.readStringHashSetFromText(MIRPath.STOPWORD_INQUERY_FILE);
 
 		List<String> titles = new ArrayList<String>(titleVariantMap.keySet());
 		Collections.sort(titles);

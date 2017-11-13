@@ -3612,6 +3612,8 @@ public class ArrayMath {
 		System.out.println("SSR  = " + ssr);
 	}
 
+	public static final double eps = 0.0000001;
+
 	public static double softmax(double[] a, double[] b) {
 		if (!ArrayChecker.isEqualSize(a, b)) {
 			throw new IllegalArgumentException();
@@ -3619,7 +3621,7 @@ public class ArrayMath {
 		double max = max(a);
 		double sum = 0;
 		for (int i = 0; i < a.length; i++) {
-			b[i] = Math.exp(a[i] - max);
+			b[i] = Math.exp(a[i] - max) + eps;
 			sum += b[i];
 		}
 		return multiply(b, 1f / sum, b);

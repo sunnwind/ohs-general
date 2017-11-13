@@ -55,30 +55,36 @@ public class PerformanceEvaluator {
 		return c;
 	}
 
-	private Counter<Integer> countLabelSeqs(List<String> bioLabels, Indexer<String> labelIdxer) {
-		Counter<Integer> ret = Generics.newCounter(labelIdxer.size());
+	private Set<String> countLabelSeqs(List<String> tags, Indexer<String> labelIdxer) {
+		Set<String> ret = Generics.newHashSet();
 
-		for (int i = 0; i < bioLabels.size();) {
-			String s1 = bioLabels.get(i);
-			String[] ps1 = splitBioLabel(s1);
-			String l1 = ps1[0];
-			String bio1 = ps1[1];
+		for (int i = 0; i < tags.size();) {
+			String tag1 = tags.get(i);
 
-			if (bio1.equals("B")) {
-				int j = i + 1;
-				while (j < bioLabels.size()) {
-					String s2 = bioLabels.get(j);
-					String[] ps2 = splitBioLabel(s2);
-					String l2 = ps2[0];
-					String bio2 = ps2[1];
+			if (tag1.startsWith("B-") || tag1.startsWith("S-")) {
+				String prefix1 = tag1.split("-")[0];
+				String cat1 = tag1.split("-")[1];
 
-					if (!bio2.equals("I")) {
-						break;
+				int match_len = 1;
+
+				if (prefix1.equals("S")) {
+
+				} else if (prefix1.equals("B")) {
+					for (int j = i + 1; j < tags.size(); j++) {
+						String tag2 = tags.get(j);
+						if (tag2.equals("O")) {
+							break;
+						} else if (tag2.startsWith("B-") || tag2.startsWith("S-")) {
+							break;
+						}
+						match_len++;
 					}
-					j++;
+				} else {
+					System.err.println("wrong tag sequence");
+					System.exit(0);
 				}
-				ret.incrementCount(labelIdxer.indexOf(l1), 1);
-				i = j;
+				ret.add(String.format("%d_%d_%s", i, match_len, cat1));
+				i += match_len;
 			} else {
 				i++;
 			}
@@ -148,59 +154,83 @@ public class PerformanceEvaluator {
 		return evalute(Y_, Yh_, labelIdxer);
 	}
 
-	public Performance evaluteSequences(IntegerMatrix Y, IntegerMatrix Yh, Indexer<String> bioIdxer) {
-		Indexer<String> labelIdxer = Generics.newIndexer();
+	public Performance evaluteSequences(IntegerMatrix Y, IntegerMatrix Yh, Indexer<String> tagIdxer) {
+
+		int size = Y.sizeOfEntries();
+
+		Indexer<String> catIdxer = Generics.newIndexer();
 
 		{
 			Counter<String> c = Generics.newCounter();
 
-			for (String bio : bioIdxer) {
-				String[] ps = bio.split("-");
-				if (ps.length == 2) {
-					String l = ps[0];
-					if (l.equals("B") || l.equals("I")) {
-						l = ps[1];
-					}
-					c.incrementCount(l, 1);
+			for (String tag : tagIdxer) {
+				if (!tag.equals("O")) {
+					String[] ps = tag.split("-");
+					String cat = ps[1];
+					c.incrementCount(cat, 1);
 				}
 			}
 
 			if (c.size() > 0) {
-				labelIdxer.addAll(Generics.newTreeSet(c.keySet()));
-				labelIdxer.add("O");
+				catIdxer.addAll(Generics.newTreeSet(c.keySet()));
+				catIdxer.add("O");
 			} else {
-				labelIdxer = Generics.newIndexer(bioIdxer);
+				catIdxer = Generics.newIndexer(tagIdxer);
 			}
-
 		}
 
-		Counter<Integer> corCnts = Generics.newCounter(labelIdxer.size());
-		Counter<Integer> predCnts = Generics.newCounter(labelIdxer.size());
-		Counter<Integer> ansCnts = Generics.newCounter(labelIdxer.size());
+		Counter<Integer> corCnts = Generics.newCounter(catIdxer.size());
+		Counter<Integer> predCnts = Generics.newCounter(catIdxer.size());
+		Counter<Integer> ansCnts = Generics.newCounter(catIdxer.size());
 
 		for (int u = 0; u < Y.size(); u++) {
 			IntegerArray y = Y.get(u);
 			IntegerArray yh = Yh.get(u);
 
-			List<String> anss = Generics.newArrayList(bioIdxer.getObjects(y));
-			List<String> preds = Generics.newArrayList(bioIdxer.getObjects(yh));
+			List<String> anss = Generics.newArrayList(tagIdxer.getObjects(y));
+			List<String> preds = Generics.newArrayList(tagIdxer.getObjects(yh));
 
-			ansCnts.incrementAll(countLabelSeqs(anss, labelIdxer));
-			predCnts.incrementAll(countLabelSeqs(preds, labelIdxer));
-			corCnts.incrementAll(countCommonLabelSeqs(anss, preds, labelIdxer));
+			Set<String> s1 = countLabelSeqs(anss, catIdxer);
+			Set<String> s2 = countLabelSeqs(preds, catIdxer);
+			Set<String> s3 = Generics.newHashSet(s1.size());
+
+			for (String ans : s2) {
+				if (s1.contains(ans)) {
+					s3.add(ans);
+				}
+			}
+
+			for (String tag : s1) {
+				String[] ps = tag.split("_");
+				ansCnts.incrementCount(catIdxer.indexOf(ps[2]), 1);
+			}
+
+			for (String tag : s2) {
+				String[] ps = tag.split("_");
+				predCnts.incrementCount(catIdxer.indexOf(ps[2]), 1);
+			}
+
+			for (String tag : s3) {
+				String[] ps = tag.split("_");
+				corCnts.incrementCount(catIdxer.indexOf(ps[2]), 1);
+			}
+
+			// ansCnts.incrementAll(countLabelSeqs(anss, labelIdxer));
+			// predCnts.incrementAll(countLabelSeqs(preds, labelIdxer));
+			// corCnts.incrementAll(countCommonLabelSeqs(anss, preds, labelIdxer));
 		}
 
-		IntegerArray ans_cnts = new IntegerArray(labelIdxer.size());
-		IntegerArray pred_cnts = new IntegerArray(labelIdxer.size());
-		IntegerArray cor_cnts = new IntegerArray(labelIdxer.size());
+		IntegerArray ans_cnts = new IntegerArray(catIdxer.size());
+		IntegerArray pred_cnts = new IntegerArray(catIdxer.size());
+		IntegerArray cor_cnts = new IntegerArray(catIdxer.size());
 
-		for (int i = 0; i < labelIdxer.size(); i++) {
+		for (int i = 0; i < catIdxer.size(); i++) {
 			ans_cnts.add((int) ansCnts.getCount(i));
 			pred_cnts.add((int) predCnts.getCount(i));
 			cor_cnts.add((int) corCnts.getCount(i));
 		}
 
-		return new Performance(ans_cnts, pred_cnts, cor_cnts, labelIdxer);
+		return new Performance(ans_cnts, pred_cnts, cor_cnts, catIdxer);
 	}
 
 	private String[] splitBioLabel(String bioLabel) {

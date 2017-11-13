@@ -9,13 +9,19 @@ import ohs.types.number.IntegerArray;
 
 public class Performance {
 
+	private Indexer<String> labelIdxer;
+
 	private IntegerArray ans_cnts;
 
 	private IntegerArray cor_cnts;
 
-	private DoubleArray f1;
+	private IntegerArray pred_cnts;
 
-	private Indexer<String> labelIdxer;
+	private DoubleArray precisons;
+
+	private DoubleArray recalls;
+
+	private DoubleArray f1;
 
 	private double macro_f1;
 
@@ -24,12 +30,6 @@ public class Performance {
 	private double micro_pr;
 
 	private double micro_rc;
-
-	private DoubleArray precisons;
-
-	private IntegerArray pred_cnts;
-
-	private DoubleArray recalls;
 
 	private int total_ans_cnt;
 

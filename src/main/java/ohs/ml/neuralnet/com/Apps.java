@@ -1,9 +1,11 @@
 package ohs.ml.neuralnet.com;
 
 import java.io.File;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import edu.stanford.nlp.patterns.surface.Token;
 import ohs.corpus.type.DocumentCollection;
 import ohs.corpus.type.EnglishTokenizer;
 import ohs.fake.FNPath;
@@ -50,10 +52,10 @@ public class Apps {
 
 		// testMNIST();
 		// testCharRNN();
-		// testNER();
+		testNER();
 
 		// testSentenceClassification();
-		testDocumentClassification();
+		// testDocumentClassification();
 
 		System.out.println("process ends.");
 	}
@@ -251,7 +253,7 @@ public class Apps {
 			MToken.INDEXER = l;
 		}
 
-		String[] fileNames = { "Mission1_sample_1차수정본.txt"};
+		String[] fileNames = { "Mission1_sample_1차수정본.txt" };
 
 		File inFile = new File(FNPath.DATA_DIR + "train_01", fileNames[0]);
 
@@ -490,6 +492,63 @@ public class Apps {
 		trainer.finish();
 	}
 
+	public static void transformBIOtoBIOSE(MDocument d) {
+
+		int w_loc = 0;
+		int ne_loc = 3;
+
+		for (int u = 0; u < d.size(); u++) {
+			MSentence s = d.get(u);
+			for (int i = 0; i < s.size();) {
+				MToken t1 = s.get(i);
+				String w1 = t1.getString(w_loc);
+				String ne1 = t1.getString(ne_loc);
+
+				if (ne1.startsWith("B-")) {
+					int size = 1;
+
+					for (int k = i + 1; k < s.size(); k++) {
+						MToken t2 = s.get(k);
+						String w2 = t2.getString(w_loc);
+						String ne2 = t2.getString(ne_loc);
+
+						if (ne2.startsWith("I")) {
+							size++;
+						} else {
+							break;
+						}
+					}
+
+					int j = i + size;
+					;
+
+					for (int k = i; k < j; k++) {
+						MToken t2 = s.get(k);
+						String ne = t2.getString(ne_loc);
+
+						if (size == 1) {
+							ne = ne.replace("B-", "S-");
+						} else {
+							if (k == i) {
+								ne = ne.replace("B-", "B-");
+							} else if (k == j - 1) {
+								ne = ne.replace("I-", "E-");
+							} else {
+								ne = ne.replace("I-", "I-");
+							}
+						}
+						t2.set(ne_loc, ne);
+					}
+
+					i = j;
+
+				} else {
+					i++;
+				}
+			}
+		}
+	}
+
 	public static void testNER() throws Exception {
 		NeuralNetParams nnp = new NeuralNetParams();
 
@@ -502,8 +561,8 @@ public class Apps {
 		nnp.setGradientClipCutoff(5);
 
 		nnp.setThreadSize(5);
-		nnp.setBatchSize(1);
-		nnp.setGradientAccumulatorResetSize(1000);
+		nnp.setBatchSize(2);
+		nnp.setGradientAccumulatorResetSize(Integer.MAX_VALUE);
 		nnp.setBPTT(1);
 
 		nnp.setIsFullSequenceBatch(true);
@@ -528,6 +587,26 @@ public class Apps {
 		MDocument trainData = MDocument.newDocument(FileUtils.readFromText(trainFileName));
 		MDocument testData = MDocument.newDocument(FileUtils.readFromText(testFileName));
 
+		// transformBIOtoBIOSE(trainData);
+		// transformBIOtoBIOSE(testData);
+
+		// for (MSentence s : trainData) {
+		// boolean found = false;
+		// for (int i = 0; i < s.size() - 1; i++) {
+		// MToken t1 = s.get(i);
+		// MToken t2 = s.get(i + 1);
+		//
+		// if (t1.getString(3).startsWith("B-") && t2.getString(3).startsWith("B-")) {
+		// found = true;
+		// }
+		// }
+		//
+		// if (found) {
+		// System.out.println(s.toString());
+		// System.out.println();
+		// }
+		// }
+
 		Indexer<String> labelIdxer = Generics.newIndexer();
 		Vocab vocab = new Vocab();
 		vocab.add(Vocab.SYM.UNK.getText());
@@ -549,23 +628,39 @@ public class Apps {
 		WordFeatureExtractor ext = new WordFeatureExtractor();
 
 		{
+			String sennaHashDirName = "../../data/ml_data/senna_hash/";
+
+			Set<String> caps = FileUtils.readStringHashSetFromText(sennaHashDirName + "caps.lst");
+			Set<String> suffixes = FileUtils.readStringHashSetFromText(sennaHashDirName + "suffix.lst");
+			Set<String> pers = FileUtils.readStringHashSetFromText(sennaHashDirName + "ner.per.lst");
+			Set<String> orgs = FileUtils.readStringHashSetFromText(sennaHashDirName + "ner.org.lst");
+			Set<String> locs = FileUtils.readStringHashSetFromText(sennaHashDirName + "ner.loc.lst");
+			Set<String> miscs = FileUtils.readStringHashSetFromText(sennaHashDirName + "ner.misc.lst");
+
+			ext = new WordFeatureExtractor(caps, suffixes, pers, orgs, locs, miscs);
+
+		}
+
+		{
 			MDocument D = new MDocument();
 			D.addAll(trainData);
 			D.addAll(testData);
 
 			Set<String> labels = Generics.newTreeSet();
 
+			for (MSentence s : D) {
+				ext.extract(s);
+			}
+
 			for (MToken t : D.getTokens()) {
 				String word = t.getString(0);
-				String ner = t.getString(3);
-				String[] ps = ner.split("-");
-				if (ps.length == 2) {
-					ner = String.format("%s-%s", ps[1], ps[0]);
-				}
-				t.set(3, ner);
-				ext.extract(t);
+				String ne = t.getString(3);
+				String[] ps = ne.split("-");
 
-				labels.add(ner);
+				t.set(3, ne);
+				ext.extractTokenFeatures(t);
+
+				labels.add(ne);
 			}
 
 			labels.remove("O");
@@ -583,7 +678,7 @@ public class Apps {
 				for (int j = 0; j < s.size(); j++) {
 					MToken t = s.get(j);
 
-					IntegerArray f = new IntegerArray(1 + ext.getFeatureIndexer().size());
+					IntegerArray f = new IntegerArray(7);
 
 					if (i < trainData.size()) {
 						f.add(vocab.getIndex(t.getString(4)));
@@ -638,11 +733,12 @@ public class Apps {
 
 		System.out.println(vocab.info());
 		System.out.println(labelIdxer.info());
+		System.out.println(labelIdxer.toString());
 		System.out.println(X.sizeOfEntries());
 
 		int voc_size = vocab.size();
 		int word_emb_size = 50;
-		int feat_emb_size = 10;
+		int feat_emb_size = 5;
 		int l1_size = 100;
 		int label_size = labelIdxer.size();
 		int type = 2;
@@ -661,7 +757,7 @@ public class Apps {
 			nn.add(new EmbeddingLayer(voc_size, word_emb_size, true));
 
 			DiscreteFeatureEmbeddingLayer l = new DiscreteFeatureEmbeddingLayer(ext.getFeatureIndexer().size(),
-					feat_emb_size, word_emb_size, true);
+					WordFeatureExtractor.FEAT_TYPES.length, feat_emb_size, word_emb_size, true);
 
 			nn.add(l);
 			nn.add(new DropoutLayer());

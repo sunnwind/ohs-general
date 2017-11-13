@@ -146,7 +146,7 @@ public class EmbeddingConceptWeightEstimator {
 		{
 			DocumentCollection dc = new DocumentCollection(MIRPath.TREC_CDS_2016_COL_DC_DIR);
 
-			Set<String> stopwords = FileUtils.readStringSetFromText(MIRPath.STOPWORD_INQUERY_FILE);
+			Set<String> stopwords = FileUtils.readStringHashSetFromText(MIRPath.STOPWORD_INQUERY_FILE);
 			WordFilter wf = new WordFilter(dc.getVocab(), stopwords);
 			Vocab vocab = dc.getVocab();
 

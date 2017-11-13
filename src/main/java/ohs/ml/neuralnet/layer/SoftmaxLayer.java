@@ -60,6 +60,15 @@ public class SoftmaxLayer extends Layer {
 			VectorMath.softmax(Xm, Ym);
 			Y.add(Ym);
 
+			for (DenseVector ym : Ym) {
+				for (int i = 0; i < ym.size(); i++) {
+					double score = ym.value(i);
+					if (score == 0 || score == 1) {
+						System.out.println();
+					}
+				}
+			}
+
 		}
 		return Y;
 	}

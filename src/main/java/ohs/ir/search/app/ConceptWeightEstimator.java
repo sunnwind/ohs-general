@@ -174,7 +174,7 @@ public class ConceptWeightEstimator {
 			wordToLemma.put(word, lemma);
 		}
 
-		Set<String> stopwords = FileUtils.readStringSetFromText(MIRPath.STOPWORD_INQUERY_FILE);
+		Set<String> stopwords = FileUtils.readStringHashSetFromText(MIRPath.STOPWORD_INQUERY_FILE);
 		WordFilter wf = new WordFilter(vocab, stopwords);
 
 		Counter<String> clueWords = Generics.newCounter();
