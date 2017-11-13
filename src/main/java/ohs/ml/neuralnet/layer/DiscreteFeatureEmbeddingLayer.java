@@ -10,6 +10,7 @@ import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
+import ohs.ml.neuralnet.com.NerFeatureExtractor;
 import ohs.ml.neuralnet.com.ParameterInitializer;
 import ohs.types.generic.Pair;
 import ohs.types.number.IntegerArray;
@@ -154,19 +155,19 @@ public class DiscreteFeatureEmbeddingLayer extends Layer {
 			start += Xm.rowSize();
 
 			for (int j = 0; j < Xm.rowSize(); j++) {
-				DenseVector f = Fm.row(j);
-				DenseVector x = Xm.row(j);
-				DenseVector y = Ym.row(j);
+				DenseVector fm = Fm.row(j);
+				DenseVector xm = Xm.row(j);
+				DenseVector ym = Ym.row(j);
 
-				for (int k = 0, pos = 0; k < f.size(); k++) {
+				for (int k = 0, pos = 0; k < fm.size(); k++) {
 					if (k == 0) {
-						ArrayUtils.copy(x.values(), 0, y.values(), pos, prev_emb_size);
+						ArrayUtils.copy(xm.values(), 0, ym.values(), pos, prev_emb_size);
 						pos += prev_emb_size;
 					} else {
-						int feat_idx = (int) f.value(k);
+						int feat_idx = (int) fm.value(k);
 						if (feat_idx >= 0) {
 							DenseVector w = W.row(feat_idx);
-							ArrayUtils.copy(w.values(), 0, y.values(), pos, feat_emb_size);
+							ArrayUtils.copy(w.values(), 0, ym.values(), pos, feat_emb_size);
 						}
 						pos += feat_emb_size;
 					}

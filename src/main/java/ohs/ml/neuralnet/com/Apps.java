@@ -590,23 +590,6 @@ public class Apps {
 		// transformBIOtoBIOSE(trainData);
 		// transformBIOtoBIOSE(testData);
 
-		// for (MSentence s : trainData) {
-		// boolean found = false;
-		// for (int i = 0; i < s.size() - 1; i++) {
-		// MToken t1 = s.get(i);
-		// MToken t2 = s.get(i + 1);
-		//
-		// if (t1.getString(3).startsWith("B-") && t2.getString(3).startsWith("B-")) {
-		// found = true;
-		// }
-		// }
-		//
-		// if (found) {
-		// System.out.println(s.toString());
-		// System.out.println();
-		// }
-		// }
-
 		Indexer<String> labelIdxer = Generics.newIndexer();
 		Vocab vocab = new Vocab();
 		vocab.add(Vocab.SYM.UNK.getText());
@@ -625,7 +608,7 @@ public class Apps {
 		Xt.ensureCapacity(trainData.size());
 		Xt.ensureCapacity(trainData.size());
 
-		WordFeatureExtractor ext = new WordFeatureExtractor();
+		NerFeatureExtractor ext = new NerFeatureExtractor();
 
 		{
 			String sennaHashDirName = "../../data/ml_data/senna_hash/";
@@ -637,8 +620,12 @@ public class Apps {
 			Set<String> locs = FileUtils.readStringHashSetFromText(sennaHashDirName + "ner.loc.lst");
 			Set<String> miscs = FileUtils.readStringHashSetFromText(sennaHashDirName + "ner.misc.lst");
 
-			ext = new WordFeatureExtractor(caps, suffixes, pers, orgs, locs, miscs);
-
+			ext.addCapitalizationFeatures();
+			ext.addSuffixFeatures(suffixes);
+			ext.addGazeteer("per", pers);
+			ext.addGazeteer("org", orgs);
+			ext.addGazeteer("loc", locs);
+			ext.addGazeteer("misc", miscs);
 		}
 
 		{
@@ -648,7 +635,13 @@ public class Apps {
 
 			Set<String> labels = Generics.newTreeSet();
 
-			for (MSentence s : D) {
+			for (MSentence s : D.subList(0, trainData.size())) {
+				ext.extract(s);
+			}
+
+			ext.setAddUnkwonWords(false);
+
+			for (MSentence s : D.subList(trainData.size(), D.size())) {
 				ext.extract(s);
 			}
 
@@ -656,16 +649,14 @@ public class Apps {
 				String word = t.getString(0);
 				String ne = t.getString(3);
 				String[] ps = ne.split("-");
-
-				t.set(3, ne);
-				ext.extractTokenFeatures(t);
-
 				labels.add(ne);
 			}
 
 			labels.remove("O");
 			labelIdxer.addAll(labels);
 			labelIdxer.add("O");
+
+			vocab = ext.getVocab();
 
 			for (int i = 0; i < D.size(); i++) {
 				MSentence s = D.get(i);
@@ -678,21 +669,9 @@ public class Apps {
 				for (int j = 0; j < s.size(); j++) {
 					MToken t = s.get(j);
 
-					IntegerArray f = new IntegerArray(7);
+					Xm.add((DenseVector) t.get(t.size() - 1));
+					Ym.add(j, labelIdxer.getIndex(t.getString(3)));
 
-					if (i < trainData.size()) {
-						f.add(vocab.getIndex(t.getString(4)));
-						f.addAll((IntegerArray) t.get(5));
-
-						Xm.add(new DenseVector(f.values()));
-						Ym.add(j, labelIdxer.getIndex(t.getString(3)));
-					} else {
-						f.add(vocab.indexOf(t.getString(4), 0));
-						f.addAll((IntegerArray) t.get(5));
-
-						Xm.add(new DenseVector(f.values()));
-						Ym.add(j, labelIdxer.getIndex(t.getString(3)));
-					}
 				}
 
 				if (i < trainData.size()) {
@@ -711,26 +690,6 @@ public class Apps {
 		Xt.trimToSize();
 		Yt.trimToSize();
 
-		DenseMatrix T = new DenseMatrix(labelIdxer.size(), labelIdxer.size());
-		DenseMatrix E = new DenseMatrix(labelIdxer.size(), vocab.size());
-
-		for (int i = 0; i < X.size(); i++) {
-			DenseMatrix Xm = X.get(i);
-			DenseVector Ym = Y.row(i);
-
-			for (int j = 1; j < Ym.size(); j++) {
-				int y_prev = (int) Ym.value(j - 1);
-				int y = (int) Ym.value(j);
-				T.add(y_prev, y, 1);
-			}
-
-			for (int j = 0; j < Ym.size(); j++) {
-				int x = (int) Xm.row(j).value(0);
-				int y = (int) Ym.value(j);
-				E.add(y, x, 1);
-			}
-		}
-
 		System.out.println(vocab.info());
 		System.out.println(labelIdxer.info());
 		System.out.println(labelIdxer.toString());
@@ -739,7 +698,7 @@ public class Apps {
 		int voc_size = vocab.size();
 		int word_emb_size = 50;
 		int feat_emb_size = 5;
-		int l1_size = 100;
+		int l1_size = 150;
 		int label_size = labelIdxer.size();
 		int type = 2;
 		int bptt_size = nnp.getBPTTSize();
@@ -757,7 +716,7 @@ public class Apps {
 			nn.add(new EmbeddingLayer(voc_size, word_emb_size, true));
 
 			DiscreteFeatureEmbeddingLayer l = new DiscreteFeatureEmbeddingLayer(ext.getFeatureIndexer().size(),
-					WordFeatureExtractor.FEAT_TYPES.length, feat_emb_size, word_emb_size, true);
+					ext.getFeatureTypeIndexer().size(), feat_emb_size, word_emb_size, true);
 
 			nn.add(l);
 			nn.add(new DropoutLayer());
