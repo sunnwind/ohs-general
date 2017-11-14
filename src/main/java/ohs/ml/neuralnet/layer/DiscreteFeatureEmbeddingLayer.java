@@ -30,7 +30,7 @@ public class DiscreteFeatureEmbeddingLayer extends Layer {
 
 	private int extra_emb_size;
 
-	private int feat_type_size;
+	private int feat_size;
 
 	private boolean is_learning = true;
 
@@ -55,19 +55,19 @@ public class DiscreteFeatureEmbeddingLayer extends Layer {
 
 	}
 
-	public DiscreteFeatureEmbeddingLayer(DenseMatrix W, int feat_type_size, int prev_emb_size, boolean is_learning) {
+	public DiscreteFeatureEmbeddingLayer(DenseMatrix W, int feat_size, int prev_emb_size, boolean is_learning) {
 		this.W = W;
 		this.prev_emb_size = prev_emb_size;
 		this.is_learning = is_learning;
-		this.feat_type_size = feat_type_size;
+		this.feat_size = feat_size;
 
-		extra_emb_size = feat_type_size * W.colSize();
+		extra_emb_size = feat_size * W.colSize();
 		new_emb_size = prev_emb_size + extra_emb_size;
 	}
 
-	public DiscreteFeatureEmbeddingLayer(int feat_size, int feat_type_size, int feat_emb_size, int prev_emb_size,
+	public DiscreteFeatureEmbeddingLayer(int feat_val_size, int feat_size, int feat_emb_size, int prev_emb_size,
 			boolean learn_embedding) {
-		this(new DenseMatrix(feat_size, feat_emb_size), feat_type_size, prev_emb_size, learn_embedding);
+		this(new DenseMatrix(feat_val_size, feat_emb_size), feat_size, prev_emb_size, learn_embedding);
 	}
 
 	@Override
@@ -126,7 +126,7 @@ public class DiscreteFeatureEmbeddingLayer extends Layer {
 	}
 
 	public Layer copy() {
-		return new DiscreteFeatureEmbeddingLayer(W, feat_type_size, prev_emb_size, is_learning);
+		return new DiscreteFeatureEmbeddingLayer(W, feat_size, prev_emb_size, is_learning);
 	}
 
 	@Override

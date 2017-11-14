@@ -194,102 +194,6 @@ public class ParameterUpdater {
 			double dxa1 = 0;
 			double dxa2 = 0;
 
-			// synchronized (W) {
-			for (int j = 0; j < W.rowSize(); j++) {
-				DenseVector dw = dW.row(j);
-				DenseVector w = W.row(j);
-				DenseVector r1 = R1.row(j);
-				DenseVector r2 = R2.row(j);
-
-				// if (g.sum() != 0) {
-				synchronized (w) {
-					sum = 0;
-					if (ot == OptimizerType.SIMPLE) {
-						for (int k = 0; k < dw.size(); k++) {
-							dx = dw.value(k) * grad_decay;
-							x = w.value(k) * weight_decay_L2;
-
-							x -= learn_rate * dx;
-							w.set(k, x);
-							sum += x;
-						}
-					} else if (ot == OptimizerType.ADAGRAD) {
-						for (int k = 0; k < dw.size(); k++) {
-							dx = dw.value(k) * grad_decay;
-							x = w.value(k) * weight_decay_L2;
-
-							r1.add(k, Math.pow(dx, 2));
-
-							x -= learn_rate / Math.sqrt(r1.value(k) + eps) * dx;
-							w.set(k, x);
-							sum += x;
-						}
-					} else if (ot == OptimizerType.RMSPROP) {
-						sum = 0;
-						for (int k = 0; k < dw.size(); k++) {
-							dx = dw.value(k) * grad_decay;
-							x = w.value(k) * weight_decay_L2;
-
-							dxa1 = ArrayMath.addAfterMultiply(r1.value(k), decay_rate, Math.pow(dx, 2), 1 - decay_rate);
-							r1.set(k, dxa1);
-
-							x -= -learn_rate / Math.sqrt(dxa1 + eps) * dx;
-							w.set(k, x);
-							sum += x;
-						}
-					} else if (ot == OptimizerType.ADAM) {
-						for (int k = 0; k < dw.size(); k++) {
-							dx = dw.value(k) * grad_decay;
-							x = w.value(k) * weight_decay_L2;
-
-							dxa1 = ArrayMath.addAfterMultiply(r1.value(k), beta1, dx);
-							dxa2 = ArrayMath.addAfterMultiply(r2.value(k), beta2, Math.pow(dx, 2));
-
-							r1.set(k, dxa1);
-							r2.set(k, dxa2);
-
-							dxa1 = dxa1 / (1 - beta1);
-							dxa2 = dxa2 / (1 - beta2);
-
-							x -= learn_rate / Math.sqrt(dxa2 + eps) * dxa1;
-							w.set(k, x);
-							sum += x;
-						}
-					}
-
-					w.setSum(sum);
-					// }
-					dw.setAll(0);
-				}
-			}
-			// }
-		}
-	}
-
-	public void updateOld() {
-		for (int i = 0; i < Ws.size(); i++) {
-			DenseMatrix W = Ws.get(i);
-			DenseMatrix dW = dWs.get(i);
-			DenseMatrix R1 = Rs1.get(i);
-			DenseMatrix R2 = Rs2.get(i);
-
-			if (grad_clip_cutoff != Double.MAX_VALUE) {
-				double norm = VectorMath.normL2(dW);
-				if (norm > grad_clip_cutoff) {
-					if (use_hard_grad_clipping) {
-						VectorMath.clip(dW, -grad_clip_cutoff, grad_clip_cutoff, dW);
-					} else {
-						dW.multiply(grad_clip_cutoff / norm);
-					}
-				}
-			}
-
-			double sum = 0;
-			double x = 0;
-			double dx = 0;
-			double dxa1 = 0;
-			double dxa2 = 0;
-
 			synchronized (W) {
 				for (int j = 0; j < W.rowSize(); j++) {
 					DenseVector dw = dW.row(j);
@@ -304,6 +208,7 @@ public class ParameterUpdater {
 						for (int k = 0; k < dw.size(); k++) {
 							dx = dw.value(k) * grad_decay;
 							x = w.value(k) * weight_decay_L2;
+
 							x -= learn_rate * dx;
 							w.set(k, x);
 							sum += x;
@@ -311,9 +216,10 @@ public class ParameterUpdater {
 					} else if (ot == OptimizerType.ADAGRAD) {
 						for (int k = 0; k < dw.size(); k++) {
 							dx = dw.value(k) * grad_decay;
+							x = w.value(k) * weight_decay_L2;
+
 							r1.add(k, Math.pow(dx, 2));
 
-							x = w.value(k) * weight_decay_L2;
 							x -= learn_rate / Math.sqrt(r1.value(k) + eps) * dx;
 							w.set(k, x);
 							sum += x;
@@ -322,10 +228,11 @@ public class ParameterUpdater {
 						sum = 0;
 						for (int k = 0; k < dw.size(); k++) {
 							dx = dw.value(k) * grad_decay;
+							x = w.value(k) * weight_decay_L2;
+
 							dxa1 = ArrayMath.addAfterMultiply(r1.value(k), decay_rate, Math.pow(dx, 2), 1 - decay_rate);
 							r1.set(k, dxa1);
 
-							x = w.value(k) * weight_decay_L2;
 							x -= -learn_rate / Math.sqrt(dxa1 + eps) * dx;
 							w.set(k, x);
 							sum += x;
@@ -333,16 +240,17 @@ public class ParameterUpdater {
 					} else if (ot == OptimizerType.ADAM) {
 						for (int k = 0; k < dw.size(); k++) {
 							dx = dw.value(k) * grad_decay;
+							x = w.value(k) * weight_decay_L2;
 
 							dxa1 = ArrayMath.addAfterMultiply(r1.value(k), beta1, dx);
 							dxa2 = ArrayMath.addAfterMultiply(r2.value(k), beta2, Math.pow(dx, 2));
+
 							r1.set(k, dxa1);
 							r2.set(k, dxa2);
 
 							dxa1 = dxa1 / (1 - beta1);
 							dxa2 = dxa2 / (1 - beta2);
 
-							x = w.value(k) * weight_decay_L2;
 							x -= learn_rate / Math.sqrt(dxa2 + eps) * dxa1;
 							w.set(k, x);
 							sum += x;

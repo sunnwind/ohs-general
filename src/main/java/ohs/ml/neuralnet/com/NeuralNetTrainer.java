@@ -169,6 +169,7 @@ public class NeuralNetTrainer {
 		for (NeuralNet nn : nns) {
 			nn.setIsTesting(false);
 		}
+
 		return p;
 
 	}

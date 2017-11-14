@@ -17,11 +17,9 @@ import ohs.utils.StrUtils;
 
 public class NerFeatureExtractor {
 
-	public static final String[] FEAT_TYPES = { "cap", "suf", "per", "org", "loc", "misc" };
+	private Indexer<String> featValIdxer = Generics.newIndexer();
 
 	private Indexer<String> featIdxer = Generics.newIndexer();
-
-	private Indexer<String> featTypeIdxer = Generics.newIndexer();
 
 	private Vocab vocab = new Vocab();
 
@@ -38,37 +36,37 @@ public class NerFeatureExtractor {
 	public NerFeatureExtractor() {
 		vocab.add(SYM.UNK.getText());
 
-		featIdxer.add("word");
+		featValIdxer.add("word");
 
-		featTypeIdxer.add("word");
+		featIdxer.add("word");
 	}
 
 	public void addCapitalizationFeatures() {
-		String featType = "caps";
-		featTypeIdxer.add(featType);
+		String feat = "caps";
+		featIdxer.add(feat);
 
-		lm.put(featType, featIdxer.getIndex(String.format("%s=%s", featType, "nocaps")));
-		lm.put(featType, featIdxer.getIndex(String.format("%s=%s", featType, "allcaps")));
-		lm.put(featType, featIdxer.getIndex(String.format("%s=%s", featType, "initcap")));
-		lm.put(featType, featIdxer.getIndex(String.format("%s=%s", featType, "hascap")));
+		lm.put(feat, featValIdxer.getIndex(String.format("%s=%s", feat, "nocaps")));
+		lm.put(feat, featValIdxer.getIndex(String.format("%s=%s", feat, "allcaps")));
+		lm.put(feat, featValIdxer.getIndex(String.format("%s=%s", feat, "initcap")));
+		lm.put(feat, featValIdxer.getIndex(String.format("%s=%s", feat, "hascap")));
 
 	}
 
 	public void addGazeteer(String name, Set<String> data) {
-		String featType = String.format("%s=%s", "gz", name);
-		featTypeIdxer.add(featType);
+		String feat = String.format("%s=%s", "gz", name);
+		featIdxer.add(feat);
 
-		lm.put(featType, featIdxer.getIndex(featType));
+		lm.put(feat, featValIdxer.getIndex(feat));
 
-		gzData.put(featType, data);
+		gzData.put(feat, data);
 	}
 
 	public void addSuffixFeatures(Set<String> suffixes) {
-		String featType = "suf";
-		featTypeIdxer.add(featType);
+		String feat = "suf";
+		featIdxer.add(feat);
 
 		for (String suffix : suffixes) {
-			lm.put(featType, featIdxer.getIndex(String.format("%s=%s", featType, suffix)));
+			lm.put(feat, featValIdxer.getIndex(String.format("%s=%s", feat, suffix)));
 		}
 	}
 
@@ -124,7 +122,7 @@ public class NerFeatureExtractor {
 				for (int j = 0; j < flags.length; j++) {
 					if (flags[j]) {
 						String feat = feats.get(j);
-						F.set(featTypeIdxer.indexOf(feat), featIdxer.indexOf(feat));
+						F.set(featIdxer.indexOf(feat), featValIdxer.indexOf(feat));
 					}
 				}
 			}
@@ -132,13 +130,13 @@ public class NerFeatureExtractor {
 	}
 
 	public void extractTokenFeatures(MToken t) {
-		DenseVector F = new DenseVector(featTypeIdxer.size());
+		DenseVector F = new DenseVector(featIdxer.size());
 
 		String word = t.getString(0);
 
 		{
 			String nWord = StrUtils.normalizeNumbers(word.toLowerCase());
-			F.set(featTypeIdxer.indexOf("word"), add_unkwon_words ? vocab.getIndex(nWord) : vocab.indexOf(nWord, unk));
+			F.set(featIdxer.indexOf("word"), add_unkwon_words ? vocab.getIndex(nWord) : vocab.indexOf(nWord, unk));
 		}
 
 		Set<Integer> caps = Generics.newHashSet(word.length());
@@ -150,7 +148,7 @@ public class NerFeatureExtractor {
 			}
 		}
 
-		if (featTypeIdxer.contains("caps")) {
+		if (featIdxer.contains("caps")) {
 			String val = "nocaps";
 
 			if (caps.size() == word.length()) {
@@ -162,17 +160,17 @@ public class NerFeatureExtractor {
 					val = "hascap";
 				}
 			}
-			F.set(featTypeIdxer.indexOf("caps"), featIdxer.indexOf(String.format("caps=%s", val)));
+			F.set(featIdxer.indexOf("caps"), featValIdxer.indexOf(String.format("caps=%s", val)));
 		}
 
-		if (featTypeIdxer.contains("suf")) {
+		if (featIdxer.contains("suf")) {
 			String lWord = word.toLowerCase();
 			List<Integer> feat_idxs = Generics.newArrayList();
 
 			for (int j = 0; j < lWord.length() && j < 3; j++) {
 				String suffix = lWord.substring(lWord.length() - j - 1, lWord.length());
 				String val = String.format("suf=%s", suffix);
-				int feat_idx = featIdxer.indexOf(val);
+				int feat_idx = featValIdxer.indexOf(val);
 
 				if (feat_idx < 0) {
 					continue;
@@ -187,7 +185,7 @@ public class NerFeatureExtractor {
 				feat_idx = feat_idxs.get(feat_idxs.size() - 1);
 			}
 
-			F.set(featTypeIdxer.indexOf("suf"), feat_idx);
+			F.set(featIdxer.indexOf("suf"), feat_idx);
 		}
 
 		t.add(F);
@@ -197,8 +195,8 @@ public class NerFeatureExtractor {
 		return featIdxer;
 	}
 
-	public Indexer<String> getFeatureTypeIndexer() {
-		return featTypeIdxer;
+	public Indexer<String> getFeatureValueIndexer() {
+		return featValIdxer;
 	}
 
 	public Vocab getVocab() {
