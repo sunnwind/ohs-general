@@ -14,32 +14,24 @@ public abstract class RecurrentLayer extends Layer {
 	 */
 	private static final long serialVersionUID = 5913734004543729479L;
 
+	protected DenseMatrix Wxh;
+
+	protected DenseMatrix Whh;
+
 	protected DenseVector b;
-
-	protected int bptt_size = 5;
-
-	protected DenseVector db;
-
-	protected DenseMatrix dWhh;
 
 	protected DenseMatrix dWxh;
 
-	/**
-	 * hidden to hidden
-	 */
-	protected DenseMatrix Whh;
+	protected DenseMatrix dWhh;
 
-	/**
-	 * input to hidden
-	 */
-	protected DenseMatrix Wxh;
+	protected DenseVector db;
+
+	protected int shift_size = 1;
+
+	protected int window_size = 1;
 
 	public RecurrentLayer() {
 
-	}
-
-	public int getBpttSize() {
-		return bptt_size;
 	}
 
 	public DenseMatrix getDWhh() {
@@ -50,8 +42,16 @@ public abstract class RecurrentLayer extends Layer {
 		return dWxh;
 	}
 
+	public int getShiftSize() {
+		return shift_size;
+	}
+
 	public DenseMatrix getWhh() {
 		return Whh;
+	}
+
+	public int getWindowSize() {
+		return window_size;
 	}
 
 	public DenseMatrix getWxh() {
@@ -60,8 +60,12 @@ public abstract class RecurrentLayer extends Layer {
 
 	public abstract void resetH0();
 
-	public void setBpttSize(int bptt_size) {
-		this.bptt_size = bptt_size;
+	public void setShiftSize(int shift_size) {
+		this.shift_size = shift_size;
+	}
+
+	public void setWindowSize(int window_size) {
+		this.window_size = window_size;
 	}
 
 }

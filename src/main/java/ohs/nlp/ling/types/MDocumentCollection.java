@@ -35,6 +35,14 @@ public class MDocumentCollection extends ArrayList<MDocument> {
 		return new MSentence(ret);
 	}
 
+	public List<String> getTokenStrings(int idx) {
+		List<String> ret = Generics.newArrayList(sizeOfTokens());
+		for (MDocument d : this) {
+			ret.addAll(d.getTokenStrings(idx));
+		}
+		return ret;
+	}
+
 	public int sizeOfTokens() {
 		int ret = 0;
 		for (MDocument d : this) {

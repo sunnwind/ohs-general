@@ -6,6 +6,7 @@ import java.util.Set;
 import org.apache.xmlbeans.impl.xb.xsdschema.Attribute.Use;
 
 import ohs.matrix.DenseVector;
+import ohs.nlp.ling.types.MCollection;
 import ohs.nlp.ling.types.MDocument;
 import ohs.nlp.ling.types.MSentence;
 import ohs.nlp.ling.types.MToken;
@@ -16,6 +17,8 @@ import ohs.types.generic.Vocab;
 import ohs.types.generic.Vocab.SYM;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
+import scala.Char;
+import scala.reflect.internal.Symbols.SymbolOps;
 
 public class NERFeatureExtractor {
 
@@ -27,43 +30,39 @@ public class NERFeatureExtractor {
 
 	private SetMap<String, String> gzData = Generics.newSetMap();
 
-	private ListMap<String, Integer> lm = Generics.newListMap();
-
 	private Vocab vocab = new Vocab();
 
-	public boolean add_unkwon_words = true;
+	public boolean is_training = true;
 
 	private int unk = 0;
 
 	public NERFeatureExtractor() {
 		vocab.add(SYM.UNK.getText());
-
-		featValIdxer.add("word");
-
 		featIdxer.add("word");
 	}
-
-	private boolean add_pos_feats = false;
-
-	private boolean add_punc_feats = false;
 
 	public void addCapitalFeatures() {
 		String feat = "caps";
 		featIdxer.add(feat);
 
-		lm.put(feat, featValIdxer.getIndex(String.format("%s=%s", feat, "nocaps")));
-		lm.put(feat, featValIdxer.getIndex(String.format("%s=%s", feat, "allcaps")));
-		lm.put(feat, featValIdxer.getIndex(String.format("%s=%s", feat, "initcap")));
-		lm.put(feat, featValIdxer.getIndex(String.format("%s=%s", feat, "hascap")));
+		featValIdxer.getIndex(String.format("%s=%s", feat, "nocaps"));
+		featValIdxer.getIndex(String.format("%s=%s", feat, "allcaps"));
+		featValIdxer.getIndex(String.format("%s=%s", feat, "initcap"));
+		featValIdxer.getIndex(String.format("%s=%s", feat, "hascap"));
+	}
 
+	public void addDigitFeatures() {
+		String feat = "digit";
+		featIdxer.add(feat);
+		featValIdxer.add(String.format("%s=%s", feat, "nodigits"));
 	}
 
 	public void addGazeteerFeatures(String name, Set<String> data) {
 		String feat = String.format("%s=%s", "gz", name);
 		featIdxer.add(feat);
 
-		lm.put(feat, featValIdxer.getIndex(String.format("%s=%s_%s", "gz", name, "yes")));
-		lm.put(feat, featValIdxer.getIndex(String.format("%s=%s_%s", "gz", name, "no")));
+		featValIdxer.getIndex(String.format("%s=%s_%s", "gz", name, "yes"));
+		featValIdxer.getIndex(String.format("%s=%s_%s", "gz", name, "no"));
 
 		Set<String> newData = Generics.newHashSet(data.size());
 
@@ -73,45 +72,66 @@ public class NERFeatureExtractor {
 		gzData.put(feat, newData);
 	}
 
-	public void addSuffixFeatures(Set<String> suffixes) {
-		String feat = "suf";
-		featIdxer.add(feat);
-
-		lm.put(feat, featValIdxer.getIndex(String.format("%s=%s", feat, "<nosuf>")));
-
-		for (String suffix : suffixes) {
-			lm.put(feat, featValIdxer.getIndex(String.format("%s=%s", feat, suffix)));
-		}
-	}
-
-	private String[] PUNCUTATIONS = { "+", "-", ",", ".", "`", "?", "$" };
-
-	public void addPuctuationFeatures() {
-		add_punc_feats = true;
-
-		featIdxer.add(String.format("punc=%s", "<nopunc>"));
-
-		for (String p : PUNCUTATIONS) {
-			featIdxer.add(String.format("punc=%s", p));
-			featValIdxer.add(String.format("punc=%s", p));
-		}
-	}
-
 	public void addPosFeatures(Set<String> poss) {
 		String feat = "pos";
 		featIdxer.add(feat);
 
-		lm.put(feat, featValIdxer.getIndex(String.format("%s=%s", feat, "nopos")));
+		featValIdxer.getIndex(String.format("%s=%s", feat, "nopos"));
 
 		for (String pos : poss) {
-			lm.put(feat, featValIdxer.getIndex(String.format("%s=%s", feat, pos)));
+			featValIdxer.getIndex(String.format("%s=%s", feat, pos));
 		}
+	}
 
-		add_pos_feats = true;
+	public void addPrefixFeatures(Set<String> prefixes) {
+		String feat = "pre";
+		featIdxer.add(feat);
+		featValIdxer.getIndex(String.format("%s=%s", feat, "nopre"));
+
+		for (String p : prefixes) {
+			featValIdxer.getIndex(String.format("%s=%s", feat, p));
+		}
+	}
+
+	public void addPuctuationFeatures() {
+		String feat = "punc";
+		featIdxer.add(String.format("punc"));
+		featValIdxer.getIndex(String.format("%s=%s", feat, "yes"));
+		featValIdxer.getIndex(String.format("%s=%s", feat, "no"));
+	}
+
+	public void addShapeOneFeatures() {
+		String feat = "shape1";
+		featIdxer.add(feat);
+		featValIdxer.add(String.format("%s=%s", feat, "noshape"));
+	}
+
+	public void addShapeTwoFeatures() {
+		String feat = "shape2";
+		featIdxer.add(feat);
+		featValIdxer.add(String.format("%s=%s", feat, "noshape"));
+	}
+
+	public void addSuffixFeatures(Set<String> suffixes) {
+		String feat = "suf";
+		featIdxer.add(feat);
+		featValIdxer.getIndex(String.format("%s=%s", feat, "nosuf"));
+
+		for (String suffix : suffixes) {
+			featValIdxer.getIndex(String.format("%s=%s", feat, suffix));
+		}
+	}
+
+	public void extract(MCollection c) {
+		for (MDocument d : c) {
+			extract(d);
+		}
 	}
 
 	public void extract(MDocument d) {
-
+		for (MSentence s : d) {
+			extract(s);
+		}
 	}
 
 	public void extract(MSentence s) {
@@ -122,7 +142,7 @@ public class NERFeatureExtractor {
 		extractChunkFeatures(s);
 	}
 
-	public void extractChunkFeatures(MSentence s) {
+	private void extractChunkFeatures(MSentence s) {
 		if (gzData.size() > 0) {
 			List<String> words = s.getTokenStrings(0);
 
@@ -131,7 +151,6 @@ public class NERFeatureExtractor {
 			}
 
 			List<String> feats = Generics.newArrayList(gzData.keySet());
-
 			boolean[][] feat_flags = new boolean[words.size()][feats.size()];
 
 			int win_size = 5;
@@ -172,37 +191,104 @@ public class NERFeatureExtractor {
 		}
 	}
 
-	public void extractTokenFeatures(MToken t) {
+	private void extractTokenFeatures(MToken t) {
 		DenseVector F = new DenseVector(featIdxer.size());
 
 		String word = t.getString(0);
 
 		{
-			String nWord = StrUtils.normalizeNumbers(word.toLowerCase());
-			String val = nWord;
-			int idx = add_unkwon_words ? vocab.getIndex(val) : vocab.indexOf(val, unk);
-			F.set(featIdxer.indexOf("word"), idx);
+			String nw = StrUtils.normalizeNumbers(word.toLowerCase());
+			int w = is_training ? vocab.getIndex(nw) : vocab.indexOf(nw, unk);
+			F.set(featIdxer.indexOf("word"), w);
 		}
 
 		if (featIdxer.contains("pos")) {
 			String pos = t.getString(1);
 			String val = String.format("pos=%s", pos);
-			F.set(featIdxer.indexOf("pos"), add_unkwon_words ? featValIdxer.getIndex(val) : featValIdxer.indexOf(val));
+			int val_idx = featValIdxer.indexOf(val);
+
+			if (val_idx < 0) {
+				val_idx = featValIdxer.indexOf(String.format("pos=%s", "nopos"));
+			}
+			F.set(featIdxer.indexOf("pos"), val_idx);
 		}
 
-		Set<Integer> caps = Generics.newHashSet(word.length());
+		if (featIdxer.contains("suf")) {
+			String lWord = word.toLowerCase();
+			List<Integer> feat_idxs = Generics.newArrayList();
 
-		for (int i = 0; i < word.length(); i++) {
-			char ch = word.charAt(i);
-			if (Character.isUpperCase(ch)) {
-				caps.add(i);
+			int s = 1;
+			int e = 3;
+			String feat = "suf";
+
+			for (int j = s; j < lWord.length() && j < e; j++) {
+				String suffix = lWord.substring(lWord.length() - j - 1, lWord.length());
+				String val = String.format("%s=%s", feat, suffix);
+				int val_idx = featValIdxer.indexOf(val);
+
+				if (val_idx < 0) {
+					continue;
+				}
+
+				feat_idxs.add(val_idx);
 			}
+
+			int val_idx = featValIdxer.indexOf("suf=nosuf");
+
+			if (feat_idxs.size() > 0) {
+				val_idx = feat_idxs.get(feat_idxs.size() - 1);
+			}
+
+			F.set(featIdxer.indexOf(feat), val_idx);
+		}
+
+		if (featIdxer.contains("pre")) {
+			String lWord = word.toLowerCase();
+			String feat = "pre";
+
+			int val_idx = featValIdxer.indexOf(String.format("%s=%s", "pre", "nopre"));
+
+			if (lWord.length() > 3) {
+				String val = String.format("%s=%s", "pre", lWord.substring(0, 3));
+				val_idx = featValIdxer.indexOf(val);
+
+				if (val_idx < 0) {
+					val_idx = featValIdxer.indexOf(String.format("%s=%s", "pre", "nopre"));
+				}
+			}
+
+			F.set(featIdxer.indexOf(feat), val_idx);
+		}
+
+		String shape = getShape(word);
+
+		if (featIdxer.contains("punc")) {
+			String feat = "punc";
+			Set<Integer> locs = Generics.newHashSet();
+
+			for (int i = 0; i < shape.length(); i++) {
+				char ch = shape.charAt(i);
+				if (ch == 'A' || ch == 'a' || ch == '0') {
+
+				} else {
+					locs.add(i);
+				}
+			}
+			String val = String.format("%s=%s", feat, locs.size() > 0 ? "yes" : "no");
+			F.set(featIdxer.indexOf(feat), featValIdxer.indexOf(val));
 		}
 
 		if (featIdxer.contains("caps")) {
+			Set<Integer> caps = Generics.newHashSet(shape.length());
+			for (int i = 0; i < shape.length(); i++) {
+				if (shape.charAt(i) == 'A') {
+					caps.add(i);
+				}
+			}
+
 			String val = "nocaps";
 
-			if (caps.size() == word.length()) {
+			if (caps.size() == shape.length()) {
 				val = "allcaps";
 			} else {
 				if (caps.contains(0)) {
@@ -211,42 +297,32 @@ public class NERFeatureExtractor {
 					val = "hascap";
 				}
 			}
+
 			F.set(featIdxer.indexOf("caps"), featValIdxer.indexOf(String.format("caps=%s", val)));
 		}
 
-		if (featIdxer.contains("suf")) {
-			String lWord = word.toLowerCase();
-			List<Integer> feat_idxs = Generics.newArrayList();
+		if (featIdxer.contains("shape1")) {
+			String feat = "shape1";
+			String val = String.format("%s=%s", feat, shape);
+			int val_idx = is_training ? featValIdxer.getIndex(val) : featValIdxer.indexOf(val);
 
-			for (int j = 0; j < lWord.length() && j < 3; j++) {
-				String suffix = lWord.substring(lWord.length() - j - 1, lWord.length());
-				String val = String.format("suf=%s", suffix);
-				int feat_idx = featValIdxer.indexOf(val);
-
-				if (feat_idx < 0) {
-					continue;
-				}
-
-				feat_idxs.add(feat_idx);
+			if (val_idx < 0) {
+				val_idx = featValIdxer.indexOf(String.format("%s=%s", feat, "noshape"));
 			}
 
-			int feat_idx = featValIdxer.indexOf("suf=<nosuf>");
-
-			if (feat_idxs.size() > 0) {
-				feat_idx = feat_idxs.get(feat_idxs.size() - 1);
-			}
-
-			F.set(featIdxer.indexOf("suf"), feat_idx);
+			F.set(featIdxer.indexOf(feat), val_idx);
 		}
 
-		if (add_punc_feats) {
-			for (String p : PUNCUTATIONS) {
-				if (word.contains(p)) {
-					String feat = String.format("punc=%s", p);
-					F.set(featIdxer.indexOf(feat), featValIdxer.indexOf(feat));
-				}
+		if (featIdxer.contains("shape2")) {
+			String feat = "shape2";
+			String val = String.format("%s=%s", feat, shape.replaceAll("a+", "a~").replaceAll("A{2,}", "A~A"));
+			int val_idx = is_training ? featValIdxer.getIndex(val) : featValIdxer.indexOf(val);
 
+			if (val_idx < 0) {
+				val_idx = featValIdxer.indexOf(String.format("%s=%s", feat, "noshape"));
 			}
+
+			F.set(featIdxer.indexOf(feat), val_idx);
 		}
 
 		t.add(F);
@@ -260,12 +336,28 @@ public class NERFeatureExtractor {
 		return featValIdxer;
 	}
 
+	private String getShape(String word) {
+		StringBuffer sb = new StringBuffer();
+		for (char c : word.toCharArray()) {
+			if (Character.isDigit(c)) {
+				sb.append("0");
+			} else if (Character.isUpperCase(c)) {
+				sb.append("A");
+			} else if (Character.isLowerCase(c)) {
+				sb.append("a");
+			} else {
+				sb.append(c);
+			}
+		}
+		return sb.toString();
+	}
+
 	public Vocab getVocab() {
 		return vocab;
 	}
 
-	public void setAddUnkwonWords(boolean add_unkwon_words) {
-		this.add_unkwon_words = add_unkwon_words;
+	public void setIsTraining(boolean is_training) {
+		this.is_training = is_training;
 	}
 
 	public void setVocab(Vocab vocab) {

@@ -246,7 +246,6 @@ public class NeuralNetTrainer {
 	}
 
 	public void train(DenseTensor X, DenseMatrix Y, DenseTensor Xt, DenseMatrix Yt, int max_iters) throws Exception {
-
 		if (Y.colSize() > 0) {
 			if (is_full_seq_batch) {
 				data_locs = ArrayUtils.range(Y.rowSize());

@@ -58,13 +58,14 @@ public class BidirectionalRecurrentLayer extends RecurrentLayer {
 		this.output_size = fwd.getOutputSize();
 	}
 
-	public BidirectionalRecurrentLayer(Type type, int input_size, int hidden_size, int bptt_size, Nonlinearity non) {
+	public BidirectionalRecurrentLayer(Type type, int input_size, int hidden_size, int shift_size, int window_size,
+			Nonlinearity non) {
 		if (type == Type.RNN) {
-			fwd = new RnnLayer(input_size, hidden_size, bptt_size, non);
-			bwd = new RnnLayer(input_size, hidden_size, bptt_size, non);
+			fwd = new RnnLayer(input_size, hidden_size, shift_size, window_size, non);
+			bwd = new RnnLayer(input_size, hidden_size, shift_size, window_size, non);
 		} else if (type == Type.LSTM) {
-			fwd = new LstmLayer(input_size, hidden_size, bptt_size);
-			bwd = new LstmLayer(input_size, hidden_size, bptt_size);
+			fwd = new LstmLayer(input_size, hidden_size, shift_size, window_size);
+			bwd = new LstmLayer(input_size, hidden_size, shift_size, window_size);
 		}
 
 		this.input_size = fwd.getInputSize();

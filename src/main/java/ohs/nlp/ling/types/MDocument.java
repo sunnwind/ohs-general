@@ -61,8 +61,16 @@ public class MDocument extends ArrayList<MSentence> {
 
 	public int sizeOfTokens() {
 		int ret = 0;
-		for (MSentence sent : this) {
-			ret += sent.size();
+		for (MSentence s : this) {
+			ret += s.size();
+		}
+		return ret;
+	}
+
+	public List<String> getTokenStrings(int idx) {
+		List<String> ret = Generics.newArrayList(sizeOfTokens());
+		for (MSentence s : this) {
+			ret.addAll(s.getTokenStrings(idx));
 		}
 		return ret;
 	}

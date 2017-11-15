@@ -22,7 +22,9 @@ public class NeuralNetParams {
 
 	private int batch_size = 50;
 
-	private int bptt = 5;
+	private int k1 = 3;
+
+	private int k2 = 3;
 
 	private int grad_acc_reset_size = 100;
 
@@ -69,10 +71,6 @@ public class NeuralNetParams {
 		return batch_size;
 	}
 
-	public int getBPTTSize() {
-		return bptt;
-	}
-
 	public int getGradientAccumulatorResetSize() {
 		return grad_acc_reset_size;
 	}
@@ -91,6 +89,14 @@ public class NeuralNetParams {
 
 	public int getInputSize() {
 		return input_size;
+	}
+
+	public int getK1() {
+		return k1;
+	}
+
+	public int getK2() {
+		return k2;
 	}
 
 	public double getLearnRate() {
@@ -149,10 +155,6 @@ public class NeuralNetParams {
 		this.batch_size = batch_size;
 	}
 
-	public void setBPTT(int bptt) {
-		this.bptt = bptt;
-	}
-
 	public void setGradientAccumulatorResetSize(int grad_acc_reset_size) {
 		this.grad_acc_reset_size = grad_acc_reset_size;
 	}
@@ -179,6 +181,14 @@ public class NeuralNetParams {
 
 	public void setIsRandomBatch(boolean is_random_batch) {
 		this.is_random_batch = is_random_batch;
+	}
+
+	public void setK1(int k1) {
+		this.k1 = k1;
+	}
+
+	public void setK2(int k2) {
+		this.k2 = k2;
 	}
 
 	public void setLearnRate(double learning_rate) {

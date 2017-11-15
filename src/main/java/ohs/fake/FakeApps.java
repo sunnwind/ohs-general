@@ -63,7 +63,7 @@ public class FakeApps {
 		nnp.setThreadSize(5);
 		nnp.setBatchSize(5);
 		nnp.setGradientAccumulatorResetSize(1000);
-		nnp.setBPTT(1);
+		nnp.setK2(1);
 
 		nnp.setIsFullSequenceBatch(true);
 		nnp.setIsRandomBatch(true);
@@ -358,7 +358,7 @@ public class FakeApps {
 		nnp.setThreadSize(5);
 		nnp.setBatchSize(5);
 		nnp.setGradientAccumulatorResetSize(1000);
-		nnp.setBPTT(1);
+		nnp.setK2(1);
 
 		nnp.setIsFullSequenceBatch(true);
 		nnp.setIsRandomBatch(true);

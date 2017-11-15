@@ -1,11 +1,9 @@
 package ohs.ml.neuralnet.com;
 
 import java.io.File;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import edu.stanford.nlp.patterns.surface.Token;
 import ohs.corpus.type.DocumentCollection;
 import ohs.corpus.type.EnglishTokenizer;
 import ohs.fake.FNPath;
@@ -35,6 +33,7 @@ import ohs.nlp.ling.types.MCollection;
 import ohs.nlp.ling.types.MDocument;
 import ohs.nlp.ling.types.MSentence;
 import ohs.nlp.ling.types.MToken;
+import ohs.types.generic.Counter;
 import ohs.types.generic.Indexer;
 import ohs.types.generic.Pair;
 import ohs.types.generic.Vocab;
@@ -44,6 +43,7 @@ import ohs.types.number.IntegerMatrix;
 import ohs.utils.DataSplitter;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
+import scala.Char;
 
 public class Apps {
 
@@ -71,7 +71,7 @@ public class Apps {
 		nnp.setThreadSize(5);
 		nnp.setWeightDecayL2(0.9999);
 		nnp.setGradientDecay(1);
-		nnp.setBPTT(1);
+		nnp.setK2(1);
 		nnp.setOptimizerType(OptimizerType.ADAM);
 		nnp.setGradientClipCutoff(5);
 
@@ -153,7 +153,8 @@ public class Apps {
 		int l1_size = 100;
 		int label_size = labelIdxer.size();
 		int type = 2;
-		int bptt = nnp.getBPTTSize();
+		int k1 = nnp.getK1();
+		int k2 = nnp.getK2();
 
 		NeuralNet nn = new NeuralNet(labelIdxer, vocab, TaskType.SEQ_LABELING);
 
@@ -173,7 +174,7 @@ public class Apps {
 			// nn.add(new BidirectionalRecurrentLayer(Type.LSTM, emb_size, l1_size,
 			// bptt, new ReLU()));
 			// nn.add(new LstmLayer(emb_size, l1_size));
-			nn.add(new RnnLayer(emb_size, l1_size, bptt, new ReLU()));
+			nn.add(new RnnLayer(emb_size, l1_size, k1, k2, new ReLU()));
 			// nn.add(new DropoutLayer());
 			// nn.add(new BatchNormalizationLayer(l1_size));
 			nn.add(new FullyConnectedLayer(l1_size, label_size));
@@ -239,7 +240,7 @@ public class Apps {
 		nnp.setWeightDecayL2(1);
 		nnp.setRegLambda(0.001);
 		nnp.setThreadSize(5);
-		nnp.setBPTT(1);
+		nnp.setK2(1);
 		nnp.setOptimizerType(OptimizerType.ADAM);
 		nnp.setGradientClipCutoff(5);
 
@@ -561,9 +562,11 @@ public class Apps {
 		nnp.setGradientClipCutoff(5);
 
 		nnp.setThreadSize(5);
-		nnp.setBatchSize(2);
+		nnp.setBatchSize(3);
 		nnp.setGradientAccumulatorResetSize(Integer.MAX_VALUE);
-		nnp.setBPTT(1);
+
+		nnp.setK1(3);
+		nnp.setK2(5);
 
 		nnp.setIsFullSequenceBatch(true);
 		nnp.setIsRandomBatch(true);
@@ -620,16 +623,42 @@ public class Apps {
 			Set<String> locs = FileUtils.readStringHashSetFromText(dirName + "ner.loc.lst");
 			Set<String> miscs = FileUtils.readStringHashSetFromText(dirName + "ner.misc.lst");
 
-			Set<String> poss = Generics.newHashSet();
+			Set<String> poss = Generics.newHashSet(trainData.getTokens().getTokenStrings(1));
+			Set<String> prefixes = Generics.newHashSet();
 
-			for (String pos : trainData.getTokens().getTokenStrings(1)) {
-				poss.add(pos);
+			{
+				Counter<String> c = Generics.newCounter();
+				for (String word : trainData.getTokens().getTokenStrings(0)) {
+					if (word.length() > 3) {
+						String p = word.substring(0, 3);
+						p = p.toLowerCase();
+
+						Set<Integer> l = Generics.newHashSet();
+
+						for (int i = 0; i < p.length(); i++) {
+							if (!Character.isDigit(p.charAt(i))) {
+								l.add(i);
+							}
+						}
+
+						if (l.size() == p.length()) {
+							c.incrementCount(p, 1);
+						}
+					}
+				}
+
+				c.pruneKeysBelowThreshold(5);
+
+				prefixes = c.keySet();
 			}
 
 			ext.addPosFeatures(poss);
 			ext.addCapitalFeatures();
 			ext.addPuctuationFeatures();
-			// ext.addSuffixFeatures(suffixes);
+			ext.addShapeOneFeatures();
+			ext.addShapeTwoFeatures();
+			ext.addSuffixFeatures(suffixes);
+			ext.addPrefixFeatures(prefixes);
 			ext.addGazeteerFeatures("per", pers);
 			ext.addGazeteerFeatures("org", orgs);
 			ext.addGazeteerFeatures("loc", locs);
@@ -647,7 +676,7 @@ public class Apps {
 				ext.extract(s);
 			}
 
-			ext.setAddUnkwonWords(false);
+			ext.setIsTraining(false);
 
 			for (MSentence s : D.subList(trainData.size(), D.size())) {
 				ext.extract(s);
@@ -709,7 +738,9 @@ public class Apps {
 		int l1_size = 200;
 		int label_size = labelIdxer.size();
 		int type = 2;
-		int bptt_size = nnp.getBPTTSize();
+
+		int k1 = nnp.getK1();
+		int k2 = nnp.getK2();
 
 		boolean use_ext_embs = true;
 		DenseMatrix E = null;
@@ -762,7 +793,7 @@ public class Apps {
 			nn.add(new DropoutLayer());
 			// nn.add(new RnnLayer(l.getOutputSize(), l1_size, bptt_size, new ReLU()));
 			// nn.add(new LstmLayer(l.getOutputSize(), l1_size, bptt_size));
-			nn.add(new BidirectionalRecurrentLayer(Type.LSTM, l.getOutputSize(), l1_size, bptt_size, new ReLU()));
+			nn.add(new BidirectionalRecurrentLayer(Type.LSTM, l.getOutputSize(), l1_size, k1, k2, new ReLU()));
 			// nn.add(new BatchNormalizationLayer(l1_size));
 			nn.add(new FullyConnectedLayer(l1_size, label_size));
 			nn.add(new SoftmaxLayer(label_size));
@@ -827,7 +858,7 @@ public class Apps {
 		nnp.setLearnRateDecaySize(100);
 		nnp.setRegLambda(0.001);
 		nnp.setThreadSize(5);
-		nnp.setBPTT(1);
+		nnp.setK2(1);
 		nnp.setOptimizerType(OptimizerType.ADAM);
 		nnp.setGradientClipCutoff(5);
 
