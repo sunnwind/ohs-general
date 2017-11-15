@@ -587,8 +587,8 @@ public class Apps {
 		MDocument trainData = MDocument.newDocument(FileUtils.readFromText(trainFileName));
 		MDocument testData = MDocument.newDocument(FileUtils.readFromText(testFileName));
 
-		// transformBIOtoBIOSE(trainData);
-		// transformBIOtoBIOSE(testData);
+		transformBIOtoBIOSE(trainData);
+		transformBIOtoBIOSE(testData);
 
 		Indexer<String> labelIdxer = Generics.newIndexer();
 		Vocab vocab = new Vocab();
@@ -608,24 +608,32 @@ public class Apps {
 		Xt.ensureCapacity(trainData.size());
 		Xt.ensureCapacity(trainData.size());
 
-		NerFeatureExtractor ext = new NerFeatureExtractor();
+		NERFeatureExtractor ext = new NERFeatureExtractor();
 
 		{
-			String sennaHashDirName = "../../data/ml_data/senna_hash/";
+			String dirName = "../../data/ml_data/senna/hash/";
 
-			Set<String> caps = FileUtils.readStringHashSetFromText(sennaHashDirName + "caps.lst");
-			Set<String> suffixes = FileUtils.readStringHashSetFromText(sennaHashDirName + "suffix.lst");
-			Set<String> pers = FileUtils.readStringHashSetFromText(sennaHashDirName + "ner.per.lst");
-			Set<String> orgs = FileUtils.readStringHashSetFromText(sennaHashDirName + "ner.org.lst");
-			Set<String> locs = FileUtils.readStringHashSetFromText(sennaHashDirName + "ner.loc.lst");
-			Set<String> miscs = FileUtils.readStringHashSetFromText(sennaHashDirName + "ner.misc.lst");
+			Set<String> caps = FileUtils.readStringHashSetFromText(dirName + "caps.lst");
+			Set<String> suffixes = FileUtils.readStringHashSetFromText(dirName + "suffix.lst");
+			Set<String> pers = FileUtils.readStringHashSetFromText(dirName + "ner.per.lst");
+			Set<String> orgs = FileUtils.readStringHashSetFromText(dirName + "ner.org.lst");
+			Set<String> locs = FileUtils.readStringHashSetFromText(dirName + "ner.loc.lst");
+			Set<String> miscs = FileUtils.readStringHashSetFromText(dirName + "ner.misc.lst");
 
-			ext.addCapitalizationFeatures();
-			ext.addSuffixFeatures(suffixes);
-			ext.addGazeteer("per", pers);
-			ext.addGazeteer("org", orgs);
-			ext.addGazeteer("loc", locs);
-			ext.addGazeteer("misc", miscs);
+			Set<String> poss = Generics.newHashSet();
+
+			for (String pos : trainData.getTokens().getTokenStrings(1)) {
+				poss.add(pos);
+			}
+
+			ext.addPosFeatures(poss);
+			ext.addCapitalFeatures();
+			ext.addPuctuationFeatures();
+			// ext.addSuffixFeatures(suffixes);
+			ext.addGazeteerFeatures("per", pers);
+			ext.addGazeteerFeatures("org", orgs);
+			ext.addGazeteerFeatures("loc", locs);
+			ext.addGazeteerFeatures("misc", miscs);
 		}
 
 		{
@@ -698,10 +706,38 @@ public class Apps {
 		int voc_size = vocab.size();
 		int word_emb_size = 50;
 		int feat_emb_size = 5;
-		int l1_size = 150;
+		int l1_size = 200;
 		int label_size = labelIdxer.size();
 		int type = 2;
 		int bptt_size = nnp.getBPTTSize();
+
+		boolean use_ext_embs = true;
+		DenseMatrix E = null;
+
+		if (use_ext_embs) {
+			List<String> words = FileUtils.readLinesFromText("../../data/ml_data/senna/hash/words.lst");
+			List<String> embs = FileUtils.readLinesFromText("../../data/ml_data/senna/embeddings/embeddings.txt");
+
+			E = new DenseMatrix(vocab.size(), 50);
+
+			for (int i = 0; i < words.size(); i++) {
+				String word = words.get(i);
+
+				int w = vocab.indexOf(word);
+
+				if (w <= 0) {
+					continue;
+				}
+
+				String emb = embs.get(i);
+				DenseVector e = E.row(w);
+				String[] vs = emb.split(" ");
+
+				for (int j = 0; j < vs.length; j++) {
+					e.add(j, Double.parseDouble(vs[j]));
+				}
+			}
+		}
 
 		String modelFileName = "../../data/ml_data/ner_nn.ser";
 
@@ -713,10 +749,14 @@ public class Apps {
 			nn = new NeuralNet(modelFileName);
 			nn.prepare();
 		} else {
-			nn.add(new EmbeddingLayer(voc_size, word_emb_size, true));
+			if (E == null) {
+				nn.add(new EmbeddingLayer(voc_size, word_emb_size, true));
+			} else {
+				nn.add(new EmbeddingLayer(E, true));
+			}
 
-			DiscreteFeatureEmbeddingLayer l = new DiscreteFeatureEmbeddingLayer(ext.getFeatureIndexer().size(),
-					ext.getFeatureTypeIndexer().size(), feat_emb_size, word_emb_size, true);
+			DiscreteFeatureEmbeddingLayer l = new DiscreteFeatureEmbeddingLayer(ext.getFeatureValueIndexer().size(),
+					ext.getFeatureIndexer().size(), feat_emb_size, word_emb_size, true);
 
 			nn.add(l);
 			nn.add(new DropoutLayer());

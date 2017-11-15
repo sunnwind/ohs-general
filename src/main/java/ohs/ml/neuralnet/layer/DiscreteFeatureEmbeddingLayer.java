@@ -10,7 +10,7 @@ import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
-import ohs.ml.neuralnet.com.NerFeatureExtractor;
+import ohs.ml.neuralnet.com.NERFeatureExtractor;
 import ohs.ml.neuralnet.com.ParameterInitializer;
 import ohs.types.generic.Pair;
 import ohs.types.number.IntegerArray;

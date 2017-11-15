@@ -45,6 +45,8 @@ public class ArrayMath {
 
 	public static int THREAD_SIZE = 5;
 
+	public static final double eps = 0.0000001;
+
 	public static double abs(double[] a, double[] b) {
 		if (!ArrayChecker.isEqualSize(a, b)) {
 			throw new IllegalArgumentException();
@@ -507,6 +509,11 @@ public class ArrayMath {
 		return ret;
 	}
 
+	// public static double addAfterOuterProduct(double[] a, double[] b,
+	// double[][] c) {
+	// return addAfterOuterProduct(a, b, c, new double[0]);
+	// }
+
 	public static int[] argMax(int[][] a) {
 		int[] ret = { -1, -1 };
 		double max = -Integer.MAX_VALUE;
@@ -521,11 +528,6 @@ public class ArrayMath {
 		}
 		return ret;
 	}
-
-	// public static double addAfterOuterProduct(double[] a, double[] b,
-	// double[][] c) {
-	// return addAfterOuterProduct(a, b, c, new double[0]);
-	// }
 
 	public static int argMaxAtColumn(double[][] x, int j) {
 		int ret = -1;
@@ -2526,6 +2528,37 @@ public class ArrayMath {
 		return Math.sqrt(dotProduct(a, a));
 	}
 
+	public static double normL2(double[][] a, double[] b, boolean row_norms) {
+		double ret = 0;
+		if (row_norms) {
+			for (int i = 0; i < a.length; i++) {
+				b[i] = normL2(a[i]);
+				ret += b[i];
+			}
+		} else {
+			int row_size = a.length;
+			int col_size = a[0].length;
+			double[] c = new double[row_size];
+			for (int j = 0; j < col_size; j++) {
+				ArrayUtils.copyColumn(a, j, c);
+				b[j] = normL2(c);
+				ret += b[j];
+			}
+		}
+		return ret;
+	}
+
+	public static double[] normL2(double[][] a, boolean row_norms) {
+		int size = a.length;
+		if (!row_norms) {
+			size = a[0].length;
+		}
+
+		double[] b = new double[size];
+		normL2(a, b, row_norms);
+		return b;
+	}
+
 	public static double normL2(double[][] a) {
 		double ret = 0;
 		for (int i = 0; i < a.length; i++) {
@@ -3611,8 +3644,6 @@ public class ArrayMath {
 		System.out.println("SSE  = " + rss);
 		System.out.println("SSR  = " + ssr);
 	}
-
-	public static final double eps = 0.0000001;
 
 	public static double softmax(double[] a, double[] b) {
 		if (!ArrayChecker.isEqualSize(a, b)) {

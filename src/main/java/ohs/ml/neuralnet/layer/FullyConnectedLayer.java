@@ -3,15 +3,13 @@ package ohs.ml.neuralnet.layer;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
-import javax.swing.colorchooser.DefaultColorSelectionModel;
-
+import ohs.math.ArrayMath;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
 import ohs.ml.neuralnet.com.ParameterInitializer;
-import ohs.types.number.IntegerArray;
 
 /**
  * 
@@ -26,21 +24,9 @@ public class FullyConnectedLayer extends Layer {
 	 */
 	private static final long serialVersionUID = 3286065471918528100L;
 
-	private DenseVector b;
-
-	private DenseVector db;
-
-	private DenseMatrix dW;
-
-	private int input_size;
-
-	private int output_size;
-
 	private DenseMatrix tmp_dX = new DenseMatrix(0);
 
 	private DenseMatrix tmp_Y = new DenseMatrix(0);
-
-	private DenseMatrix W;
 
 	/**
 	 * input of this layer
@@ -48,6 +34,18 @@ public class FullyConnectedLayer extends Layer {
 	private DenseTensor X;
 
 	private DenseTensor Y;
+
+	private DenseMatrix W;
+
+	private DenseVector b;
+
+	private DenseMatrix dW;
+
+	private DenseVector db;
+
+	private int input_size;
+
+	private int output_size;
 
 	public FullyConnectedLayer() {
 
@@ -75,26 +73,52 @@ public class FullyConnectedLayer extends Layer {
 		DenseTensor dX = new DenseTensor();
 		dX.ensureCapacity(dY.size());
 
+		// DenseTensor N = this.N;
+		// DenseVector Nw = this.Nw;
+
 		VectorUtils.enlarge(tmp_dX, dY.sizeOfInnerVectors(), input_size);
 		int start = 0;
 
 		for (int i = 0; i < dY.size(); i++) {
 			DenseMatrix dYm = dY.get(i);
 			DenseMatrix Xm = X.get(i);
+			DenseMatrix Zm = Z.get(i);
+			// DenseMatrix Nxm = N.get(i);
 			DenseMatrix dXm = tmp_dX.subMatrix(start, dYm.rowSize());
 			dXm.setAll(0);
 
 			start += Xm.rowSize();
 
+			// if (use_cosine_norm) {
+			// for (int j = 0; j < Xm.rowSize(); j++) {
+			// DenseVector xm = Xm.row(j);
+			// DenseVector dym = dYm.row(j);
+			// DenseVector nxm = Nxm.row(j);
+			// DenseVector zm = Zm.row(j);
+			//
+			// for (int k = 0; k < xm.size(); k++) {
+			// double v = xm.value(k);
+			// double nx = nxm.value(k);
+			// double nw = Nw.value(k);
+			//
+			// double v2 = v / (nx * nw);
+			// }
+			//
+			// VectorMath.outerProduct(xm, dym, dW, true);
+			// VectorMath.add(dym, db);
+			// }
+			//
+			// VectorMath.productRows(dYm, W, dXm, false);
+			// } else {
 			for (int j = 0; j < Xm.rowSize(); j++) {
-				DenseVector x = Xm.row(j);
-				DenseVector dy = dYm.row(j);
+				DenseVector xm = Xm.row(j);
+				DenseVector dym = dYm.row(j);
 
-				VectorMath.outerProduct(x, dy, dW, true);
-				VectorMath.add(dy, db);
+				VectorMath.outerProduct(xm, dym, dW, true);
+				VectorMath.add(dym, db);
 			}
-
 			VectorMath.productRows(dYm, W, dXm, false);
+			// }
 			dX.add(dXm);
 		}
 
@@ -106,28 +130,80 @@ public class FullyConnectedLayer extends Layer {
 		return new FullyConnectedLayer(W, b);
 	}
 
+	private boolean use_cosine_norm = true;
+
+	private DenseVector Nw = new DenseVector(0);
+
+	private DenseMatrix Nx = new DenseMatrix(0);
+
+	private DenseMatrix tmp_Nx = new DenseMatrix(0);
+
+	private DenseTensor N;
+
+	private DenseMatrix tmp_Z = new DenseMatrix(0);
+
+	private DenseTensor Z;
+
+	private DenseVector T;
+
 	@Override
 	public DenseTensor forward(Object I) {
 		this.X = (DenseTensor) I;
 
 		DenseTensor X = (DenseTensor) I;
 		DenseTensor Y = new DenseTensor();
+		DenseTensor Z = new DenseTensor();
+		DenseTensor N = new DenseTensor();
+
 		Y.ensureCapacity(X.size());
+		Z.ensureCapacity(X.size());
+		N.ensureCapacity(X.size());
+
+		if (Nw.size() == 0) {
+			Nw = new DenseVector(W.colSize());
+			T = new DenseVector(W.colSize());
+		}
 
 		VectorUtils.enlarge(tmp_Y, X.sizeOfInnerVectors(), output_size);
+		VectorUtils.enlarge(tmp_Z, X.sizeOfInnerVectors(), output_size);
+
 		int start = 0;
 
+		// DenseVector Nw = this.Nw;
+		// VectorMath.normL2(W, Nw, false);
+
 		for (DenseMatrix Xm : X) {
+			DenseMatrix Zm = tmp_Z.subMatrix(start, Xm.rowSize());
 			DenseMatrix Ym = tmp_Y.subMatrix(start, Xm.rowSize());
+
+			Zm.setAll(0);
 			Ym.setAll(0);
 
 			start += Xm.rowSize();
 
-			VectorMath.product(Xm, W, Ym, false);
-			VectorMath.add(Ym, b, Ym);
+			VectorMath.product(Xm, W, Zm, false);
+
+			// if (use_cosine_norm) {
+			// DenseVector Nxm = VectorMath.normL2(Xm, true);
+			//
+			// for (int i = 0; i < Zm.rowSize(); i++) {
+			// DenseVector zm = Zm.row(i);
+			// double nx = Nxm.value(i);
+			//
+			// VectorMath.multiply(Nw, Nxm, T);
+			// }
+			//
+			// N.add(Nxm.toDenseMatrix());
+			// }
+
+			VectorMath.add(Zm, b, Ym);
+
+			Z.add(Zm);
 			Y.add(Ym);
 		}
 
+		this.N = N;
+		this.Z = Z;
 		this.Y = Y;
 		return Y;
 	}

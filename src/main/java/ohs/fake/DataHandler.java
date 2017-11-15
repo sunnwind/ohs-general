@@ -150,7 +150,7 @@ public class DataHandler {
 		// dh.selectSubset1();
 		// dh.extractVocab();
 
-		// dh.test();
+		dh.test();
 
 		System.out.println("process ends.");
 	}
@@ -363,9 +363,9 @@ public class DataHandler {
 	public void tagPos() throws Exception {
 		for (File inFile : FileUtils.getFilesUnder(FNPath.DATA_DIR + "data")) {
 
-			if (!inFile.getName().contains("test")) {
-				continue;
-			}
+			// if (!inFile.getName().contains("M2_train")) {
+			// continue;
+			// }
 
 			if (inFile.getName().contains("pos")) {
 				continue;
@@ -406,7 +406,10 @@ public class DataHandler {
 
 				{
 					StringBuffer sb = new StringBuffer();
-					for (String s : body.replace(". ", ".\n").split("\n")) {
+
+					String[] sents = body.replace(".[\\\\s\\u2029]", ".\n").split("\n");
+
+					for (String s : sents) {
 						s = StrUtils.normalizeSpaces(s);
 
 						if (s.length() == 0) {
@@ -503,24 +506,46 @@ public class DataHandler {
 	}
 
 	public void test() throws Exception {
-		Counter<String> c = Generics.newCounter();
-		TextFileReader reader = new TextFileReader(FNPath.NAVER_DATA_DIR + "news_2007.txt");
-		reader.setPrintSize(10000);
+		MCollection c = new MCollection();
 
-		while (reader.hasNext()) {
-			String line = reader.next();
-			List<String> ps1 = StrUtils.unwrap(StrUtils.split("\t", line));
+		for (File file : FileUtils.getFilesUnder(FNPath.DATA_DIR + "data")) {
+			if (file.getName().startsWith("M2_train_pos")) {
+				for (String line : FileUtils.readLinesFromText(file)) {
+					List<String> ps = StrUtils.split("\t", line);
+					ps = StrUtils.unwrap(ps);
 
-			int j = 0;
-			String cat = ps1.get(j++);
-			String content = ps1.get(j++);
-			c.incrementCount(cat, 1);
+					String label = ps.get(1);
+					label = label.equals("0") ? "non-fake" : "fake";
+					MDocument d = MDocument.newDocument(ps.get(2));
+					d.getAttrMap().put("label", label);
+					d.getAttrMap().put("id", ps.get(0));
+
+					c.add(d);
+				}
+			}
 		}
-		reader.printProgress();
-		reader.close();
 
-		System.out.println(c.toString());
+		StringBuffer sb = new StringBuffer();
+
+		for (MDocument d : c) {
+
+			sb.append(String.format("DOCID\t%s", d.getAttrMap().get("id")));
+			sb.append(String.format("\nLABEL\t%s", d.getAttrMap().get("label")));
+			List<String> l = Generics.newArrayList(d.size());
+
+			for (MSentence s : d) {
+				String p1 = StrUtils.join(" ", s.getTokenStrings(0));
+				String p2 = "O";
+				String[] ps = { p1, p2 };
+				ps = StrUtils.wrap(ps);
+				l.add(StrUtils.join("\t", ps));
+			}
+
+			sb.append("\n" + StrUtils.join("\n", l));
+			sb.append("\n\n");
+		}
+
+		FileUtils.writeAsText(FNPath.DATA_DIR + "M2_train_sents.txt", sb.toString().trim());
 
 	}
-
 }

@@ -823,6 +823,22 @@ public class VectorMath {
 		return ArrayMath.normL2(a.values());
 	}
 
+	public static double normL2(DenseMatrix a, DenseVector b, boolean row_norms) {
+		double sum = ArrayMath.normL2(a.values(), b.values(), row_norms);
+		b.setSum(sum);
+		return sum;
+	}
+
+	public static DenseVector normL2(DenseMatrix a, boolean row_norms) {
+		int size = a.rowSize();
+		if (!row_norms) {
+			size = a.colSize();
+		}
+		DenseVector b = new DenseVector(size);
+		normL2(a, b, row_norms);
+		return b;
+	}
+
 	public static double normL2(DenseTensor a) {
 		return ArrayMath.normL2(a.values());
 	}
