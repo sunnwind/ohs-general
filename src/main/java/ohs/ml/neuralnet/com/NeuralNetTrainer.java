@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import ohs.math.ArrayMath;
 import ohs.math.ArrayUtils;
 import ohs.math.VectorMath;
+import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
@@ -115,9 +116,11 @@ public class NeuralNetTrainer {
 
 	private TaskType tt;
 
-	private DenseMatrix W;
+	private DenseMatrix Wnobias;
 
 	private List<Worker> ws;
+
+	private DenseTensor Wbest;
 
 	private DenseTensor X;
 
@@ -182,6 +185,8 @@ public class NeuralNetTrainer {
 		}
 
 		nnmr.shutdown();
+
+		VectorUtils.copy(Wbest, nns.get(0).getW(false));
 	}
 
 	private void prepare(NeuralNet nn, int thread_size, int batch_size, double learn_rate, double reg_lambda,
@@ -231,8 +236,10 @@ public class NeuralNetTrainer {
 			for (DenseMatrix w : nn.getW(true)) {
 				l.addAll(w);
 			}
-			W = new DenseMatrix(l);
+			Wnobias = new DenseMatrix(l);
 		}
+
+		Wbest = nn.getW(false).copy(true);
 
 		tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
 
@@ -296,6 +303,7 @@ public class NeuralNetTrainer {
 			data_size = Y.size();
 		}
 
+		double best_f1 = 0;
 		double best_acc = 0;
 		double best_cost = 0;
 		int best_cor_cnt = 0;
@@ -332,25 +340,35 @@ public class NeuralNetTrainer {
 			}
 
 			if (reg_lambda > 0) {
-				cost += CrossEntropyCostFunction.getL2RegularizationTerm(reg_lambda, W, data_size);
+				cost += CrossEntropyCostFunction.getL2RegularizationTerm(reg_lambda, Wnobias, data_size);
 			}
 
 			double acc = 1d * cor_cnt / data_size;
 
-			if (best_cost < cost) {
-				best_cost = cost;
-				best_cor_cnt = cor_cnt;
-				best_acc = acc;
-			}
-
-			double norm = ArrayMath.normL2(W.values());
+			double norm = ArrayMath.normL2(Wnobias.values());
 
 			System.out.printf("%dth, cost: %f, acc: %f (%d/%d), time: %s (%s), norm: %f, learn-rate: %f\n", i + 1, cost,
 					acc, cor_cnt, data_size, timer2.stop(), timer1.stop(), norm, learn_rate);
 
+			Performance p = null;
+
 			if (Xt != null && Yt != null) {
-				Performance p = evaluate(Xt, Yt);
+				p = evaluate(Xt, Yt);
 				System.out.println(p.toString());
+			}
+
+			if (p == null) {
+				if (best_cost < cost) {
+					best_cost = cost;
+					best_cor_cnt = cor_cnt;
+					best_acc = acc;
+					VectorUtils.copy(nns.get(0).getW(false), Wbest);
+				}
+			} else {
+				if (best_f1 < p.getMicroF1()) {
+					best_f1 = p.getMicroF1();
+					VectorUtils.copy(nns.get(0).getW(false), Wbest);
+				}
 			}
 
 			if (iters % grad_acc_reset_size == 0) {
@@ -366,7 +384,6 @@ public class NeuralNetTrainer {
 					pu.setLearningRate(learn_rate);
 				}
 			}
-
 		}
 	}
 

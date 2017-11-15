@@ -36,11 +36,11 @@ public class NeuralNet extends ArrayList<Layer> {
 	 */
 	private static final long serialVersionUID = -8546621903237371147L;
 
-	private Indexer<String> labelIdxer;
+	private Indexer<String> labelIdxer = Generics.newIndexer();
+
+	private Vocab vocab = new Vocab();
 
 	private TaskType tt;
-
-	private Vocab vocab;
 
 	/**
 	 * 
@@ -204,6 +204,7 @@ public class NeuralNet extends ArrayList<Layer> {
 				ret.addAll(B);
 			}
 		}
+		ret.unwrapValues();
 		return ret;
 	}
 
@@ -280,6 +281,7 @@ public class NeuralNet extends ArrayList<Layer> {
 		System.out.printf("write at [%s]\n", fileName);
 		ObjectOutputStream oos = FileUtils.openObjectOutputStream(fileName);
 		writeObject(oos);
+		oos.flush();
 		oos.close();
 	}
 

@@ -1,32 +1,28 @@
 package ohs.ml.neuralnet.com;
 
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.xmlbeans.impl.xb.xsdschema.Attribute.Use;
-
+import ohs.io.FileUtils;
 import ohs.matrix.DenseVector;
 import ohs.nlp.ling.types.MCollection;
 import ohs.nlp.ling.types.MDocument;
 import ohs.nlp.ling.types.MSentence;
 import ohs.nlp.ling.types.MToken;
 import ohs.types.generic.Indexer;
-import ohs.types.generic.ListMap;
 import ohs.types.generic.SetMap;
 import ohs.types.generic.Vocab;
 import ohs.types.generic.Vocab.SYM;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
-import scala.Char;
-import scala.reflect.internal.Symbols.SymbolOps;
 
 public class NERFeatureExtractor {
 
 	private Indexer<String> featIdxer = Generics.newIndexer();
 
 	private Indexer<String> featValIdxer = Generics.newIndexer();
-
-	private Indexer<String> labelIdxer = Generics.newIndexer();
 
 	private SetMap<String, String> gzData = Generics.newSetMap();
 
@@ -356,11 +352,42 @@ public class NERFeatureExtractor {
 		return vocab;
 	}
 
+	public void readObject(ObjectInputStream ois) throws Exception {
+		featIdxer = FileUtils.readStringIndexer(ois);
+		featValIdxer = FileUtils.readStringIndexer(ois);
+		gzData = FileUtils.readStringSetMap(ois);
+		vocab = new Vocab(ois);
+		is_training = ois.readBoolean();
+		unk = ois.readInt();
+	}
+
+	public void readObject(String fileName) throws Exception {
+		ObjectInputStream ois = FileUtils.openObjectInputStream(fileName);
+		readObject(ois);
+		ois.close();
+	}
+
 	public void setIsTraining(boolean is_training) {
 		this.is_training = is_training;
 	}
 
 	public void setVocab(Vocab vocab) {
 		this.vocab = vocab;
+	}
+
+	public void writeObject(ObjectOutputStream oos) throws Exception {
+		FileUtils.writeStringIndexer(oos, featIdxer);
+		FileUtils.writeStringIndexer(oos, featValIdxer);
+		FileUtils.writeStringSetMap(oos, gzData);
+		vocab.writeObject(oos);
+		oos.writeBoolean(is_training);
+		oos.writeInt(unk);
+	}
+
+	public void writeObject(String fileName) throws Exception {
+		ObjectOutputStream oos = FileUtils.openObjectOutputStream(fileName, false);
+		writeObject(oos);
+		oos.flush();
+		oos.close();
 	}
 }

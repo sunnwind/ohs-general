@@ -3,25 +3,24 @@ package ohs.ml.eval;
 import java.text.NumberFormat;
 
 import ohs.math.ArrayMath;
+import ohs.matrix.DenseVector;
 import ohs.types.generic.Indexer;
-import ohs.types.number.DoubleArray;
-import ohs.types.number.IntegerArray;
 
 public class Performance {
 
 	private Indexer<String> labelIdxer;
 
-	private IntegerArray ans_cnts;
+	private DenseVector ansCnts;
 
-	private IntegerArray cor_cnts;
+	private DenseVector corCnts;
 
-	private IntegerArray pred_cnts;
+	private DenseVector predCnts;
 
-	private DoubleArray precisons;
+	private DenseVector precisons;
 
-	private DoubleArray recalls;
+	private DenseVector recalls;
 
-	private DoubleArray f1;
+	private DenseVector f1;
 
 	private double macro_f1;
 
@@ -31,93 +30,86 @@ public class Performance {
 
 	private double micro_rc;
 
-	private int total_ans_cnt;
-
-	private int total_cor_cnt;
-
-	private int total_pred_cnt;
-
-	public Performance(int label_size) {
-		this(new IntegerArray(label_size), new IntegerArray(label_size), new IntegerArray(label_size));
-	}
-
-	public Performance(IntegerArray ans_cnts, IntegerArray pred_cnts, IntegerArray cor_cnts) {
+	public Performance(DenseVector ans_cnts, DenseVector pred_cnts, DenseVector cor_cnts) {
 		this(ans_cnts, pred_cnts, cor_cnts, null);
 	}
 
-	public Performance(IntegerArray ans_cnts, IntegerArray pred_cnts, IntegerArray cor_cnts,
-			Indexer<String> labelIdxer) {
-		this.ans_cnts = ans_cnts;
-		this.pred_cnts = pred_cnts;
-		this.cor_cnts = cor_cnts;
+	public Performance(DenseVector ansCnts, DenseVector predCnts, DenseVector corCnts, Indexer<String> labelIdxer) {
+		this.ansCnts = ansCnts;
+		this.predCnts = predCnts;
+		this.corCnts = corCnts;
 		this.labelIdxer = labelIdxer;
 
-		precisons = new DoubleArray(ans_cnts.size());
-		recalls = new DoubleArray(ans_cnts.size());
-		f1 = new DoubleArray(ans_cnts.size());
+		precisons = new DenseVector(ansCnts.size());
+		recalls = new DenseVector(ansCnts.size());
+		f1 = new DenseVector(ansCnts.size());
 
 		evaluate();
 	}
 
+	public Performance(int label_size) {
+		this(new DenseVector(label_size), new DenseVector(label_size), new DenseVector(label_size));
+	}
+
 	public void evaluate() {
-		for (int i = 0; i < ans_cnts.size(); i++) {
-			precisons.add(Metrics.precision(cor_cnts.get(i), pred_cnts.get(i)));
-			recalls.add(Metrics.recall(cor_cnts.get(i), ans_cnts.get(i)));
-			f1.add(Metrics.f1(precisons.get(i), recalls.get(i)));
+		for (int i = 0; i < ansCnts.size(); i++) {
+			precisons.add(i, Metrics.precision(corCnts.value(i), predCnts.value(i)));
+			recalls.add(i, Metrics.recall(corCnts.value(i), ansCnts.value(i)));
+			f1.add(i, Metrics.f1(precisons.value(i), recalls.value(i)));
 		}
 
-		total_ans_cnt = ArrayMath.sum(ans_cnts.values());
-		total_pred_cnt = ArrayMath.sum(pred_cnts.values());
-		total_cor_cnt = ArrayMath.sum(cor_cnts.values());
-
-		micro_pr = Metrics.precision(total_cor_cnt, total_pred_cnt);
-		micro_rc = Metrics.recall(total_cor_cnt, total_ans_cnt);
+		micro_pr = Metrics.precision(corCnts.sum(), predCnts.sum());
+		micro_rc = Metrics.recall(corCnts.sum(), ansCnts.sum());
 		micro_f1 = Metrics.f1(micro_pr, micro_rc);
 		macro_f1 = ArrayMath.mean(f1.values());
-
 	}
 
-	public IntegerArray getAnswerCounts() {
-		return ans_cnts;
+	public DenseVector getAnswerCounts() {
+		return ansCnts;
 	}
 
-	public IntegerArray getCorrectCounts() {
-		return cor_cnts;
+	public DenseVector getCorrectCounts() {
+		return corCnts;
 	}
 
-	public IntegerArray getPredictCounts() {
-		return pred_cnts;
+	public double getMicroF1() {
+		return micro_f1;
 	}
 
-	public void setAnswerCounts(IntegerArray ans_cnts) {
-		this.ans_cnts = ans_cnts;
+	public DenseVector getPredictCounts() {
+		return predCnts;
 	}
 
-	public void setCorrectCounts(IntegerArray cor_cnts) {
-		this.cor_cnts = cor_cnts;
+	public void setAnswerCounts(DenseVector ans_cnts) {
+		this.ansCnts = ans_cnts;
+	}
+
+	public void setCorrectCounts(DenseVector cor_cnts) {
+		this.corCnts = cor_cnts;
 	}
 
 	public void SetLabelIndexer(Indexer<String> labelIdxer) {
 		this.labelIdxer = labelIdxer;
 	}
 
-	public void setPredictCounts(IntegerArray pred_cnts) {
-		this.pred_cnts = pred_cnts;
+	public void setPredictCounts(DenseVector pred_cnts) {
+		this.predCnts = pred_cnts;
 	}
 
+	@Override
 	public String toString() {
 		NumberFormat nf = NumberFormat.getInstance();
 		nf.setMinimumFractionDigits(4);
 		StringBuffer sb = new StringBuffer();
 		sb.append("Label\tAns\tPreds\tCors\tPR\tRC\tF1");
 
-		for (int i = 0; i < ans_cnts.size(); i++) {
-			int ans_cnt = ans_cnts.get(i);
-			int pred_cnt = pred_cnts.get(i);
-			int correct = cor_cnts.get(i);
-			double pr = precisons.get(i);
-			double rc = recalls.get(i);
-			double f = f1.get(i);
+		for (int i = 0; i < ansCnts.size(); i++) {
+			int ans_cnt = (int) ansCnts.value(i);
+			int pred_cnt = (int) predCnts.value(i);
+			int correct = (int) corCnts.value(i);
+			double pr = precisons.value(i);
+			double rc = recalls.value(i);
+			double f = f1.value(i);
 			String label = labelIdxer == null ? null : labelIdxer.getObject(i);
 
 			sb.append(String.format("\n%s\t%d\t%d\t%d\t%s\t%s\t%s", label == null ? i + "" : label, ans_cnt, pred_cnt,
@@ -132,8 +124,8 @@ public class Performance {
 		// micro_rc = Metrics.recall(total_cor_cnt, total_ans_cnt);
 		// micro_f1 = Metrics.f1(micro_pr, micro_rc);
 
-		sb.append(String.format("\nTotal\t%d\t%d\t%d\t%s\t%s\t%s", total_ans_cnt, total_pred_cnt, total_cor_cnt,
-				nf.format(micro_pr), nf.format(micro_rc), nf.format(micro_f1)));
+		sb.append(String.format("\nTotal\t%d\t%d\t%d\t%s\t%s\t%s", (int) ansCnts.sum(), (int) predCnts.sum(),
+				(int) corCnts.sum(), nf.format(micro_pr), nf.format(micro_rc), nf.format(micro_f1)));
 
 		return sb.toString();
 	}

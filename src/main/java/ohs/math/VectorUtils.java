@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map.Entry;
 
 import ohs.matrix.DenseMatrix;
+import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
 import ohs.matrix.Matrix;
 import ohs.matrix.SparseMatrix;
@@ -38,20 +39,11 @@ public class VectorUtils {
 		return sum;
 	}
 
-	public static double copy(Matrix a, Matrix b) {
+	public static double copy(DenseTensor a, DenseTensor b) {
 		double sum = 0;
-		if (VectorChecker.isSparse(a) && VectorChecker.isSparse(b)) {
-			for (int i = 0; i < a.rowSize(); i++) {
-				sum += copy(a.row(i), b.row(i));
-			}
-		} else if (!VectorChecker.isSparse(a) && !VectorChecker.isSparse(b)) {
-			for (int i = 0; i < a.rowSize(); i++) {
-				sum += copy(a.row(i), b.row(i));
-			}
-		} else {
-			throw new IllegalArgumentException();
+		for (int i = 0; i < a.size(); i++) {
+			sum = copy(a.get(i), b.get(i));
 		}
-
 		return sum;
 	}
 
@@ -68,6 +60,23 @@ public class VectorUtils {
 	public static double copy(DenseVector a, int m, DenseVector b, int n, int size) {
 		double sum = ArrayUtils.copy(a.values(), m, b.values(), n, size);
 		b.setSum(sum);
+		return sum;
+	}
+
+	public static double copy(Matrix a, Matrix b) {
+		double sum = 0;
+		if (VectorChecker.isSparse(a) && VectorChecker.isSparse(b)) {
+			for (int i = 0; i < a.rowSize(); i++) {
+				sum += copy(a.row(i), b.row(i));
+			}
+		} else if (!VectorChecker.isSparse(a) && !VectorChecker.isSparse(b)) {
+			for (int i = 0; i < a.rowSize(); i++) {
+				sum += copy(a.row(i), b.row(i));
+			}
+		} else {
+			throw new IllegalArgumentException();
+		}
+
 		return sum;
 	}
 
@@ -103,6 +112,16 @@ public class VectorUtils {
 
 	public static double copyRows(DenseVector[] a, DenseVector b) {
 		return copyRows(new DenseMatrix(a), b);
+	}
+
+	public static boolean enlarge(DenseMatrix a, int new_row_size, int new_col_size) {
+		boolean ret = false;
+		if (new_row_size > a.rowSize() || new_col_size > a.colSize()) {
+			double[][] v = new double[new_row_size][new_col_size];
+			a.setValues(v);
+			ret = true;
+		}
+		return ret;
 	}
 
 	public static SparseVector freqOfFreq(DenseVector x) {
@@ -219,16 +238,6 @@ public class VectorUtils {
 		Counter<Integer> ret = Generics.newCounter();
 		for (int i = 0; i < x.size(); i++) {
 			ret.incrementCount(x.get(i), 1);
-		}
-		return ret;
-	}
-
-	public static boolean enlarge(DenseMatrix a, int new_row_size, int new_col_size) {
-		boolean ret = false;
-		if (new_row_size > a.rowSize() || new_col_size > a.colSize()) {
-			double[][] v = new double[new_row_size][new_col_size];
-			a.setValues(v);
-			ret = true;
 		}
 		return ret;
 	}
@@ -403,6 +412,50 @@ public class VectorUtils {
 		return ret;
 	}
 
+	public static DenseMatrix toDenseMatrix(CounterMap<String, String> cm, Indexer<String> rowIndexer,
+			Indexer<String> colIndexer, boolean add_if_unseen) {
+
+		DenseMatrix ret = new DenseMatrix(rowIndexer.size(), colIndexer.size());
+
+		for (String rowKey : cm.keySet()) {
+			int i = -1;
+
+			if (add_if_unseen) {
+				i = rowIndexer.getIndex(rowKey);
+			} else {
+				i = rowIndexer.indexOf(rowKey);
+			}
+
+			SparseVector row = toSparseVector(cm.getCounter(rowKey), colIndexer, add_if_unseen);
+
+			if (i < 0 || row.size() == 0) {
+				continue;
+			}
+
+			for (int k = 0; k < row.size(); k++) {
+				int j = row.indexAt(k);
+				double v = row.valueAt(k);
+				ret.add(i, j, v);
+			}
+		}
+		return ret;
+	}
+
+	public static DenseVector toDenseVector(Counter<String> x, Indexer<String> indexer) {
+		DenseVector ret = new DenseVector(indexer.size());
+
+		for (Entry<String, Double> e : x.entrySet()) {
+			String key = e.getKey();
+			double v = e.getValue();
+			int i = indexer.indexOf(key);
+			if (i < 0) {
+				continue;
+			}
+			ret.add(i, v);
+		}
+		return ret;
+	}
+
 	public static String toRankedString(SparseVector x, Indexer<String> indexer) {
 		StringBuffer sb = new StringBuffer();
 
@@ -450,64 +503,12 @@ public class VectorUtils {
 		return ret;
 	}
 
-	public static DenseMatrix toDenseMatrix(CounterMap<String, String> cm, Indexer<String> rowIndexer,
-			Indexer<String> colIndexer, boolean add_if_unseen) {
-
-		DenseMatrix ret = new DenseMatrix(rowIndexer.size(), colIndexer.size());
-
-		for (String rowKey : cm.keySet()) {
-			int i = -1;
-
-			if (add_if_unseen) {
-				i = rowIndexer.getIndex(rowKey);
-			} else {
-				i = rowIndexer.indexOf(rowKey);
-			}
-
-			SparseVector row = toSparseVector(cm.getCounter(rowKey), colIndexer, add_if_unseen);
-
-			if (i < 0 || row.size() == 0) {
-				continue;
-			}
-
-			for (int k = 0; k < row.size(); k++) {
-				int j = row.indexAt(k);
-				double v = row.valueAt(k);
-				ret.add(i, j, v);
-			}
-		}
-		return ret;
-	}
-
 	public static SparseVector toSparseVector(Counter<Integer> a) {
 		return new SparseVector(a);
 	}
 
-	public static SparseVector toSparseVector(IntegerArray a) {
-		Counter<Integer> c = Generics.newCounter();
-		for (int i : a) {
-			c.incrementCount(i, 1);
-		}
-		return new SparseVector(c);
-	}
-
 	public static SparseVector toSparseVector(Counter<String> x, Indexer<String> indexer) {
 		return toSparseVector(x, indexer, false);
-	}
-
-	public static DenseVector toDenseVector(Counter<String> x, Indexer<String> indexer) {
-		DenseVector ret = new DenseVector(indexer.size());
-
-		for (Entry<String, Double> e : x.entrySet()) {
-			String key = e.getKey();
-			double v = e.getValue();
-			int i = indexer.indexOf(key);
-			if (i < 0) {
-				continue;
-			}
-			ret.add(i, v);
-		}
-		return ret;
 	}
 
 	public static SparseVector toSparseVector(Counter<String> x, Indexer<String> indexer, boolean add_if_unseen) {
@@ -529,6 +530,14 @@ public class VectorUtils {
 			vals.add(value);
 		}
 		return new SparseVector(idxs, vals);
+	}
+
+	public static SparseVector toSparseVector(IntegerArray a) {
+		Counter<Integer> c = Generics.newCounter();
+		for (int i : a) {
+			c.incrementCount(i, 1);
+		}
+		return new SparseVector(c);
 	}
 
 	public static SparseVector toSparseVector(List<String> x, Indexer<String> indexer, boolean add_if_unseen) {

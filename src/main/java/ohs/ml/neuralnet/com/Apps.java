@@ -493,63 +493,6 @@ public class Apps {
 		trainer.finish();
 	}
 
-	public static void transformBIOtoBIOSE(MDocument d) {
-
-		int w_loc = 0;
-		int ne_loc = 3;
-
-		for (int u = 0; u < d.size(); u++) {
-			MSentence s = d.get(u);
-			for (int i = 0; i < s.size();) {
-				MToken t1 = s.get(i);
-				String w1 = t1.getString(w_loc);
-				String ne1 = t1.getString(ne_loc);
-
-				if (ne1.startsWith("B-")) {
-					int size = 1;
-
-					for (int k = i + 1; k < s.size(); k++) {
-						MToken t2 = s.get(k);
-						String w2 = t2.getString(w_loc);
-						String ne2 = t2.getString(ne_loc);
-
-						if (ne2.startsWith("I")) {
-							size++;
-						} else {
-							break;
-						}
-					}
-
-					int j = i + size;
-					;
-
-					for (int k = i; k < j; k++) {
-						MToken t2 = s.get(k);
-						String ne = t2.getString(ne_loc);
-
-						if (size == 1) {
-							ne = ne.replace("B-", "S-");
-						} else {
-							if (k == i) {
-								ne = ne.replace("B-", "B-");
-							} else if (k == j - 1) {
-								ne = ne.replace("I-", "E-");
-							} else {
-								ne = ne.replace("I-", "I-");
-							}
-						}
-						t2.set(ne_loc, ne);
-					}
-
-					i = j;
-
-				} else {
-					i++;
-				}
-			}
-		}
-	}
-
 	public static void testNER() throws Exception {
 		NeuralNetParams nnp = new NeuralNetParams();
 
@@ -561,12 +504,12 @@ public class Apps {
 		nnp.setRegLambda(0.001);
 		nnp.setGradientClipCutoff(5);
 
-		nnp.setThreadSize(5);
+		nnp.setThreadSize(6);
 		nnp.setBatchSize(3);
 		nnp.setGradientAccumulatorResetSize(Integer.MAX_VALUE);
 
-		nnp.setK1(3);
-		nnp.setK2(5);
+		nnp.setK1(1);
+		nnp.setK2(2);
 
 		nnp.setIsFullSequenceBatch(true);
 		nnp.setIsRandomBatch(true);
@@ -594,10 +537,6 @@ public class Apps {
 		transformBIOtoBIOSE(testData);
 
 		Indexer<String> labelIdxer = Generics.newIndexer();
-		Vocab vocab = new Vocab();
-		vocab.add(Vocab.SYM.UNK.getText());
-
-		int unk = 0;
 
 		DenseTensor X = new DenseTensor();
 		DenseMatrix Y = new DenseMatrix();
@@ -648,7 +587,6 @@ public class Apps {
 				}
 
 				c.pruneKeysBelowThreshold(5);
-
 				prefixes = c.keySet();
 			}
 
@@ -670,8 +608,6 @@ public class Apps {
 			D.addAll(trainData);
 			D.addAll(testData);
 
-			Set<String> labels = Generics.newTreeSet();
-
 			for (MSentence s : D.subList(0, trainData.size())) {
 				ext.extract(s);
 			}
@@ -682,9 +618,9 @@ public class Apps {
 				ext.extract(s);
 			}
 
-			for (MToken t : D.getTokens()) {
-				String word = t.getString(0);
-				String ne = t.getString(3);
+			Set<String> labels = Generics.newTreeSet();
+
+			for (String ne : D.getTokenStrings(3)) {
 				String[] ps = ne.split("-");
 				labels.add(ne);
 			}
@@ -693,7 +629,7 @@ public class Apps {
 			labelIdxer.addAll(labels);
 			labelIdxer.add("O");
 
-			vocab = ext.getVocab();
+			Vocab vocab = ext.getVocab();
 
 			for (int i = 0; i < D.size(); i++) {
 				MSentence s = D.get(i);
@@ -708,7 +644,6 @@ public class Apps {
 
 					Xm.add((DenseVector) t.get(t.size() - 1));
 					Ym.add(j, labelIdxer.getIndex(t.getString(3)));
-
 				}
 
 				if (i < trainData.size()) {
@@ -726,6 +661,8 @@ public class Apps {
 
 		Xt.trimToSize();
 		Yt.trimToSize();
+
+		Vocab vocab = ext.getVocab();
 
 		System.out.println(vocab.info());
 		System.out.println(labelIdxer.info());
@@ -771,6 +708,7 @@ public class Apps {
 		}
 
 		String modelFileName = "../../data/ml_data/ner_nn.ser";
+		String extFileName = "../../data/ml_data/ner_ext.ser";
 
 		NeuralNet nn = new NeuralNet(labelIdxer, vocab, TaskType.SEQ_LABELING);
 
@@ -780,6 +718,7 @@ public class Apps {
 			nn = new NeuralNet(modelFileName);
 			nn.prepare();
 		} else {
+
 			if (E == null) {
 				nn.add(new EmbeddingLayer(voc_size, word_emb_size, true));
 			} else {
@@ -801,11 +740,11 @@ public class Apps {
 			nn.init();
 		}
 
-		// nn.writeObject(modelFileName);
+		nn.writeObject(modelFileName);
 
 		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, nnp);
 
-		int max_iters = 1000;
+		int max_iters = 200;
 		boolean use_batches = true;
 
 		if (use_batches) {
@@ -845,6 +784,7 @@ public class Apps {
 		trainer.finish();
 
 		nn.writeObject(modelFileName);
+		ext.writeObject(extFileName);
 	}
 
 	public static void testSentenceClassification() throws Exception {
@@ -980,6 +920,63 @@ public class Apps {
 			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, nnp);
 			trainer.train(X, Y, Xt, Yt, 10000);
 			trainer.finish();
+		}
+	}
+
+	public static void transformBIOtoBIOSE(MDocument d) {
+
+		int w_loc = 0;
+		int ne_loc = 3;
+
+		for (int u = 0; u < d.size(); u++) {
+			MSentence s = d.get(u);
+			for (int i = 0; i < s.size();) {
+				MToken t1 = s.get(i);
+				String w1 = t1.getString(w_loc);
+				String ne1 = t1.getString(ne_loc);
+
+				if (ne1.startsWith("B-")) {
+					int size = 1;
+
+					for (int k = i + 1; k < s.size(); k++) {
+						MToken t2 = s.get(k);
+						String w2 = t2.getString(w_loc);
+						String ne2 = t2.getString(ne_loc);
+
+						if (ne2.startsWith("I")) {
+							size++;
+						} else {
+							break;
+						}
+					}
+
+					int j = i + size;
+					;
+
+					for (int k = i; k < j; k++) {
+						MToken t2 = s.get(k);
+						String ne = t2.getString(ne_loc);
+
+						if (size == 1) {
+							ne = ne.replace("B-", "S-");
+						} else {
+							if (k == i) {
+								ne = ne.replace("B-", "B-");
+							} else if (k == j - 1) {
+								ne = ne.replace("I-", "E-");
+							} else {
+								ne = ne.replace("I-", "I-");
+							}
+						}
+						t2.set(ne_loc, ne);
+					}
+
+					i = j;
+
+				} else {
+					i++;
+				}
+			}
 		}
 	}
 }

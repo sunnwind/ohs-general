@@ -1343,7 +1343,6 @@ public class FileUtils {
 		for (int i = 0; i < x.length; i++) {
 			oos.writeBoolean(x[i]);
 		}
-		// oos.flush();
 	}
 
 	public static void writeDoubleArray(ObjectOutputStream oos, DoubleArray a) throws Exception {
@@ -1357,7 +1356,6 @@ public class FileUtils {
 		while (iter.hasNext()) {
 			oos.writeDouble(iter.next());
 		}
-		// oos.flush();
 	}
 
 	public static void writeDoubleMatrix(ObjectOutputStream oos, double[][] x) throws Exception {
@@ -1365,7 +1363,6 @@ public class FileUtils {
 		for (int i = 0; i < x.length; i++) {
 			writeDoubles(oos, x[i]);
 		}
-		oos.flush();
 	}
 
 	public static void writeDoubles(ObjectOutputStream oos, double[] x) throws Exception {
@@ -1374,7 +1371,6 @@ public class FileUtils {
 		for (int i = 0; i < x.length; i++) {
 			oos.writeDouble(x[i]);
 		}
-		// oos.flush();
 	}
 
 	public static void writeIntegerCollection(ObjectOutputStream oos, Collection<Integer> c) throws Exception {
@@ -1392,7 +1388,6 @@ public class FileUtils {
 			oos.writeInt(e.getKey());
 			oos.writeDouble(e.getValue());
 		}
-		oos.flush();
 	}
 
 	public static void writeIntegerDoublePairs(ObjectOutputStream oos, int[] indexes, double[] values)
@@ -1403,7 +1398,6 @@ public class FileUtils {
 			oos.writeInt(indexes[i]);
 			oos.writeDouble(values[i]);
 		}
-		oos.flush();
 	}
 
 	public static void writeIntegerListMap(ObjectOutputStream oos, ListMap<Integer, Integer> lm) throws Exception {
@@ -1421,7 +1415,6 @@ public class FileUtils {
 			oos.writeInt(key);
 			oos.writeInt(m.get(key));
 		}
-		oos.flush();
 	}
 
 	public static void writeIntegerMatrix(ObjectOutputStream oos, int[][] x) throws Exception {
@@ -1429,7 +1422,6 @@ public class FileUtils {
 		for (int i = 0; i < x.length; i++) {
 			writeIntegers(oos, x[i]);
 		}
-		oos.flush();
 	}
 
 	public static void writeIntegerMatrix(ObjectOutputStream oos, int[][][] x) throws Exception {
@@ -1459,7 +1451,6 @@ public class FileUtils {
 		for (int i = 0; i < x.length; i++) {
 			oos.writeInt(x[i]);
 		}
-		oos.flush();
 	}
 
 	public static void writeIntegers(String fileName, int[] x) throws Exception {
@@ -1473,7 +1464,6 @@ public class FileUtils {
 		for (int value : s) {
 			oos.writeInt(value);
 		}
-		oos.flush();
 	}
 
 	public static void writeIntegerSetMap(ObjectOutputStream oos, SetMap<Integer, Integer> m) throws Exception {
@@ -1482,7 +1472,6 @@ public class FileUtils {
 			oos.writeInt(key);
 			writeIntegerSet(oos, m.get(key));
 		}
-		oos.flush();
 	}
 
 	public static void writeIntegerSetMap(String fileName, SetMap<Integer, Integer> m) throws Exception {
@@ -1497,7 +1486,6 @@ public class FileUtils {
 			oos.writeInt(e.getKey());
 			oos.writeUTF(e.getValue());
 		}
-		oos.flush();
 	}
 
 	public static void writeIntegerStringMap(ObjectOutputStream oos, Map<Integer, String> m) throws Exception {
@@ -1506,7 +1494,6 @@ public class FileUtils {
 			oos.writeInt(key);
 			oos.writeUTF(m.get(key));
 		}
-		oos.flush();
 	}
 
 	public static void writeLongArray(ObjectOutputStream oos, long[] x) throws Exception {
@@ -1528,7 +1515,6 @@ public class FileUtils {
 		for (int i = 0; i < a.length; i++) {
 			oos.writeUTF(a[i]);
 		}
-		oos.flush();
 	}
 
 	public static void writeStringCollection(ObjectOutputStream oos, Collection<String> c) throws Exception {
@@ -1537,7 +1523,6 @@ public class FileUtils {
 		while (iter.hasNext()) {
 			oos.writeUTF(iter.next());
 		}
-		oos.flush();
 	}
 
 	public static void writeStringCollectionAsText(String fileName, Collection<String> c) throws Exception {
@@ -1558,7 +1543,6 @@ public class FileUtils {
 			oos.writeUTF(key);
 			oos.writeDouble(x.getCount(key));
 		}
-		oos.flush();
 	}
 
 	public static void writeStringCounterAsText(String fileName, Counter<String> c) throws Exception {
@@ -1602,7 +1586,6 @@ public class FileUtils {
 			oos.writeUTF(key);
 			writeStringCounter(oos, cm.getCounter(key));
 		}
-		oos.flush();
 	}
 
 	public static void writeStringCounterMap(String fileName, CounterMap<String, String> cm) throws Exception {
@@ -1670,7 +1653,6 @@ public class FileUtils {
 		for (int i = 0; i < indexer.size(); i++) {
 			oos.writeUTF(indexer.getObject(i));
 		}
-		oos.flush();
 	}
 
 	public static void writeStringIndexerAsText(BufferedWriter bw, Indexer<String> indexer) throws Exception {
@@ -1710,6 +1692,24 @@ public class FileUtils {
 		bw.close();
 
 		System.out.printf("write [%d] ents at [%s] - [%s]\n", m.size(), fileName, timer.stop());
+	}
+
+	public static void writeStringSetMap(ObjectOutputStream oos, SetMap<String, String> sm) throws Exception {
+		oos.writeInt(sm.size());
+
+		for (String key : sm.keySet()) {
+			oos.writeUTF(key);
+			writeStringCollection(oos, sm.get(key));
+		}
+	}
+
+	public static SetMap<String, String> readStringSetMap(ObjectInputStream ois) throws Exception {
+		int size = ois.readInt();
+		SetMap<String, String> ret = Generics.newSetMap(size);
+		for (int i = 0; i < size; i++) {
+			ret.put(ois.readUTF(), Generics.newHashSet(readStringList(ois)));
+		}
+		return ret;
 	}
 
 	public static void writeStringSetMapAsText(String fileName, SetMap<String, String> sm) throws Exception {

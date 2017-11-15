@@ -3,6 +3,7 @@ package ohs.ml.eval;
 import java.util.List;
 import java.util.Set;
 
+import ohs.matrix.DenseVector;
 import ohs.types.generic.Counter;
 import ohs.types.generic.Indexer;
 import ohs.types.number.IntegerArray;
@@ -120,14 +121,14 @@ public class PerformanceEvaluator {
 			}
 		}
 
-		IntegerArray ans_cnts = new IntegerArray(labels.size());
-		IntegerArray pred_cnts = new IntegerArray(labels.size());
-		IntegerArray cor_cnts = new IntegerArray(labels.size());
+		DenseVector ans_cnts = new DenseVector(labels.size());
+		DenseVector pred_cnts = new DenseVector(labels.size());
+		DenseVector cor_cnts = new DenseVector(labels.size());
 
 		for (int i = 0; i < labels.size(); i++) {
-			ans_cnts.add((int) ansCnts.getCount(i));
-			pred_cnts.add((int) predCnts.getCount(i));
-			cor_cnts.add((int) corCnts.getCount(i));
+			ans_cnts.add(i, ansCnts.getCount(i));
+			pred_cnts.add(i, predCnts.getCount(i));
+			cor_cnts.add(i, corCnts.getCount(i));
 
 			if (labelIdxer != null) {
 				String label = labelIdxer.getObject(i);
@@ -179,9 +180,9 @@ public class PerformanceEvaluator {
 			}
 		}
 
-		Counter<Integer> corCnts = Generics.newCounter(catIdxer.size());
-		Counter<Integer> predCnts = Generics.newCounter(catIdxer.size());
-		Counter<Integer> ansCnts = Generics.newCounter(catIdxer.size());
+		DenseVector ansCnts = new DenseVector(catIdxer.size());
+		DenseVector predCnts = new DenseVector(catIdxer.size());
+		DenseVector corCnts = new DenseVector(catIdxer.size());
 
 		for (int u = 0; u < Y.size(); u++) {
 			IntegerArray y = Y.get(u);
@@ -202,35 +203,21 @@ public class PerformanceEvaluator {
 
 			for (String tag : s1) {
 				String[] ps = tag.split("_");
-				ansCnts.incrementCount(catIdxer.indexOf(ps[2]), 1);
+				ansCnts.add(catIdxer.indexOf(ps[2]), 1);
 			}
 
 			for (String tag : s2) {
 				String[] ps = tag.split("_");
-				predCnts.incrementCount(catIdxer.indexOf(ps[2]), 1);
+				predCnts.add(catIdxer.indexOf(ps[2]), 1);
 			}
 
 			for (String tag : s3) {
 				String[] ps = tag.split("_");
-				corCnts.incrementCount(catIdxer.indexOf(ps[2]), 1);
+				corCnts.add(catIdxer.indexOf(ps[2]), 1);
 			}
-
-			// ansCnts.incrementAll(countLabelSeqs(anss, labelIdxer));
-			// predCnts.incrementAll(countLabelSeqs(preds, labelIdxer));
-			// corCnts.incrementAll(countCommonLabelSeqs(anss, preds, labelIdxer));
 		}
 
-		IntegerArray ans_cnts = new IntegerArray(catIdxer.size());
-		IntegerArray pred_cnts = new IntegerArray(catIdxer.size());
-		IntegerArray cor_cnts = new IntegerArray(catIdxer.size());
-
-		for (int i = 0; i < catIdxer.size(); i++) {
-			ans_cnts.add((int) ansCnts.getCount(i));
-			pred_cnts.add((int) predCnts.getCount(i));
-			cor_cnts.add((int) corCnts.getCount(i));
-		}
-
-		return new Performance(ans_cnts, pred_cnts, cor_cnts, catIdxer);
+		return new Performance(ansCnts, predCnts, corCnts, catIdxer);
 	}
 
 	private String[] splitBioLabel(String bioLabel) {

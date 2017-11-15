@@ -36,20 +36,6 @@ public class DenseTensor extends ArrayList<DenseMatrix> {
 		unwrapValues();
 	}
 
-	public DenseTensor subTensor(int[] is) {
-		DenseTensor ret = new DenseTensor();
-		ret.ensureCapacity(is.length);
-
-		for (int i = 0; i < is.length; i++) {
-			ret.add(get(is[i]));
-		}
-		return ret;
-	}
-
-	public DenseTensor subTensor(int i, int j) {
-		return new DenseTensor(subList(i, j));
-	}
-
 	public DenseTensor(double[][][] vals) {
 		ensureCapacity(vals.length);
 
@@ -59,12 +45,12 @@ public class DenseTensor extends ArrayList<DenseMatrix> {
 		this.vals = vals;
 	}
 
-	public DenseTensor(int size1, int size2, int size3) {
-		this(new double[size1][size2][size3]);
-	}
-
 	public DenseTensor(int size) {
 		this(new double[size][size][size]);
+	}
+
+	public DenseTensor(int size1, int size2, int size3) {
+		this(new double[size1][size2][size3]);
 	}
 
 	public DenseTensor(List<DenseMatrix> rows) {
@@ -91,6 +77,16 @@ public class DenseTensor extends ArrayList<DenseMatrix> {
 		for (DenseMatrix a : this) {
 			a.add(v);
 		}
+	}
+
+	public DenseTensor copy(boolean shallow_copy) {
+		DenseTensor ret = new DenseTensor();
+		ret.ensureCapacity(size());
+		for (int i = 0; i < size(); i++) {
+			ret.add(get(i).copy(shallow_copy));
+		}
+		ret.unwrapValues();
+		return ret;
 	}
 
 	public void add(int i, int j, double value) {
@@ -199,6 +195,20 @@ public class DenseTensor extends ArrayList<DenseMatrix> {
 		int ret = 0;
 		for (DenseMatrix a : this) {
 			ret += a.rowSize();
+		}
+		return ret;
+	}
+
+	public DenseTensor subTensor(int i, int j) {
+		return new DenseTensor(subList(i, j));
+	}
+
+	public DenseTensor subTensor(int[] is) {
+		DenseTensor ret = new DenseTensor();
+		ret.ensureCapacity(is.length);
+
+		for (int i = 0; i < is.length; i++) {
+			ret.add(get(is[i]));
 		}
 		return ret;
 	}
