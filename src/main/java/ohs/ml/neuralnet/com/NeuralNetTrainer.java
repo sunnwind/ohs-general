@@ -106,6 +106,8 @@ public class NeuralNetTrainer {
 
 	private NeuralNetMultiRunner nnmr;
 
+	private NeuralNet onn;
+
 	private List<NeuralNet> nns;
 
 	private List<ParameterUpdater> pus;
@@ -139,34 +141,14 @@ public class NeuralNetTrainer {
 			nn.setIsTesting(true);
 		}
 
-		NeuralNet n = nns.get(0);
 		DenseMatrix Yh = nnmr.classify(X);
-
-		IntegerMatrix _Y = new IntegerMatrix(Y.rowSize());
-		IntegerMatrix _Yh = new IntegerMatrix(Y.rowSize());
-
-		for (int i = 0; i < Y.rowSize(); i++) {
-			DenseVector y = Y.row(i);
-			DenseVector yh = Yh.row(i);
-
-			IntegerArray anss = new IntegerArray(y.size());
-			IntegerArray preds = new IntegerArray(y.size());
-
-			for (int j = 0; j < y.size(); j++) {
-				anss.add((int) y.value(j));
-				preds.add((int) yh.value(j));
-			}
-
-			_Y.add(anss);
-			_Yh.add(preds);
-		}
 
 		Performance p = null;
 
 		if (Y.colSize() > 1) {
-			p = eval.evaluteSequences(_Y, _Yh, n.getLabelIndexer());
+			p = eval.evaluteSequences(Y, Yh, onn.getLabelIndexer());
 		} else {
-			p = eval.evalute(_Y, _Yh, n.getLabelIndexer());
+			p = eval.evalute(Y, Yh, onn.getLabelIndexer());
 		}
 
 		for (NeuralNet nn : nns) {
@@ -186,14 +168,14 @@ public class NeuralNetTrainer {
 
 		nnmr.shutdown();
 
-		VectorUtils.copy(Wbest, nns.get(0).getW(false));
+		VectorUtils.copy(Wbest, onn.getW(false));
 	}
 
 	private void prepare(NeuralNet nn, int thread_size, int batch_size, double learn_rate, double reg_lambda,
 			double grad_clip_cutoff, OptimizerType ot, boolean is_full_seq_batch, boolean is_random_batch,
 			int grad_acc_reset_size, double weight_decay, double learn_rate_decay, int learn_rate_decay_size,
 			double grad_decay, boolean use_avg_grad, boolean use_hard_grad_clipping) throws Exception {
-
+		this.onn = nn;
 		this.learn_rate = learn_rate;
 		this.reg_lambda = reg_lambda;
 		this.batch_size = batch_size;
@@ -253,13 +235,13 @@ public class NeuralNetTrainer {
 	}
 
 	public void train(DenseTensor X, DenseMatrix Y, DenseTensor Xt, DenseMatrix Yt, int max_iters) throws Exception {
-		if (Y.colSize() > 0) {
+		if (Y.colSize() > 1) {
 			if (is_full_seq_batch) {
 				data_locs = ArrayUtils.range(Y.rowSize());
 				ranges = BatchUtils.getBatchRanges(Y.rowSize(), batch_size);
 			} else {
-				List<DenseMatrix> _X = Generics.newLinkedList();
-				List<DenseVector> _Y = Generics.newLinkedList();
+				List<DenseMatrix> _X = Generics.newArrayList();
+				List<DenseVector> _Y = Generics.newArrayList();
 
 				for (int i = 0; i < X.size(); i++) {
 					DenseMatrix Xm = X.get(i);
@@ -284,7 +266,6 @@ public class NeuralNetTrainer {
 				data_locs = ArrayUtils.range(Y.rowSize());
 				ranges = BatchUtils.getBatchRanges(Y.rowSize(), 1);
 			}
-
 		} else {
 			data_locs = ArrayUtils.range(Y.rowSize());
 			ranges = BatchUtils.getBatchRanges(Y.rowSize(), batch_size);
@@ -353,8 +334,10 @@ public class NeuralNetTrainer {
 			Performance p = null;
 
 			if (Xt != null && Yt != null) {
+				Timer timer3 = Timer.newTimer();
 				p = evaluate(Xt, Yt);
 				System.out.println(p.toString());
+				System.out.printf("time:\t%s\n", timer3.stop());
 			}
 
 			if (p == null) {
@@ -362,12 +345,12 @@ public class NeuralNetTrainer {
 					best_cost = cost;
 					best_cor_cnt = cor_cnt;
 					best_acc = acc;
-					VectorUtils.copy(nns.get(0).getW(false), Wbest);
+					VectorUtils.copy(onn.getW(false), Wbest);
 				}
 			} else {
 				if (best_f1 < p.getMicroF1()) {
 					best_f1 = p.getMicroF1();
-					VectorUtils.copy(nns.get(0).getW(false), Wbest);
+					VectorUtils.copy(onn.getW(false), Wbest);
 				}
 			}
 

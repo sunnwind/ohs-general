@@ -626,20 +626,14 @@ public class VectorMath {
 		return sum;
 	}
 
-	public static double mean(DenseMatrix a, DenseVector b) {
-		double sum = ArrayMath.mean(a.values(), b.values());
+	public static double mean(DenseMatrix a, DenseVector b, boolean rows) {
+		double sum = ArrayMath.mean(a.values(), b.values(), rows);
 		b.setSum(sum);
 		return sum;
 	}
 
 	public static double mean(Vector x) {
 		return ArrayMath.mean(x.values());
-	}
-
-	public static double meanColumns(DenseMatrix a, DenseVector b) {
-		double sum = ArrayMath.meanColumns(a.values(), b.values());
-		b.setSum(sum);
-		return sum;
 	}
 
 	public static double multiply(DenseMatrix a, DenseMatrix b, DenseMatrix c) {
@@ -1658,9 +1652,9 @@ public class VectorMath {
 		return sum;
 	}
 
-	public static double variance(DenseMatrix a, DenseVector b, DenseVector c) {
-		double sum = ArrayMath.variance(a.values(), b.values(), c.values());
-		c.setSum(sum);
+	public static double variance(DenseMatrix a, DenseVector means, DenseVector vars, boolean rows) {
+		double sum = ArrayMath.variance(a.values(), means.values(), vars.values(), rows);
+		vars.setSum(sum);
 		return sum;
 	}
 
@@ -1670,20 +1664,6 @@ public class VectorMath {
 
 	public static double variance(Vector x, double mean) {
 		return ArrayMath.variance(x.values(), mean);
-	}
-
-	/**
-	 * @param a
-	 * @param b
-	 *            means
-	 * @param c
-	 *            variance
-	 * @return
-	 */
-	public static double varianceColumns(DenseMatrix a, DenseVector b, DenseVector c) {
-		double sum = ArrayMath.varianceColumns(a.values(), b.values(), c.values());
-		c.setSum(sum);
-		return sum;
 	}
 
 	public static double zTransform(DenseVector a, double mean, double var, double eps, DenseVector b) {

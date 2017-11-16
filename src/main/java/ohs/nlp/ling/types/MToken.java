@@ -5,6 +5,7 @@ import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import ohs.matrix.DenseVector;
 import ohs.types.generic.Indexer;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
@@ -35,6 +36,8 @@ public class MToken extends ArrayList<Object> {
 		return ret;
 	}
 
+	private DenseVector fv;
+
 	protected int start = 0;
 
 	public MToken() {
@@ -43,6 +46,10 @@ public class MToken extends ArrayList<Object> {
 
 	public MToken(int size) {
 		super(size);
+	}
+
+	public MToken(String word) {
+		this(0, word);
 	}
 
 	public MToken(int start, String word) {
@@ -57,6 +64,10 @@ public class MToken extends ArrayList<Object> {
 			ret = get(idx);
 		}
 		return ret;
+	}
+
+	public DenseVector getFeatureVector() {
+		return fv;
 	}
 
 	public int getStart() {
@@ -79,6 +90,10 @@ public class MToken extends ArrayList<Object> {
 		start = ois.readInt();
 	}
 
+	public void setFeatureVector(DenseVector fv) {
+		this.fv = fv;
+	}
+
 	public void setStart(int start) {
 		this.start = start;
 	}
@@ -97,7 +112,7 @@ public class MToken extends ArrayList<Object> {
 			size = size();
 		}
 
-		for (int i = 0; i < size; i++) {
+		for (int i = 0; i < size(); i++) {
 			sb.append(get(i));
 			if (i != size() - 1) {
 				sb.append(DELIM);

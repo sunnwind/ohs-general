@@ -144,7 +144,7 @@ public class BatchNormalizationLayer extends Layer {
 			VectorMath.add(dXCm, Tm, dXCm);
 
 			DenseVector dmu = gamma.copy(true);
-			VectorMath.meanColumns(dXCm, dmu);
+			VectorMath.mean(dXCm, dmu, false);
 
 			VectorMath.subtract(dXCm, dmu, dXm);
 
@@ -222,7 +222,7 @@ public class BatchNormalizationLayer extends Layer {
 				/*
 				 * step 1: calculate mean
 				 */
-				VectorMath.meanColumns(Xm, mu);
+				VectorMath.mean(Xm, mu, false);
 
 				// step 2: subtract mean vector of every training example
 
@@ -234,7 +234,7 @@ public class BatchNormalizationLayer extends Layer {
 
 				// step 4: calculate variance
 
-				VectorMath.meanColumns(Tm, var);
+				VectorMath.mean(Tm, var, false);
 
 				// step 5: add eps for numerical stability, then sqrt
 

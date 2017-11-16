@@ -170,7 +170,7 @@ public class NERFeatureExtractor {
 
 			for (int i = 0; i < s.size(); i++) {
 				MToken t = s.get(i);
-				DenseVector F = (DenseVector) t.get(t.size() - 1);
+				DenseVector F = t.getFeatureVector();
 				boolean[] flags = feat_flags[i];
 
 				for (int j = 0; j < flags.length; j++) {
@@ -199,14 +199,18 @@ public class NERFeatureExtractor {
 		}
 
 		if (featIdxer.contains("pos")) {
-			String pos = t.getString(1);
-			String val = String.format("pos=%s", pos);
-			int val_idx = featValIdxer.indexOf(val);
+			if (word.equals(MSentence.START) || word.equals(MSentence.END)) {
+				F.set(featIdxer.indexOf("pos"), featValIdxer.indexOf(String.format("pos=%s", "nopos")));
+			} else {
+				String pos = t.getString(1);
+				String val = String.format("pos=%s", pos);
+				int val_idx = featValIdxer.indexOf(val);
 
-			if (val_idx < 0) {
-				val_idx = featValIdxer.indexOf(String.format("pos=%s", "nopos"));
+				if (val_idx < 0) {
+					val_idx = featValIdxer.indexOf(String.format("pos=%s", "nopos"));
+				}
+				F.set(featIdxer.indexOf("pos"), val_idx);
 			}
-			F.set(featIdxer.indexOf("pos"), val_idx);
 		}
 
 		if (featIdxer.contains("suf")) {
@@ -321,7 +325,7 @@ public class NERFeatureExtractor {
 			F.set(featIdxer.indexOf(feat), val_idx);
 		}
 
-		t.add(F);
+		t.setFeatureVector(F);
 	}
 
 	public Indexer<String> getFeatureIndexer() {

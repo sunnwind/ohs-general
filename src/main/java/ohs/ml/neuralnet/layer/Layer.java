@@ -21,7 +21,7 @@ public abstract class Layer implements Serializable {
 	}
 
 	public Object backward(Object I) {
-		return null;
+		return I;
 	}
 
 	public Layer copy() {
@@ -29,7 +29,7 @@ public abstract class Layer implements Serializable {
 	}
 
 	public Object forward(Object I) {
-		return null;
+		return I;
 	}
 
 	public DenseTensor getB() {

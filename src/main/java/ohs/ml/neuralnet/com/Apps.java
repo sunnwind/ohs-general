@@ -4,6 +4,8 @@ import java.io.File;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.lucene.queryparser.flexible.standard.parser.Token;
+
 import ohs.corpus.type.DocumentCollection;
 import ohs.corpus.type.EnglishTokenizer;
 import ohs.fake.FNPath;
@@ -43,7 +45,6 @@ import ohs.types.number.IntegerMatrix;
 import ohs.utils.DataSplitter;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
-import scala.Char;
 
 public class Apps {
 
@@ -505,11 +506,11 @@ public class Apps {
 		nnp.setGradientClipCutoff(5);
 
 		nnp.setThreadSize(6);
-		nnp.setBatchSize(3);
+		nnp.setBatchSize(2);
 		nnp.setGradientAccumulatorResetSize(Integer.MAX_VALUE);
 
-		nnp.setK1(1);
-		nnp.setK2(2);
+		nnp.setK1(5);
+		nnp.setK2(5);
 
 		nnp.setIsFullSequenceBatch(true);
 		nnp.setIsRandomBatch(true);
@@ -604,24 +605,25 @@ public class Apps {
 		}
 
 		{
-			MDocument D = new MDocument();
-			D.addAll(trainData);
-			D.addAll(testData);
+			MDocument d = new MDocument();
+			d.addAll(trainData);
+			d.addAll(testData);
 
-			for (MSentence s : D.subList(0, trainData.size())) {
-				ext.extract(s);
-			}
+			d = d.toPaddedDocument();
 
+			ext.extract(d.subDocument(0, trainData.size()));
 			ext.setIsTraining(false);
 
-			for (MSentence s : D.subList(trainData.size(), D.size())) {
-				ext.extract(s);
-			}
+			ext.extract(d.subDocument(trainData.size(), d.size()));
 
 			Set<String> labels = Generics.newTreeSet();
 
-			for (String ne : D.getTokenStrings(3)) {
-				String[] ps = ne.split("-");
+			for (MToken t : d.getTokens()) {
+				String word = t.getString(0);
+				if (word.equals(MSentence.START) || word.equals(MSentence.END)) {
+					t.set(3, "O");
+				}
+				String ne = t.getString(3);
 				labels.add(ne);
 			}
 
@@ -629,10 +631,8 @@ public class Apps {
 			labelIdxer.addAll(labels);
 			labelIdxer.add("O");
 
-			Vocab vocab = ext.getVocab();
-
-			for (int i = 0; i < D.size(); i++) {
-				MSentence s = D.get(i);
+			for (int i = 0; i < d.size(); i++) {
+				MSentence s = d.get(i);
 
 				DenseMatrix Xm = new DenseMatrix();
 				DenseVector Ym = new DenseVector(s.size());
@@ -642,7 +642,7 @@ public class Apps {
 				for (int j = 0; j < s.size(); j++) {
 					MToken t = s.get(j);
 
-					Xm.add((DenseVector) t.get(t.size() - 1));
+					Xm.add(t.getFeatureVector());
 					Ym.add(j, labelIdxer.getIndex(t.getString(3)));
 				}
 
@@ -734,6 +734,8 @@ public class Apps {
 			// nn.add(new LstmLayer(l.getOutputSize(), l1_size, bptt_size));
 			nn.add(new BidirectionalRecurrentLayer(Type.LSTM, l.getOutputSize(), l1_size, k1, k2, new ReLU()));
 			// nn.add(new BatchNormalizationLayer(l1_size));
+			// nn.add(new LayerNormalizationLayer());
+			// nn.add(new DropoutLayer());
 			nn.add(new FullyConnectedLayer(l1_size, label_size));
 			nn.add(new SoftmaxLayer(label_size));
 			nn.prepare();

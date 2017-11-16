@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import ohs.matrix.DenseVector;
 import ohs.utils.Generics;
 
 public class MDocument extends ArrayList<MSentence> {
@@ -35,8 +36,18 @@ public class MDocument extends ArrayList<MSentence> {
 
 	private Map<String, String> attrMap = Generics.newHashMap();
 
+	private DenseVector fv;
+
 	public MDocument() {
 
+	}
+
+	public MDocument toPaddedDocument() {
+		MDocument ret = new MDocument(size());
+		for (MSentence s : this) {
+			ret.add(s.toPaddedSentence());
+		}
+		return ret;
 	}
 
 	public MDocument(int size) {
@@ -51,6 +62,10 @@ public class MDocument extends ArrayList<MSentence> {
 		return attrMap;
 	}
 
+	public DenseVector getFeatureVector() {
+		return fv;
+	}
+
 	public MSentence getTokens() {
 		List<MToken> ret = Generics.newArrayList(sizeOfTokens());
 		for (MSentence s : this) {
@@ -59,18 +74,22 @@ public class MDocument extends ArrayList<MSentence> {
 		return new MSentence(ret);
 	}
 
-	public int sizeOfTokens() {
-		int ret = 0;
-		for (MSentence s : this) {
-			ret += s.size();
-		}
-		return ret;
-	}
-
 	public List<String> getTokenStrings(int idx) {
 		List<String> ret = Generics.newArrayList(sizeOfTokens());
 		for (MSentence s : this) {
 			ret.addAll(s.getTokenStrings(idx));
+		}
+		return ret;
+	}
+
+	public void setFeatureVector(DenseVector fv) {
+		this.fv = fv;
+	}
+
+	public int sizeOfTokens() {
+		int ret = 0;
+		for (MSentence s : this) {
+			ret += s.size();
 		}
 		return ret;
 	}

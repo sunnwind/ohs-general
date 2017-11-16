@@ -2225,22 +2225,22 @@ public class ArrayMath {
 
 	public static double[] mean(double[][] x) {
 		double[] means = new double[x.length];
-		mean(x, means);
+		mean(x, means, true);
 		return means;
 	}
 
-	public static double mean(double[][] x, double[] means) {
+	public static double mean(double[][] x, double[] means, boolean rows) {
 		double sum = 0;
-		for (int i = 0; i < x.length; i++) {
-			means[i] = mean(x[i]);
-			sum += means[i];
+		if (rows) {
+			for (int i = 0; i < x.length; i++) {
+				means[i] = mean(x[i]);
+				sum += means[i];
+			}
+		} else {
+			sumColumns(x, means);
+			sum = multiply(means, 1d / x.length, means);
 		}
 		return sum;
-	}
-
-	public static double meanColumns(double[][] x, double[] means) {
-		sumColumns(x, means);
-		return multiply(means, 1f / x.length, means);
 	}
 
 	public static double min(double[] x) {
@@ -4087,35 +4087,29 @@ public class ArrayMath {
 		return ret;
 	}
 
-	public static double[] variance(double[][] x, double[] means) {
-		double[] vars = new double[x.length];
-		variance(x, means, vars);
+	public static double[] variance(double[][] x, double[] means, boolean rows) {
+		double[] vars = new double[rows ? x.length : x[0].length];
+
+		variance(x, means, vars, rows);
 		return vars;
 	}
 
-	public static double variance(double[][] x, double[] means, double[] vars) {
+	public static double variance(double[][] x, double[] means, double[] vars, boolean rows) {
 		double sum = 0;
-		for (int i = 0; i < x.length; i++) {
-			vars[i] = variance(x[i], means[i]);
-			sum += vars[i];
+		if (rows) {
+			for (int i = 0; i < x.length; i++) {
+				vars[i] = variance(x[i], means[i]);
+				sum += vars[i];
+			}
+		} else {
+			double[] c = new double[means.length];
+			for (int j = 0; j < means.length; j++) {
+				ArrayUtils.copyColumn(x, j, c);
+				vars[j] = variance(c, means[j]);
+				sum += vars[j];
+			}
 		}
-		return sum;
-	}
 
-	public static double[] varianceColumns(double[][] x, double[] means) {
-		double[] vars = new double[x[0].length];
-		varianceColumns(x, means, vars);
-		return vars;
-	}
-
-	public static double varianceColumns(double[][] x, double[] means, double[] vars) {
-		double[] c = new double[x.length];
-		double sum = 0;
-		for (int j = 0; j < x[0].length; j++) {
-			ArrayUtils.copyColumn(x, j, c);
-			vars[j] = variance(c, means[j]);
-			sum += vars[j];
-		}
 		return sum;
 	}
 

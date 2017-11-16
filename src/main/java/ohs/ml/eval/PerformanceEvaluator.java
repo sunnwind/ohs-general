@@ -3,6 +3,7 @@ package ohs.ml.eval;
 import java.util.List;
 import java.util.Set;
 
+import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseVector;
 import ohs.types.generic.Counter;
 import ohs.types.generic.Indexer;
@@ -56,7 +57,7 @@ public class PerformanceEvaluator {
 		return c;
 	}
 
-	private Set<String> countLabelSeqs(List<String> tags, Indexer<String> labelIdxer) {
+	private Set<String> getLabelSeqs(List<String> tags, Indexer<String> labelIdxer) {
 		Set<String> ret = Generics.newHashSet();
 
 		for (int i = 0; i < tags.size();) {
@@ -93,69 +94,55 @@ public class PerformanceEvaluator {
 		return ret;
 	}
 
-	public Performance evalute(IntegerArray Y, IntegerArray Yh, Indexer<String> labelIdxer) {
-		Counter<Integer> corCnts = Generics.newCounter();
-		Counter<Integer> predCnts = Generics.newCounter();
-		Counter<Integer> ansCnts = Generics.newCounter();
+	public Performance evalute(DenseMatrix Y, DenseMatrix Yh, Indexer<String> labelIdxer) {
+		return evalute(Y.toDenseVector(), Yh.toDenseVector(), labelIdxer);
+	}
 
-		for (int i = 0; i < Y.size(); i++) {
-			int ans = Y.get(i);
-			int pred = Yh.get(i);
-
-			ansCnts.incrementCount(ans, 1);
-			predCnts.incrementCount(pred, 1);
-
-			if (ans == pred) {
-				corCnts.incrementCount(ans, 1);
-			}
-		}
-
+	public Performance evalute(DenseVector Y, DenseVector Yh, Indexer<String> labelIdxer) {
 		Set<Integer> labels = Generics.newTreeSet();
 
 		if (labelIdxer == null) {
-			labels.addAll(predCnts.keySet());
-			labels.addAll(ansCnts.keySet());
+			for (double y : Y.values()) {
+				labels.add((int) y);
+			}
 		} else {
 			for (int i = 0; i < labelIdxer.size(); i++) {
 				labels.add(i);
 			}
 		}
 
-		DenseVector ans_cnts = new DenseVector(labels.size());
-		DenseVector pred_cnts = new DenseVector(labels.size());
-		DenseVector cor_cnts = new DenseVector(labels.size());
+		DenseVector corCnts = new DenseVector(labels.size());
+		DenseVector predCnts = new DenseVector(labels.size());
+		DenseVector ansCnts = new DenseVector(labels.size());
 
-		for (int i = 0; i < labels.size(); i++) {
-			ans_cnts.add(i, ansCnts.getCount(i));
-			pred_cnts.add(i, predCnts.getCount(i));
-			cor_cnts.add(i, corCnts.getCount(i));
+		for (int i = 0; i < Y.size(); i++) {
+			int ans = (int) Y.value(i);
+			int pred = (int) Yh.value(i);
 
-			if (labelIdxer != null) {
-				String label = labelIdxer.getObject(i);
-				if (label.equals("O")) {
-					ans_cnts.set(i, 0);
-					cor_cnts.set(i, 0);
-					pred_cnts.set(i, 0);
-				}
+			ansCnts.add(ans, 1);
+			predCnts.add(pred, 1);
+
+			if (ans == pred) {
+				corCnts.add(ans, 1);
 			}
 		}
 
-		Performance p = new Performance(ans_cnts, pred_cnts, cor_cnts, labelIdxer);
+		if (labelIdxer != null) {
+			int idx = labelIdxer.indexOf("O");
+			corCnts.set(idx, 0);
+			predCnts.set(idx, 0);
+			ansCnts.set(idx, 0);
+
+			corCnts.summation();
+			predCnts.summation();
+			ansCnts.summation();
+		}
+
+		Performance p = new Performance(ansCnts, predCnts, corCnts, labelIdxer);
 		return p;
 	}
 
-	public Performance evalute(IntegerMatrix Y, IntegerMatrix Yh, Indexer<String> labelIdxer) {
-		int size = Y.sizeOfEntries();
-		IntegerArray Y_ = new IntegerArray(size);
-		IntegerArray Yh_ = new IntegerArray(size);
-		for (int i = 0; i < Y.size(); i++) {
-			Y_.addAll(Y.get(i));
-			Yh_.addAll(Yh.get(i));
-		}
-		return evalute(Y_, Yh_, labelIdxer);
-	}
-
-	public Performance evaluteSequences(IntegerMatrix Y, IntegerMatrix Yh, Indexer<String> tagIdxer) {
+	public Performance evaluteSequences(DenseMatrix Y, DenseMatrix Yh, Indexer<String> tagIdxer) {
 
 		int size = Y.sizeOfEntries();
 
@@ -184,15 +171,20 @@ public class PerformanceEvaluator {
 		DenseVector predCnts = new DenseVector(catIdxer.size());
 		DenseVector corCnts = new DenseVector(catIdxer.size());
 
-		for (int u = 0; u < Y.size(); u++) {
-			IntegerArray y = Y.get(u);
-			IntegerArray yh = Yh.get(u);
+		for (int i = 0; i < Y.size(); i++) {
+			DenseVector y = Y.get(i);
+			DenseVector yh = Yh.get(i);
 
-			List<String> anss = Generics.newArrayList(tagIdxer.getObjects(y));
-			List<String> preds = Generics.newArrayList(tagIdxer.getObjects(yh));
+			List<String> anss = Generics.newArrayList(y.size());
+			List<String> preds = Generics.newArrayList(y.size());
 
-			Set<String> s1 = countLabelSeqs(anss, catIdxer);
-			Set<String> s2 = countLabelSeqs(preds, catIdxer);
+			for (int j = 0; j < y.size(); j++) {
+				anss.add(tagIdxer.getObject((int) y.value(j)));
+				preds.add(tagIdxer.getObject((int) yh.value(j)));
+			}
+
+			Set<String> s1 = getLabelSeqs(anss, catIdxer);
+			Set<String> s2 = getLabelSeqs(preds, catIdxer);
 			Set<String> s3 = Generics.newHashSet(s1.size());
 
 			for (String ans : s2) {
