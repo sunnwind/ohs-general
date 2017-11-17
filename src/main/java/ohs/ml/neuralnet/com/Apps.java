@@ -16,12 +16,12 @@ import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
 import ohs.matrix.SparseMatrix;
 import ohs.ml.neuralnet.com.ParameterUpdater.OptimizerType;
-import ohs.ml.neuralnet.layer.BidirectionalRNN;
+import ohs.ml.neuralnet.layer.BatchNormalizationLayer;
+import ohs.ml.neuralnet.layer.BidirectionalRecurrentLayer;
 import ohs.ml.neuralnet.layer.DiscreteFeatureEmbeddingLayer;
 import ohs.ml.neuralnet.layer.DropoutLayer;
 import ohs.ml.neuralnet.layer.EmbeddingLayer;
 import ohs.ml.neuralnet.layer.FullyConnectedLayer;
-import ohs.ml.neuralnet.layer.LayerNormalization;
 import ohs.ml.neuralnet.layer.MultiWindowConvolutionalLayer;
 import ohs.ml.neuralnet.layer.MultiWindowMaxPoolingLayer;
 import ohs.ml.neuralnet.layer.NonlinearityLayer;
@@ -493,66 +493,12 @@ public class Apps {
 		trainer.finish();
 	}
 
-	public static void testNER() throws Exception {
-		NeuralNetParams nnp = new NeuralNetParams();
-
-		nnp.setLearnRate(0.001);
-		nnp.setLearnRateDecay(0.9);
-		nnp.setLearnRateDecaySize(50);
-		nnp.setWeightDecayL2(1);
-		nnp.setGradientDecay(1);
-		nnp.setRegLambda(0.001);
-		nnp.setGradientClipCutoff(5);
-
-		nnp.setThreadSize(5);
-		nnp.setBatchSize(3);
-		nnp.setGradientAccumulatorResetSize(Integer.MAX_VALUE);
-
-		nnp.setK1(7);
-		nnp.setK2(7);
-
-		nnp.setIsFullSequenceBatch(true);
-		nnp.setIsRandomBatch(true);
-		nnp.setUseAverageGradients(false);
-		nnp.setUseHardGradientClipping(false);
-
-		nnp.setOptimizerType(OptimizerType.ADAM);
-
-		String trainFileName = "../../data/ml_data/conll2003.bio2/train.dat";
-		String testFileName = "../../data/ml_data/conll2003.bio2/test.dat";
-
-		{
-			Indexer<String> l = Generics.newIndexer();
-			l.add("word");
-			l.add("pos");
-			l.add("chunk");
-			l.add("ner");
-			MToken.INDEXER = l;
-		}
-
-		MDocument trainData = MDocument.newDocument(FileUtils.readFromText(trainFileName));
-		MDocument testData = MDocument.newDocument(FileUtils.readFromText(testFileName));
-
-		transformBIOtoBIOSE(trainData);
-		transformBIOtoBIOSE(testData);
-
-		Indexer<String> labelIdxer = Generics.newIndexer();
-
-		DenseTensor X = new DenseTensor();
-		DenseMatrix Y = new DenseMatrix();
-
-		X.ensureCapacity(trainData.size());
-		Y.ensureCapacity(trainData.size());
-
-		DenseTensor Xt = new DenseTensor();
-		DenseMatrix Yt = new DenseMatrix();
-
-		Xt.ensureCapacity(trainData.size());
-		Xt.ensureCapacity(trainData.size());
-
+	public static NERFeatureExtractor getNERFeatureExtractor(String extFileName, MDocument trainData) throws Exception {
 		NERFeatureExtractor ext = new NERFeatureExtractor();
 
-		{
+		if (extFileName != null) {
+			ext.readObject(extFileName);
+		} else {
 			String dirName = "../../data/ml_data/senna/hash/";
 
 			Set<String> caps = FileUtils.readStringHashSetFromText(dirName + "caps.lst");
@@ -595,6 +541,7 @@ public class Apps {
 			ext.addPuctuationFeatures();
 			ext.addShapeOneFeatures();
 			ext.addShapeTwoFeatures();
+			ext.addShapeThreeFeatures();
 			ext.addSuffixFeatures(suffixes);
 			ext.addPrefixFeatures(prefixes);
 			ext.addGazeteerFeatures("per", pers);
@@ -602,6 +549,88 @@ public class Apps {
 			ext.addGazeteerFeatures("loc", locs);
 			ext.addGazeteerFeatures("misc", miscs);
 		}
+
+		return ext;
+	}
+
+	public static void testNER() throws Exception {
+		NeuralNetParams nnp = new NeuralNetParams();
+
+		nnp.setLearnRate(0.001);
+		nnp.setLearnRateDecay(0.9);
+		nnp.setLearnRateDecaySize(50);
+		nnp.setWeightDecayL2(1);
+		nnp.setGradientDecay(1);
+		nnp.setRegLambda(0.001);
+		nnp.setGradientClipCutoff(5);
+
+		nnp.setThreadSize(5);
+		nnp.setBatchSize(3);
+		nnp.setGradientAccumulatorResetSize(Integer.MAX_VALUE);
+
+		nnp.setK1(7);
+		nnp.setK2(7);
+
+		nnp.setIsFullSequenceBatch(true);
+		nnp.setIsRandomBatch(true);
+		nnp.setUseAverageGradients(false);
+		nnp.setUseHardGradientClipping(false);
+
+		nnp.setOptimizerType(OptimizerType.NADAM);
+
+		String trainFileName = "../../data/ml_data/conll2003.bio2/train.dat";
+		String testFileName = "../../data/ml_data/conll2003.bio2/test.dat";
+
+		{
+			Indexer<String> l = Generics.newIndexer();
+			l.add("word");
+			l.add("pos");
+			l.add("chunk");
+			l.add("ner");
+			MToken.INDEXER = l;
+		}
+
+		MDocument trainData = MDocument.newDocument(FileUtils.readFromText(trainFileName));
+		MDocument testData = MDocument.newDocument(FileUtils.readFromText(testFileName));
+
+		// {
+		// for (MSentence s : trainData) {
+		// boolean has_misc = false;
+		// for (String ne : s.getTokenStrings(3)) {
+		// if (ne.contains("MISC")) {
+		// has_misc = true;
+		// }
+		// }
+		//
+		// if(has_misc) {
+		// System.out.println(s.toString());
+		// System.out.println();
+		// }
+		// }
+		// }
+
+		transformBIOtoBIOSE(trainData);
+		transformBIOtoBIOSE(testData);
+
+		Indexer<String> labelIdxer = Generics.newIndexer();
+
+		DenseTensor X = new DenseTensor();
+		DenseMatrix Y = new DenseMatrix();
+
+		X.ensureCapacity(trainData.size());
+		Y.ensureCapacity(trainData.size());
+
+		DenseTensor Xt = new DenseTensor();
+		DenseMatrix Yt = new DenseMatrix();
+
+		Xt.ensureCapacity(trainData.size());
+		Xt.ensureCapacity(trainData.size());
+
+		boolean read_ext = false;
+
+		String extFileName = "../../data/ml_data/ner_ext.ser";
+
+		NERFeatureExtractor ext = getNERFeatureExtractor(read_ext ? extFileName : null, trainData);
 
 		{
 			MDocument d = new MDocument();
@@ -678,7 +707,7 @@ public class Apps {
 		int k1 = nnp.getK1();
 		int k2 = nnp.getK2();
 
-		boolean use_ext_embs = true;
+		boolean use_ext_embs = false;
 		DenseMatrix E = null;
 
 		if (use_ext_embs) {
@@ -707,7 +736,6 @@ public class Apps {
 		}
 
 		String modelFileName = "../../data/ml_data/ner_nn.ser";
-		String extFileName = "../../data/ml_data/ner_ext.ser";
 
 		NeuralNet nn = new NeuralNet(labelIdxer, vocab, TaskType.SEQ_LABELING);
 
@@ -731,9 +759,9 @@ public class Apps {
 			nn.add(new DropoutLayer());
 			// nn.add(new RnnLayer(l.getOutputSize(), l1_size, bptt_size, new ReLU()));
 			// nn.add(new LstmLayer(l.getOutputSize(), l1_size, bptt_size));
-			nn.add(new BidirectionalRNN(Type.LSTM, l.getOutputSize(), l1_size, k1, k2, new ReLU()));
+			nn.add(new BidirectionalRecurrentLayer(Type.LSTM, l.getOutputSize(), l1_size, k1, k2, new ReLU()));
 			// nn.add(new BatchNormalizationLayer(l1_size));
-			nn.add(new LayerNormalization(l1_size));
+			// nn.add(new LayerNormalization(l1_size));
 			// nn.add(new DropoutLayer());
 			nn.add(new FullyConnectedLayer(l1_size, label_size));
 			nn.add(new SoftmaxLayer(label_size));
@@ -745,7 +773,7 @@ public class Apps {
 
 		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, nnp);
 
-		int max_iters = 200;
+		int max_iters = 10;
 		boolean use_batches = true;
 
 		if (use_batches) {
@@ -753,29 +781,27 @@ public class Apps {
 			int group_size = 1000;
 			int[][] rs = BatchUtils.getBatchRanges(X.size(), group_size);
 
-			for (int u = 0; u < max_iters; u++) {
+			for (int i = 0; i < max_iters; i++) {
 				ArrayUtils.shuffle(locs.values());
 
-				for (int i = 0; i < rs.length; i++) {
-					System.out.printf("iters [%d/%d], batches [%d/%d]\n", u + 1, max_iters, i + 1, rs.length);
+				for (int j = 0; j < rs.length; j++) {
+					System.out.printf("iters [%d/%d], batches [%d/%d]\n", i + 1, max_iters, j + 1, rs.length);
 
-					for (int j = 0; j < rs.length; j++) {
-						int[] r = rs[j];
-						int r_size = r[1] - r[0];
-						DenseTensor Xm = new DenseTensor();
-						DenseMatrix Ym = new DenseMatrix();
+					int[] r = rs[j];
+					int r_size = r[1] - r[0];
+					DenseTensor Xm = new DenseTensor();
+					DenseMatrix Ym = new DenseMatrix();
 
-						Xm.ensureCapacity(r_size);
-						Ym.ensureCapacity(r_size);
+					Xm.ensureCapacity(r_size);
+					Ym.ensureCapacity(r_size);
 
-						for (int k = r[0]; k < r[1]; k++) {
-							int loc = locs.get(k);
-							Xm.add(X.get(loc));
-							Ym.add(Y.get(loc));
-						}
-
-						trainer.train(Xm, Ym, Xt, Yt, 1);
+					for (int k = r[0]; k < r[1]; k++) {
+						int loc = locs.get(k);
+						Xm.add(X.get(loc));
+						Ym.add(Y.get(loc));
 					}
+
+					trainer.train(Xm, Ym, Xt, Yt, 1);
 				}
 			}
 		} else {

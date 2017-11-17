@@ -22,8 +22,10 @@ import ohs.utils.Generics;
 public class ParameterUpdater {
 
 	public static enum OptimizerType {
-		ADAGRAD, ADAM, RMSPROP, SIMPLE
+		SIMPLE, ADAGRAD, RMSPROP, ADAM, ADAMAX, NADAM
 	}
+
+	private static double t = 0;
 
 	private OptimizerType ot = OptimizerType.ADAM;
 
@@ -166,6 +168,8 @@ public class ParameterUpdater {
 	}
 
 	public void update(int batch_size) {
+		t += 0.0001;
+
 		for (int i = 0; i < Ws.size(); i++) {
 			DenseMatrix W = Ws.get(i);
 			DenseMatrix dW = dWs.get(i);
@@ -189,15 +193,15 @@ public class ParameterUpdater {
 			}
 
 			double sum = 0;
-			double x = 0;
-			double dx = 0;
+			double w = 0;
+			double dw = 0;
 			double dxa1 = 0;
 			double dxa2 = 0;
 
 			synchronized (W) {
 				for (int j = 0; j < W.rowSize(); j++) {
-					DenseVector dw = dW.row(j);
-					DenseVector w = W.row(j);
+					DenseVector dWm = dW.row(j);
+					DenseVector Wm = W.row(j);
 					DenseVector r1 = R1.row(j);
 					DenseVector r2 = R2.row(j);
 
@@ -205,61 +209,103 @@ public class ParameterUpdater {
 					// synchronized (w) {
 					sum = 0;
 					if (ot == OptimizerType.SIMPLE) {
-						for (int k = 0; k < dw.size(); k++) {
-							dx = dw.value(k) * grad_decay;
-							x = w.value(k) * weight_decay_L2;
+						for (int k = 0; k < dWm.size(); k++) {
+							dw = dWm.value(k) * grad_decay;
+							w = Wm.value(k) * weight_decay_L2;
 
-							x -= learn_rate * dx;
-							w.set(k, x);
-							sum += x;
+							w -= learn_rate * dw;
+							Wm.set(k, w);
+							sum += w;
 						}
 					} else if (ot == OptimizerType.ADAGRAD) {
-						for (int k = 0; k < dw.size(); k++) {
-							dx = dw.value(k) * grad_decay;
-							x = w.value(k) * weight_decay_L2;
+						for (int k = 0; k < dWm.size(); k++) {
+							dw = dWm.value(k) * grad_decay;
+							w = Wm.value(k) * weight_decay_L2;
 
-							r1.add(k, Math.pow(dx, 2));
+							r1.add(k, Math.pow(dw, 2));
 
-							x -= learn_rate / Math.sqrt(r1.value(k) + eps) * dx;
-							w.set(k, x);
-							sum += x;
+							w -= learn_rate / (Math.sqrt(dxa2) + eps) * dw;
+							Wm.set(k, w);
+							sum += w;
 						}
 					} else if (ot == OptimizerType.RMSPROP) {
 						sum = 0;
-						for (int k = 0; k < dw.size(); k++) {
-							dx = dw.value(k) * grad_decay;
-							x = w.value(k) * weight_decay_L2;
+						for (int k = 0; k < dWm.size(); k++) {
+							dw = dWm.value(k) * grad_decay;
+							w = Wm.value(k) * weight_decay_L2;
 
-							dxa1 = ArrayMath.addAfterMultiply(r1.value(k), decay_rate, Math.pow(dx, 2), 1 - decay_rate);
+							dxa1 = ArrayMath.addAfterMultiply(r1.value(k), decay_rate, Math.pow(dw, 2), 1 - decay_rate);
 							r1.set(k, dxa1);
 
-							x -= -learn_rate / Math.sqrt(dxa1 + eps) * dx;
-							w.set(k, x);
-							sum += x;
+							w -= -learn_rate / (Math.sqrt(dxa2) + eps) * dw;
+							Wm.set(k, w);
+							sum += w;
 						}
 					} else if (ot == OptimizerType.ADAM) {
-						for (int k = 0; k < dw.size(); k++) {
-							dx = dw.value(k) * grad_decay;
-							x = w.value(k) * weight_decay_L2;
+						for (int k = 0; k < dWm.size(); k++) {
+							dw = dWm.value(k) * grad_decay;
+							w = Wm.value(k) * weight_decay_L2;
 
-							dxa1 = ArrayMath.addAfterMultiply(r1.value(k), beta1, dx);
-							dxa2 = ArrayMath.addAfterMultiply(r2.value(k), beta2, Math.pow(dx, 2));
+							dxa1 = ArrayMath.addAfterMultiply(r1.value(k), beta1, dw);
+							dxa2 = ArrayMath.addAfterMultiply(r2.value(k), beta2, Math.pow(dw, 2));
 
 							r1.set(k, dxa1);
 							r2.set(k, dxa2);
 
-							dxa1 = dxa1 / (1 - beta1);
-							dxa2 = dxa2 / (1 - beta2);
+							// dxa1 = dxa1 / (1 - beta1);
+							// dxa2 = dxa2 / (1 - beta2);
 
-							x -= learn_rate / Math.sqrt(dxa2 + eps) * dxa1;
-							w.set(k, x);
-							sum += x;
+							dxa1 = dxa1 / (1 - Math.pow(beta1, t));
+							dxa2 = dxa2 / (1 - Math.pow(beta2, t));
+
+							w -= learn_rate / (Math.sqrt(dxa2) + eps) * dxa1;
+							Wm.set(k, w);
+							sum += w;
+						}
+					} else if (ot == OptimizerType.ADAMAX) {
+						for (int k = 0; k < dWm.size(); k++) {
+							dw = dWm.value(k) * grad_decay;
+							w = Wm.value(k) * weight_decay_L2;
+
+							dxa1 = ArrayMath.addAfterMultiply(r1.value(k), beta1, dw);
+							dxa2 = Math.max(beta2 * r2.value(k), Math.abs(dw));
+
+							if (dxa2 == 0) {
+								dxa2 = eps;
+							}
+
+							r1.set(k, dxa1);
+							r2.set(k, dxa2);
+
+							w -= learn_rate / dxa2 * dxa1;
+							Wm.set(k, w);
+							sum += w;
+						}
+					} else if (ot == OptimizerType.NADAM) {
+						for (int k = 0; k < dWm.size(); k++) {
+							dw = dWm.value(k) * grad_decay;
+							w = Wm.value(k) * weight_decay_L2;
+
+							dxa1 = ArrayMath.addAfterMultiply(r1.value(k), beta1, dw);
+							dxa2 = ArrayMath.addAfterMultiply(r2.value(k), beta2, Math.pow(dw, 2));
+
+							r1.set(k, dxa1);
+							r2.set(k, dxa2);
+
+							dxa1 = dxa1 / (1 - Math.pow(beta1, t));
+							dxa2 = dxa2 / (1 - Math.pow(beta2, t));
+
+							w -= learn_rate / (Math.sqrt(dxa2) + eps) *
+
+									(beta1 * dxa1 + (1 - beta1) / (1 - Math.pow(beta1, t)) * dw);
+							Wm.set(k, w);
+							sum += w;
 						}
 					}
 
-					w.setSum(sum);
+					Wm.setSum(sum);
 					// }
-					dw.setAll(0);
+					dWm.setAll(0);
 					// }
 				}
 			}

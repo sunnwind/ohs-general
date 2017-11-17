@@ -108,6 +108,12 @@ public class NERFeatureExtractor {
 		featValIdxer.add(String.format("%s=%s", feat, "noshape"));
 	}
 
+	public void addShapeThreeFeatures() {
+		String feat = "shape3";
+		featIdxer.add(feat);
+		featValIdxer.add(String.format("%s=%s", feat, "noshape"));
+	}
+
 	public void addSuffixFeatures(Set<String> suffixes) {
 		String feat = "suf";
 		featIdxer.add(feat);
@@ -316,6 +322,31 @@ public class NERFeatureExtractor {
 		if (featIdxer.contains("shape2")) {
 			String feat = "shape2";
 			String val = String.format("%s=%s", feat, shape.replaceAll("a+", "a~").replaceAll("A{2,}", "A~A"));
+			int val_idx = is_training ? featValIdxer.getIndex(val) : featValIdxer.indexOf(val);
+
+			if (val_idx < 0) {
+				val_idx = featValIdxer.indexOf(String.format("%s=%s", feat, "noshape"));
+			}
+
+			F.set(featIdxer.indexOf(feat), val_idx);
+		}
+
+		if (featIdxer.contains("shape3")) {
+			String feat = "shape3";
+
+			String suffix = "";
+			int suffix_len = 2;
+
+			if (word.length() > 3) {
+				int loc = word.length() - suffix_len;
+				shape = getShape(word.substring(0, loc));
+				suffix = word.substring(loc).toLowerCase();
+			}
+
+			String val = String.format("%s=%s", feat, shape.replaceAll("a+", "a~").replaceAll("A{2,}", "A~A"));
+			if (suffix.length() > 0) {
+				val += "|" + suffix;
+			}
 			int val_idx = is_training ? featValIdxer.getIndex(val) : featValIdxer.indexOf(val);
 
 			if (val_idx < 0) {

@@ -1359,15 +1359,11 @@ public class ArrayMath {
 
 		{
 
-			DenseVector a = new DenseVector(new double[] { 1000, 20000, 4000 });
-			DenseVector b = new DenseVector(a.size());
+			for(double i = 0; i < 100; i += 0.00001) {
+				System.out.println(Math.pow(3, i));
+			}
 
-			a.multiply(-1);
-
-			softmax(a.values(), b.values());
-
-			System.out.println(b.toString());
-
+			
 			System.exit(0);
 		}
 

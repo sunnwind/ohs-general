@@ -21,7 +21,7 @@ import ohs.utils.Generics;
  * 
  * @author ohs
  */
-public class BidirectionalRNN extends RecurrentLayer {
+public class BidirectionalRecurrentLayer extends RecurrentLayer {
 
 	/**
 	 * 
@@ -46,11 +46,11 @@ public class BidirectionalRNN extends RecurrentLayer {
 
 	private DenseTensor Y;
 
-	public BidirectionalRNN() {
+	public BidirectionalRecurrentLayer() {
 
 	}
 
-	public BidirectionalRNN(RecurrentLayer fwd, RecurrentLayer bwd) {
+	public BidirectionalRecurrentLayer(RecurrentLayer fwd, RecurrentLayer bwd) {
 		super();
 		this.fwd = fwd;
 		this.bwd = bwd;
@@ -58,7 +58,7 @@ public class BidirectionalRNN extends RecurrentLayer {
 		this.output_size = fwd.getOutputSize();
 	}
 
-	public BidirectionalRNN(Type type, int input_size, int hidden_size, int shift_size, int window_size,
+	public BidirectionalRecurrentLayer(Type type, int input_size, int hidden_size, int shift_size, int window_size,
 			Nonlinearity non) {
 		if (type == Type.RNN) {
 			fwd = new RnnLayer(input_size, hidden_size, shift_size, window_size, non);
@@ -104,7 +104,7 @@ public class BidirectionalRNN extends RecurrentLayer {
 
 	@Override
 	public RecurrentLayer copy() {
-		return new BidirectionalRNN((RecurrentLayer) fwd.copy(), (RecurrentLayer) bwd.copy());
+		return new BidirectionalRecurrentLayer((RecurrentLayer) fwd.copy(), (RecurrentLayer) bwd.copy());
 	}
 
 	@Override

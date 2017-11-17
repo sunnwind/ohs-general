@@ -14,7 +14,7 @@ import ohs.matrix.SparseVector;
 import ohs.ml.neuralnet.com.NeuralNet;
 import ohs.ml.neuralnet.com.NeuralNetParams;
 import ohs.ml.neuralnet.com.NeuralNetTrainer;
-import ohs.ml.neuralnet.layer.BatchNormalization;
+import ohs.ml.neuralnet.layer.BatchNormalizationLayer;
 import ohs.ml.neuralnet.layer.FullyConnectedLayer;
 import ohs.ml.neuralnet.layer.NonlinearityLayer;
 import ohs.ml.neuralnet.layer.SoftmaxLayer;
@@ -226,11 +226,11 @@ public class TopMeshClassifier {
 
 			NeuralNet nn = new NeuralNet();
 			nn.add(new FullyConnectedLayer(input_size, l1_size));
-			nn.add(new BatchNormalization(l1_size));
+			nn.add(new BatchNormalizationLayer(l1_size));
 			nn.add(new NonlinearityLayer(l1_size, new Tanh()));
 			// nn.add(new DropoutLayer(l1_size));
 			nn.add(new FullyConnectedLayer(l1_size, l2_size));
-			nn.add(new BatchNormalization(l2_size));
+			nn.add(new BatchNormalizationLayer(l2_size));
 			nn.add(new NonlinearityLayer(l2_size, new Tanh()));
 			nn.add(new FullyConnectedLayer(l2_size, output_size));
 			nn.add(new SoftmaxLayer(output_size));
