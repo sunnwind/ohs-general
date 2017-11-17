@@ -7,10 +7,10 @@ import java.util.Set;
 
 import ohs.io.FileUtils;
 import ohs.io.TextFileReader;
-import ohs.tree.trie.hash.Node;
-import ohs.tree.trie.hash.Trie;
-import ohs.tree.trie.hash.Trie.TSResult;
-import ohs.tree.trie.hash.Trie.TSResult.MatchType;
+import ohs.tree.trie.hash.HMTNode;
+import ohs.tree.trie.hash.HMTrie;
+import ohs.tree.trie.hash.HMTrie.TSResult;
+import ohs.tree.trie.hash.HMTrie.TSResult.MatchType;
 import ohs.types.common.StrPair;
 import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
@@ -20,9 +20,9 @@ import ohs.utils.StrUtils;
 
 public class KeywordMapper {
 
-	public static Trie<Character>[] createDicts(Indexer<StrPair> kwdIndexer) {
-		Trie<Character> korDict = new Trie<Character>();
-		Trie<Character> engDict = new Trie<Character>();
+	public static HMTrie<Character>[] createDicts(Indexer<StrPair> kwdIndexer) {
+		HMTrie<Character> korDict = new HMTrie<Character>();
+		HMTrie<Character> engDict = new HMTrie<Character>();
 
 		for (int i = 0; i < kwdIndexer.size(); i++) {
 			int kwdid = i;
@@ -40,7 +40,7 @@ public class KeywordMapper {
 			engKwd = KeywordClusterer.normalize(engKwd);
 
 			if (korKwd.length() > 0) {
-				Node<Character> node = korDict.insert(StrUtils.asCharacters(korKwd));
+				HMTNode<Character> node = korDict.insert(StrUtils.asCharacters(korKwd));
 				Set<Integer> data = (Set<Integer>) node.getData();
 
 				if (data == null) {
@@ -52,7 +52,7 @@ public class KeywordMapper {
 			}
 
 			if (engKwd.length() > 0) {
-				Node<Character> node = engDict.insert(StrUtils.asCharacters(engKwd));
+				HMTNode<Character> node = engDict.insert(StrUtils.asCharacters(engKwd));
 				Set<Integer> data = (Set<Integer>) node.getData();
 
 				if (data == null) {
@@ -64,13 +64,13 @@ public class KeywordMapper {
 			}
 		}
 
-		Trie<Character>[] ret = new Trie[] { korDict, engDict };
+		HMTrie<Character>[] ret = new HMTrie[] { korDict, engDict };
 		return ret;
 	}
 
-	public static Trie<Character>[] createDicts(KeywordData kwdData, int min_kwd_freq) {
-		Trie<Character> korDict = new Trie<Character>();
-		Trie<Character> engDict = new Trie<Character>();
+	public static HMTrie<Character>[] createDicts(KeywordData kwdData, int min_kwd_freq) {
+		HMTrie<Character> korDict = new HMTrie<Character>();
+		HMTrie<Character> engDict = new HMTrie<Character>();
 
 		for (int i = 0; i < kwdData.getKeywordIndexer().size(); i++) {
 			int kwdid = i;
@@ -96,7 +96,7 @@ public class KeywordMapper {
 			engKwd = KeywordClusterer.normalize(engKwd);
 
 			if (korKwd.length() > 0) {
-				Node<Character> node = korDict.insert(StrUtils.asCharacters(korKwd));
+				HMTNode<Character> node = korDict.insert(StrUtils.asCharacters(korKwd));
 				Set<Integer> data = (Set<Integer>) node.getData();
 
 				if (data == null) {
@@ -108,7 +108,7 @@ public class KeywordMapper {
 			}
 
 			if (engKwd.length() > 0) {
-				Node<Character> node = engDict.insert(StrUtils.asCharacters(engKwd));
+				HMTNode<Character> node = engDict.insert(StrUtils.asCharacters(engKwd));
 				Set<Integer> data = (Set<Integer>) node.getData();
 
 				if (data == null) {
@@ -120,7 +120,7 @@ public class KeywordMapper {
 			}
 		}
 
-		Trie<Character>[] ret = new Trie[] { korDict, engDict };
+		HMTrie<Character>[] ret = new HMTrie[] { korDict, engDict };
 		return ret;
 	}
 
@@ -510,9 +510,9 @@ public class KeywordMapper {
 		return sb.toString();
 	}
 
-	private Trie<Character> korDict;
+	private HMTrie<Character> korDict;
 
-	private Trie<Character> engDict;
+	private HMTrie<Character> engDict;
 
 	public KeywordMapper() {
 
@@ -523,7 +523,7 @@ public class KeywordMapper {
 
 		Counter<Integer> ret = Generics.newCounter();
 
-		Trie<Character> dict = is_korean ? korDict : engDict;
+		HMTrie<Character> dict = is_korean ? korDict : engDict;
 
 		for (int i = 0; i < cs.length; i++) {
 			for (int j = i + 1; j < cs.length; j++) {
@@ -681,16 +681,16 @@ public class KeywordMapper {
 		return kwdids;
 	}
 
-	public void setDicts(Trie<Character>[] dicts) {
+	public void setDicts(HMTrie<Character>[] dicts) {
 		korDict = dicts[0];
 		engDict = dicts[1];
 	}
 
-	public void setEngDict(Trie<Character> korDict) {
+	public void setEngDict(HMTrie<Character> korDict) {
 		this.korDict = korDict;
 	}
 
-	public void setKorDict(Trie<Character> korDict) {
+	public void setKorDict(HMTrie<Character> korDict) {
 		this.korDict = korDict;
 	}
 

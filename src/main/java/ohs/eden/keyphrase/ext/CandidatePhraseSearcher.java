@@ -6,8 +6,8 @@ import java.util.List;
 import ohs.nlp.ling.types.MDocument;
 import ohs.nlp.ling.types.MSentence;
 import ohs.nlp.ling.types.MToken;
-import ohs.tree.trie.hash.Node;
-import ohs.tree.trie.hash.Trie;
+import ohs.tree.trie.hash.HMTNode;
+import ohs.tree.trie.hash.HMTrie;
 import ohs.types.common.IntPair;
 import ohs.types.generic.Pair;
 import ohs.utils.Generics;
@@ -16,10 +16,10 @@ import ohs.utils.StrUtils;
 public class CandidatePhraseSearcher {
 
 	public static CandidatePhraseSearcher newCandidatePhraseSearcher(Collection<String> pats) {
-		Trie<String> dict = new Trie<String>();
+		HMTrie<String> dict = new HMTrie<String>();
 		for (String pat : pats) {
 			List<String> poss = StrUtils.split(" ", pat);
-			Node<String> node = dict.insert(poss);
+			HMTNode<String> node = dict.insert(poss);
 			node.setFlag(true);
 		}
 		dict.trimToSize();
@@ -32,9 +32,9 @@ public class CandidatePhraseSearcher {
 		System.out.printf("ends.");
 	}
 
-	private Trie<String> dict;
+	private HMTrie<String> dict;
 
-	public CandidatePhraseSearcher(Trie<String> dict) {
+	public CandidatePhraseSearcher(HMTrie<String> dict) {
 		this.dict = dict;
 	}
 
@@ -52,7 +52,7 @@ public class CandidatePhraseSearcher {
 		while (i < s.size()) {
 			int j = i;
 
-			Node<String> node = dict.getRoot();
+			HMTNode<String> node = dict.getRoot();
 
 			while (j < s.size()) {
 				MToken t = s.get(j);

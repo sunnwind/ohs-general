@@ -3,6 +3,7 @@ package ohs.fake;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -17,6 +18,7 @@ import ohs.corpus.type.RawDocumentCollection;
 import ohs.io.FileUtils;
 import ohs.io.TextFileReader;
 import ohs.io.TextFileWriter;
+import ohs.ir.medical.general.MIRPath;
 import ohs.ir.weight.TermWeighting;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
@@ -28,7 +30,6 @@ import ohs.nlp.ling.types.MToken;
 import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
 import ohs.types.generic.Indexer;
-import ohs.types.generic.Vocab;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
 import scala.collection.mutable.WrappedArray;
@@ -145,14 +146,129 @@ public class DataHandler {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 		DataHandler dh = new DataHandler();
-		dh.tagPos();
+		// dh.tagPos();
 		// dh.tagPOS4NaverNews();
 		// dh.selectSubset1();
 		// dh.extractVocab();
 
-		dh.test();
+		// dh.formatM2Sentences();
+		// dh.makeDicts();
+		// dh.makePersonDict();
+		dh.makeOrgaizationDict();
+		// dh.makeDicts();
 
 		System.out.println("process ends.");
+	}
+
+	public void makeDicts() throws Exception {
+
+		// {
+		// List<String> ins =
+		// FileUtils.readLinesFromText("../../data/dict/171116_authors.txt");
+		// Counter<String> c = Generics.newCounter();
+		//
+		// for (String s : ins) {
+		// String[] ps = s.split("\t");
+		// String name = ps[1].trim();
+		// if (name.length() == 0) {
+		// continue;
+		// }
+		// c.incrementCount(name, 1);
+		// }
+		// c.pruneKeysOverThreshold(5);
+		//
+		// FileUtils.writeStringCollectionAsText(FNPath.DATA_DIR + "pers.txt",
+		// Generics.newTreeSet(c.keySet()));
+		// }
+
+		{
+			List<String> ins = FileUtils.readLinesFromText("../../data/dict/기관 정보 데이터베이스 제공_교육_의료_기타_171116.txt");
+			Counter<String> c = Generics.newCounter();
+
+			for (String s : ins) {
+				String[] ps = s.split("\t");
+				String name = ps[1].trim();
+				if (name.length() == 0) {
+					continue;
+				}
+				if (name.startsWith("\"") && name.startsWith("\"")) {
+					name = name.substring(1, name.length() - 1);
+				}
+				c.incrementCount(name, 1);
+			}
+
+			FileUtils.writeStringCollectionAsText(FNPath.DATA_DIR + "orgs.txt", Generics.newTreeSet(c.keySet()));
+		}
+	}
+
+	public void makePersonDict() throws Exception {
+
+		Counter<String> c = Generics.newCounter();
+
+		{
+			List<String> ins = FileUtils.readLinesFromText("../../data/dict/171116_authors.txt");
+
+			for (int i = 1; i < ins.size(); i += 2) {
+				String s = ins.get(i);
+				String[] ps = s.split("\t");
+				String kName = ps[1].trim();
+				String eName = ps[2].trim();
+
+				if (kName.length() == 0) {
+					continue;
+				}
+				ps = new String[] { kName, eName };
+				ps = StrUtils.wrap(ps);
+				c.incrementCount(kName, 1);
+			}
+		}
+
+		{
+			List<String> ins = FileUtils.readLinesFromText("../../data/dict/etri_dict/PS_dict.txt", "euc-kr");
+
+			for (int i = 0; i < ins.size(); i++) {
+				String s = ins.get(i);
+				String[] ps = s.split("\t");
+				String kName = ps[0].trim();
+
+				if (kName.length() == 0) {
+					continue;
+				}
+
+				c.incrementCount(kName, 1);
+			}
+		}
+
+		FileUtils.writeStringCollectionAsText("../../data/dict/pers.txt", Generics.newTreeSet(c.keySet()));
+	}
+
+	public void makeOrgaizationDict() throws Exception {
+
+		Counter<String> c = Generics.newCounter();
+
+		for (String name : FileUtils.readLinesFromText("../../data/dict/orgs.txt")) {
+			c.incrementCount(StrUtils.normalizeSpaces(name), 1);
+		}
+
+		{
+			List<String> ins = FileUtils.readLinesFromText("../../data/dict/etri_dict/OG_dict.txt", "euc-kr");
+
+			for (int i = 0; i < ins.size(); i++) {
+				String s = ins.get(i);
+				String[] ps = s.split("\t");
+				String kName = ps[0].trim();
+
+				kName = StrUtils.normalizeSpaces(kName);
+
+				if (kName.length() == 0) {
+					continue;
+				}
+
+				c.incrementCount(kName, 1);
+			}
+		}
+
+		FileUtils.writeStringCollectionAsText("../../data/dict/orgs2.txt", Generics.newTreeSet(c.keySet()));
 	}
 
 	public void extractVocab() throws Exception {
@@ -220,6 +336,50 @@ public class DataHandler {
 			writer.write(String.format("%s\t%d\t%d\t%f\n", word, cnt, doc_freq, tfidf));
 		}
 		writer.close();
+
+	}
+
+	public void formatM2Sentences() throws Exception {
+		MCollection c = new MCollection();
+
+		for (File file : FileUtils.getFilesUnder(FNPath.DATA_DIR + "data")) {
+			if (file.getName().startsWith("M2_train_pos")) {
+				for (String line : FileUtils.readLinesFromText(file)) {
+					List<String> ps = StrUtils.split("\t", line);
+					ps = StrUtils.unwrap(ps);
+
+					String label = ps.get(1);
+					label = label.equals("0") ? "non-fake" : "fake";
+					MDocument d = MDocument.newDocument(ps.get(2));
+					d.getAttrMap().put("label", label);
+					d.getAttrMap().put("id", ps.get(0));
+
+					c.add(d);
+				}
+			}
+		}
+
+		StringBuffer sb = new StringBuffer();
+
+		for (MDocument d : c) {
+
+			sb.append(String.format("DOCID\t%s", d.getAttrMap().get("id")));
+			sb.append(String.format("\nLABEL\t%s", d.getAttrMap().get("label")));
+			List<String> l = Generics.newArrayList(d.size());
+
+			for (MSentence s : d) {
+				String p1 = StrUtils.join(" ", s.getTokenStrings(0));
+				String p2 = "O";
+				String[] ps = { p1, p2 };
+				ps = StrUtils.wrap(ps);
+				l.add(StrUtils.join("\t", ps));
+			}
+
+			sb.append("\n" + StrUtils.join("\n", l));
+			sb.append("\n\n");
+		}
+
+		FileUtils.writeAsText(FNPath.DATA_DIR + "M2_train_sents.txt", sb.toString().trim());
 
 	}
 
@@ -503,49 +663,5 @@ public class DataHandler {
 		}
 
 		tpe.shutdown();
-	}
-
-	public void test() throws Exception {
-		MCollection c = new MCollection();
-
-		for (File file : FileUtils.getFilesUnder(FNPath.DATA_DIR + "data")) {
-			if (file.getName().startsWith("M2_train_pos")) {
-				for (String line : FileUtils.readLinesFromText(file)) {
-					List<String> ps = StrUtils.split("\t", line);
-					ps = StrUtils.unwrap(ps);
-
-					String label = ps.get(1);
-					label = label.equals("0") ? "non-fake" : "fake";
-					MDocument d = MDocument.newDocument(ps.get(2));
-					d.getAttrMap().put("label", label);
-					d.getAttrMap().put("id", ps.get(0));
-
-					c.add(d);
-				}
-			}
-		}
-
-		StringBuffer sb = new StringBuffer();
-
-		for (MDocument d : c) {
-
-			sb.append(String.format("DOCID\t%s", d.getAttrMap().get("id")));
-			sb.append(String.format("\nLABEL\t%s", d.getAttrMap().get("label")));
-			List<String> l = Generics.newArrayList(d.size());
-
-			for (MSentence s : d) {
-				String p1 = StrUtils.join(" ", s.getTokenStrings(0));
-				String p2 = "O";
-				String[] ps = { p1, p2 };
-				ps = StrUtils.wrap(ps);
-				l.add(StrUtils.join("\t", ps));
-			}
-
-			sb.append("\n" + StrUtils.join("\n", l));
-			sb.append("\n\n");
-		}
-
-		FileUtils.writeAsText(FNPath.DATA_DIR + "M2_train_sents.txt", sb.toString().trim());
-
 	}
 }

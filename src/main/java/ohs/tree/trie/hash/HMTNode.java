@@ -15,7 +15,7 @@ import java.util.Stack;
 
 import ohs.utils.Generics;
 
-public class Node<K> implements Serializable {
+public class HMTNode<K> implements Serializable {
 
 	public static enum Type {
 		ROOT, NON_LEAF, LEAF;
@@ -29,8 +29,8 @@ public class Node<K> implements Serializable {
 	protected int id;
 	protected K key;
 	protected int cnt = 0;
-	protected Map<K, Node<K>> children;
-	protected Node<K> parent;
+	protected Map<K, HMTNode<K>> children;
+	protected HMTNode<K> parent;
 	protected Object data;
 	protected boolean flag = false;
 
@@ -42,11 +42,11 @@ public class Node<K> implements Serializable {
 		return flag;
 	}
 
-	public Node() {
+	public HMTNode() {
 
 	}
 
-	public Node(Node<K> parent, K key, Object data, int id) {
+	public HMTNode(HMTNode<K> parent, K key, Object data, int id) {
 		this.parent = parent;
 		this.key = key;
 		this.children = null;
@@ -55,9 +55,9 @@ public class Node<K> implements Serializable {
 		this.id = id;
 	}
 
-	public void addChild(Node<K> node) {
+	public void addChild(HMTNode<K> node) {
 		if (children == null) {
-			children = new HashMap<K, Node<K>>();
+			children = new HashMap<K, HMTNode<K>>();
 		}
 		children.put(node.getKey(), node);
 	}
@@ -70,7 +70,7 @@ public class Node<K> implements Serializable {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		Node other = (Node) obj;
+		HMTNode other = (HMTNode) obj;
 		if (id != other.id)
 			return false;
 		if (parent == null) {
@@ -81,14 +81,14 @@ public class Node<K> implements Serializable {
 		return true;
 	}
 
-	public Node<K> getChild(K key) {
+	public HMTNode<K> getChild(K key) {
 		return children.get(key);
 	}
 
-	public Map<K, Node<K>> getChildren() {
-		Map<K, Node<K>> ret = children;
+	public Map<K, HMTNode<K>> getChildren() {
+		Map<K, HMTNode<K>> ret = children;
 		if (ret == null) {
-			ret = new HashMap<K, Node<K>>();
+			ret = new HashMap<K, HMTNode<K>>();
 		}
 		return ret;
 	}
@@ -111,7 +111,7 @@ public class Node<K> implements Serializable {
 
 	public int getDepth() {
 		int ret = 1;
-		Node<K> node = this;
+		HMTNode<K> node = this;
 		while (!node.isRoot()) {
 			node = node.getParent();
 			ret++;
@@ -129,7 +129,7 @@ public class Node<K> implements Serializable {
 
 	public List<K> getKeyPath() {
 		List<K> ret = new ArrayList<K>();
-		for (Node<K> parent : getNodePath()) {
+		for (HMTNode<K> parent : getNodePath()) {
 			ret.add(parent.getKey());
 		}
 		return ret;
@@ -150,9 +150,9 @@ public class Node<K> implements Serializable {
 		return sb.toString();
 	}
 
-	public List<Node<K>> getLeafNodesUnder() {
-		List<Node<K>> ret = new ArrayList<Node<K>>();
-		for (Node<K> node : getNodesUnder()) {
+	public List<HMTNode<K>> getLeafNodesUnder() {
+		List<HMTNode<K>> ret = new ArrayList<HMTNode<K>>();
+		for (HMTNode<K> node : getNodesUnder()) {
 			if (node.getType() == Type.LEAF) {
 				ret.add(node);
 			}
@@ -160,23 +160,23 @@ public class Node<K> implements Serializable {
 		return ret;
 	}
 
-	public List<Node<K>> getNodePath() {
-		List<Node<K>> ret = getParents();
+	public List<HMTNode<K>> getNodePath() {
+		List<HMTNode<K>> ret = getParents();
 		ret.add(this);
 		return ret;
 	}
 
-	public List<Node<K>> getNodesUnder() {
+	public List<HMTNode<K>> getNodesUnder() {
 		return getNodesUnder(null);
 	}
 
-	public List<Node<K>> getNodesUnder(Set<Node<K>> toRemove) {
-		Set<Node<K>> visited = new HashSet<Node<K>>();
-		Stack<Node<K>> fringe = new Stack<Node<K>>();
+	public List<HMTNode<K>> getNodesUnder(Set<HMTNode<K>> toRemove) {
+		Set<HMTNode<K>> visited = new HashSet<HMTNode<K>>();
+		Stack<HMTNode<K>> fringe = new Stack<HMTNode<K>>();
 		fringe.add(this);
 
 		while (!fringe.empty()) {
-			Node<K> node = fringe.pop();
+			HMTNode<K> node = fringe.pop();
 
 			if (visited.contains(node)) {
 				continue;
@@ -187,25 +187,25 @@ public class Node<K> implements Serializable {
 			}
 
 			visited.add(node);
-			for (Node<K> child : node.getChildren().values()) {
+			for (HMTNode<K> child : node.getChildren().values()) {
 				fringe.push(child);
 			}
 		}
 
-		return new ArrayList<Node<K>>(visited);
+		return new ArrayList<HMTNode<K>>(visited);
 	}
 
-	public Node<K> getParent() {
+	public HMTNode<K> getParent() {
 		return parent;
 	}
 
-	public List<Node<K>> getParents() {
+	public List<HMTNode<K>> getParents() {
 		return getParents(-1);
 	}
 
-	public List<Node<K>> getParents(int max_dist_from_node) {
-		List<Node<K>> ret = new ArrayList<Node<K>>();
-		Node<K> node = this;
+	public List<HMTNode<K>> getParents(int max_dist_from_node) {
+		List<HMTNode<K>> ret = new ArrayList<HMTNode<K>>();
+		HMTNode<K> node = this;
 
 		while (node.hasParent() && node.getParent().getType() != Type.ROOT) {
 			if (max_dist_from_node != -1 && ret.size() == max_dist_from_node) {
@@ -273,7 +273,7 @@ public class Node<K> implements Serializable {
 		data = ois.readObject();
 	}
 
-	public void setChildren(Map<K, Node<K>> children) {
+	public void setChildren(Map<K, HMTNode<K>> children) {
 		this.children = children;
 	}
 
@@ -293,7 +293,7 @@ public class Node<K> implements Serializable {
 		this.key = key;
 	}
 
-	public void setParent(Node<K> parent) {
+	public void setParent(HMTNode<K> parent) {
 		this.parent = parent;
 	}
 
@@ -325,7 +325,7 @@ public class Node<K> implements Serializable {
 		}
 		sb.append(String.format("children:\t%d\n", getChildren().size()));
 		int no = 0;
-		for (Node<K> child : getChildren().values()) {
+		for (HMTNode<K> child : getChildren().values()) {
 			sb.append(String.format("  %dth %s -> %d children\n", ++no, child.key, child.getChildren().size()));
 		}
 		return sb.toString().trim();
@@ -333,8 +333,8 @@ public class Node<K> implements Serializable {
 
 	public void trimToSize() {
 		if (children != null) {
-			Map<K, Node<K>> temp = Generics.newHashMap(children.size());
-			for (Entry<K, Node<K>> e : children.entrySet()) {
+			Map<K, HMTNode<K>> temp = Generics.newHashMap(children.size());
+			for (Entry<K, HMTNode<K>> e : children.entrySet()) {
 				temp.put(e.getKey(), e.getValue());
 			}
 			children = temp;

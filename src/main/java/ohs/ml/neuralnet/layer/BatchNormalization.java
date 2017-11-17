@@ -20,7 +20,7 @@ import ohs.matrix.DenseVector;
  * 
  * @author ohs
  */
-public class BatchNormalizationLayer extends Layer {
+public class BatchNormalization extends Layer {
 
 	/**
 	 * 
@@ -71,19 +71,19 @@ public class BatchNormalizationLayer extends Layer {
 
 	private DenseTensor Y;
 
-	public BatchNormalizationLayer(DenseVector runMeans, DenseVector runVars, DenseVector gamma, DenseVector beta) {
+	public BatchNormalization(DenseVector runMeans, DenseVector runVars, DenseVector gamma, DenseVector beta) {
 		this.runMeans = runMeans;
 		this.runVars = runVars;
 		this.gamma = gamma;
 		this.beta = beta;
 	}
 
-	public BatchNormalizationLayer(int output_size) {
+	public BatchNormalization(int output_size) {
 		this(new DenseVector(output_size), new DenseVector(output_size), new DenseVector(output_size),
 				new DenseVector(output_size));
 	}
 
-	public BatchNormalizationLayer(ObjectInputStream ois) throws Exception {
+	public BatchNormalization(ObjectInputStream ois) throws Exception {
 		readObject(ois);
 	}
 
@@ -156,7 +156,7 @@ public class BatchNormalizationLayer extends Layer {
 
 	@Override
 	public Layer copy() {
-		return new BatchNormalizationLayer(runMeans, runVars, dgamma, beta);
+		return new BatchNormalization(runMeans, runVars, gamma, beta);
 	}
 
 	@Override

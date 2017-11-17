@@ -4,8 +4,6 @@ import java.io.File;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.lucene.queryparser.flexible.standard.parser.Token;
-
 import ohs.corpus.type.DocumentCollection;
 import ohs.corpus.type.EnglishTokenizer;
 import ohs.fake.FNPath;
@@ -18,11 +16,12 @@ import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
 import ohs.matrix.SparseMatrix;
 import ohs.ml.neuralnet.com.ParameterUpdater.OptimizerType;
-import ohs.ml.neuralnet.layer.BidirectionalRecurrentLayer;
+import ohs.ml.neuralnet.layer.BidirectionalRNN;
 import ohs.ml.neuralnet.layer.DiscreteFeatureEmbeddingLayer;
 import ohs.ml.neuralnet.layer.DropoutLayer;
 import ohs.ml.neuralnet.layer.EmbeddingLayer;
 import ohs.ml.neuralnet.layer.FullyConnectedLayer;
+import ohs.ml.neuralnet.layer.LayerNormalization;
 import ohs.ml.neuralnet.layer.MultiWindowConvolutionalLayer;
 import ohs.ml.neuralnet.layer.MultiWindowMaxPoolingLayer;
 import ohs.ml.neuralnet.layer.NonlinearityLayer;
@@ -499,18 +498,18 @@ public class Apps {
 
 		nnp.setLearnRate(0.001);
 		nnp.setLearnRateDecay(0.9);
-		nnp.setLearnRateDecaySize(100);
+		nnp.setLearnRateDecaySize(50);
 		nnp.setWeightDecayL2(1);
 		nnp.setGradientDecay(1);
 		nnp.setRegLambda(0.001);
 		nnp.setGradientClipCutoff(5);
 
-		nnp.setThreadSize(6);
-		nnp.setBatchSize(2);
+		nnp.setThreadSize(5);
+		nnp.setBatchSize(3);
 		nnp.setGradientAccumulatorResetSize(Integer.MAX_VALUE);
 
-		nnp.setK1(5);
-		nnp.setK2(5);
+		nnp.setK1(7);
+		nnp.setK2(7);
 
 		nnp.setIsFullSequenceBatch(true);
 		nnp.setIsRandomBatch(true);
@@ -732,9 +731,9 @@ public class Apps {
 			nn.add(new DropoutLayer());
 			// nn.add(new RnnLayer(l.getOutputSize(), l1_size, bptt_size, new ReLU()));
 			// nn.add(new LstmLayer(l.getOutputSize(), l1_size, bptt_size));
-			nn.add(new BidirectionalRecurrentLayer(Type.LSTM, l.getOutputSize(), l1_size, k1, k2, new ReLU()));
+			nn.add(new BidirectionalRNN(Type.LSTM, l.getOutputSize(), l1_size, k1, k2, new ReLU()));
 			// nn.add(new BatchNormalizationLayer(l1_size));
-			// nn.add(new LayerNormalizationLayer());
+			nn.add(new LayerNormalization(l1_size));
 			// nn.add(new DropoutLayer());
 			nn.add(new FullyConnectedLayer(l1_size, label_size));
 			nn.add(new SoftmaxLayer(label_size));

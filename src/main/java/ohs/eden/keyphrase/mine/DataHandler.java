@@ -26,7 +26,7 @@ import ohs.ml.glove.GloveParam;
 import ohs.ml.glove.GloveTrainer;
 import ohs.ml.neuralnet.com.BatchUtils;
 import ohs.nlp.ling.types.MToken;
-import ohs.tree.trie.hash.Trie;
+import ohs.tree.trie.hash.HMTrie;
 import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
 import ohs.types.generic.ListList;
@@ -475,7 +475,7 @@ public class DataHandler {
 				for (String sent : sents) {
 					List<String> words = StrUtils.split(sent);
 
-					Trie<String> dict = PhraseMapper.createTrie(kwdSet);
+					HMTrie<String> dict = PhraseMapper.createTrie(kwdSet);
 					PhraseMapper m = new PhraseMapper(dict);
 
 					List<ohs.types.generic.Pair<Integer, Integer>> res = m.map(words);

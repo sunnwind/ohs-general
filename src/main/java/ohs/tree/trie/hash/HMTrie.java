@@ -14,10 +14,10 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import ohs.io.FileUtils;
-import ohs.tree.trie.hash.Node.Type;
-import ohs.tree.trie.hash.Trie.TSResult.MatchType;
+import ohs.tree.trie.hash.HMTNode.Type;
+import ohs.tree.trie.hash.HMTrie.TSResult.MatchType;
 
-public class Trie<K> implements Serializable {
+public class HMTrie<K> implements Serializable {
 
 	public static class TSResult<K> {
 
@@ -25,13 +25,13 @@ public class Trie<K> implements Serializable {
 			EXACT_KEYS_WITH_DATA, PARTIAL_KEYS_WITHOUT_DATA, EXACT_KEYS_WITHOUT_DATA, PARTIAL_KEYS_WITH_DATA, FAIL
 		}
 
-		private Node<K> node;
+		private HMTNode<K> node;
 
 		private MatchType type;
 
 		private int loc;
 
-		public TSResult(Node<K> node, MatchType type, int loc) {
+		public TSResult(HMTNode<K> node, MatchType type, int loc) {
 			this.node = node;
 			this.type = type;
 			this.loc = loc;
@@ -41,7 +41,7 @@ public class Trie<K> implements Serializable {
 			return loc;
 		}
 
-		public Node<K> getMatchNode() {
+		public HMTNode<K> getMatchNode() {
 			return node;
 		}
 
@@ -66,25 +66,25 @@ public class Trie<K> implements Serializable {
 		System.out.println("Process ends.");
 	}
 
-	public static <K> Trie<K> newTrie() {
-		return new Trie<K>();
+	public static <K> HMTrie<K> newTrie() {
+		return new HMTrie<K>();
 	}
 
 	private int depth = 1;
 
 	private int size = 1;
 
-	private Node<K> root = new Node<K>(null, null, null, 0);
+	private HMTNode<K> root = new HMTNode<K>(null, null, null, 0);
 
-	public Trie() {
+	public HMTrie() {
 
 	}
 
 	public void delete(K[] keys) {
 		TSResult<K> sr = search(keys);
 		if (sr.getMatchType() != MatchType.FAIL) {
-			Node<K> node = sr.getMatchNode();
-			Node<K> parent = node.getParent();
+			HMTNode<K> node = sr.getMatchNode();
+			HMTNode<K> parent = node.getParent();
 			parent.getChildren().remove(parent.getKey());
 		}
 	}
@@ -110,11 +110,11 @@ public class Trie<K> implements Serializable {
 	}
 
 	public TSResult<K> find(List<K> keys, int start, int end) {
-		Node<K> node = root;
+		HMTNode<K> node = root;
 		int num_matches = 0;
 		int max_matches = end - start;
 		int loc = -1;
-		Node<K> tmp = null;
+		HMTNode<K> tmp = null;
 
 		for (int i = start; i < end; i++) {
 			K key = keys.get(i);
@@ -145,7 +145,7 @@ public class Trie<K> implements Serializable {
 		return new TSResult<K>(tmp, type, loc);
 	}
 
-	public Node<K> findLCA(Node<K> node1, Node<K> node2) {
+	public HMTNode<K> findLCA(HMTNode<K> node1, HMTNode<K> node2) {
 		return null;
 	}
 
@@ -153,25 +153,25 @@ public class Trie<K> implements Serializable {
 		return depth;
 	}
 
-	public List<Node<K>> getLeafNodes() {
+	public List<HMTNode<K>> getLeafNodes() {
 		return root.getLeafNodesUnder();
 	}
 
-	public Map<Integer, Node<K>> getNodeMap() {
-		Map<Integer, Node<K>> ret = new HashMap<Integer, Node<K>>();
-		for (Node<K> node : getNodes()) {
+	public Map<Integer, HMTNode<K>> getNodeMap() {
+		Map<Integer, HMTNode<K>> ret = new HashMap<Integer, HMTNode<K>>();
+		for (HMTNode<K> node : getNodes()) {
 			ret.put(node.getID(), node);
 		}
 		return ret;
 	}
 
-	public List<Node<K>> getNodes() {
+	public List<HMTNode<K>> getNodes() {
 		return root.getNodesUnder();
 	}
 
-	public List<Node<K>> getNodesAtLevel(int level) {
-		List<Node<K>> ret = new ArrayList<Node<K>>();
-		for (Node<K> node : getNodes()) {
+	public List<HMTNode<K>> getNodesAtLevel(int level) {
+		List<HMTNode<K>> ret = new ArrayList<HMTNode<K>>();
+		for (HMTNode<K> node : getNodes()) {
 			if (node.getDepth() == level) {
 				ret.add(node);
 			}
@@ -179,7 +179,7 @@ public class Trie<K> implements Serializable {
 		return ret;
 	}
 
-	public Node<K> getRoot() {
+	public HMTNode<K> getRoot() {
 		return root;
 	}
 
@@ -187,28 +187,28 @@ public class Trie<K> implements Serializable {
 		return null == search(keys, start, end);
 	}
 
-	public Node<K> insert(K[] keys) {
+	public HMTNode<K> insert(K[] keys) {
 		return insert(keys, 0, keys.length);
 	}
 
-	public Node<K> insert(K[] keys, int start, int end) {
+	public HMTNode<K> insert(K[] keys, int start, int end) {
 		return insert(Arrays.asList(keys), start, end);
 	}
 
-	public Node<K> insert(List<K> keys) {
+	public HMTNode<K> insert(List<K> keys) {
 		return insert(keys, 0, keys.size());
 	}
 
-	public Node<K> insert(List<K> keys, int start, int end) {
-		Node<K> node = root;
+	public HMTNode<K> insert(List<K> keys, int start, int end) {
+		HMTNode<K> node = root;
 
 		for (int i = start; i < end; i++) {
 			K key = keys.get(i);
-			Node<K> child;
+			HMTNode<K> child;
 			if (node.hasChild(key)) {
 				child = node.getChild(key);
 			} else {
-				child = new Node<K>(node, key, null, size++);
+				child = new HMTNode<K>(node, key, null, size++);
 				node.addChild(child);
 			}
 			node = child;
@@ -222,7 +222,7 @@ public class Trie<K> implements Serializable {
 
 	public Set<K> keySet() {
 		Set<K> ret = new TreeSet<K>();
-		for (Node<K> node : root.getNodesUnder()) {
+		for (HMTNode<K> node : root.getNodesUnder()) {
 			if (node.getType() != Type.ROOT) {
 				ret.add(node.getKey());
 			}
@@ -232,7 +232,7 @@ public class Trie<K> implements Serializable {
 
 	public Set<K> keySetAtLevel(int level) {
 		Set<K> ret = new HashSet<K>();
-		for (Node<K> node : getNodes()) {
+		for (HMTNode<K> node : getNodes()) {
 			if (node.getDepth() == level) {
 				ret.add(node.getKey());
 			}
@@ -247,12 +247,12 @@ public class Trie<K> implements Serializable {
 		read(ois, root);
 	}
 
-	private void read(ObjectInputStream ois, Node<K> node) throws Exception {
+	private void read(ObjectInputStream ois, HMTNode<K> node) throws Exception {
 		node.read(ois);
 		int size = ois.readInt();
 
 		for (int i = 0; i < size; i++) {
-			Node<K> child = new Node<K>();
+			HMTNode<K> child = new HMTNode<K>();
 			child.setParent(node);
 
 			read(ois, child);
@@ -283,7 +283,7 @@ public class Trie<K> implements Serializable {
 	}
 
 	public TSResult<K> search(List<K> keys, int start, int end) {
-		Node<K> node = root;
+		HMTNode<K> node = root;
 		int match_cnt = 0;
 		int max_match_cnt = end - start;
 		int loc = -1;
@@ -336,10 +336,10 @@ public class Trie<K> implements Serializable {
 		return sb.toString().trim();
 	}
 
-	private void toString(Node<K> node, StringBuffer sb, int max_depth) {
+	private void toString(HMTNode<K> node, StringBuffer sb, int max_depth) {
 		if (node.hasChildren() && node.getDepth() < max_depth) {
 			int cnt = 0;
-			for (Node<K> child : node.getChildren().values()) {
+			for (HMTNode<K> child : node.getChildren().values()) {
 				sb.append("\n");
 				for (int j = 0; j < child.getDepth(); j++) {
 					sb.append("  ");
@@ -354,8 +354,8 @@ public class Trie<K> implements Serializable {
 		trimToSize(root);
 	}
 
-	private void trimToSize(Node<K> node) {
-		for (Node<K> child : node.getChildren().values()) {
+	private void trimToSize(HMTNode<K> node) {
+		for (HMTNode<K> child : node.getChildren().values()) {
 			trimToSize(child);
 		}
 		node.trimToSize();
@@ -367,12 +367,12 @@ public class Trie<K> implements Serializable {
 		write(oos, root);
 	}
 
-	private void write(ObjectOutputStream oos, Node<K> node) throws Exception {
+	private void write(ObjectOutputStream oos, HMTNode<K> node) throws Exception {
 		if (node != null) {
 			node.write(oos);
 			oos.writeInt(node.sizeOfChildren());
 
-			for (Node<K> child : node.getChildren().values()) {
+			for (HMTNode<K> child : node.getChildren().values()) {
 				write(oos, child);
 			}
 		}

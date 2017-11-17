@@ -632,6 +632,11 @@ public class VectorMath {
 		return sum;
 	}
 
+	public static DenseVector mean(DenseMatrix a, boolean rows) {
+		double[] b = ArrayMath.mean(a.values(), rows);
+		return new DenseVector(b);
+	}
+
 	public static double mean(Vector x) {
 		return ArrayMath.mean(x.values());
 	}
@@ -817,12 +822,6 @@ public class VectorMath {
 		return ArrayMath.normL2(a.values());
 	}
 
-	public static double normL2(DenseMatrix a, DenseVector b, boolean row_norms) {
-		double sum = ArrayMath.normL2(a.values(), b.values(), row_norms);
-		b.setSum(sum);
-		return sum;
-	}
-
 	public static DenseVector normL2(DenseMatrix a, boolean row_norms) {
 		int size = a.rowSize();
 		if (!row_norms) {
@@ -831,6 +830,12 @@ public class VectorMath {
 		DenseVector b = new DenseVector(size);
 		normL2(a, b, row_norms);
 		return b;
+	}
+
+	public static double normL2(DenseMatrix a, DenseVector b, boolean row_norms) {
+		double sum = ArrayMath.normL2(a.values(), b.values(), row_norms);
+		b.setSum(sum);
+		return sum;
 	}
 
 	public static double normL2(DenseTensor a) {
@@ -1669,6 +1674,12 @@ public class VectorMath {
 	public static double zTransform(DenseVector a, double mean, double var, double eps, DenseVector b) {
 		double sum = ArrayMath.zTransform(a.values(), mean, var, eps, b.values());
 		b.setSum(sum);
+		return sum;
+	}
+
+	public static double zTransform(DenseMatrix a, DenseVector mean, DenseVector var, double eps, DenseMatrix b,
+			boolean rows) {
+		double sum = ArrayMath.zTransform(a.values(), mean.values(), var.values(), eps, b.values(), rows);
 		return sum;
 	}
 

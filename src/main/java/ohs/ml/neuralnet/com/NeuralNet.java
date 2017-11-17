@@ -9,7 +9,7 @@ import ohs.io.FileUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
-import ohs.ml.neuralnet.layer.BidirectionalRecurrentLayer;
+import ohs.ml.neuralnet.layer.BidirectionalRNN;
 import ohs.ml.neuralnet.layer.EmbeddingLayer;
 import ohs.ml.neuralnet.layer.Layer;
 import ohs.ml.neuralnet.layer.LstmLayer;
@@ -130,8 +130,8 @@ public class NeuralNet extends ArrayList<Layer> {
 					LstmLayer n = (LstmLayer) l;
 					dW = n.getDW();
 					dB = n.getDB();
-				} else if (l instanceof BidirectionalRecurrentLayer) {
-					BidirectionalRecurrentLayer n = (BidirectionalRecurrentLayer) l;
+				} else if (l instanceof BidirectionalRNN) {
+					BidirectionalRNN n = (BidirectionalRNN) l;
 					dW = n.getDW();
 					dB = n.getDB();
 				}
@@ -189,8 +189,8 @@ public class NeuralNet extends ArrayList<Layer> {
 					LstmLayer n = (LstmLayer) l;
 					W = n.getW();
 					B = n.getB();
-				} else if (l instanceof BidirectionalRecurrentLayer) {
-					BidirectionalRecurrentLayer n = (BidirectionalRecurrentLayer) l;
+				} else if (l instanceof BidirectionalRNN) {
+					BidirectionalRNN n = (BidirectionalRNN) l;
 					W = n.getW();
 					B = n.getB();
 				}

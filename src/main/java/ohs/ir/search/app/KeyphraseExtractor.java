@@ -17,8 +17,8 @@ import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseVector;
 import ohs.matrix.SparseVector;
-import ohs.tree.trie.hash.Node;
-import ohs.tree.trie.hash.Trie;
+import ohs.tree.trie.hash.HMTNode;
+import ohs.tree.trie.hash.HMTrie;
 import ohs.types.common.IntPair;
 import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
@@ -116,12 +116,12 @@ public class KeyphraseExtractor {
 		phrsIdxer = Generics.newIndexer(phrsBiases.size());
 
 		{
-			Trie<String> trie = new Trie<String>();
+			HMTrie<String> trie = new HMTrie<String>();
 
 			for (String phrs : phrsBiases.keySet()) {
 				List<String> words = StrUtils.split(phrs);
 
-				Node<String> node = trie.insert(words);
+				HMTNode<String> node = trie.insert(words);
 				node.setFlag(true);
 				phrsIdxer.add(phrs);
 			}

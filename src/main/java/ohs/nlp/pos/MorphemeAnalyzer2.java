@@ -11,10 +11,10 @@ import ohs.nlp.ling.types.MDocument;
 import ohs.nlp.ling.types.MSentence;
 import ohs.nlp.ling.types.MultiToken;
 import ohs.nlp.ling.types.TokenAttr;
-import ohs.tree.trie.hash.Node;
-import ohs.tree.trie.hash.Trie;
-import ohs.tree.trie.hash.Trie.TSResult;
-import ohs.tree.trie.hash.Trie.TSResult.MatchType;
+import ohs.tree.trie.hash.HMTNode;
+import ohs.tree.trie.hash.HMTrie;
+import ohs.tree.trie.hash.HMTrie.TSResult;
+import ohs.tree.trie.hash.HMTrie.TSResult.MatchType;
 import ohs.types.generic.Indexer;
 import ohs.types.generic.SetMap;
 import ohs.utils.Generics;
@@ -69,7 +69,7 @@ public class MorphemeAnalyzer2 {
 
 	private SetMap<String, String> analDict;
 
-	private Trie<Character> wordDict;
+	private HMTrie<Character> wordDict;
 
 	private Indexer<String> posIndexer;
 
@@ -84,7 +84,7 @@ public class MorphemeAnalyzer2 {
 	public void buildDicts() throws Exception {
 		if (FileUtils.exists(NLPPath.DICT_SER_FILE)) {
 			ObjectInputStream ois = FileUtils.openObjectInputStream(NLPPath.DICT_SER_FILE);
-			wordDict = new Trie<Character>();
+			wordDict = new HMTrie<Character>();
 			wordDict.read(ois);
 
 			ois.close();
@@ -225,7 +225,7 @@ public class MorphemeAnalyzer2 {
 
 		locToJosas = Generics.newSetMap();
 
-		for (Node<Character> node : wordDict.getNodes()) {
+		for (HMTNode<Character> node : wordDict.getNodes()) {
 			Set<SJTag> tags = (Set<SJTag>) node.getData();
 
 			if (tags == null) {
@@ -268,7 +268,7 @@ public class MorphemeAnalyzer2 {
 	private void buildSystemDict(String fileName) throws Exception {
 		List<String> lines = FileUtils.readLinesFromText(fileName);
 
-		wordDict = Trie.newTrie();
+		wordDict = HMTrie.newTrie();
 
 		locToJosas = Generics.newSetMap();
 
@@ -279,7 +279,7 @@ public class MorphemeAnalyzer2 {
 			String word = parts[0];
 			SJTag pos = SJTag.valueOf(parts[1]);
 
-			Node<Character> node = wordDict.insert(StrUtils.asCharacters(word));
+			HMTNode<Character> node = wordDict.insert(StrUtils.asCharacters(word));
 
 			Set<SJTag> tags = (Set<SJTag>) node.getData();
 

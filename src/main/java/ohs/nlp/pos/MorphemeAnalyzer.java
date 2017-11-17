@@ -8,10 +8,10 @@ import ohs.nlp.ling.types.MDocument;
 import ohs.nlp.ling.types.MSentence;
 import ohs.nlp.ling.types.MultiToken;
 import ohs.nlp.ling.types.TokenAttr;
-import ohs.tree.trie.hash.Node;
-import ohs.tree.trie.hash.Trie;
-import ohs.tree.trie.hash.Trie.TSResult;
-import ohs.tree.trie.hash.Trie.TSResult.MatchType;
+import ohs.tree.trie.hash.HMTNode;
+import ohs.tree.trie.hash.HMTrie;
+import ohs.tree.trie.hash.HMTrie.TSResult;
+import ohs.tree.trie.hash.HMTrie.TSResult.MatchType;
 import ohs.types.generic.SetMap;
 import ohs.types.generic.Triple;
 import ohs.utils.Generics;
@@ -64,11 +64,11 @@ public class MorphemeAnalyzer {
 		System.out.println("proces ends.");
 	}
 
-	private Trie<Character> wordDict;
+	private HMTrie<Character> wordDict;
 
-	private Trie<Character> suffixDict;
+	private HMTrie<Character> suffixDict;
 
-	private Trie<SJTag> conRules;
+	private HMTrie<SJTag> conRules;
 
 	private SetMap<String, String> analDict;
 
@@ -174,7 +174,7 @@ public class MorphemeAnalyzer {
 	public void readDicts() throws Exception {
 		analDict = Generics.newSetMap();
 
-		conRules = Trie.newTrie();
+		conRules = HMTrie.newTrie();
 
 		// for (String line : FileUtils.readLines(NLPPath.DICT_ANALYZED_FILE)) {
 		// String[] parts = line.split("\t");
@@ -194,12 +194,12 @@ public class MorphemeAnalyzer {
 		// }
 		// }
 
-		wordDict = Trie.newTrie();
+		wordDict = HMTrie.newTrie();
 
 		for (String line : FileUtils.readLinesFromText(NLPPath.DICT_WORD_FILE)) {
 			String[] parts = line.split("\t");
 			Character[] cs = StrUtils.asCharacters(parts[0]);
-			Node<Character> node = wordDict.insert(cs);
+			HMTNode<Character> node = wordDict.insert(cs);
 
 			Set<String> set = (Set<String>) node.getData();
 
@@ -213,7 +213,7 @@ public class MorphemeAnalyzer {
 			}
 		}
 
-		suffixDict = Trie.newTrie();
+		suffixDict = HMTrie.newTrie();
 
 		for (String line : FileUtils.readLinesFromText(NLPPath.DICT_SUFFIX_FILE)) {
 			String[] parts = line.split("\t");
@@ -225,7 +225,7 @@ public class MorphemeAnalyzer {
 			}
 
 			Character[] cs = StrUtils.asCharacters(suffix);
-			Node<Character> node = suffixDict.insert(cs);
+			HMTNode<Character> node = suffixDict.insert(cs);
 
 			Set<String> set = (Set<String>) node.getData();
 

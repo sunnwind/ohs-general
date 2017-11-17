@@ -54,7 +54,7 @@ public class FakeApps {
 
 		nnp.setLearnRate(0.001);
 		nnp.setLearnRateDecay(0.9);
-		nnp.setLearnRateDecaySize(200);
+		nnp.setLearnRateDecaySize(100);
 		nnp.setWeightDecayL2(1);
 		nnp.setGradientDecay(1);
 		nnp.setRegLambda(0.001);

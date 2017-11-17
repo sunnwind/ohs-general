@@ -17,7 +17,7 @@ import ohs.matrix.DenseVector;
 import ohs.ml.neuralnet.com.NeuralNet;
 import ohs.ml.neuralnet.com.NeuralNetParams;
 import ohs.ml.neuralnet.com.NeuralNetTrainer;
-import ohs.ml.neuralnet.layer.BatchNormalizationLayer;
+import ohs.ml.neuralnet.layer.BatchNormalization;
 import ohs.ml.neuralnet.layer.FullyConnectedLayer;
 import ohs.ml.neuralnet.layer.NonlinearityLayer;
 import ohs.ml.neuralnet.layer.SoftmaxLayer;
@@ -570,11 +570,11 @@ public class PhraseClassification {
 
 		NeuralNet nn = new NeuralNet();
 		nn.add(new FullyConnectedLayer(input_size, l1_size));
-		nn.add(new BatchNormalizationLayer(l1_size));
+		nn.add(new BatchNormalization(l1_size));
 		nn.add(new NonlinearityLayer(new Tanh()));
 		// nn.add(new DropoutLayer(l1_size));
 		nn.add(new FullyConnectedLayer(l1_size, l2_size));
-		nn.add(new BatchNormalizationLayer(l2_size));
+		nn.add(new BatchNormalization(l2_size));
 		nn.add(new NonlinearityLayer(new Tanh()));
 		nn.add(new FullyConnectedLayer(l2_size, output_size));
 		nn.add(new SoftmaxLayer(output_size));

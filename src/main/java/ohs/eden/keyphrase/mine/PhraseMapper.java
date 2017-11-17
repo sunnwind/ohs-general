@@ -6,8 +6,8 @@ import java.util.List;
 import ohs.corpus.type.RawDocumentCollection;
 import ohs.io.FileUtils;
 import ohs.ir.medical.general.MIRPath;
-import ohs.tree.trie.hash.Node;
-import ohs.tree.trie.hash.Trie;
+import ohs.tree.trie.hash.HMTNode;
+import ohs.tree.trie.hash.HMTrie;
 import ohs.types.common.IntPair;
 import ohs.types.generic.Counter;
 import ohs.types.generic.Pair;
@@ -17,8 +17,8 @@ import ohs.utils.StrUtils;
 
 public class PhraseMapper<K> {
 
-	public static Trie<String> createTrie(Collection<String> phrss) {
-		Trie<String> ret = new Trie<String>();
+	public static HMTrie<String> createTrie(Collection<String> phrss) {
+		HMTrie<String> ret = new HMTrie<String>();
 		for (String phrs : phrss) {
 
 			if (phrs.equals(":")) {
@@ -26,21 +26,21 @@ public class PhraseMapper<K> {
 			}
 
 			List<String> words = StrUtils.split(phrs);
-			Node<String> node = ret.insert(words);
+			HMTNode<String> node = ret.insert(words);
 			node.setFlag(true);
 		}
 		ret.trimToSize();
 		return ret;
 	}
 
-	public static Trie<Integer> createTrie(Collection<String> phrss, Vocab vocab) {
-		Trie<Integer> ret = new Trie<Integer>();
+	public static HMTrie<Integer> createTrie(Collection<String> phrss, Vocab vocab) {
+		HMTrie<Integer> ret = new HMTrie<Integer>();
 		for (String phrs : phrss) {
 			List<String> words = StrUtils.split(phrs);
 			List<Integer> ws = vocab.indexesOfKnown(words);
 
 			if (words.size() == ws.size()) {
-				Node<Integer> node = ret.insert(ws);
+				HMTNode<Integer> node = ret.insert(ws);
 				node.setFlag(true);
 			}
 		}
@@ -54,9 +54,9 @@ public class PhraseMapper<K> {
 		System.out.printf("ends.");
 	}
 
-	private Trie<K> dict;
+	private HMTrie<K> dict;
 
-	public PhraseMapper(Trie<K> dict) {
+	public PhraseMapper(HMTrie<K> dict) {
 		this.dict = dict;
 	}
 
@@ -74,7 +74,7 @@ public class PhraseMapper<K> {
 		while (i < words.size()) {
 			int j = i;
 
-			Node<K> node = dict.getRoot();
+			HMTNode<K> node = dict.getRoot();
 
 			while (j < words.size()) {
 				K key = words.get(j);
@@ -103,7 +103,7 @@ public class PhraseMapper<K> {
 	public void test1() throws Exception {
 		Counter<String> c = FileUtils.readStringCounterFromText("../../data/medical_ir/trec_cds/2014/phrs/kwds.txt.gz");
 
-		Trie<String> dict = PhraseMapper.createTrie(c.keySet());
+		HMTrie<String> dict = PhraseMapper.createTrie(c.keySet());
 		PhraseMapper<String> m = new PhraseMapper<String>(dict);
 
 		{

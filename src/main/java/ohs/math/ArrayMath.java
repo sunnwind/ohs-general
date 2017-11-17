@@ -2223,9 +2223,9 @@ public class ArrayMath {
 		return sum(x) / x.length;
 	}
 
-	public static double[] mean(double[][] x) {
-		double[] means = new double[x.length];
-		mean(x, means, true);
+	public static double[] mean(double[][] x, boolean rows) {
+		double[] means = new double[rows ? x.length : x[0].length];
+		mean(x, means, rows);
 		return means;
 	}
 
@@ -4120,6 +4120,23 @@ public class ArrayMath {
 		for (int i = 0; i < a.length; i++) {
 			b[i] = CommonMath.zTransform(a[i], mean, std_dev + eps);
 			sum += b[i];
+		}
+		return sum;
+	}
+
+	public static double zTransform(double[][] a, double[] mean, double[] var, double eps, double[][] b, boolean rows) {
+		double sum = 0;
+		if (rows) {
+			for (int i = 0; i < a.length; i++) {
+				sum += zTransform(a[i], mean[i], var[i], eps, b[i]);
+			}
+		} else {
+			double[] tm = new double[a[0].length];
+			for (int i = 0; i < a[0].length; i++) {
+				ArrayUtils.copyColumn(a, i, tm);
+				sum += zTransform(tm, mean[i], var[i], eps, tm);
+				ArrayUtils.copyColumn(tm, a, i);
+			}
 		}
 		return sum;
 	}

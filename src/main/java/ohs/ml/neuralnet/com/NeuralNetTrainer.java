@@ -360,8 +360,8 @@ public class NeuralNetTrainer {
 				}
 			}
 
-			if (iters % learn_rate_decay_size == 0 && learn_rate_decay < 1.0) {
-				learn_rate = learn_rate * learn_rate_decay;
+			if (total_iters % learn_rate_decay_size == 0 && learn_rate_decay < 1.0) {
+				learn_rate *= learn_rate_decay;
 
 				for (ParameterUpdater pu : pus) {
 					pu.setLearningRate(learn_rate);
