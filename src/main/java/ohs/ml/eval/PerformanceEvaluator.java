@@ -129,13 +129,15 @@ public class PerformanceEvaluator {
 
 		if (labelIdxer != null) {
 			int idx = labelIdxer.indexOf("O");
-			corCnts.set(idx, 0);
-			predCnts.set(idx, 0);
-			ansCnts.set(idx, 0);
+			if (idx >= 0) {
+				corCnts.set(idx, 0);
+				predCnts.set(idx, 0);
+				ansCnts.set(idx, 0);
 
-			corCnts.summation();
-			predCnts.summation();
-			ansCnts.summation();
+				corCnts.summation();
+				predCnts.summation();
+				ansCnts.summation();
+			}
 		}
 
 		Performance p = new Performance(ansCnts, predCnts, corCnts, labelIdxer);

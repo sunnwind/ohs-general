@@ -3,7 +3,6 @@ package ohs.ml.neuralnet.com;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
-import java.util.List;
 
 import ohs.io.FileUtils;
 import ohs.matrix.DenseMatrix;
@@ -17,7 +16,6 @@ import ohs.ml.neuralnet.layer.RecurrentLayer;
 import ohs.ml.neuralnet.layer.RnnLayer;
 import ohs.types.generic.Indexer;
 import ohs.types.generic.Vocab;
-import ohs.types.number.IntegerArray;
 import ohs.utils.Generics;
 
 /**
@@ -72,7 +70,7 @@ public class NeuralNet extends ArrayList<Layer> {
 	}
 
 	public DenseMatrix classify(Object I) {
-		DenseTensor Yh = (DenseTensor) score(I);
+		DenseTensor Yh = (DenseTensor) forward(I);
 		DenseMatrix ret = new DenseMatrix();
 		ret.ensureCapacity(Yh.size());
 
@@ -210,7 +208,7 @@ public class NeuralNet extends ArrayList<Layer> {
 
 	public void init() {
 		for (Layer l : this) {
-			l.init();
+			l.initWeights();
 		}
 	}
 
@@ -252,10 +250,6 @@ public class NeuralNet extends ArrayList<Layer> {
 	public DenseVector score(DenseVector I) {
 		DenseMatrix O = (DenseMatrix) forward((Object) new DenseMatrix(new DenseVector[] { I }));
 		return O.row(0);
-	}
-
-	public Object score(Object I) {
-		return forward(I);
 	}
 
 	public void setIsTesting(boolean is_testing) {

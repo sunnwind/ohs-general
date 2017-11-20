@@ -190,9 +190,9 @@ public class BidirectionalRecurrentLayer extends RecurrentLayer {
 	}
 
 	@Override
-	public void init() {
-		fwd.init();
-		bwd.init();
+	public void initWeights() {
+		fwd.initWeights();
+		bwd.initWeights();
 	}
 
 	@Override

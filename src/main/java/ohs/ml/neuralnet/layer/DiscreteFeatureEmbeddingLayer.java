@@ -32,7 +32,7 @@ public class DiscreteFeatureEmbeddingLayer extends Layer {
 
 	private int feat_size;
 
-	private boolean is_learning = true;
+	private boolean learn_embs = true;
 
 	private DenseMatrix tmp_dX = new DenseMatrix(0);
 
@@ -55,34 +55,14 @@ public class DiscreteFeatureEmbeddingLayer extends Layer {
 
 	}
 
-	public DiscreteFeatureEmbeddingLayer(DenseMatrix W, int feat_size, int prev_emb_size, boolean is_learning) {
+	public DiscreteFeatureEmbeddingLayer(DenseMatrix W, int feat_size, int prev_emb_size, boolean learn_embs) {
 		this.W = W;
 		this.prev_emb_size = prev_emb_size;
-		this.is_learning = is_learning;
+		this.learn_embs = learn_embs;
 		this.feat_size = feat_size;
 
 		extra_emb_size = feat_size * W.colSize();
 		new_emb_size = prev_emb_size + extra_emb_size;
-	}
-
-	@Override
-	public void readObject(ObjectInputStream ois) throws Exception {
-		W = new DenseMatrix(ois);
-		prev_emb_size = ois.readInt();
-		is_learning = ois.readBoolean();
-		feat_size = ois.readInt();
-
-		extra_emb_size = feat_size * W.colSize();
-		new_emb_size = prev_emb_size + extra_emb_size;
-	}
-
-	@Override
-	public void writeObject(ObjectOutputStream oos) throws Exception {
-		W.writeObject(oos);
-		oos.writeInt(prev_emb_size);
-		oos.writeBoolean(is_learning);
-		oos.writeInt(feat_size);
-
 	}
 
 	public DiscreteFeatureEmbeddingLayer(int feat_val_size, int feat_size, int feat_emb_size, int prev_emb_size,
@@ -125,7 +105,7 @@ public class DiscreteFeatureEmbeddingLayer extends Layer {
 
 				int pos = prev_emb_size;
 
-				if (is_learning) {
+				if (learn_embs) {
 					for (int j = 1; j < fm.size(); j++) {
 						int feat_idx = (int) fm.value(j);
 						if (feat_idx >= 0) {
@@ -146,7 +126,7 @@ public class DiscreteFeatureEmbeddingLayer extends Layer {
 	}
 
 	public Layer copy() {
-		return new DiscreteFeatureEmbeddingLayer(W, feat_size, prev_emb_size, is_learning);
+		return new DiscreteFeatureEmbeddingLayer(W, feat_size, prev_emb_size, learn_embs);
 	}
 
 	@Override
@@ -222,12 +202,12 @@ public class DiscreteFeatureEmbeddingLayer extends Layer {
 	}
 
 	@Override
-	public void init() {
+	public void initWeights() {
 		ParameterInitializer.init2(W);
 	}
 
 	public boolean isLearnEmbedding() {
-		return is_learning;
+		return learn_embs;
 	}
 
 	@Override
@@ -235,8 +215,28 @@ public class DiscreteFeatureEmbeddingLayer extends Layer {
 		dW = W.copy(true);
 	}
 
-	public void setLearnEmbedding(boolean is_learning) {
-		this.is_learning = is_learning;
+	@Override
+	public void readObject(ObjectInputStream ois) throws Exception {
+		W = new DenseMatrix(ois);
+		prev_emb_size = ois.readInt();
+		learn_embs = ois.readBoolean();
+		feat_size = ois.readInt();
+
+		extra_emb_size = feat_size * W.colSize();
+		new_emb_size = prev_emb_size + extra_emb_size;
+	}
+
+	public void setLearnEmbedding(boolean learn_embs) {
+		this.learn_embs = learn_embs;
+	}
+
+	@Override
+	public void writeObject(ObjectOutputStream oos) throws Exception {
+		W.writeObject(oos);
+		oos.writeInt(prev_emb_size);
+		oos.writeBoolean(learn_embs);
+		oos.writeInt(feat_size);
+
 	}
 
 }

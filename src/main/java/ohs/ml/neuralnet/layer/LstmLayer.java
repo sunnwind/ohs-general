@@ -521,7 +521,7 @@ public class LstmLayer extends RecurrentLayer {
 	}
 
 	@Override
-	public void init() {
+	public void initWeights() {
 		ParameterInitializer.init2(Wxh);
 		// VectorMath.identity(Whh, 1);
 

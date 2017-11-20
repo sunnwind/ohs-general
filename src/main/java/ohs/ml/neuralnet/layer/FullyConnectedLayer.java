@@ -247,7 +247,7 @@ public class FullyConnectedLayer extends Layer {
 	}
 
 	@Override
-	public void init() {
+	public void initWeights() {
 		ParameterInitializer.init2(W);
 	}
 

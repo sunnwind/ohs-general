@@ -107,8 +107,8 @@ public class ConvNetLayer extends Layer {
 	}
 
 	@Override
-	public void init() {
-		cl.init();
+	public void initWeights() {
+		cl.initWeights();
 	}
 
 	@Override

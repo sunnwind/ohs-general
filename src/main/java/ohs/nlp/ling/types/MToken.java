@@ -38,6 +38,8 @@ public class MToken extends ArrayList<Object> {
 
 	private DenseVector fv;
 
+	private DenseVector cv;
+
 	protected int start = 0;
 
 	public MToken() {
@@ -48,13 +50,13 @@ public class MToken extends ArrayList<Object> {
 		super(size);
 	}
 
-	public MToken(String word) {
-		this(0, word);
-	}
-
 	public MToken(int start, String word) {
 		this.start = start;
 		add(word);
+	}
+
+	public MToken(String word) {
+		this(0, word);
 	}
 
 	public Object get(String attr) {
@@ -64,6 +66,10 @@ public class MToken extends ArrayList<Object> {
 			ret = get(idx);
 		}
 		return ret;
+	}
+
+	public DenseVector getCharacterVector() {
+		return cv;
 	}
 
 	public DenseVector getFeatureVector() {
@@ -88,6 +94,10 @@ public class MToken extends ArrayList<Object> {
 
 	public void readObject(ObjectInputStream ois) throws Exception {
 		start = ois.readInt();
+	}
+
+	public void SetCharacterVector(DenseVector cv) {
+		this.cv = cv;
 	}
 
 	public void setFeatureVector(DenseVector fv) {

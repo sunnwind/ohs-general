@@ -305,7 +305,7 @@ public class BatchNormalizationLayer extends Layer {
 	}
 
 	@Override
-	public void init() {
+	public void initWeights() {
 		gamma.setAll(1);
 		runVars.setAll(1);
 	}

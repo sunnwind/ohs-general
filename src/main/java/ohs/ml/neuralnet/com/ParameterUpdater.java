@@ -13,9 +13,13 @@ import ohs.utils.Generics;
  * 
  * http://sebastianruder.com/optimizing-gradient-descent/index.html#adam
  * 
+ * http://ruder.io/optimizing-gradient-descent/index.html#adamax
+ * 
  * http://cs231n.github.io/neural-networks-2/
  * 
  * http://cs231n.github.io/neural-networks-3/
+ * 
+ * An overview of gradient descent optimization algorithms
  * 
  * @author ohs
  */
@@ -168,7 +172,7 @@ public class ParameterUpdater {
 	}
 
 	public void update(int batch_size) {
-		t += 0.0001;
+		t += 0.01;
 
 		for (int i = 0; i < Ws.size(); i++) {
 			DenseMatrix W = Ws.get(i);
@@ -195,8 +199,8 @@ public class ParameterUpdater {
 			double sum = 0;
 			double w = 0;
 			double dw = 0;
-			double dxa1 = 0;
-			double dxa2 = 0;
+			double dwa1 = 0;
+			double dwa2 = 0;
 
 			synchronized (W) {
 				for (int j = 0; j < W.rowSize(); j++) {
@@ -224,7 +228,7 @@ public class ParameterUpdater {
 
 							r1.add(k, Math.pow(dw, 2));
 
-							w -= learn_rate / (Math.sqrt(dxa2) + eps) * dw;
+							w -= learn_rate / (Math.sqrt(dwa2) + eps) * dw;
 							Wm.set(k, w);
 							sum += w;
 						}
@@ -234,10 +238,10 @@ public class ParameterUpdater {
 							dw = dWm.value(k) * grad_decay;
 							w = Wm.value(k) * weight_decay_L2;
 
-							dxa1 = ArrayMath.addAfterMultiply(r1.value(k), decay_rate, Math.pow(dw, 2), 1 - decay_rate);
-							r1.set(k, dxa1);
+							dwa1 = ArrayMath.addAfterMultiply(r1.value(k), decay_rate, Math.pow(dw, 2), 1 - decay_rate);
+							r1.set(k, dwa1);
 
-							w -= -learn_rate / (Math.sqrt(dxa2) + eps) * dw;
+							w -= -learn_rate / (Math.sqrt(dwa2) + eps) * dw;
 							Wm.set(k, w);
 							sum += w;
 						}
@@ -246,19 +250,19 @@ public class ParameterUpdater {
 							dw = dWm.value(k) * grad_decay;
 							w = Wm.value(k) * weight_decay_L2;
 
-							dxa1 = ArrayMath.addAfterMultiply(r1.value(k), beta1, dw);
-							dxa2 = ArrayMath.addAfterMultiply(r2.value(k), beta2, Math.pow(dw, 2));
+							dwa1 = ArrayMath.addAfterMultiply(r1.value(k), beta1, dw);
+							dwa2 = ArrayMath.addAfterMultiply(r2.value(k), beta2, Math.pow(dw, 2));
 
-							r1.set(k, dxa1);
-							r2.set(k, dxa2);
+							r1.set(k, dwa1);
+							r2.set(k, dwa2);
 
 							// dxa1 = dxa1 / (1 - beta1);
 							// dxa2 = dxa2 / (1 - beta2);
 
-							dxa1 = dxa1 / (1 - Math.pow(beta1, t));
-							dxa2 = dxa2 / (1 - Math.pow(beta2, t));
+							dwa1 = dwa1 / (1 - Math.pow(beta1, t));
+							dwa2 = dwa2 / (1 - Math.pow(beta2, t));
 
-							w -= learn_rate / (Math.sqrt(dxa2) + eps) * dxa1;
+							w -= learn_rate / (Math.sqrt(dwa2) + eps) * dwa1;
 							Wm.set(k, w);
 							sum += w;
 						}
@@ -267,17 +271,17 @@ public class ParameterUpdater {
 							dw = dWm.value(k) * grad_decay;
 							w = Wm.value(k) * weight_decay_L2;
 
-							dxa1 = ArrayMath.addAfterMultiply(r1.value(k), beta1, dw);
-							dxa2 = Math.max(beta2 * r2.value(k), Math.abs(dw));
+							dwa1 = ArrayMath.addAfterMultiply(r1.value(k), beta1, dw);
+							dwa2 = Math.max(beta2 * r2.value(k), Math.abs(dw));
 
-							if (dxa2 == 0) {
-								dxa2 = eps;
+							if (dwa2 == 0) {
+								dwa2 = eps;
 							}
 
-							r1.set(k, dxa1);
-							r2.set(k, dxa2);
+							r1.set(k, dwa1);
+							r2.set(k, dwa2);
 
-							w -= learn_rate / dxa2 * dxa1;
+							w -= learn_rate / dwa2 * dwa1;
 							Wm.set(k, w);
 							sum += w;
 						}
@@ -286,18 +290,18 @@ public class ParameterUpdater {
 							dw = dWm.value(k) * grad_decay;
 							w = Wm.value(k) * weight_decay_L2;
 
-							dxa1 = ArrayMath.addAfterMultiply(r1.value(k), beta1, dw);
-							dxa2 = ArrayMath.addAfterMultiply(r2.value(k), beta2, Math.pow(dw, 2));
+							dwa1 = ArrayMath.addAfterMultiply(r1.value(k), beta1, dw);
+							dwa2 = ArrayMath.addAfterMultiply(r2.value(k), beta2, Math.pow(dw, 2));
 
-							r1.set(k, dxa1);
-							r2.set(k, dxa2);
+							r1.set(k, dwa1);
+							r2.set(k, dwa2);
 
-							dxa1 = dxa1 / (1 - Math.pow(beta1, t));
-							dxa2 = dxa2 / (1 - Math.pow(beta2, t));
+							dwa1 = dwa1 / (1 - Math.pow(beta1, t));
+							dwa2 = dwa2 / (1 - Math.pow(beta2, t));
 
-							w -= learn_rate / (Math.sqrt(dxa2) + eps) *
+							w -= learn_rate / (Math.sqrt(dwa2) + eps) *
 
-									(beta1 * dxa1 + (1 - beta1) / (1 - Math.pow(beta1, t)) * dw);
+									(beta1 * dwa1 + (1 - beta1) / (1 - Math.pow(beta1, t)) * dw);
 							Wm.set(k, w);
 							sum += w;
 						}

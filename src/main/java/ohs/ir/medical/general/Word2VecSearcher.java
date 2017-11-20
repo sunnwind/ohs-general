@@ -14,13 +14,13 @@ public class Word2VecSearcher {
 
 	public Word2VecSearcher(Word2VecModel model) {
 		wordIndexer = new Indexer<>();
-		for (int i = 0; i < model.getVocab().getBytes(); i++) {
-			wordIndexer.add(model.getVocab().getSents(i));
+		for (int i = 0; i < model.getWordVocab().getBytes(); i++) {
+			wordIndexer.add(model.getWordVocab().getSents(i));
 		}
 		
 		
 
-		System.out.println(model.getVocab().getBytes());
+		System.out.println(model.getWordVocab().getBytes());
 		System.out.println(wordIndexer.size());
 
 		this.layerSize = model.getLayerSize();

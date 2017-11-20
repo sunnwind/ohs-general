@@ -19,7 +19,7 @@ import ohs.matrix.DenseVector;
  * 
  * @author ohs
  */
-public class LayerNormalization extends Layer {
+public class LayerNormalizationLayer extends Layer {
 
 	/**
 	 * 
@@ -64,7 +64,7 @@ public class LayerNormalization extends Layer {
 
 	private double run_var = 0;
 
-	public LayerNormalization(double run_mu, double run_var, double momentum, DenseVector gamma, DenseVector beta) {
+	public LayerNormalizationLayer(double run_mu, double run_var, double momentum, DenseVector gamma, DenseVector beta) {
 		this.run_mu = run_mu;
 		this.run_var = run_var;
 		this.momentum = momentum;
@@ -72,11 +72,11 @@ public class LayerNormalization extends Layer {
 		this.beta = beta;
 	}
 
-	public LayerNormalization(int output_size) {
+	public LayerNormalizationLayer(int output_size) {
 		this(1, 0, 0.9, new DenseVector(output_size, 1d), new DenseVector(output_size));
 	}
 
-	public LayerNormalization(ObjectInputStream ois) throws Exception {
+	public LayerNormalizationLayer(ObjectInputStream ois) throws Exception {
 		readObject(ois);
 	}
 
@@ -156,7 +156,7 @@ public class LayerNormalization extends Layer {
 
 	@Override
 	public Layer copy() {
-		return new LayerNormalization(run_mu, run_var, momentum, gamma, beta);
+		return new LayerNormalizationLayer(run_mu, run_var, momentum, gamma, beta);
 	}
 
 	@Override
@@ -279,7 +279,7 @@ public class LayerNormalization extends Layer {
 	}
 
 	@Override
-	public void init() {
+	public void initWeights() {
 		gamma.setAll(1);
 	}
 

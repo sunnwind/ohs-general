@@ -256,6 +256,7 @@ public class ConvolutionalLayer extends Layer {
 
 		this.Y = Y;
 		this.Z = Z;
+		this.Z = Z;
 
 		return Y;
 	}
@@ -311,7 +312,7 @@ public class ConvolutionalLayer extends Layer {
 	}
 
 	@Override
-	public void init() {
+	public void initWeights() {
 		ParameterInitializer.init2(W);
 	}
 

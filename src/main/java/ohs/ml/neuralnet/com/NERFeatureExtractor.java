@@ -5,6 +5,8 @@ import java.io.ObjectOutputStream;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.codec.language.Caverphone;
+
 import ohs.io.FileUtils;
 import ohs.matrix.DenseVector;
 import ohs.nlp.ling.types.MCollection;
@@ -26,14 +28,18 @@ public class NERFeatureExtractor {
 
 	private SetMap<String, String> gzData = Generics.newSetMap();
 
-	private Vocab vocab = new Vocab();
+	private Vocab wVocab = new Vocab();
+
+	private Vocab cVocab = new Vocab();
 
 	public boolean is_training = true;
 
 	private int unk = 0;
 
 	public NERFeatureExtractor() {
-		vocab.add(SYM.UNK.getText());
+		wVocab.add(SYM.UNK.getText());
+		cVocab.add(SYM.UNK.getText());
+
 		featIdxer.add("word");
 	}
 
@@ -102,14 +108,14 @@ public class NERFeatureExtractor {
 		featValIdxer.add(String.format("%s=%s", feat, "noshape"));
 	}
 
-	public void addShapeTwoFeatures() {
-		String feat = "shape2";
+	public void addShapeThreeFeatures() {
+		String feat = "shape3";
 		featIdxer.add(feat);
 		featValIdxer.add(String.format("%s=%s", feat, "noshape"));
 	}
 
-	public void addShapeThreeFeatures() {
-		String feat = "shape3";
+	public void addShapeTwoFeatures() {
+		String feat = "shape2";
 		featIdxer.add(feat);
 		featValIdxer.add(String.format("%s=%s", feat, "noshape"));
 	}
@@ -200,8 +206,19 @@ public class NERFeatureExtractor {
 
 		{
 			String nw = StrUtils.normalizeNumbers(word.toLowerCase());
-			int w = is_training ? vocab.getIndex(nw) : vocab.indexOf(nw, unk);
+			int w = is_training ? wVocab.getIndex(nw) : wVocab.indexOf(nw, unk);
 			F.set(featIdxer.indexOf("word"), w);
+		}
+
+		{
+			DenseVector C = new DenseVector(word.length());
+
+			for (int i = 0; i < word.length(); i++) {
+				String ch = word.charAt(i) + "";
+				int c = is_training ? cVocab.getIndex(ch) : cVocab.indexOf(ch);
+				C.set(i, c);
+			}
+			t.SetCharacterVector(C);
 		}
 
 		if (featIdxer.contains("pos")) {
@@ -383,15 +400,19 @@ public class NERFeatureExtractor {
 		return sb.toString();
 	}
 
-	public Vocab getVocab() {
-		return vocab;
+	public Vocab getWordVocab() {
+		return wVocab;
+	}
+
+	public Vocab getCharacterVocab() {
+		return cVocab;
 	}
 
 	public void readObject(ObjectInputStream ois) throws Exception {
 		featIdxer = FileUtils.readStringIndexer(ois);
 		featValIdxer = FileUtils.readStringIndexer(ois);
 		gzData = FileUtils.readStringSetMap(ois);
-		vocab = new Vocab(ois);
+		wVocab = new Vocab(ois);
 		is_training = ois.readBoolean();
 		unk = ois.readInt();
 	}
@@ -407,14 +428,14 @@ public class NERFeatureExtractor {
 	}
 
 	public void setVocab(Vocab vocab) {
-		this.vocab = vocab;
+		this.wVocab = vocab;
 	}
 
 	public void writeObject(ObjectOutputStream oos) throws Exception {
 		FileUtils.writeStringIndexer(oos, featIdxer);
 		FileUtils.writeStringIndexer(oos, featValIdxer);
 		FileUtils.writeStringSetMap(oos, gzData);
-		vocab.writeObject(oos);
+		wVocab.writeObject(oos);
 		oos.writeBoolean(is_training);
 		oos.writeInt(unk);
 	}

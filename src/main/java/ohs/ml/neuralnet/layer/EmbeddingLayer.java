@@ -37,7 +37,7 @@ public class EmbeddingLayer extends Layer {
 
 	private DenseTensor Y;
 
-	private boolean output_word_indexes = true;
+	private boolean output_feature_indexes = true;
 
 	public EmbeddingLayer() {
 
@@ -76,7 +76,7 @@ public class EmbeddingLayer extends Layer {
 
 	public EmbeddingLayer copy() {
 		EmbeddingLayer l = new EmbeddingLayer(W, learn_embedding);
-		l.setOutputWordIndexes(output_word_indexes);
+		l.setOutputWordIndexes(output_feature_indexes);
 		return l;
 	}
 
@@ -109,7 +109,7 @@ public class EmbeddingLayer extends Layer {
 
 		this.Y = Y;
 
-		if (output_word_indexes) {
+		if (output_feature_indexes) {
 			return Generics.newPair(X, Y);
 		} else {
 			return Y;
@@ -136,7 +136,7 @@ public class EmbeddingLayer extends Layer {
 	}
 
 	@Override
-	public void init() {
+	public void initWeights() {
 		ParameterInitializer.init2(W);
 	}
 
@@ -160,7 +160,7 @@ public class EmbeddingLayer extends Layer {
 	}
 
 	public void setOutputWordIndexes(boolean output_word_indexes) {
-		this.output_word_indexes = output_word_indexes;
+		this.output_feature_indexes = output_word_indexes;
 	}
 
 	@Override

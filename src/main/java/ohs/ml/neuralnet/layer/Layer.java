@@ -56,7 +56,7 @@ public abstract class Layer implements Serializable {
 		return null;
 	}
 
-	public void init() {
+	public void initWeights() {
 	}
 
 	public boolean isTesting() {

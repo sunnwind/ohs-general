@@ -16,12 +16,13 @@ import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
 import ohs.matrix.SparseMatrix;
 import ohs.ml.neuralnet.com.ParameterUpdater.OptimizerType;
-import ohs.ml.neuralnet.layer.BatchNormalizationLayer;
 import ohs.ml.neuralnet.layer.BidirectionalRecurrentLayer;
+import ohs.ml.neuralnet.layer.ConvolutionalLayer;
 import ohs.ml.neuralnet.layer.DiscreteFeatureEmbeddingLayer;
 import ohs.ml.neuralnet.layer.DropoutLayer;
 import ohs.ml.neuralnet.layer.EmbeddingLayer;
 import ohs.ml.neuralnet.layer.FullyConnectedLayer;
+import ohs.ml.neuralnet.layer.MaxPoolingLayer;
 import ohs.ml.neuralnet.layer.MultiWindowConvolutionalLayer;
 import ohs.ml.neuralnet.layer.MultiWindowMaxPoolingLayer;
 import ohs.ml.neuralnet.layer.NonlinearityLayer;
@@ -537,13 +538,13 @@ public class Apps {
 			}
 
 			ext.addPosFeatures(poss);
-			ext.addCapitalFeatures();
-			ext.addPuctuationFeatures();
+			// ext.addCapitalFeatures();
+			// ext.addPuctuationFeatures();
 			ext.addShapeOneFeatures();
 			ext.addShapeTwoFeatures();
 			ext.addShapeThreeFeatures();
-			ext.addSuffixFeatures(suffixes);
-			ext.addPrefixFeatures(prefixes);
+			// ext.addSuffixFeatures(suffixes);
+			// ext.addPrefixFeatures(prefixes);
 			ext.addGazeteerFeatures("per", pers);
 			ext.addGazeteerFeatures("org", orgs);
 			ext.addGazeteerFeatures("loc", locs);
@@ -557,7 +558,7 @@ public class Apps {
 		NeuralNetParams nnp = new NeuralNetParams();
 
 		nnp.setLearnRate(0.001);
-		nnp.setLearnRateDecay(0.9);
+		nnp.setLearnRateDecay(1);
 		nnp.setLearnRateDecaySize(50);
 		nnp.setWeightDecayL2(1);
 		nnp.setGradientDecay(1);
@@ -690,14 +691,15 @@ public class Apps {
 		Xt.trimToSize();
 		Yt.trimToSize();
 
-		Vocab vocab = ext.getVocab();
+		Vocab wVocab = ext.getWordVocab();
+		Vocab cVocab = ext.getCharacterVocab();
 
-		System.out.println(vocab.info());
+		System.out.println(wVocab.info());
 		System.out.println(labelIdxer.info());
 		System.out.println(labelIdxer.toString());
 		System.out.println(X.sizeOfEntries());
 
-		int voc_size = vocab.size();
+		int voc_size = wVocab.size();
 		int word_emb_size = 50;
 		int feat_emb_size = 5;
 		int l1_size = 200;
@@ -714,12 +716,12 @@ public class Apps {
 			List<String> words = FileUtils.readLinesFromText("../../data/ml_data/senna/hash/words.lst");
 			List<String> embs = FileUtils.readLinesFromText("../../data/ml_data/senna/embeddings/embeddings.txt");
 
-			E = new DenseMatrix(vocab.size(), 50);
+			E = new DenseMatrix(wVocab.size(), 50);
 
 			for (int i = 0; i < words.size(); i++) {
 				String word = words.get(i);
 
-				int w = vocab.indexOf(word);
+				int w = wVocab.indexOf(word);
 
 				if (w <= 0) {
 					continue;
@@ -737,12 +739,14 @@ public class Apps {
 
 		String modelFileName = "../../data/ml_data/ner_nn.ser";
 
-		NeuralNet nn = new NeuralNet(labelIdxer, vocab, TaskType.SEQ_LABELING);
+		NeuralNet nn = new NeuralNet(labelIdxer, wVocab, TaskType.SEQ_LABELING);
 
 		boolean read_ner_model = false;
 
 		if (read_ner_model && FileUtils.exists(modelFileName)) {
 			nn = new NeuralNet(modelFileName);
+			// EmbeddingLayer l = (EmbeddingLayer) nn.get(0);
+			// l.setLearnEmbedding(false);
 			nn.prepare();
 		} else {
 
@@ -754,9 +758,15 @@ public class Apps {
 
 			DiscreteFeatureEmbeddingLayer l = new DiscreteFeatureEmbeddingLayer(ext.getFeatureValueIndexer().size(),
 					ext.getFeatureIndexer().size(), feat_emb_size, word_emb_size, true);
-
 			nn.add(l);
 			nn.add(new DropoutLayer());
+
+			nn.add(new ConvolutionalLayer(l.getOutputSize(), 3, 50));
+			nn.add(new NonlinearityLayer(new ReLU()));
+			nn.add(new MaxPoolingLayer(50));
+
+			nn.add(new DropoutLayer());
+
 			// nn.add(new RnnLayer(l.getOutputSize(), l1_size, bptt_size, new ReLU()));
 			// nn.add(new LstmLayer(l.getOutputSize(), l1_size, bptt_size));
 			nn.add(new BidirectionalRecurrentLayer(Type.LSTM, l.getOutputSize(), l1_size, k1, k2, new ReLU()));

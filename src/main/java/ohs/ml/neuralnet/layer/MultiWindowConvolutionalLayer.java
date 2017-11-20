@@ -254,9 +254,9 @@ public class MultiWindowConvolutionalLayer extends Layer {
 	}
 
 	@Override
-	public void init() {
+	public void initWeights() {
 		for (Layer l : cls) {
-			l.init();
+			l.initWeights();
 		}
 	}
 
