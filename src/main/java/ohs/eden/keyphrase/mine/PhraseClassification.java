@@ -579,8 +579,8 @@ public class PhraseClassification {
 		nn.add(new FullyConnectedLayer(l2_size, output_size));
 		nn.add(new SoftmaxLayer(output_size));
 
-		nn.prepare();
-		nn.init();
+		nn.prepareTraining();
+		nn.initWeights();
 
 		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param);
 		trainer.train(X, Y, Xt, Yt, 100);
@@ -686,8 +686,8 @@ public class PhraseClassification {
 		// nn.add(new DropoutLayer(l2_size));
 		nn.add(new FullyConnectedLayer(l2_size, output_size));
 		nn.add(new SoftmaxLayer(output_size));
-		nn.prepare();
-		nn.init();
+		nn.prepareTraining();
+		nn.initWeights();
 
 		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param);
 
@@ -796,8 +796,8 @@ public class PhraseClassification {
 		// nn.add(new DropoutLayer(l2_size));
 		nn.add(new FullyConnectedLayer(l2_size, output_size));
 		nn.add(new SoftmaxLayer(output_size));
-		nn.prepare();
-		nn.init();
+		nn.prepareTraining();
+		nn.initWeights();
 
 		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param);
 

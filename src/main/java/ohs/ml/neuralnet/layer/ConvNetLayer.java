@@ -1,6 +1,5 @@
 package ohs.ml.neuralnet.layer;
 
-import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
 import ohs.ml.neuralnet.nonlinearity.ReLU;
 
@@ -21,15 +20,15 @@ public class ConvNetLayer extends Layer {
 
 	private ConvolutionalLayer cl;
 
-	private int emb_size;
-
 	private NonlinearityLayer nl;
+
+	private MaxPoolingLayer pl;
+
+	private int emb_size;
 
 	private int num_filters;
 
 	private int output_size;
-
-	private MaxPoolingLayer pl;
 
 	private int window_size;
 
@@ -48,7 +47,7 @@ public class ConvNetLayer extends Layer {
 		this.num_filters = num_filters;
 		this.window_size = window_size;
 
-		cl = new ConvolutionalLayer(emb_size, 3, num_filters);
+		cl = new ConvolutionalLayer(emb_size, window_size, num_filters);
 
 		nl = new NonlinearityLayer(new ReLU());
 
@@ -112,8 +111,8 @@ public class ConvNetLayer extends Layer {
 	}
 
 	@Override
-	public void prepare() {
-		cl.prepare();
+	public void prepareTraining() {
+		cl.prepareTraining();
 	}
 
 }

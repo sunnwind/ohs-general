@@ -156,7 +156,6 @@ public class NeuralNetTrainer {
 		}
 
 		return p;
-
 	}
 
 	public void finish() {
@@ -192,7 +191,7 @@ public class NeuralNetTrainer {
 
 		for (int i = 0; i < thread_size - 1; i++) {
 			NeuralNet n = nn.copy();
-			n.prepare();
+			n.prepareTraining();
 
 			nns.add(n);
 		}

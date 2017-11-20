@@ -21,6 +21,7 @@ import ohs.ml.neuralnet.layer.ConvolutionalLayer;
 import ohs.ml.neuralnet.layer.DiscreteFeatureEmbeddingLayer;
 import ohs.ml.neuralnet.layer.DropoutLayer;
 import ohs.ml.neuralnet.layer.EmbeddingLayer;
+import ohs.ml.neuralnet.layer.MultiEmbeddingLayer;
 import ohs.ml.neuralnet.layer.FullyConnectedLayer;
 import ohs.ml.neuralnet.layer.MaxPoolingLayer;
 import ohs.ml.neuralnet.layer.MultiWindowConvolutionalLayer;
@@ -47,6 +48,66 @@ import ohs.utils.Generics;
 import ohs.utils.StrUtils;
 
 public class Apps {
+
+	public static NERFeatureExtractor getNERFeatureExtractor(String extFileName, MDocument trainData) throws Exception {
+		NERFeatureExtractor ext = new NERFeatureExtractor();
+
+		if (extFileName != null) {
+			ext.readObject(extFileName);
+		} else {
+			String dirName = "../../data/ml_data/senna/hash/";
+
+			Set<String> caps = FileUtils.readStringHashSetFromText(dirName + "caps.lst");
+			Set<String> suffixes = FileUtils.readStringHashSetFromText(dirName + "suffix.lst");
+			Set<String> pers = FileUtils.readStringHashSetFromText(dirName + "ner.per.lst");
+			Set<String> orgs = FileUtils.readStringHashSetFromText(dirName + "ner.org.lst");
+			Set<String> locs = FileUtils.readStringHashSetFromText(dirName + "ner.loc.lst");
+			Set<String> miscs = FileUtils.readStringHashSetFromText(dirName + "ner.misc.lst");
+
+			Set<String> poss = Generics.newHashSet(trainData.getTokens().getTokenStrings(1));
+			Set<String> prefixes = Generics.newHashSet();
+
+			{
+				Counter<String> c = Generics.newCounter();
+				for (String word : trainData.getTokens().getTokenStrings(0)) {
+					if (word.length() > 3) {
+						String p = word.substring(0, 3);
+						p = p.toLowerCase();
+
+						Set<Integer> l = Generics.newHashSet();
+
+						for (int i = 0; i < p.length(); i++) {
+							if (!Character.isDigit(p.charAt(i))) {
+								l.add(i);
+							}
+						}
+
+						if (l.size() == p.length()) {
+							c.incrementCount(p, 1);
+						}
+					}
+				}
+
+				c.pruneKeysBelowThreshold(5);
+				prefixes = c.keySet();
+			}
+
+			ext.addPosFeatures(poss);
+			ext.addCapitalFeatures();
+			// ext.addPuctuationFeatures();
+			// ext.addShapeOneFeatures();
+			// ext.addShapeTwoFeatures();
+			// ext.addShapeThreeFeatures();
+			// ext.addSuffixFeatures(suffixes);
+			// ext.addPrefixFeatures(prefixes);
+			// ext.addGazeteerFeatures("per", pers);
+			// ext.addGazeteerFeatures("org", orgs);
+			// ext.addGazeteerFeatures("loc", locs);
+			// ext.addGazeteerFeatures("misc", miscs);
+		}
+
+		return ext;
+	}
 
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
@@ -163,7 +224,7 @@ public class Apps {
 
 		if (FileUtils.exists(modelFileName)) {
 			nn = new NeuralNet(modelFileName);
-			nn.prepare();
+			nn.prepareTraining();
 		} else {
 
 			// EmbeddingLayer l = new EmbeddingLayer(voc_size, emb_size, true);
@@ -180,8 +241,8 @@ public class Apps {
 			// nn.add(new BatchNormalizationLayer(l1_size));
 			nn.add(new FullyConnectedLayer(l1_size, label_size));
 			nn.add(new SoftmaxLayer(label_size));
-			nn.prepare();
-			nn.init();
+			nn.prepareTraining();
+			nn.initWeights();
 		}
 
 		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, nnp);
@@ -400,8 +461,8 @@ public class Apps {
 			nn.add(new DropoutLayer());
 			nn.add(new FullyConnectedLayer(num_filters * window_sizes.length, output_size));
 			nn.add(new SoftmaxLayer(output_size));
-			nn.prepare();
-			nn.init();
+			nn.prepareTraining();
+			nn.initWeights();
 
 			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, nnp);
 			trainer.train(X, Y, Xt, Yt, 10000);
@@ -486,72 +547,12 @@ public class Apps {
 		// nn.add(new DropoutLayer());
 		nn.add(new FullyConnectedLayer(l2_size, output_size));
 		nn.add(new SoftmaxLayer(output_size));
-		nn.prepare();
-		nn.init();
+		nn.prepareTraining();
+		nn.initWeights();
 
 		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, nnp);
 		trainer.train(X, Y, Xt, Yt, 10000);
 		trainer.finish();
-	}
-
-	public static NERFeatureExtractor getNERFeatureExtractor(String extFileName, MDocument trainData) throws Exception {
-		NERFeatureExtractor ext = new NERFeatureExtractor();
-
-		if (extFileName != null) {
-			ext.readObject(extFileName);
-		} else {
-			String dirName = "../../data/ml_data/senna/hash/";
-
-			Set<String> caps = FileUtils.readStringHashSetFromText(dirName + "caps.lst");
-			Set<String> suffixes = FileUtils.readStringHashSetFromText(dirName + "suffix.lst");
-			Set<String> pers = FileUtils.readStringHashSetFromText(dirName + "ner.per.lst");
-			Set<String> orgs = FileUtils.readStringHashSetFromText(dirName + "ner.org.lst");
-			Set<String> locs = FileUtils.readStringHashSetFromText(dirName + "ner.loc.lst");
-			Set<String> miscs = FileUtils.readStringHashSetFromText(dirName + "ner.misc.lst");
-
-			Set<String> poss = Generics.newHashSet(trainData.getTokens().getTokenStrings(1));
-			Set<String> prefixes = Generics.newHashSet();
-
-			{
-				Counter<String> c = Generics.newCounter();
-				for (String word : trainData.getTokens().getTokenStrings(0)) {
-					if (word.length() > 3) {
-						String p = word.substring(0, 3);
-						p = p.toLowerCase();
-
-						Set<Integer> l = Generics.newHashSet();
-
-						for (int i = 0; i < p.length(); i++) {
-							if (!Character.isDigit(p.charAt(i))) {
-								l.add(i);
-							}
-						}
-
-						if (l.size() == p.length()) {
-							c.incrementCount(p, 1);
-						}
-					}
-				}
-
-				c.pruneKeysBelowThreshold(5);
-				prefixes = c.keySet();
-			}
-
-			ext.addPosFeatures(poss);
-			// ext.addCapitalFeatures();
-			// ext.addPuctuationFeatures();
-			ext.addShapeOneFeatures();
-			ext.addShapeTwoFeatures();
-			ext.addShapeThreeFeatures();
-			// ext.addSuffixFeatures(suffixes);
-			// ext.addPrefixFeatures(prefixes);
-			ext.addGazeteerFeatures("per", pers);
-			ext.addGazeteerFeatures("org", orgs);
-			ext.addGazeteerFeatures("loc", locs);
-			ext.addGazeteerFeatures("misc", miscs);
-		}
-
-		return ext;
 	}
 
 	public static void testNER() throws Exception {
@@ -691,8 +692,7 @@ public class Apps {
 		Xt.trimToSize();
 		Yt.trimToSize();
 
-		Vocab wVocab = ext.getWordVocab();
-		Vocab cVocab = ext.getCharacterVocab();
+		Indexer<String> wVocab = ext.getValueIndexers().get(0);
 
 		System.out.println(wVocab.info());
 		System.out.println(labelIdxer.info());
@@ -702,7 +702,7 @@ public class Apps {
 		int voc_size = wVocab.size();
 		int word_emb_size = 50;
 		int feat_emb_size = 5;
-		int l1_size = 200;
+		int l1_size = 100;
 		int label_size = labelIdxer.size();
 		int type = 2;
 
@@ -739,7 +739,7 @@ public class Apps {
 
 		String modelFileName = "../../data/ml_data/ner_nn.ser";
 
-		NeuralNet nn = new NeuralNet(labelIdxer, wVocab, TaskType.SEQ_LABELING);
+		NeuralNet nn = new NeuralNet(labelIdxer, new Vocab(wVocab), TaskType.SEQ_LABELING);
 
 		boolean read_ner_model = false;
 
@@ -747,25 +747,58 @@ public class Apps {
 			nn = new NeuralNet(modelFileName);
 			// EmbeddingLayer l = (EmbeddingLayer) nn.get(0);
 			// l.setLearnEmbedding(false);
-			nn.prepare();
+			nn.prepareTraining();
 		} else {
 
-			if (E == null) {
-				nn.add(new EmbeddingLayer(voc_size, word_emb_size, true));
-			} else {
-				nn.add(new EmbeddingLayer(E, true));
+			// if (E == null) {
+			// nn.add(new EmbeddingLayer(voc_size, word_emb_size, true));
+			// } else {
+			// nn.add(new EmbeddingLayer(E, true));
+			// }
+
+			MultiEmbeddingLayer l = null;
+
+			{
+				Indexer<String> featIdxer = ext.getFeatureIndexer();
+				List<Indexer<String>> valIdxers = ext.getValueIndexers();
+
+				DenseTensor W = new DenseTensor();
+				W.ensureCapacity(valIdxers.size());
+
+				int[][] sizes = new int[featIdxer.size()][2];
+				boolean[] learn_embs = new boolean[featIdxer.size()];
+
+				for (int i = 0; i < featIdxer.size(); i++) {
+					String feat = featIdxer.getObject(i);
+					Indexer<String> valIdxer = valIdxers.get(i);
+					int emb_size = feat_emb_size;
+
+					if (feat.equals("word")) {
+						emb_size = word_emb_size;
+					} else if (feat.equals("pos")) {
+						emb_size = (int) (1d * word_emb_size / 2);
+					} else {
+						emb_size = feat_emb_size;
+					}
+
+					sizes[i][0] = valIdxer.size();
+					sizes[i][1] = emb_size;
+					learn_embs[i] = true;
+				}
+
+				l = new MultiEmbeddingLayer(sizes, learn_embs);
 			}
 
-			DiscreteFeatureEmbeddingLayer l = new DiscreteFeatureEmbeddingLayer(ext.getFeatureValueIndexer().size(),
-					ext.getFeatureIndexer().size(), feat_emb_size, word_emb_size, true);
+			// DiscreteFeatureEmbeddingLayer l = new
+			// DiscreteFeatureEmbeddingLayer(ext.getFeatureValueIndexer().size(),
+			// ext.getFeatureIndexer().size(), feat_emb_size, word_emb_size, true);
 			nn.add(l);
 			nn.add(new DropoutLayer());
 
-			nn.add(new ConvolutionalLayer(l.getOutputSize(), 3, 50));
-			nn.add(new NonlinearityLayer(new ReLU()));
-			nn.add(new MaxPoolingLayer(50));
-
-			nn.add(new DropoutLayer());
+			// nn.add(new ConvolutionalLayer(l.getOutputSize(), 3, 50));
+			// nn.add(new NonlinearityLayer(new ReLU()));
+			// nn.add(new MaxPoolingLayer(50));
+			// nn.add(new DropoutLayer());
 
 			// nn.add(new RnnLayer(l.getOutputSize(), l1_size, bptt_size, new ReLU()));
 			// nn.add(new LstmLayer(l.getOutputSize(), l1_size, bptt_size));
@@ -775,8 +808,8 @@ public class Apps {
 			// nn.add(new DropoutLayer());
 			nn.add(new FullyConnectedLayer(l1_size, label_size));
 			nn.add(new SoftmaxLayer(label_size));
-			nn.prepare();
-			nn.init();
+			nn.prepareTraining();
+			nn.initWeights();
 		}
 
 		nn.writeObject(modelFileName);
@@ -788,7 +821,7 @@ public class Apps {
 
 		if (use_batches) {
 			IntegerArray locs = new IntegerArray(ArrayUtils.range(X.size()));
-			int group_size = 1000;
+			int group_size = 2000;
 			int[][] rs = BatchUtils.getBatchRanges(X.size(), group_size);
 
 			for (int i = 0; i < max_iters; i++) {
@@ -951,8 +984,8 @@ public class Apps {
 			nn.add(new DropoutLayer());
 			nn.add(new FullyConnectedLayer(num_filters * window_sizes.length, output_size));
 			nn.add(new SoftmaxLayer(output_size));
-			nn.prepare();
-			nn.init();
+			nn.prepareTraining();
+			nn.initWeights();
 
 			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, nnp);
 			trainer.train(X, Y, Xt, Yt, 10000);

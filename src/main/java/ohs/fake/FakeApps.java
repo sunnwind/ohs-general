@@ -278,8 +278,8 @@ public class FakeApps {
 			nn.add(new DropoutLayer());
 			nn.add(new FullyConnectedLayer(num_filters * window_sizes.length, output_size));
 			nn.add(new SoftmaxLayer(output_size));
-			nn.prepare();
-			nn.init();
+			nn.prepareTraining();
+			nn.initWeights();
 
 			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, nnp);
 
@@ -569,8 +569,8 @@ public class FakeApps {
 			nn.add(new DropoutLayer());
 			nn.add(new FullyConnectedLayer(num_filters * window_sizes.length, output_size));
 			nn.add(new SoftmaxLayer(output_size));
-			nn.prepare();
-			nn.init();
+			nn.prepareTraining();
+			nn.initWeights();
 
 			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, nnp);
 

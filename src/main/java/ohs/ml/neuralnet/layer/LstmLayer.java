@@ -534,7 +534,7 @@ public class LstmLayer extends RecurrentLayer {
 	}
 
 	@Override
-	public void prepare() {
+	public void prepareTraining() {
 		dWxh = Wxh.copy(true);
 		dWhh = Whh.copy(true);
 		db = b.copy(true);

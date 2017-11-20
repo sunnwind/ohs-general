@@ -261,9 +261,9 @@ public class MultiWindowConvolutionalLayer extends Layer {
 	}
 
 	@Override
-	public void prepare() {
+	public void prepareTraining() {
 		for (Layer l : cls) {
-			l.prepare();
+			l.prepareTraining();
 		}
 	}
 

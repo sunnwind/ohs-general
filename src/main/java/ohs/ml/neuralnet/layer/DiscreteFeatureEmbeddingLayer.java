@@ -211,7 +211,7 @@ public class DiscreteFeatureEmbeddingLayer extends Layer {
 	}
 
 	@Override
-	public void prepare() {
+	public void prepareTraining() {
 		dW = W.copy(true);
 	}
 

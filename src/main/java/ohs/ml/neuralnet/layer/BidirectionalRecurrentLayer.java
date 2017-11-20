@@ -196,9 +196,9 @@ public class BidirectionalRecurrentLayer extends RecurrentLayer {
 	}
 
 	@Override
-	public void prepare() {
-		fwd.prepare();
-		bwd.prepare();
+	public void prepareTraining() {
+		fwd.prepareTraining();
+		bwd.prepareTraining();
 	}
 
 	@Override

@@ -206,7 +206,7 @@ public class NeuralNet extends ArrayList<Layer> {
 		return ret;
 	}
 
-	public void init() {
+	public void initWeights() {
 		for (Layer l : this) {
 			l.initWeights();
 		}
@@ -216,9 +216,9 @@ public class NeuralNet extends ArrayList<Layer> {
 		return get(size() - 1);
 	}
 
-	public void prepare() {
+	public void prepareTraining() {
 		for (Layer l : this) {
-			l.prepare();
+			l.prepareTraining();
 		}
 	}
 

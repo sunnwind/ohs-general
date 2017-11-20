@@ -63,7 +63,7 @@ public abstract class Layer implements Serializable {
 		return is_testing;
 	}
 
-	public void prepare() {
+	public void prepareTraining() {
 
 	}
 

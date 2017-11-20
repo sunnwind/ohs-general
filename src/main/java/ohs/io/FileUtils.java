@@ -1319,7 +1319,7 @@ public class FileUtils {
 
 	public static void write(String fileName, boolean[] x) throws Exception {
 		ObjectOutputStream oos = openObjectOutputStream(fileName);
-		writeBooleans(oos, x);
+		write(oos, x);
 		oos.close();
 	}
 
@@ -1338,12 +1338,21 @@ public class FileUtils {
 		writer.close();
 	}
 
-	public static void writeBooleans(ObjectOutputStream oos, boolean[] x) throws IOException {
+	public static void write(ObjectOutputStream oos, boolean[] x) throws IOException {
 		oos.writeInt(x.length);
 		for (int i = 0; i < x.length; i++) {
 			oos.writeBoolean(x[i]);
 		}
 	}
+	
+	public static boolean[] readBooleans(ObjectInputStream ois) throws IOException {
+		boolean[] ret = new boolean[ois.readInt()];
+		for (int i = 0; i < ret.length;i++) {
+			ret[i] = ois.readBoolean();
+		}
+		return ret;
+	}
+	
 
 	public static void writeDoubleArray(ObjectOutputStream oos, DoubleArray a) throws Exception {
 		// ByteArray b = ByteArrayUtils.toByteArray(a);

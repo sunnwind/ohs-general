@@ -284,7 +284,7 @@ public class LayerNormalizationLayer extends Layer {
 	}
 
 	@Override
-	public void prepare() {
+	public void prepareTraining() {
 		dgamma = gamma.copy(true);
 		dbeta = gamma.copy(true);
 	}
