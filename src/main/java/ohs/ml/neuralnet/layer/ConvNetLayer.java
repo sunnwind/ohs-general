@@ -97,7 +97,7 @@ public class ConvNetLayer extends Layer {
 
 	@Override
 	public int getOutputSize() {
-		return output_size;
+		return num_filters;
 	}
 
 	@Override

@@ -17,15 +17,15 @@ import ohs.matrix.DenseVector;
 import ohs.matrix.SparseMatrix;
 import ohs.ml.neuralnet.com.ParameterUpdater.OptimizerType;
 import ohs.ml.neuralnet.layer.BidirectionalRecurrentLayer;
-import ohs.ml.neuralnet.layer.ConvolutionalLayer;
-import ohs.ml.neuralnet.layer.DiscreteFeatureEmbeddingLayer;
+import ohs.ml.neuralnet.layer.ConcatenationLayer;
+import ohs.ml.neuralnet.layer.ConvNetLayer;
 import ohs.ml.neuralnet.layer.DropoutLayer;
 import ohs.ml.neuralnet.layer.EmbeddingLayer;
-import ohs.ml.neuralnet.layer.MultiEmbeddingLayer;
 import ohs.ml.neuralnet.layer.FullyConnectedLayer;
-import ohs.ml.neuralnet.layer.MaxPoolingLayer;
+import ohs.ml.neuralnet.layer.Layer;
 import ohs.ml.neuralnet.layer.MultiWindowConvolutionalLayer;
 import ohs.ml.neuralnet.layer.MultiWindowMaxPoolingLayer;
+import ohs.ml.neuralnet.layer.NNConcatenationLayer;
 import ohs.ml.neuralnet.layer.NonlinearityLayer;
 import ohs.ml.neuralnet.layer.RecurrentLayer.Type;
 import ohs.ml.neuralnet.layer.RnnLayer;
@@ -100,10 +100,11 @@ public class Apps {
 			// ext.addShapeThreeFeatures();
 			// ext.addSuffixFeatures(suffixes);
 			// ext.addPrefixFeatures(prefixes);
-			// ext.addGazeteerFeatures("per", pers);
-			// ext.addGazeteerFeatures("org", orgs);
-			// ext.addGazeteerFeatures("loc", locs);
-			// ext.addGazeteerFeatures("misc", miscs);
+			ext.addGazeteerFeatures("per", pers);
+			ext.addGazeteerFeatures("org", orgs);
+			ext.addGazeteerFeatures("loc", locs);
+			ext.addGazeteerFeatures("misc", miscs);
+			ext.addCharacterFeatures();
 		}
 
 		return ext;
@@ -231,7 +232,7 @@ public class Apps {
 			// l.setOutputWordIndexes(false);
 			// nn.add(l);
 
-			nn.add(new EmbeddingLayer(voc_size, emb_size, true));
+			nn.add(new EmbeddingLayer(voc_size, emb_size, true, 0));
 			nn.add(new DropoutLayer());
 			// nn.add(new BidirectionalRecurrentLayer(Type.LSTM, emb_size, l1_size,
 			// bptt, new ReLU()));
@@ -350,7 +351,7 @@ public class Apps {
 			N.add(l);
 		}
 
-		IntegerMatrix T = DataSplitter.splitGroups(M, new int[] { 150, 25 });
+		IntegerMatrix T = DataSplitter.splitGroupsByLabels(M, new int[] { 150, 25 });
 
 		DenseTensor X = new DenseTensor();
 		DenseMatrix Y = new DenseMatrix();
@@ -451,7 +452,7 @@ public class Apps {
 			int num_filters = 100;
 			int[] window_sizes = new int[] { 2, 3, 5 };
 
-			nn.add(new EmbeddingLayer(vocab_size, emb_size, false));
+			nn.add(new EmbeddingLayer(vocab_size, emb_size, false, 0));
 
 			nn.add(new MultiWindowConvolutionalLayer(emb_size, window_sizes, num_filters));
 			// nn.add(new ConvolutionalLayer(emb_size, 4, num_filters));
@@ -592,59 +593,43 @@ public class Apps {
 			MToken.INDEXER = l;
 		}
 
-		MDocument trainData = MDocument.newDocument(FileUtils.readFromText(trainFileName));
-		MDocument testData = MDocument.newDocument(FileUtils.readFromText(testFileName));
+		MDocument _X = MDocument.newDocument(FileUtils.readFromText(trainFileName));
+		MDocument _Y = MDocument.newDocument(FileUtils.readFromText(testFileName));
 
-		// {
-		// for (MSentence s : trainData) {
-		// boolean has_misc = false;
-		// for (String ne : s.getTokenStrings(3)) {
-		// if (ne.contains("MISC")) {
-		// has_misc = true;
-		// }
-		// }
-		//
-		// if(has_misc) {
-		// System.out.println(s.toString());
-		// System.out.println();
-		// }
-		// }
-		// }
-
-		transformBIOtoBIOSE(trainData);
-		transformBIOtoBIOSE(testData);
+		transformBIOtoBIOSE(_X);
+		transformBIOtoBIOSE(_Y);
 
 		Indexer<String> labelIdxer = Generics.newIndexer();
 
 		DenseTensor X = new DenseTensor();
 		DenseMatrix Y = new DenseMatrix();
 
-		X.ensureCapacity(trainData.size());
-		Y.ensureCapacity(trainData.size());
+		X.ensureCapacity(_X.size());
+		Y.ensureCapacity(_X.size());
 
 		DenseTensor Xt = new DenseTensor();
 		DenseMatrix Yt = new DenseMatrix();
 
-		Xt.ensureCapacity(trainData.size());
-		Xt.ensureCapacity(trainData.size());
+		Xt.ensureCapacity(_X.size());
+		Xt.ensureCapacity(_X.size());
 
 		boolean read_ext = false;
 
 		String extFileName = "../../data/ml_data/ner_ext.ser";
 
-		NERFeatureExtractor ext = getNERFeatureExtractor(read_ext ? extFileName : null, trainData);
+		NERFeatureExtractor ext = getNERFeatureExtractor(read_ext ? extFileName : null, _X);
 
 		{
 			MDocument d = new MDocument();
-			d.addAll(trainData);
-			d.addAll(testData);
+			d.addAll(_X);
+			d.addAll(_Y);
 
 			d = d.toPaddedDocument();
 
-			ext.extract(d.subDocument(0, trainData.size()));
+			ext.extract(d.subDocument(0, _X.size()));
 			ext.setIsTraining(false);
 
-			ext.extract(d.subDocument(trainData.size(), d.size()));
+			ext.extract(d.subDocument(_X.size(), d.size()));
 
 			Set<String> labels = Generics.newTreeSet();
 
@@ -676,7 +661,7 @@ public class Apps {
 					Ym.add(j, labelIdxer.getIndex(t.getString(3)));
 				}
 
-				if (i < trainData.size()) {
+				if (i < _X.size()) {
 					X.add(Xm);
 					Y.add(Ym);
 				} else {
@@ -756,19 +741,19 @@ public class Apps {
 			// nn.add(new EmbeddingLayer(E, true));
 			// }
 
-			MultiEmbeddingLayer l = null;
+			// nn.add(new CharConvNetLayer(10, 5, 50, ext.getFeatureIndexer().size()));
 
+			ConcatenationLayer l1 = null;
+			NeuralNet cnn = null;
 			{
 				Indexer<String> featIdxer = ext.getFeatureIndexer();
 				List<Indexer<String>> valIdxers = ext.getValueIndexers();
 
-				DenseTensor W = new DenseTensor();
-				W.ensureCapacity(valIdxers.size());
+				int feat_size = featIdxer.size();
 
-				int[][] sizes = new int[featIdxer.size()][2];
-				boolean[] learn_embs = new boolean[featIdxer.size()];
+				List<Layer> ls = Generics.newArrayList();
 
-				for (int i = 0; i < featIdxer.size(); i++) {
+				for (int i = 0; i < feat_size; i++) {
 					String feat = featIdxer.getObject(i);
 					Indexer<String> valIdxer = valIdxers.get(i);
 					int emb_size = feat_emb_size;
@@ -781,18 +766,35 @@ public class Apps {
 						emb_size = feat_emb_size;
 					}
 
-					sizes[i][0] = valIdxer.size();
-					sizes[i][1] = emb_size;
-					learn_embs[i] = true;
+					if (feat.equals("ch")) {
+						cnn = new NeuralNet();
+						cnn.add(new EmbeddingLayer(valIdxer.size(), emb_size, true, 0));
+						cnn.add(new ConvNetLayer(emb_size, 3, 25));
+					} else {
+						EmbeddingLayer ll = new EmbeddingLayer(valIdxer.size(), emb_size, true, i);
+						ll.setOutputWordIndexes(false);
+						ls.add(ll);
+					}
+
 				}
 
-				l = new MultiEmbeddingLayer(sizes, learn_embs);
+				l1 = new ConcatenationLayer(ls);
+
+				nn.add(l1);
+
+				if (cnn != null) {
+					List<NeuralNet> nns = Generics.newArrayList();
+					nns.add(cnn);
+
+					nn.add(new NNConcatenationLayer(nns));
+				}
+
 			}
 
 			// DiscreteFeatureEmbeddingLayer l = new
 			// DiscreteFeatureEmbeddingLayer(ext.getFeatureValueIndexer().size(),
 			// ext.getFeatureIndexer().size(), feat_emb_size, word_emb_size, true);
-			nn.add(l);
+
 			nn.add(new DropoutLayer());
 
 			// nn.add(new ConvolutionalLayer(l.getOutputSize(), 3, 50));
@@ -802,7 +804,7 @@ public class Apps {
 
 			// nn.add(new RnnLayer(l.getOutputSize(), l1_size, bptt_size, new ReLU()));
 			// nn.add(new LstmLayer(l.getOutputSize(), l1_size, bptt_size));
-			nn.add(new BidirectionalRecurrentLayer(Type.LSTM, l.getOutputSize(), l1_size, k1, k2, new ReLU()));
+			nn.add(new BidirectionalRecurrentLayer(Type.LSTM, l1.getOutputSize(), l1_size, k1, k2, new ReLU()));
 			// nn.add(new BatchNormalizationLayer(l1_size));
 			// nn.add(new LayerNormalization(l1_size));
 			// nn.add(new DropoutLayer());
@@ -816,7 +818,7 @@ public class Apps {
 
 		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, nnp);
 
-		int max_iters = 10;
+		int max_iters = 30;
 		boolean use_batches = true;
 
 		if (use_batches) {
@@ -924,7 +926,7 @@ public class Apps {
 			N.add(label);
 		}
 
-		IntegerMatrix T = DataSplitter.splitGroups(M, new int[] { 4000, 1500 });
+		IntegerMatrix T = DataSplitter.splitGroupsByLabels(M, new int[] { 4000, 1500 });
 
 		DenseTensor X = new DenseTensor();
 		DenseMatrix Y = new DenseMatrix();
@@ -974,7 +976,7 @@ public class Apps {
 			int num_filters = 100;
 			int[] window_sizes = new int[] { 3, 4, 5 };
 
-			nn.add(new EmbeddingLayer(vocab_size, emb_size, true));
+			nn.add(new EmbeddingLayer(vocab_size, emb_size, true, 0));
 
 			nn.add(new MultiWindowConvolutionalLayer(emb_size, window_sizes, num_filters));
 			// nn.add(new ConvolutionalLayer(emb_size, window_sizes[0], num_filters));

@@ -30,14 +30,6 @@ public class VectorChecker {
 		}
 	}
 
-	public boolean isFinite(DenseVector a) {
-		return ArrayChecker.isFinite(a.values());
-	}
-
-	public boolean isFinite(DenseMatrix a) {
-		return ArrayChecker.isFinite(a.values());
-	}
-
 	public static boolean isProductable(Matrix a, Vector b) {
 		return a.colSize() == b.size() ? true : false;
 	}
@@ -64,6 +56,34 @@ public class VectorChecker {
 
 	public static boolean isSparse(Vector a) {
 		return a instanceof SparseVector;
+	}
+
+	public boolean isFinite(DenseMatrix a) {
+		return ArrayChecker.isFinite(a.values());
+	}
+
+	public boolean isFinite(DenseVector a) {
+		return ArrayChecker.isFinite(a.values());
+	}
+
+	public static boolean isValid(DenseVector a) {
+		return ArrayChecker.isValid(a.values());
+	}
+
+	public static boolean isValidIndex(DenseVector a, int i) {
+		return ArrayChecker.isValidIndex(a.values(), i);
+	}
+
+	public static boolean isValidIndex(DenseMatrix a, int i, int j) {
+		return ArrayChecker.isValidIndex(a.values(), i, j);
+	}
+
+	public static boolean isValidProbs(DenseVector a) {
+		return ArrayChecker.isValidProbs(a.values());
+	}
+
+	public static boolean isZeroVector(DenseVector a) {
+		return ArrayChecker.isZeroVector(a.values());
 	}
 
 }

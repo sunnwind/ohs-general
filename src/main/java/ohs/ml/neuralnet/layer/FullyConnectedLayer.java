@@ -3,13 +3,16 @@ package ohs.ml.neuralnet.layer;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
+import ohs.math.ArrayChecker;
 import ohs.math.ArrayMath;
+import ohs.math.VectorChecker;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
 import ohs.ml.neuralnet.com.ParameterInitializer;
+import scala.Predef.ArrayCharSequence;
 
 /**
  * 

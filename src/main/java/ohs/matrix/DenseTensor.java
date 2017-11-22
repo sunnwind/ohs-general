@@ -79,16 +79,6 @@ public class DenseTensor extends ArrayList<DenseMatrix> {
 		}
 	}
 
-	public DenseTensor copy(boolean shallow_copy) {
-		DenseTensor ret = new DenseTensor();
-		ret.ensureCapacity(size());
-		for (int i = 0; i < size(); i++) {
-			ret.add(get(i).copy(shallow_copy));
-		}
-		ret.unwrapValues();
-		return ret;
-	}
-
 	public void add(int i, int j, double value) {
 		get(i).get(j).add(value);
 	}
@@ -99,6 +89,16 @@ public class DenseTensor extends ArrayList<DenseMatrix> {
 			bytes += a.byteSize().getBytes();
 		}
 		return new ByteSize(bytes);
+	}
+
+	public DenseTensor copy(boolean shallow_copy) {
+		DenseTensor ret = new DenseTensor();
+		ret.ensureCapacity(size());
+		for (int i = 0; i < size(); i++) {
+			ret.add(get(i).copy(shallow_copy));
+		}
+		ret.unwrapValues();
+		return ret;
 	}
 
 	public int indexAt(int loc) {

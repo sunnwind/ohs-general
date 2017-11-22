@@ -194,11 +194,11 @@ public class NeuralNet extends ArrayList<Layer> {
 				}
 			}
 
-			if (W != null) {
+			if (W != null && W.size() > 0) {
 				ret.addAll(W);
 			}
 
-			if (!no_bias && B != null) {
+			if (!no_bias && B != null && B.size() > 0) {
 				ret.addAll(B);
 			}
 		}

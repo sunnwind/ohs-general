@@ -368,6 +368,14 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 		size = elementData.length;
 	}
 
+	public IntegerArray(double[] elementData) {
+		this.vals = new int[elementData.length];
+		for (int i = 0; i < elementData.length; i++) {
+			vals[i] = (int) elementData[i];
+		}
+		size = elementData.length;
+	}
+
 	public IntegerArray(IntegerArray a) {
 		this();
 		addAll(a);
@@ -1031,8 +1039,6 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 		vals[index] = element;
 		return oldValue;
 	}
-	
-	
 
 	/**
 	 * Returns the number of elements in this list.

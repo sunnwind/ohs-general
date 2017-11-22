@@ -21,28 +21,42 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 	/**
 	 * @param args
 	 */
-	public static void main(String[] args) throws Exception {
-		double[][] a = { { 0, 1 }, { 2, 3 } };
-
-		DenseMatrix m = new DenseMatrix(a);
-
-		System.out.println(m.toString());
-		System.out.println();
-	}
+	// public static void main(String[] args) throws Exception {
+	// double[][] a = { { 0, 1 }, { 2, 3 } };
+	//
+	// DenseMatrix m = new DenseMatrix(a);
+	//
+	// System.out.println(m.toString());
+	// System.out.println();
+	// }
 
 	private double[][] vals;
 
 	public DenseMatrix() {
-
+		id = cnt;
+		cnt++;
 	}
 
-	public DenseMatrix(DenseVector[] rows) {
-		ensureCapacity(rows.length);
-		for (DenseVector row : rows) {
-			add(row);
-		}
-		unwrapValues();
+	private String name = null;
+
+	public static long cnt = 0;
+
+	private long id;
+
+	public void setName(String name) {
+		this.name = name;
 	}
+
+	// public DenseMatrix(DenseVector[] rows) {
+	// ensureCapacity(rows.length);
+	//
+	// for (DenseVector row : rows) {
+	// add(row);
+	// }
+	// unwrapValues();
+	// id = cnt;
+	// cnt++;
+	// }
 
 	public DenseMatrix(double[][] vals) {
 		ensureCapacity(vals.length);
@@ -51,6 +65,9 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 			add(new DenseVector(vals[i]));
 		}
 		this.vals = vals;
+
+		id = cnt;
+		cnt++;
 	}
 
 	public DenseMatrix(int size) {
@@ -79,6 +96,8 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 			add((DenseVector) rows[i]);
 		}
 		unwrapValues();
+		id = cnt;
+		cnt++;
 	}
 
 	@Override
@@ -146,9 +165,10 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 	public String info() {
 		StringBuffer sb = new StringBuffer();
 		sb.append("[DenseMatrix Info]\n");
-		sb.append(String.format("rows:\t[%d]\n", rowSize()));
-		sb.append(String.format("cols:\t[%d]\n", colSize()));
-		sb.append(String.format("size:\t[%d]\n", sizeOfEntries()));
+		sb.append(String.format("cnt:\t%d\n", id));
+		sb.append(String.format("rows:\t%d\n", rowSize()));
+		sb.append(String.format("cols:\t%d\n", colSize()));
+		sb.append(String.format("size:\t%d\n", sizeOfEntries()));
 		sb.append(String.format("mem:\t%s", byteSize().toString()));
 		return sb.toString();
 	}
@@ -291,7 +311,8 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 
 		this.vals = vals;
 		for (int i = 0; i < vals.length; i++) {
-			add(new DenseVector(vals[i]));
+			DenseVector v = new DenseVector(vals[i]);
+			add(v);
 		}
 	}
 

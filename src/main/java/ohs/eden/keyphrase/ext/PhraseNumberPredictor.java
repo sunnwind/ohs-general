@@ -117,7 +117,7 @@ public class PhraseNumberPredictor {
 		int test_size = 1000;
 
 		{
-			IntegerMatrix G = DataSplitter.group(YD);
+			IntegerMatrix G = DataSplitter.groupByLabels(YD);
 
 			for (int i = 0; i < G.size(); i++) {
 				IntegerArray locs = G.get(i);

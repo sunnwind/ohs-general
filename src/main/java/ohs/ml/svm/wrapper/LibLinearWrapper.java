@@ -17,6 +17,8 @@ import ohs.math.VectorUtils;
 import ohs.matrix.DenseVector;
 import ohs.matrix.SparseMatrix;
 import ohs.matrix.SparseVector;
+import ohs.ml.eval.Performance;
+import ohs.ml.eval.PerformanceEvaluator;
 import ohs.types.generic.Counter;
 import ohs.types.generic.Indexer;
 import ohs.types.number.IntegerArray;
@@ -55,50 +57,34 @@ public class LibLinearWrapper implements Serializable {
 
 	private Model model;
 
-	private Indexer<String> labelIndexer;
+	private Indexer<String> labelIdxer;
 
-	private Indexer<String> featIndexer;
+	private Indexer<String> featIdxer;
 
 	public LibLinearWrapper() {
 
 	}
 
-	public LibLinearWrapper(Model model, Indexer<String> labelIndexer, Indexer<String> featIndexer) {
+	public LibLinearWrapper(Model model, Indexer<String> labelIdxer, Indexer<String> featIdxer) {
 		this.model = model;
-		this.labelIndexer = labelIndexer;
-		this.featIndexer = featIndexer;
+		this.labelIdxer = labelIdxer;
+		this.featIdxer = featIdxer;
 	}
 
-	public String evalute(SparseMatrix X, IntegerArray Y) {
-		SparseVector correct = new SparseVector(ArrayUtils.copy(model.getLabels()));
-		correct.sortIndexes();
-
-		SparseVector anss = correct.copy();
-		SparseVector preds = correct.copy();
-
-		for (int i = 0; i < X.size(); i++) {
-			SparseVector x = X.get(i);
-			SparseVector scores = score(x);
-			int pred = scores.argMax();
-			int ans = Y.get(i);
-
-			if (pred == ans) {
-				correct.add(ans, 1);
-			}
-
-			anss.add(ans, 1);
-			preds.add(pred, 1);
+	public Performance evalute(SparseMatrix X, DenseVector Y) {
+		DenseVector Yh = new DenseVector(Y.size());
+		for (int i = 0; i < X.rowSize(); i++) {
+			Yh.add(i, score(X.row(i)).argMax());
 		}
-
-		return TopicEval.evalute(null, anss, preds, correct);
+		return new PerformanceEvaluator().evalute(Y, Yh, labelIdxer);
 	}
 
 	public Indexer<String> getFeatureIndexer() {
-		return featIndexer;
+		return featIdxer;
 	}
 
 	public Indexer<String> getLabelIndexer() {
-		return labelIndexer;
+		return labelIdxer;
 	}
 
 	public Model getModel() {
@@ -108,8 +94,8 @@ public class LibLinearWrapper implements Serializable {
 	public void read(String fileName) throws Exception {
 		System.out.printf("read at [%s]\n", fileName);
 		BufferedReader br = FileUtils.openBufferedReader(fileName);
-		labelIndexer = FileUtils.readStringIndexerFromText(br);
-		featIndexer = FileUtils.readStringIndexerFromText(br);
+		labelIdxer = FileUtils.readStringIndexerFromText(br);
+		featIdxer = FileUtils.readStringIndexerFromText(br);
 		model = Linear.loadModel(br);
 		br.close();
 
@@ -124,18 +110,16 @@ public class LibLinearWrapper implements Serializable {
 	}
 
 	public Counter<String> score(Counter<String> x) {
-		SparseVector sv = VectorUtils.toSparseVector(x, featIndexer, false);
+		SparseVector sv = VectorUtils.toSparseVector(x, featIdxer, false);
 		VectorMath.unitVector(sv);
 
-		return VectorUtils.toCounter(score(sv), labelIndexer);
+		return VectorUtils.toCounter(score(sv), labelIdxer);
 	}
 
 	public SparseMatrix score(SparseMatrix X) {
-		List<SparseVector> ret = new ArrayList<SparseVector>();
+		List<SparseVector> ret = new ArrayList<SparseVector>(X.rowSize());
 		for (int i = 0; i < X.size(); i++) {
-			SparseVector x = X.get(i);
-			SparseVector scores = score(x);
-			ret.add(scores);
+			ret.add(score(X.get(i)));
 		}
 		return new SparseMatrix(ret);
 	}
@@ -155,8 +139,8 @@ public class LibLinearWrapper implements Serializable {
 	public void write(String fileName) throws Exception {
 		System.out.printf("write at [%s].\n", fileName);
 		BufferedWriter bw = FileUtils.openBufferedWriter(fileName);
-		FileUtils.writeStringIndexerAsText(bw, labelIndexer);
-		FileUtils.writeStringIndexerAsText(bw, featIndexer);
+		FileUtils.writeStringIndexerAsText(bw, labelIdxer);
+		FileUtils.writeStringIndexerAsText(bw, featIdxer);
 		model.save(bw);
 		bw.close();
 	}

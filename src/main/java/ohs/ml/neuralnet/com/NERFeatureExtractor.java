@@ -32,7 +32,6 @@ public class NERFeatureExtractor {
 
 	public NERFeatureExtractor() {
 		int idx = featIdxer.getIndex("word");
-
 		valIdxerMap.put(idx, Generics.newIndexer());
 		Indexer<String> wordIdxer = valIdxerMap.get(idx);
 		wordIdxer.add(SYM.UNK.getText());
@@ -48,6 +47,14 @@ public class NERFeatureExtractor {
 		featValIdxer.getIndex(String.format("%s=%s", feat, "allcaps"));
 		featValIdxer.getIndex(String.format("%s=%s", feat, "initcap"));
 		featValIdxer.getIndex(String.format("%s=%s", feat, "hascap"));
+	}
+
+	public void addCharacterFeatures() {
+		String feat = "ch";
+		int idx = featIdxer.getIndex(feat);
+		valIdxerMap.put(idx, Generics.newIndexer());
+		Indexer<String> valIdxer = valIdxerMap.get(idx);
+		valIdxer.add(String.format("%s=%s", feat, "unk"));
 	}
 
 	public void addDigitFeatures() {
@@ -225,9 +232,18 @@ public class NERFeatureExtractor {
 	}
 
 	private void extractTokenFeatures(MToken t) {
-		DenseVector F = new DenseVector(featIdxer.size());
 		String word = t.getString(0);
 		String shape = getShape(word);
+
+		DenseVector F = new DenseVector(0);
+
+		{
+			int size = featIdxer.size();
+			if (featIdxer.contains("ch")) {
+				size += word.length();
+			}
+			F = new DenseVector(size);
+		}
 
 		for (int feat_idx = 0; feat_idx < featIdxer.size(); feat_idx++) {
 			String feat = featIdxer.getObject(feat_idx);
@@ -369,6 +385,13 @@ public class NERFeatureExtractor {
 				}
 
 				F.set(feat_idx, val_idx);
+			} else if (feat.equals("ch")) {
+				for (int i = 0; i < word.length(); i++) {
+					String ch = word.charAt(i) + "";
+					String val = String.format("%s=%s", feat, ch);
+					int val_idx = is_training ? valIdxer.getIndex(val) : valIdxer.indexOf(val, 0);
+					F.add(featIdxer.size() - 1 + i, val_idx);
+				}
 			}
 		}
 

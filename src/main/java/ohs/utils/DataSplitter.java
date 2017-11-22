@@ -2,39 +2,39 @@ package ohs.utils;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import ohs.math.ArrayMath;
 import ohs.math.ArrayUtils;
 import ohs.types.generic.ListMap;
 import ohs.types.number.IntegerArray;
 import ohs.types.number.IntegerMatrix;
-import ohs.utils.Generics.ListType;
 
 public class DataSplitter {
 
 	/**
-	 * @param y
+	 * @param Y
 	 *            data labels
 	 * @return labels x data locations
 	 */
-	public static IntegerMatrix group(IntegerArray y) {
-		ListMap<Integer, Integer> lm = Generics.newListMap(ListType.LINKED_LIST);
-		for (int i = 0; i < y.size(); i++) {
-			lm.put(y.get(i), i);
+	public static IntegerMatrix groupByLabels(IntegerArray Y) {
+		ListMap<Integer, Integer> lm = Generics.newListMap();
+		for (int i = 0; i < Y.size(); i++) {
+			lm.put(Y.get(i), i);
 		}
 
-		IntegerArray ls = new IntegerArray(lm.keySet());
-		ls.sort(false);
+		IntegerArray L = new IntegerArray(lm.keySet());
+		L.sort(false);
 
-		IntegerMatrix ret = new IntegerMatrix(ls.size());
+		IntegerMatrix ret = new IntegerMatrix(L.size());
 
-		for (int l : ls) {
+		for (int l : L) {
 			ret.add(new IntegerArray(lm.get(l)));
 		}
 		return ret;
 	}
 
-	public static IntegerMatrix split(IntegerArray x, double[] props) {
+	public static IntegerMatrix split(IntegerArray L, double[] props) {
 		double[] foldMaxIdxs = ArrayUtils.copy(props);
 		int fold_size = foldMaxIdxs.length;
 
@@ -44,7 +44,7 @@ public class DataSplitter {
 		ret.ensureCapacity(fold_size);
 
 		for (int i = 0; i < fold_size; i++) {
-			foldMaxIdxs[i] = Math.rint(foldMaxIdxs[i] * x.size());
+			foldMaxIdxs[i] = Math.rint(foldMaxIdxs[i] * L.size());
 			int size = (int) foldMaxIdxs[i];
 			if (i > 0) {
 				size -= foldMaxIdxs[i - 1];
@@ -52,24 +52,24 @@ public class DataSplitter {
 			ret.add(new IntegerArray(size));
 		}
 
-		for (int i = 0, j = 0; i < x.size(); i++) {
+		for (int i = 0, j = 0; i < L.size(); i++) {
 			int max_idx = (int) foldMaxIdxs[j];
 			if (i >= max_idx && j < fold_size) {
 				j++;
 			}
-			ret.get(j).add(x.get(i));
+			ret.get(j).add(L.get(i));
 		}
 		return ret;
 	}
 
-	public static IntegerMatrix split(IntegerArray x, int group_size) {
-		int group_cnt = (x.size() / group_size) + 1;
+	public static IntegerMatrix split(IntegerArray L, int size) {
+		int group_cnt = (L.size() / size) + 1;
 		IntegerMatrix ret = new IntegerMatrix(group_cnt);
 		int i = 0;
-		while (i < x.size()) {
-			int j = Math.min(x.size(), i + group_size);
-			ret.add(x.subArray(i, j));
-			i += group_size;
+		while (i < L.size()) {
+			int j = Math.min(L.size(), i + size);
+			ret.add(L.subArray(i, j));
+			i += size;
 		}
 		return ret;
 	}
@@ -101,7 +101,15 @@ public class DataSplitter {
 		return splitInOrder(ids, ArrayMath.array(num_folds, 1f / num_folds));
 	}
 
-	public static IntegerMatrix splitGroups(IntegerMatrix G, double[] props) {
+	public static IntegerMatrix splitGroupsByLabels(IntegerArray L, double[] probs) {
+		return splitGroupsByLabels(groupByLabels(L), probs);
+	}
+
+	public static IntegerMatrix splitGroupsByLabels(IntegerArray L, int[] cnts) {
+		return splitGroupsByLabels(groupByLabels(L), cnts);
+	}
+
+	public static IntegerMatrix splitGroupsByLabels(IntegerMatrix G, double[] props) {
 		int label_size = G.size();
 		int fold_size = props.length;
 
@@ -127,7 +135,7 @@ public class DataSplitter {
 	 *            data size for each label
 	 * @return
 	 */
-	public static IntegerMatrix splitGroups(IntegerMatrix G, int[] cnts) {
+	public static IntegerMatrix splitGroupsByLabels(IntegerMatrix G, int[] cnts) {
 		int label_size = G.size();
 		int fold_size = cnts.length;
 

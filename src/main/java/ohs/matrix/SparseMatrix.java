@@ -625,6 +625,7 @@ public class SparseMatrix extends ArrayList<SparseVector> implements Matrix {
 		System.out.printf("write at [%s].\n", fileName);
 		ObjectOutputStream oos = FileUtils.openObjectOutputStream(fileName);
 		writeObject(oos);
+		oos.flush();
 		oos.close();
 	}
 

@@ -197,7 +197,7 @@ public class PhraseClassification {
 		int train_size = 1000;
 		int test_size = 20000;
 
-		IntegerMatrix D = DataSplitter.splitGroups(I, new int[] { train_size, test_size });
+		IntegerMatrix D = DataSplitter.splitGroupsByLabels(I, new int[] { train_size, test_size });
 
 		CounterMap<String, String> cm = Generics.newCounterMap();
 
@@ -628,7 +628,7 @@ public class PhraseClassification {
 		int test_size = 2000;
 
 		{
-			IntegerMatrix G = DataSplitter.group(YD);
+			IntegerMatrix G = DataSplitter.groupByLabels(YD);
 
 			for (int i = 0; i < G.size(); i++) {
 				IntegerArray locs = G.get(i);
@@ -691,7 +691,7 @@ public class PhraseClassification {
 
 		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param);
 
-		IntegerMatrix G = DataSplitter.group(Y);
+		IntegerMatrix G = DataSplitter.groupByLabels(Y);
 		IntegerArray negLocs = G.get(0);
 		IntegerArray posLocs = G.get(1);
 
@@ -738,7 +738,7 @@ public class PhraseClassification {
 		int test_size = 2000;
 
 		{
-			IntegerMatrix G = DataSplitter.group(YD);
+			IntegerMatrix G = DataSplitter.groupByLabels(YD);
 
 			for (int i = 0; i < G.size(); i++) {
 				IntegerArray locs = G.get(i);
@@ -801,7 +801,7 @@ public class PhraseClassification {
 
 		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param);
 
-		IntegerMatrix G = DataSplitter.group(Y);
+		IntegerMatrix G = DataSplitter.groupByLabels(Y);
 		IntegerArray negLocs = G.get(0);
 		IntegerArray posLocs = G.get(1);
 

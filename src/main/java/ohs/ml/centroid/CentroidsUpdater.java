@@ -22,7 +22,8 @@ public class CentroidsUpdater {
 		// double min_margin = 0.9;
 		// System.out.printf("train size:\t%d\n", trainData.size());
 		//
-		// CentroidsUpdater updater = new CentroidsUpdater(classifier, trainData, null, true, useBatchMode, max_iter, min_margin,
+		// CentroidsUpdater updater = new CentroidsUpdater(classifier, trainData, null,
+		// true, useBatchMode, max_iter, min_margin,
 		// learning_rate,
 		// update_weight);
 		// updater.update();
@@ -36,7 +37,7 @@ public class CentroidsUpdater {
 
 	private double update_weight;
 
-	private double learning_rate;
+	private double learn_rate;
 
 	private double min_margin;
 
@@ -48,7 +49,7 @@ public class CentroidsUpdater {
 
 	private List<SparseVector> testData;
 
-	private List<Integer> trainLabels;
+	private List<Integer> Y;
 
 	private List<Integer> testLabels;
 
@@ -66,13 +67,13 @@ public class CentroidsUpdater {
 		this.classifier = classifier;
 		this.trainData = trainData;
 		this.testData = testData;
-		this.trainLabels = trainLabels;
+		this.Y = trainLabels;
 		this.testLabels = testLabels;
 		this.printLog = printLog;
 		this.useBatchMode = useBatchMode;
 		this.max_iter = maxIter;
 		this.update_weight = weight;
-		this.learning_rate = learningRate;
+		this.learn_rate = learningRate;
 		this.min_margin = minMargin;
 
 		docLocs = new ArrayList<Integer>();
@@ -114,24 +115,24 @@ public class CentroidsUpdater {
 				}
 
 				SparseVector query = trainData.get(docLoc);
-				int answer = trainLabels.get(docLoc);
+				int y = Y.get(docLoc);
 
-				SparseVector predScores = classifier.score(query);
-				double answer_score = predScores.value(answer);
+				SparseVector Yh = classifier.score(query).toSparseVector();
+				double yh_score = Yh.value(y);
 
-				predScores.sortValues();
-				if (predScores.indexAt(0) == answer) {
+				Yh.sortValues();
+				if (Yh.indexAt(0) == y) {
 					num_correct++;
 				}
 
-				int[] updateTypes = new int[predScores.size()];
+				int[] updateTypes = new int[Yh.size()];
 
-				for (int j = 0; j < predScores.size(); j++) {
-					int pred = predScores.indexAt(j);
+				for (int j = 0; j < Yh.size(); j++) {
+					int pred = Yh.indexAt(j);
 
 					if (j == 0) {
-						if (pred == answer) {
-							double diff = Math.abs(answer_score - predScores.valueAt(1));
+						if (pred == y) {
+							double diff = Math.abs(yh_score - Yh.valueAt(1));
 							if (diff < min_margin) {
 								updateTypes[j] = 2;
 								updateTypes[++j] = -2;
@@ -141,7 +142,7 @@ public class CentroidsUpdater {
 							updateTypes[j] = -1;
 						}
 					} else {
-						if (pred == answer) {
+						if (pred == y) {
 							updateTypes[j] = 1;
 						}
 					}
@@ -154,7 +155,7 @@ public class CentroidsUpdater {
 						continue;
 					}
 
-					int pred = predScores.indexAt(j);
+					int pred = Yh.indexAt(j);
 					SparseVector centroid = classifier.getCentroid(pred);
 
 					for (int k = 0; k < query.size(); k++) {
@@ -169,16 +170,16 @@ public class CentroidsUpdater {
 
 						if (updateType > 0) {
 							if (updateType == 1) {
-								weight_to_update = learning_rate * weight_at_query;
+								weight_to_update = learn_rate * weight_at_query;
 							} else {
-								weight_to_update = learning_rate * update_weight * weight_at_query;
+								weight_to_update = learn_rate * update_weight * weight_at_query;
 							}
 						} else {
 							double weight_at_centroid = centroid.valueAt(loc);
 							if (updateType == -1) {
-								weight_to_update = -learning_rate * weight_at_query;
+								weight_to_update = -learn_rate * weight_at_query;
 							} else {
-								weight_to_update = -learning_rate * update_weight * weight_at_query;
+								weight_to_update = -learn_rate * update_weight * weight_at_query;
 							}
 							if (weight_at_centroid + weight_to_update <= 0) {
 								weight_to_update = 0;

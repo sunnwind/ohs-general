@@ -9,10 +9,7 @@ import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
 import ohs.ml.neuralnet.com.ParameterInitializer;
-import ohs.ml.neuralnet.com.TaskType;
 import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerMatrix;
-import ohs.types.number.IntegerTensor;
 import ohs.utils.Generics;
 
 public class EmbeddingLayer extends Layer {
@@ -39,17 +36,20 @@ public class EmbeddingLayer extends Layer {
 
 	private boolean output_feature_indexes = true;
 
+	private int target_idx = 0;
+
 	public EmbeddingLayer() {
 
 	}
 
-	public EmbeddingLayer(DenseMatrix W, boolean learn_embedding) {
+	public EmbeddingLayer(DenseMatrix W, boolean learn_embedding, int target_idx) {
 		this.W = W;
 		this.learn_embedding = learn_embedding;
+		this.target_idx = target_idx;
 	}
 
-	public EmbeddingLayer(int vocab_size, int emb_size, boolean learn_embedding) {
-		this(new DenseMatrix(vocab_size, emb_size), learn_embedding);
+	public EmbeddingLayer(int vocab_size, int emb_size, boolean learn_embedding, int target_idx) {
+		this(new DenseMatrix(vocab_size, emb_size), learn_embedding, target_idx);
 	}
 
 	@Override
@@ -65,7 +65,7 @@ public class EmbeddingLayer extends Layer {
 				for (int j = 0; j < Xm.rowSize(); j++) {
 					DenseVector xm = Xm.row(j);
 					DenseVector dym = dYm.row(j);
-					int w = (int) xm.value(0);
+					int w = (int) xm.value(target_idx);
 
 					VectorMath.add(dym, dW.row(w));
 				}
@@ -75,7 +75,7 @@ public class EmbeddingLayer extends Layer {
 	}
 
 	public EmbeddingLayer copy() {
-		EmbeddingLayer l = new EmbeddingLayer(W, learn_embedding);
+		EmbeddingLayer l = new EmbeddingLayer(W, learn_embedding, target_idx);
 		l.setOutputWordIndexes(output_feature_indexes);
 		return l;
 	}
@@ -92,14 +92,14 @@ public class EmbeddingLayer extends Layer {
 		int start = 0;
 
 		for (DenseMatrix Xm : X) {
-			IntegerArray ws = new IntegerArray(Xm.rowSize());
+			IntegerArray targets = new IntegerArray(Xm.rowSize());
 
 			for (DenseVector xm : Xm) {
-				int w = (int) xm.value(0);
-				ws.add(w);
+				int w = (int) xm.value(target_idx);
+				targets.add(w);
 			}
 
-			DenseMatrix Wm = W.subMatrix(ws.values());
+			DenseMatrix Wm = W.subMatrix(targets.values());
 			DenseMatrix Ym = tmp_Y.subMatrix(start, Xm.rowSize());
 			start += Xm.rowSize();
 
@@ -128,6 +128,10 @@ public class EmbeddingLayer extends Layer {
 		return W.colSize();
 	}
 
+	public int getTargetIndex() {
+		return target_idx;
+	}
+
 	@Override
 	public DenseTensor getW() {
 		DenseTensor ret = new DenseTensor();
@@ -152,6 +156,7 @@ public class EmbeddingLayer extends Layer {
 	@Override
 	public void readObject(ObjectInputStream ois) throws Exception {
 		learn_embedding = ois.readBoolean();
+		target_idx = ois.readInt();
 		W = new DenseMatrix(ois);
 	}
 
@@ -166,6 +171,7 @@ public class EmbeddingLayer extends Layer {
 	@Override
 	public void writeObject(ObjectOutputStream oos) throws Exception {
 		oos.writeBoolean(learn_embedding);
+		oos.writeInt(target_idx);
 		W.writeObject(oos);
 	}
 

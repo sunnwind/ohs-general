@@ -219,7 +219,15 @@ public class ConvolutionalLayer extends Layer {
 			 * Zm = feature maps x filter size (concatenated embeddings)
 			 */
 
-			DenseMatrix Zm = tmp_Z.subMatrix(start, num_feat_maps);
+			DenseMatrix Zm = null;
+			
+			try {
+				Zm = tmp_Z.subMatrix(start, num_feat_maps);
+			} catch (Exception e) {
+				Zm = tmp_Z.subMatrix(start, num_feat_maps);
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			Zm.setAll(0);
 
 			/*

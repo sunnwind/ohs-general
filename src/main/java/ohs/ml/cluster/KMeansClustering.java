@@ -205,7 +205,7 @@ public class KMeansClustering extends Clustering {
 
 			ArrayUtils.copy(Y.values(), Yo.values());
 
-			IntegerMatrix G = DataSplitter.group(Y);
+			IntegerMatrix G = DataSplitter.groupByLabels(Y);
 			Counter<Integer> dataCnts = Generics.newCounter();
 
 			DenseVector nc = new DenseVector(feat_size);

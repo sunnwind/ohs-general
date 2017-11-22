@@ -48,6 +48,7 @@ public class MSentence extends ArrayList<MToken> {
 				ret.add(t);
 			} else {
 				System.err.printf("missing values found:\t%s\n", ps.toString());
+				System.exit(0);
 			}
 		}
 		return ret;

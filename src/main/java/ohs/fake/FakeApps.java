@@ -152,7 +152,7 @@ public class FakeApps {
 
 		// IntegerMatrix T = DataSplitter.splitGroups(M, new int[] { 150, 25 });
 
-		IntegerMatrix T = DataSplitter.splitGroups(M, new double[] { 0.9, 0.1 });
+		IntegerMatrix T = DataSplitter.splitGroupsByLabels(M, new double[] { 0.9, 0.1 });
 
 		DenseTensor X = new DenseTensor();
 		DenseMatrix Y = new DenseMatrix();
@@ -289,7 +289,7 @@ public class FakeApps {
 				L.add((int) Ym.value(0));
 			}
 
-			IntegerMatrix G = DataSplitter.group(L);
+			IntegerMatrix G = DataSplitter.groupByLabels(L);
 			IntegerArray nonFakeLocs = G.get(0);
 			IntegerArray fakeLocs = G.get(1);
 
@@ -444,7 +444,7 @@ public class FakeApps {
 
 		// IntegerMatrix T = DataSplitter.splitGroups(M, new int[] { 150, 25 });
 
-		IntegerMatrix T = DataSplitter.splitGroups(M, new double[] { 0.9, 0.1 });
+		IntegerMatrix T = DataSplitter.splitGroupsByLabels(M, new double[] { 0.9, 0.1 });
 
 		DenseTensor X = new DenseTensor();
 		DenseMatrix Y = new DenseMatrix();
@@ -580,7 +580,7 @@ public class FakeApps {
 				L.add((int) Ym.value(0));
 			}
 
-			IntegerMatrix G = DataSplitter.group(L);
+			IntegerMatrix G = DataSplitter.groupByLabels(L);
 			IntegerArray nonFakeLocs = G.get(0);
 			IntegerArray fakeLocs = G.get(1);
 

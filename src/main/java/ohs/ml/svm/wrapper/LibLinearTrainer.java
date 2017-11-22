@@ -88,7 +88,7 @@ public class LibLinearTrainer {
 	}
 
 	public LibLinearWrapper train(Indexer<String> labelIdxer, Indexer<String> featIdxer, SparseMatrix X,
-			IntegerArray Y) {
+			DenseVector Y) {
 		Problem prob = new Problem();
 		prob.l = X.size();
 		prob.n = featIdxer.size() + 1;
@@ -103,7 +103,7 @@ public class LibLinearTrainer {
 		for (int i = 0; i < X.size(); i++) {
 			SparseVector x = X.get(i);
 			prob.x[i] = LibLinearWrapper.toFeatures(x, prob.n, prob.bias);
-			prob.y[i] = Y.get(i);
+			prob.y[i] = Y.value(i);
 		}
 
 		Model model = Linear.train(prob, param);

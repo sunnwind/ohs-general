@@ -84,6 +84,20 @@ public class ArrayChecker {
 		return true;
 	}
 
+	public static boolean isApproxEqual(int[] a, int[] b, int tolerance) {
+		if (!isEqualSize(a, b)) {
+			throw new IllegalArgumentException();
+		}
+		int diff_sum = 0;
+		for (int i = 0; i < a.length; i++) {
+			diff_sum += Math.abs(a[i] - b[i]);
+			if (diff_sum >= tolerance) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	public static boolean isApproxEqual(int[][] a, int[][] b, int tolerance) {
 		if (!isEqualSize(a, b)) {
 			throw new IllegalArgumentException();
@@ -95,20 +109,6 @@ public class ArrayChecker {
 				if (diff_sum >= tolerance) {
 					return false;
 				}
-			}
-		}
-		return true;
-	}
-
-	public static boolean isApproxEqual(int[] a, int[] b, int tolerance) {
-		if (!isEqualSize(a, b)) {
-			throw new IllegalArgumentException();
-		}
-		int diff_sum = 0;
-		for (int i = 0; i < a.length; i++) {
-			diff_sum += Math.abs(a[i] - b[i]);
-			if (diff_sum >= tolerance) {
-				return false;
 			}
 		}
 		return true;
@@ -209,44 +209,6 @@ public class ArrayChecker {
 		return true;
 	}
 
-	public static boolean isSorted(boolean ascending, double[] a) {
-		if (a.length > 1) {
-			double prev = a[0];
-
-			for (int i = 1; i < a.length; i++) {
-				if (ascending) {
-					if (prev > a[i]) {
-						return false;
-					}
-				} else {
-					if (prev < a[i]) {
-						return false;
-					}
-				}
-			}
-		}
-		return true;
-	}
-
-	public static boolean isSorted(boolean ascending, int[] a) {
-		if (a.length > 1) {
-			int prev = a[0];
-
-			for (int i = 1; i < a.length; i++) {
-				if (ascending) {
-					if (prev > a[i]) {
-						return false;
-					}
-				} else {
-					if (prev < a[i]) {
-						return false;
-					}
-				}
-			}
-		}
-		return true;
-	}
-
 	public static boolean isEqual(double[][] a, double[][] b) {
 		if (!isEqualSize(a, b)) {
 			throw new IllegalArgumentException();
@@ -258,18 +220,6 @@ public class ArrayChecker {
 			}
 		}
 
-		return true;
-	}
-
-	public static boolean isEqual(int[][] a, int[][] b) {
-		if (!isEqualSize(a, b)) {
-			throw new IllegalArgumentException();
-		}
-		for (int i = 0; i < a.length; i++) {
-			if (!isEqual(a[i], b[i])) {
-				return false;
-			}
-		}
 		return true;
 	}
 
@@ -285,12 +235,47 @@ public class ArrayChecker {
 		return true;
 	}
 
+	public static boolean isEqual(int[][] a, int[][] b) {
+		if (!isEqualSize(a, b)) {
+			throw new IllegalArgumentException();
+		}
+		for (int i = 0; i < a.length; i++) {
+			if (!isEqual(a[i], b[i])) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	public static boolean isEqualColumnSize(double[][] a, double[] b) {
 		int aRowDim = a.length;
 		int aColDim = a[0].length;
 		int bDim = b.length;
 
 		if (aColDim == bDim) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	public static boolean isEqualRowSize(double[][] a, double[] b) {
+		int aRowDim = a.length;
+		int aColDim = a[0].length;
+		int bDim = b.length;
+
+		if (aRowDim == bDim) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	public static boolean isEqualRowSize(double[][] a, double[][] b) {
+		int aRowDim = a.length;
+		int bRowDim = b.length;
+
+		if (aRowDim == bRowDim) {
 			return true;
 		} else {
 			return false;
@@ -318,6 +303,18 @@ public class ArrayChecker {
 		}
 	}
 
+	public static boolean isEqualSize(double[][] a, double[][] b, double[][] c) {
+		return isEqualSize(a, b) && isEqualSize(b, c) ? true : false;
+	}
+
+	public static boolean isEqualSize(int[] a, double[] b) {
+		return a.length == b.length ? true : false;
+	}
+
+	public static boolean isEqualSize(int[] a, int[] b) {
+		return a.length == b.length ? true : false;
+	}
+
 	public static boolean isEqualSize(int[][] a, int[][] b) {
 		int aRowDim = a.length;
 		int aColDim = a[0].length;
@@ -331,39 +328,30 @@ public class ArrayChecker {
 		}
 	}
 
-	public static boolean isEqualSize(double[][] a, double[][] b, double[][] c) {
-		return isEqualSize(a, b) && isEqualSize(b, c) ? true : false;
-	}
-
-	public static boolean isEqualSize(int[] a, double[] b) {
-		return a.length == b.length ? true : false;
-	}
-
-	public static boolean isEqualSize(int[] a, int[] b) {
-		return a.length == b.length ? true : false;
-	}
-
-	public static boolean isEqualRowSize(double[][] a, double[] b) {
-		int aRowDim = a.length;
-		int aColDim = a[0].length;
-		int bDim = b.length;
-
-		if (aRowDim == bDim) {
-			return true;
-		} else {
-			return false;
+	public static boolean isFinite(double[] a) {
+		for (int i = 0; i < a.length; i++) {
+			if (!Double.isFinite(a[i])) {
+				// throw new
+				// IllegalArgumentException(String.format("a[%d]=%f\n", i,
+				// a[i]));
+				return false;
+			}
 		}
+		return true;
 	}
 
-	public static boolean isEqualRowSize(double[][] a, double[][] b) {
-		int aRowDim = a.length;
-		int bRowDim = b.length;
-
-		if (aRowDim == bRowDim) {
-			return true;
-		} else {
-			return false;
+	public static boolean isFinite(double[][] a) {
+		for (int i = 0; i < a.length; i++) {
+			for (int j = 0; j < a[i].length; j++) {
+				if (!Double.isFinite(a[i][j])) {
+					// throw new
+					// IllegalArgumentException(String.format("a[%d][%d]=%f\n",
+					// i, j, a[i][j]));
+					return false;
+				}
+			}
 		}
+		return true;
 	}
 
 	/**
@@ -905,9 +893,60 @@ public class ArrayChecker {
 
 	}
 
+	public static boolean isSorted(boolean ascending, double[] a) {
+		if (a.length > 1) {
+			double prev = a[0];
+
+			for (int i = 1; i < a.length; i++) {
+				if (ascending) {
+					if (prev > a[i]) {
+						return false;
+					}
+				} else {
+					if (prev < a[i]) {
+						return false;
+					}
+				}
+			}
+		}
+		return true;
+	}
+
+	public static boolean isSorted(boolean ascending, int[] a) {
+		if (a.length > 1) {
+			int prev = a[0];
+
+			for (int i = 1; i < a.length; i++) {
+				if (ascending) {
+					if (prev > a[i]) {
+						return false;
+					}
+				} else {
+					if (prev < a[i]) {
+						return false;
+					}
+				}
+			}
+		}
+		return true;
+	}
+
 	public static boolean isSquare(double[][] a) {
 		return (a.length == a[0].length ? true : false);
 	}
+
+	// public boolean isDiagonalizable() {
+	// if (isTriangular()) {
+	// Vector eigenValues = eigenValues().diagonalVector();
+	// Set<Double> eigenValueSet = new HashSet<Double>();
+	// for (int i = 0; i < eigenValues.size(); i++) {
+	// eigenValueSet.add(eigenValues.get(i));
+	// }
+	// return (eigenValues.dim() == eigenValueSet.size() ? true : false);
+	// } else {
+	// return isLinearlyIndependent();
+	// }
+	// }
 
 	/**
 	 * 
@@ -948,36 +987,6 @@ public class ArrayChecker {
 		return true;
 	}
 
-	public static boolean isTransposable(double[][] a, double[][] b) {
-		int a_rows = a.length;
-		int a_cols = a[0].length;
-		int b_rows = b.length;
-		int b_cols = b[0].length;
-
-		if (a_rows == b_cols && a_cols == b_rows) {
-			return true;
-		} else {
-			return false;
-		}
-	}
-
-	// public boolean isDiagonalizable() {
-	// if (isTriangular()) {
-	// Vector eigenValues = eigenValues().diagonalVector();
-	// Set<Double> eigenValueSet = new HashSet<Double>();
-	// for (int i = 0; i < eigenValues.size(); i++) {
-	// eigenValueSet.add(eigenValues.get(i));
-	// }
-	// return (eigenValues.dim() == eigenValueSet.size() ? true : false);
-	// } else {
-	// return isLinearlyIndependent();
-	// }
-	// }
-
-	public static boolean isTriangular(double[][] a) {
-		return (isUpperTriangular(a) || isLowerTriangular(a) ? true : false);
-	}
-
 	// public boolean isInNullSpace(Vector B) {
 	// if (colDim() != B.dim()) {
 	// throw new IllegalArgumentException("Invalid Matrix isNullSpace");
@@ -1005,6 +1014,23 @@ public class ArrayChecker {
 	// return isLinearlyIndependent();
 	// }
 
+	public static boolean isTransposable(double[][] a, double[][] b) {
+		int a_rows = a.length;
+		int a_cols = a[0].length;
+		int b_rows = b.length;
+		int b_cols = b[0].length;
+
+		if (a_rows == b_cols && a_cols == b_rows) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	public static boolean isTriangular(double[][] a) {
+		return (isUpperTriangular(a) || isLowerTriangular(a) ? true : false);
+	}
+
 	public static boolean isUpperTriangular(double[][] a) {
 		if (isSquare(a)) {
 			int rowDim = a.length;
@@ -1022,6 +1048,19 @@ public class ArrayChecker {
 		}
 
 		return true;
+	}
+
+	public static boolean isValid(double[] a) {
+		boolean ret = true;
+
+		for (int i = 0; i < a.length; i++) {
+			if (!Double.isFinite(a[i])) {
+				ret = false;
+				break;
+			}
+		}
+
+		return ret;
 	}
 
 	public static boolean isValidIndex(double[] a, int i) {
@@ -1084,45 +1123,6 @@ public class ArrayChecker {
 			return false;
 		}
 
-		return true;
-	}
-
-	public static boolean isValid(double[] a) {
-		boolean ret = true;
-
-		for (int i = 0; i < a.length; i++) {
-			if (!Double.isFinite(a[i])) {
-				ret = false;
-				break;
-			}
-		}
-
-		return ret;
-	}
-
-	public static boolean isFinite(double[] a) {
-		for (int i = 0; i < a.length; i++) {
-			if (!Double.isFinite(a[i])) {
-				// throw new
-				// IllegalArgumentException(String.format("a[%d]=%f\n", i,
-				// a[i]));
-				return false;
-			}
-		}
-		return true;
-	}
-
-	public static boolean isFinite(double[][] a) {
-		for (int i = 0; i < a.length; i++) {
-			for (int j = 0; j < a[i].length; j++) {
-				if (!Double.isFinite(a[i][j])) {
-					// throw new
-					// IllegalArgumentException(String.format("a[%d][%d]=%f\n",
-					// i, j, a[i][j]));
-					return false;
-				}
-			}
-		}
 		return true;
 	}
 
