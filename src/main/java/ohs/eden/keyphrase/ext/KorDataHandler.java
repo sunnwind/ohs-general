@@ -30,9 +30,9 @@ import ohs.ml.glove.GloveModel;
 import ohs.ml.glove.GloveParam;
 import ohs.ml.glove.GloveTrainer;
 import ohs.ml.neuralnet.com.BatchUtils;
-import ohs.nlp.ling.types.MDocument;
-import ohs.nlp.ling.types.MSentence;
-import ohs.nlp.ling.types.MToken;
+import ohs.nlp.ling.types.LDocument;
+import ohs.nlp.ling.types.LSentence;
+import ohs.nlp.ling.types.LToken;
 import ohs.types.generic.Counter;
 import ohs.types.generic.Vocab;
 import ohs.utils.Generics;
@@ -100,12 +100,12 @@ public class KorDataHandler {
 			String line = ins.get(i);
 			List<String> ps = StrUtils.split("\t", line);
 
-			MDocument d1 = MDocument.newDocument(ps.get(1));
-			MDocument d2 = MDocument.newDocument(ps.get(2));
+			LDocument d1 = LDocument.newDocument(ps.get(1));
+			LDocument d2 = LDocument.newDocument(ps.get(2));
 
 			List<String> kps = Generics.newArrayList();
 
-			for (MSentence s : d1) {
+			for (LSentence s : d1) {
 				List<String> ss = s.getTokenStrings(0);
 				String kp = StrUtils.join(" ", ss);
 				kps.add(kp);
@@ -113,7 +113,7 @@ public class KorDataHandler {
 
 			List<String> ss = Generics.newArrayList();
 
-			for (MSentence s : d2) {
+			for (LSentence s : d2) {
 				List<String> t = s.getTokenStrings(0);
 				String k = StrUtils.join(" ", t);
 				k = k.replace(" . ", " .\n ");
@@ -241,11 +241,11 @@ public class KorDataHandler {
 		Counter<String> c2 = Generics.newCounter();
 
 		for (String phrs : c1.keySet()) {
-			MDocument md = MDocument.newDocument(phrs);
+			LDocument md = LDocument.newDocument(phrs);
 
-			for (MSentence ms : md) {
+			for (LSentence ms : md) {
 				StringBuffer sb = new StringBuffer();
-				for (MToken t : ms) {
+				for (LToken t : ms) {
 					sb.append(t.get(1) + " ");
 				}
 				String p = sb.toString().trim();
@@ -267,9 +267,9 @@ public class KorDataHandler {
 			}
 
 			String cn = ps.get(0);
-			MDocument md = MDocument.newDocument(ps.get(1));
+			LDocument md = LDocument.newDocument(ps.get(1));
 
-			for (MSentence ms : md) {
+			for (LSentence ms : md) {
 				c.incrementCount(ms.toString().replace("\n", "<nl>"), 1);
 			}
 		}
@@ -372,7 +372,7 @@ public class KorDataHandler {
 				}
 
 				String s = sb.toString().trim();
-				MDocument md = MDocument.newDocument(s);
+				LDocument md = LDocument.newDocument(s);
 				res.add(String.format("%s\t%s", cn, md.toString().replace("\n", "<nl>")));
 
 				inputStream.close();
@@ -484,12 +484,12 @@ public class KorDataHandler {
 				List<String> korKwds = StrUtils.split(StrUtils.LINE_REP, korKwdStr);
 				List<String> engKwds = StrUtils.split(StrUtils.LINE_REP, engKwdStr);
 
-				MDocument kps = new MDocument();
-				MDocument content = new MDocument();
+				LDocument kps = new LDocument();
+				LDocument content = new LDocument();
 
 				if (korKwds.size() > 0) {
 					for (String kwd : korKwds) {
-						MSentence kp = new MSentence();
+						LSentence kp = new LSentence();
 						for (LNode node : Analyzer.parseJava(kwd)) {
 							Morpheme m = node.morpheme();
 							WrappedArray<String> fs = m.feature();
@@ -497,7 +497,7 @@ public class KorDataHandler {
 							String word = m.surface();
 							String pos = vals[0];
 
-							MToken t = new MToken(2);
+							LToken t = new LToken(2);
 							t.add(word);
 							t.add(pos);
 							kp.add(t);
@@ -511,7 +511,7 @@ public class KorDataHandler {
 						if (str.length() == 0) {
 							continue;
 						}
-						MSentence sent = new MSentence();
+						LSentence sent = new LSentence();
 						for (LNode node : Analyzer.parseJava(str)) {
 							Morpheme m = node.morpheme();
 							WrappedArray<String> fs = m.feature();
@@ -519,7 +519,7 @@ public class KorDataHandler {
 							String word = m.surface();
 							String pos = vals[0];
 
-							MToken t = new MToken(2);
+							LToken t = new LToken(2);
 							t.add(word);
 							t.add(pos);
 							sent.add(t);

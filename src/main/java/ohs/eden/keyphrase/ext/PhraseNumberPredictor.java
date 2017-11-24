@@ -24,9 +24,9 @@ import ohs.matrix.SparseMatrix;
 import ohs.matrix.SparseVector;
 import ohs.ml.svm.wrapper.LibLinearTrainer;
 import ohs.ml.svm.wrapper.LibLinearWrapper;
-import ohs.nlp.ling.types.MDocument;
-import ohs.nlp.ling.types.MSentence;
-import ohs.nlp.ling.types.MToken;
+import ohs.nlp.ling.types.LDocument;
+import ohs.nlp.ling.types.LSentence;
+import ohs.nlp.ling.types.LToken;
 import ohs.types.generic.Counter;
 import ohs.types.generic.Indexer;
 import ohs.types.generic.Vocab;
@@ -44,13 +44,13 @@ import ohs.utils.Generics;
  */
 public class PhraseNumberPredictor {
 
-	public static SparseVector extractFeatures(Vocab featIdxer, MDocument doc) {
+	public static SparseVector extractFeatures(Vocab featIdxer, LDocument doc) {
 
 		Counter<Integer> c1 = Generics.newCounter();
 		Counter<Integer> c2 = Generics.newCounter();
 
-		for (MSentence ms : doc) {
-			for (MToken t : ms) {
+		for (LSentence ms : doc) {
+			for (LToken t : ms) {
 				String word = t.getString(0);
 				String pos = t.getString(1);
 
@@ -168,7 +168,7 @@ public class PhraseNumberPredictor {
 		trainer.getParameter().setSolverType(SolverType.L2R_L2LOSS_SVR);
 		trainer.getParameter().setEps(0.001);
 
-		LibLinearWrapper llw = trainer.train(labelIdxer, featIdxer, X, Y);
+		LibLinearWrapper llw = trainer.train(labelIdxer, featIdxer, X, new DenseVector(Y.values()));
 
 		Model model = llw.getModel();
 		Linear.saveModel(new File(KPPath.KP_DIR + "ext/model_num_pred.txt"), model);
@@ -206,11 +206,11 @@ public class PhraseNumberPredictor {
 
 		for (String line : ins) {
 			String[] ps = line.split("\t");
-			MDocument md = MDocument.newDocument(ps[2]);
+			LDocument md = LDocument.newDocument(ps[2]);
 
-			for (MSentence ms : md) {
+			for (LSentence ms : md) {
 				Counter<String> c = Generics.newCounter();
-				for (MToken t : ms) {
+				for (LToken t : ms) {
 					String word = t.getString(0);
 					String pos = t.getString(1);
 					c.incrementCount(word, 1);
@@ -266,8 +266,8 @@ public class PhraseNumberPredictor {
 
 		for (String line : ins) {
 			String[] ps = line.split("\t");
-			MDocument md1 = MDocument.newDocument(ps[1]);
-			MDocument md2 = MDocument.newDocument(ps[2]);
+			LDocument md1 = LDocument.newDocument(ps[1]);
+			LDocument md2 = LDocument.newDocument(ps[2]);
 			SparseVector x = extractFeatures(featIdxer, md2);
 
 			if (x.size() == 0) {
@@ -356,7 +356,7 @@ public class PhraseNumberPredictor {
 		return ret;
 	}
 
-	public int predict(MDocument doc) {
+	public int predict(LDocument doc) {
 		SparseVector x = extractFeatures(vocab, doc);
 		return predict(x);
 	}

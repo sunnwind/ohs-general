@@ -12,7 +12,7 @@ import ohs.io.ByteArray;
 import ohs.io.ByteArrayMatrix;
 import ohs.io.ByteBufferWrapper;
 import ohs.io.FileUtils;
-import ohs.nlp.ling.types.MDocument;
+import ohs.nlp.ling.types.LDocument;
 import ohs.types.number.IntegerArray;
 import ohs.types.number.LongArray;
 import ohs.utils.Generics;
@@ -94,7 +94,7 @@ public class RawDocumentCollectionCreator {
 				for (int i = 0; i < ps.length; i++) {
 
 					if (i == 4) {
-						MDocument d = MDocument.newDocument(ps[i]);
+						LDocument d = LDocument.newDocument(ps[i]);
 						//
 						// List<String> l = Generics.newArrayList(d.size());
 						//

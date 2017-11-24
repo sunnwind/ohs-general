@@ -23,10 +23,10 @@ import ohs.ir.weight.TermWeighting;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.SparseVector;
-import ohs.nlp.ling.types.MCollection;
-import ohs.nlp.ling.types.MDocument;
-import ohs.nlp.ling.types.MSentence;
-import ohs.nlp.ling.types.MToken;
+import ohs.nlp.ling.types.LDocumentCollection;
+import ohs.nlp.ling.types.LDocument;
+import ohs.nlp.ling.types.LSentence;
+import ohs.nlp.ling.types.LToken;
 import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
 import ohs.types.generic.Indexer;
@@ -75,14 +75,14 @@ public class DataHandler {
 
 					content = content.replace(". ", ".\n\n");
 
-					MDocument doc = new MDocument();
+					LDocument doc = new LDocument();
 
 					for (String str : (title + "\n" + content).split("\n")) {
 						if (str.length() == 0) {
 							continue;
 						}
 
-						MSentence sent = new MSentence();
+						LSentence sent = new LSentence();
 
 						for (LNode node : Analyzer.parseJava(str)) {
 							Morpheme m = node.morpheme();
@@ -95,7 +95,7 @@ public class DataHandler {
 								continue;
 							}
 
-							MToken t = new MToken(2);
+							LToken t = new LToken(2);
 							t.add(word);
 							t.add(pos);
 							sent.add(t);
@@ -140,7 +140,7 @@ public class DataHandler {
 		idxer.add("word");
 		idxer.add("pos");
 
-		MToken.INDEXER = idxer;
+		LToken.INDEXER = idxer;
 	}
 
 	public static void main(String[] args) throws Exception {
@@ -151,10 +151,10 @@ public class DataHandler {
 		// dh.selectSubset1();
 		// dh.extractVocab();
 
-		// dh.formatM2Sentences();
+		dh.formatM2Sentences();
 		// dh.makeDicts();
 		// dh.makePersonDict();
-		dh.makeOrgaizationDict();
+		// dh.makeOrgaizationDict();
 		// dh.makeDicts();
 
 		System.out.println("process ends.");
@@ -246,8 +246,23 @@ public class DataHandler {
 
 		Counter<String> c = Generics.newCounter();
 
-		for (String name : FileUtils.readLinesFromText("../../data/dict/orgs.txt")) {
-			c.incrementCount(StrUtils.normalizeSpaces(name), 1);
+		{
+			List<String> ins = FileUtils.readLinesFromText("../../data/dict/기관 정보 데이터베이스 제공_교육_의료_기타_171116.txt");
+
+			for (String s : ins) {
+				String[] ps = s.split("\t");
+				String name = ps[1].trim();
+				if (name.length() == 0) {
+					continue;
+				}
+				if (name.startsWith("\"") && name.startsWith("\"")) {
+					name = name.substring(1, name.length() - 1);
+				}
+
+				if (name.length() > 0) {
+					c.incrementCount(name, 1);
+				}
+			}
 		}
 
 		{
@@ -256,19 +271,19 @@ public class DataHandler {
 			for (int i = 0; i < ins.size(); i++) {
 				String s = ins.get(i);
 				String[] ps = s.split("\t");
-				String kName = ps[0].trim();
+				String name = ps[0].trim();
 
-				kName = StrUtils.normalizeSpaces(kName);
+				name = StrUtils.normalizeSpaces(name);
 
-				if (kName.length() == 0) {
+				if (name.length() == 0) {
 					continue;
 				}
 
-				c.incrementCount(kName, 1);
+				c.incrementCount(name, 1);
 			}
 		}
 
-		FileUtils.writeStringCollectionAsText("../../data/dict/orgs2.txt", Generics.newTreeSet(c.keySet()));
+		FileUtils.writeStringCollectionAsText("../../data/dict/orgs.txt", Generics.newTreeSet(c.keySet()));
 	}
 
 	public void extractVocab() throws Exception {
@@ -304,11 +319,11 @@ public class DataHandler {
 				String content = ps.get(j++);
 				String url = ps.get(j++);
 
-				MDocument d = MDocument.newDocument(content);
+				LDocument d = LDocument.newDocument(content);
 
 				Counter<String> c = Generics.newCounter();
 
-				for (MToken t : d.getTokens()) {
+				for (LToken t : d.getTokens()) {
 					c.incrementCount(t.getString(0), 1);
 				}
 
@@ -340,17 +355,17 @@ public class DataHandler {
 	}
 
 	public void formatM2Sentences() throws Exception {
-		MCollection c = new MCollection();
+		LDocumentCollection c = new LDocumentCollection();
 
 		for (File file : FileUtils.getFilesUnder(FNPath.DATA_DIR + "data")) {
-			if (file.getName().startsWith("M2_train_pos")) {
+			if (file.getName().startsWith("M2_test_pos")) {
 				for (String line : FileUtils.readLinesFromText(file)) {
 					List<String> ps = StrUtils.split("\t", line);
 					ps = StrUtils.unwrap(ps);
 
 					String label = ps.get(1);
 					label = label.equals("0") ? "non-fake" : "fake";
-					MDocument d = MDocument.newDocument(ps.get(2));
+					LDocument d = LDocument.newDocument(ps.get(2));
 					d.getAttrMap().put("label", label);
 					d.getAttrMap().put("id", ps.get(0));
 
@@ -361,13 +376,13 @@ public class DataHandler {
 
 		StringBuffer sb = new StringBuffer();
 
-		for (MDocument d : c) {
+		for (LDocument d : c) {
 
 			sb.append(String.format("DOCID\t%s", d.getAttrMap().get("id")));
 			sb.append(String.format("\nLABEL\t%s", d.getAttrMap().get("label")));
 			List<String> l = Generics.newArrayList(d.size());
 
-			for (MSentence s : d) {
+			for (LSentence s : d) {
 				String p1 = StrUtils.join(" ", s.getTokenStrings(0));
 				String p2 = "O";
 				String[] ps = { p1, p2 };
@@ -379,7 +394,7 @@ public class DataHandler {
 			sb.append("\n\n");
 		}
 
-		FileUtils.writeAsText(FNPath.DATA_DIR + "M2_train_sents.txt", sb.toString().trim());
+		FileUtils.writeAsText(FNPath.DATA_DIR + "M2_test_sents.txt", sb.toString().trim());
 
 	}
 
@@ -400,14 +415,14 @@ public class DataHandler {
 			String s = title + "\n" + content.replace(StrUtils.LINE_REP, "\n");
 			s = s.trim();
 
-			MDocument md = MDocument.newDocument(s);
+			LDocument md = LDocument.newDocument(s);
 
 			CounterMap<String, Integer> cm = Generics.newCounterMap();
 			Indexer<String> wordIdxer = Generics.newIndexer();
 			List<String> l = Generics.newArrayList(md.size());
 
 			for (int j = 0; j < md.size(); j++) {
-				MSentence ms = md.get(j);
+				LSentence ms = md.get(j);
 
 				String type = "T";
 
@@ -419,7 +434,7 @@ public class DataHandler {
 
 				StringBuffer sb = new StringBuffer();
 
-				for (MToken t : ms) {
+				for (LToken t : ms) {
 					String word = t.getString(0);
 					String pos = t.getString(1);
 					sb.append(word + " ");
@@ -580,12 +595,12 @@ public class DataHandler {
 					body = sb.toString().trim();
 				}
 
-				MCollection data = new MCollection();
+				LDocumentCollection data = new LDocumentCollection();
 
 				String[] items = new String[] { title + "\n" + body, corTitle };
 
 				for (String item : items) {
-					MDocument d = new MDocument();
+					LDocument d = new LDocument();
 					for (String p : item.split("\n")) {
 						p = p.trim();
 
@@ -593,7 +608,7 @@ public class DataHandler {
 							continue;
 						}
 
-						MSentence s = new MSentence();
+						LSentence s = new LSentence();
 						for (LNode node : Analyzer.parseJava(p)) {
 							Morpheme m = node.morpheme();
 							WrappedArray<String> fs = m.feature();
@@ -601,7 +616,7 @@ public class DataHandler {
 							String word = m.surface();
 							String pos = vals[0];
 
-							MToken t = new MToken(2);
+							LToken t = new LToken(2);
 							t.add(word);
 							t.add(pos);
 							s.add(t);

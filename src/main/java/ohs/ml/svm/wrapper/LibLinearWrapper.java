@@ -11,6 +11,7 @@ import de.bwaldvogel.liblinear.FeatureNode;
 import de.bwaldvogel.liblinear.Linear;
 import de.bwaldvogel.liblinear.Model;
 import ohs.io.FileUtils;
+import ohs.ir.weight.TermWeighting;
 import ohs.math.ArrayUtils;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
@@ -112,7 +113,6 @@ public class LibLinearWrapper implements Serializable {
 	public Counter<String> score(Counter<String> x) {
 		SparseVector sv = VectorUtils.toSparseVector(x, featIdxer, false);
 		VectorMath.unitVector(sv);
-
 		return VectorUtils.toCounter(score(sv), labelIdxer);
 	}
 

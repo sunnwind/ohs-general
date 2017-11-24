@@ -20,9 +20,9 @@ import ohs.ml.glove.CooccurrenceCounter;
 import ohs.ml.glove.GloveModel;
 import ohs.ml.glove.GloveParam;
 import ohs.ml.glove.GloveTrainer;
-import ohs.nlp.ling.types.MDocument;
-import ohs.nlp.ling.types.MSentence;
-import ohs.nlp.ling.types.MToken;
+import ohs.nlp.ling.types.LDocument;
+import ohs.nlp.ling.types.LSentence;
+import ohs.nlp.ling.types.LToken;
 import ohs.types.common.StrPair;
 import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
@@ -233,7 +233,7 @@ public class DataHandler {
 						continue;
 					}
 
-					sb.append(String.format("%s%s%s", f, MToken.DELIM, s));
+					sb.append(String.format("%s%s%s", f, LToken.DELIM, s));
 					// sb.append(String.format("%s%s%s", f, "/", s));
 
 					if (k != l.size() - 1) {
@@ -394,10 +394,10 @@ public class DataHandler {
 
 				Counter<String> c = Generics.newCounter();
 
-				MDocument doc = null;
+				LDocument doc = null;
 				//
-				for (MSentence ts : doc) {
-					for (MToken t : ts) {
+				for (LSentence ts : doc) {
+					for (LToken t : ts) {
 						String word = t.getString(0);
 						String pos = t.getString(1);
 						if (pos.startsWith("N")) {
@@ -446,13 +446,13 @@ public class DataHandler {
 				List<String> korKwds = StrUtils.split(StrUtils.LINE_REP, korKwdStr);
 				List<String> engKwds = StrUtils.split(StrUtils.LINE_REP, engKwdStr);
 
-				MDocument kps = new MDocument();
-				MDocument title = new MDocument();
-				MDocument abs = new MDocument();
+				LDocument kps = new LDocument();
+				LDocument title = new LDocument();
+				LDocument abs = new LDocument();
 
 				if (korKwds.size() > 0) {
 					for (String kwd : korKwds) {
-						MSentence s = new MSentence();
+						LSentence s = new LSentence();
 						for (LNode node : Analyzer.parseJava(kwd)) {
 							Morpheme m = node.morpheme();
 							WrappedArray<String> fs = m.feature();
@@ -460,7 +460,7 @@ public class DataHandler {
 							String word = m.surface();
 							String pos = vals[0];
 
-							MToken t = new MToken();
+							LToken t = new LToken();
 							t.add(word);
 							t.add(pos);
 							s.add(t);
@@ -470,7 +470,7 @@ public class DataHandler {
 				}
 
 				if (korTitle.length() > 0) {
-					MSentence s = new MSentence();
+					LSentence s = new LSentence();
 					for (LNode node : Analyzer.parseJava(korTitle)) {
 						Morpheme m = node.morpheme();
 						WrappedArray<String> fs = m.feature();
@@ -478,7 +478,7 @@ public class DataHandler {
 						String word = m.surface();
 						String pos = vals[0];
 
-						MToken t = new MToken();
+						LToken t = new LToken();
 						t.add(word);
 						t.add(pos);
 						s.add(t);
@@ -487,7 +487,7 @@ public class DataHandler {
 				}
 
 				if (korAbs.length() > 0) {
-					MSentence s = new MSentence();
+					LSentence s = new LSentence();
 					korAbs = korAbs.replaceAll("(\\. )", ".\n");
 					
 					for (String str : korAbs.split("\n")) {
@@ -499,7 +499,7 @@ public class DataHandler {
 							String pos = vals[0];
 							// System.out.println(node);
 
-							MToken t = new MToken();
+							LToken t = new LToken();
 							t.add(word);
 							t.add(pos);
 							s.add(t);

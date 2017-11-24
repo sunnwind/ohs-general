@@ -63,7 +63,7 @@ public class NonlinearityLayer extends Layer {
 	}
 
 	@Override
-	public Layer copy() {
+	public NonlinearityLayer copy() {
 		return new NonlinearityLayer(non);
 	}
 

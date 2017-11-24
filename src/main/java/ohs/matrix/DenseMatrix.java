@@ -33,30 +33,7 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 	private double[][] vals;
 
 	public DenseMatrix() {
-		id = cnt;
-		cnt++;
 	}
-
-	private String name = null;
-
-	public static long cnt = 0;
-
-	private long id;
-
-	public void setName(String name) {
-		this.name = name;
-	}
-
-	// public DenseMatrix(DenseVector[] rows) {
-	// ensureCapacity(rows.length);
-	//
-	// for (DenseVector row : rows) {
-	// add(row);
-	// }
-	// unwrapValues();
-	// id = cnt;
-	// cnt++;
-	// }
 
 	public DenseMatrix(double[][] vals) {
 		ensureCapacity(vals.length);
@@ -65,9 +42,6 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 			add(new DenseVector(vals[i]));
 		}
 		this.vals = vals;
-
-		id = cnt;
-		cnt++;
 	}
 
 	public DenseMatrix(int size) {
@@ -96,8 +70,6 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 			add((DenseVector) rows[i]);
 		}
 		unwrapValues();
-		id = cnt;
-		cnt++;
 	}
 
 	@Override
@@ -127,6 +99,14 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 			bytes += row.byteSize().getBytes();
 		}
 		return new ByteSize(bytes);
+	}
+
+	private boolean checkRange(int i) {
+		boolean ret = true;
+		if (i < 0 || i >= rowSize()) {
+			ret = false;
+		}
+		return ret;
 	}
 
 	@Override
@@ -165,7 +145,6 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 	public String info() {
 		StringBuffer sb = new StringBuffer();
 		sb.append("[DenseMatrix Info]\n");
-		sb.append(String.format("cnt:\t%d\n", id));
 		sb.append(String.format("rows:\t%d\n", rowSize()));
 		sb.append(String.format("cols:\t%d\n", colSize()));
 		sb.append(String.format("size:\t%d\n", sizeOfEntries()));
@@ -466,14 +445,6 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 		ObjectOutputStream oos = FileUtils.openObjectOutputStream(fileName);
 		writeObject(oos);
 		oos.close();
-	}
-
-	private boolean checkRange(int i) {
-		boolean ret = true;
-		if (i < 0 || i >= rowSize()) {
-			ret = false;
-		}
-		return ret;
 	}
 
 }

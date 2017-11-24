@@ -6,10 +6,10 @@ import java.util.Map;
 
 import ohs.corpus.type.DocumentCollection;
 import ohs.math.ArrayMath;
-import ohs.nlp.ling.types.MCollection;
-import ohs.nlp.ling.types.MDocument;
-import ohs.nlp.ling.types.MSentence;
-import ohs.nlp.ling.types.MToken;
+import ohs.nlp.ling.types.LDocumentCollection;
+import ohs.nlp.ling.types.LDocument;
+import ohs.nlp.ling.types.LSentence;
+import ohs.nlp.ling.types.LToken;
 import ohs.types.common.IntPair;
 import ohs.types.generic.CounterMap;
 import ohs.types.generic.ListMap;
@@ -18,21 +18,21 @@ import ohs.utils.Generics;
 
 public class DataGenerator {
 
-	private MCollection data;
+	private LDocumentCollection C;
 
-	public DataGenerator(MCollection data) {
-		this.data = data;
+	public DataGenerator(LDocumentCollection C) {
+		this.C = C;
 	}
 
-	public MCollection generate() {
+	public LDocumentCollection generate() {
 
-		MCollection ret = new MCollection();
+		LDocumentCollection ret = new LDocumentCollection();
 
-		for (MDocument d : data) {
+		for (LDocument d : C) {
 
 			if (d.getAttrMap().get("cor_title") != null) {
-				MDocument d2 = MDocument.newDocument(d.toString());
-				d2.set(0, MDocument.newDocument(d.getAttrMap().get("cor_title")).get(0));
+				LDocument d2 = LDocument.newDocument(d.toString());
+				d2.set(0, LDocument.newDocument(d.getAttrMap().get("cor_title")).get(0));
 				d2.getAttrMap().put("label", "non-fake");
 				ret.add(d2);
 			}
@@ -44,9 +44,9 @@ public class DataGenerator {
 				CounterMap<String, String> cm2 = Generics.newCounterMap();
 
 				for (int i = 0; i < d.size(); i++) {
-					MSentence s = d.get(i);
+					LSentence s = d.get(i);
 
-					for (MToken t : s) {
+					for (LToken t : s) {
 						String w = t.getString(0);
 						String p = t.getString(1);
 
@@ -67,9 +67,9 @@ public class DataGenerator {
 
 				int sum = 0;
 				for (int i = 0; i < d.size(); i++) {
-					MSentence s = d.get(i);
+					LSentence s = d.get(i);
 					for (int j = 0; j < s.size(); j++) {
-						MToken t = s.get(j);
+						LToken t = s.get(j);
 						String w = t.getString(0);
 						String p = t.getString(1);
 
@@ -107,8 +107,8 @@ public class DataGenerator {
 						IntPair p1 = map.get(idx1);
 						IntPair p2 = map.get(idx2);
 
-						MToken t1 = d.get(p1.getFirst()).get(p1.getSecond());
-						MToken t2 = d.get(p2.getFirst()).get(p2.getSecond());
+						LToken t1 = d.get(p1.getFirst()).get(p1.getSecond());
+						LToken t2 = d.get(p2.getFirst()).get(p2.getSecond());
 
 						if (t1.getString(0).equals(t2.getString(0))) {
 							continue;
@@ -118,7 +118,7 @@ public class DataGenerator {
 						System.out.println(t2.toString());
 						System.out.println();
 
-						MDocument d2 = MDocument.newDocument(d.toString());
+						LDocument d2 = LDocument.newDocument(d.toString());
 						d2.get(p1.getFirst()).set(p1.getSecond(), t2);
 						d2.get(p2.getFirst()).set(p2.getSecond(), t1);
 						d2.getAttrMap().put("label", "fake");

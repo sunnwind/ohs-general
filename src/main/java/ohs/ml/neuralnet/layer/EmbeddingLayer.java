@@ -34,7 +34,7 @@ public class EmbeddingLayer extends Layer {
 
 	private DenseTensor Y;
 
-	private boolean output_feature_indexes = true;
+	private boolean output_feature_indexes = false;
 
 	private int target_idx = 0;
 

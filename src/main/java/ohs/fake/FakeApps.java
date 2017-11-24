@@ -3,13 +3,14 @@ package ohs.fake;
 import java.io.File;
 import java.text.DecimalFormat;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import ohs.corpus.type.DocumentCollection;
 import ohs.io.FileUtils;
 import ohs.io.RandomAccessDenseMatrix;
 import ohs.io.TextFileWriter;
 import ohs.ir.search.app.WordSearcher;
-import ohs.math.ArrayUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
@@ -18,17 +19,22 @@ import ohs.ml.neuralnet.com.NeuralNetParams;
 import ohs.ml.neuralnet.com.NeuralNetTrainer;
 import ohs.ml.neuralnet.com.ParameterUpdater.OptimizerType;
 import ohs.ml.neuralnet.com.TaskType;
+import ohs.ml.neuralnet.layer.ConcatenationLayer;
 import ohs.ml.neuralnet.layer.DropoutLayer;
 import ohs.ml.neuralnet.layer.EmbeddingLayer;
 import ohs.ml.neuralnet.layer.FullyConnectedLayer;
+import ohs.ml.neuralnet.layer.Layer;
 import ohs.ml.neuralnet.layer.MultiWindowConvolutionalLayer;
 import ohs.ml.neuralnet.layer.MultiWindowMaxPoolingLayer;
 import ohs.ml.neuralnet.layer.NonlinearityLayer;
 import ohs.ml.neuralnet.layer.SoftmaxLayer;
 import ohs.ml.neuralnet.nonlinearity.ReLU;
-import ohs.nlp.ling.types.MCollection;
-import ohs.nlp.ling.types.MDocument;
-import ohs.nlp.ling.types.MToken;
+import ohs.ml.svm.wrapper.LibLinearWrapper;
+import ohs.nlp.ling.types.LDocument;
+import ohs.nlp.ling.types.LDocumentCollection;
+import ohs.nlp.ling.types.LSentence;
+import ohs.nlp.ling.types.LToken;
+import ohs.types.generic.Counter;
 import ohs.types.generic.Indexer;
 import ohs.types.generic.Vocab;
 import ohs.types.generic.Vocab.SYM;
@@ -47,6 +53,69 @@ public class FakeApps {
 		// runM2();
 
 		System.out.println("process ends.");
+	}
+
+	public static void expandData() {
+
+	}
+
+	public static NewsFeatureExtractor getFeatureExtractor(String extFileName, LDocumentCollection X) throws Exception {
+		NewsFeatureExtractor ext = new NewsFeatureExtractor();
+
+		if (extFileName != null) {
+			ext.readObject(extFileName);
+		} else {
+			String dirName = "../../data/fake_news/dict/";
+
+			Set<String> pers = FileUtils.readStringHashSetFromText(dirName + "pers.txt");
+			Set<String> orgs = FileUtils.readStringHashSetFromText(dirName + "orgs.txt");
+
+			Set<String> poss = Generics.newHashSet(X.getTokenStrings(1));
+			Set<String> prefixes = Generics.newHashSet();
+
+			LibLinearWrapper llw = new LibLinearWrapper();
+			llw.read("../../data/fake_news/topic_model.txt");
+
+			{
+				Counter<String> c = Generics.newCounter();
+				for (String word : X.getTokenStrings(0)) {
+					if (word.length() > 3) {
+						String p = word.substring(0, 3);
+						p = p.toLowerCase();
+
+						Set<Integer> l = Generics.newHashSet();
+
+						for (int i = 0; i < p.length(); i++) {
+							if (!Character.isDigit(p.charAt(i))) {
+								l.add(i);
+							}
+						}
+
+						if (l.size() == p.length()) {
+							c.incrementCount(p, 1);
+						}
+					}
+				}
+				c.pruneKeysBelowThreshold(5);
+				prefixes = c.keySet();
+			}
+
+			ext.addPosFeatures(poss);
+			ext.addCapitalFeatures();
+			// ext.addPuctuationFeatures();
+			// ext.addShapeOneFeatures();
+			// ext.addShapeTwoFeatures();
+			// ext.addShapeThreeFeatures();
+			// ext.addSuffixFeatures(suffixes);
+			// ext.addPrefixFeatures(prefixes);
+			ext.addGazeteerFeatures("per", pers);
+			ext.addGazeteerFeatures("org", orgs);
+			ext.addTitleWordFeatures();
+			ext.addTopicFeatures(llw);
+
+		}
+
+		return ext;
 	}
 
 	public static void runM1() throws Exception {
@@ -80,13 +149,13 @@ public class FakeApps {
 			Indexer<String> l = Generics.newIndexer();
 			l.add("word");
 			l.add("pos");
-			MToken.INDEXER = l;
+			LToken.INDEXER = l;
 		}
 
 		String[] fileNames = { "M1_train_pos.txt", "M2_train_pos.txt", "M1_test_pos" };
 
-		MCollection train = new MCollection();
-		MCollection test = new MCollection();
+		LDocumentCollection C1 = new LDocumentCollection();
+		LDocumentCollection C2 = new LDocumentCollection();
 
 		for (File file : FileUtils.getFilesUnder(FNPath.DATA_DIR + "data")) {
 			if (file.getName().startsWith("M1_train_pos")) {
@@ -96,13 +165,13 @@ public class FakeApps {
 
 					String label = ps.get(1);
 					label = label.equals("0") ? "non-fake" : "fake";
-					MDocument d = MDocument.newDocument(ps.get(2));
+					LDocument d = LDocument.newDocument(ps.get(2));
 					d.getAttrMap().put("label", label);
 
 					if (ps.get(3).length() > 0) {
 						d.getAttrMap().put("cor_title", ps.get(3));
 					}
-					train.add(d);
+					C1.add(d);
 				}
 			} else if (file.getName().startsWith("M2_train_pos")) {
 				for (String line : FileUtils.readLinesFromText(file)) {
@@ -110,39 +179,69 @@ public class FakeApps {
 					ps = StrUtils.unwrap(ps);
 
 					String label = "non-fake";
-					MDocument d = MDocument.newDocument(ps.get(2));
+					LDocument d = LDocument.newDocument(ps.get(2));
 					d.getAttrMap().put("label", label);
 
-					train.add(d);
+					C1.add(d);
 				}
 			} else if (file.getName().startsWith("M1_test_pos")) {
 				for (String line : FileUtils.readLinesFromText(file)) {
 					List<String> ps = StrUtils.split("\t", line);
 					ps = StrUtils.unwrap(ps);
-					MDocument d = MDocument.newDocument(ps.get(2));
+					LDocument d = LDocument.newDocument(ps.get(2));
 					d.getAttrMap().put("id", ps.get(0));
-					test.add(d);
+					C2.add(d);
 				}
 			}
 		}
+
+		C1.doPadding();
+		C2.doPadding();
+
+		// LibLinearWrapper llw = new LibLinearWrapper();
+		// llw.read("../../data/fake_news/topic_model.txt");
+		//
+		// for (MDocument d : _X) {
+		//
+		// {
+		// Counter<String> c = llw.score(d.getCounter(0));
+		//
+		// System.out.println(StrUtils.join(" ", d.getTokenStrings(0)));
+		// System.out.println(c.toString());
+		// }
+		//
+		// for (MSentence s : d) {
+		// Counter<String> c = llw.score(s.getCounter(0));
+		// System.out.println(StrUtils.join(" ", s.getTokenStrings(0)));
+		// System.out.println(c.toString());
+		// System.out.println();
+		// }
+		//
+		// System.out.println();
+		// }
+
+		NewsFeatureExtractor ext = getFeatureExtractor(null, C1);
+
+		ext.extract(C1);
+
+		ext.setIsTraining(false);
+
+		ext.extract(C2);
 
 		// DataGenerator dg = new DataGenerator(train);
 		// MCollection extData = dg.generate();
 		//
 		// train.addAll(extData);
 
-		System.out.printf("train size:\t%d\n", train.size());
-		System.out.printf("test size:\t%d\n", test.size());
+		System.out.printf("train size:\t%d\n", C1.size());
+		System.out.printf("test size:\t%d\n", C2.size());
 		System.out.println();
-
-		Vocab vocab = new Vocab();
-		vocab.add(SYM.UNK.getText());
 
 		IntegerMatrix M = new IntegerMatrix();
 		IntegerArray N = new IntegerArray();
 
-		for (int i = 0; i < train.size(); i++) {
-			MDocument d = train.get(i);
+		for (int i = 0; i < C1.size(); i++) {
+			LDocument d = C1.get(i);
 			String label = d.getAttrMap().get("label");
 			int l = labelIdxer.indexOf(label);
 
@@ -162,25 +261,20 @@ public class FakeApps {
 
 		DenseTensor Xt = new DenseTensor();
 
-		for (int loc : T.get(0)) {
-			MDocument d = train.get(loc);
-			for (String word : d.getTokens().getTokenStrings(0)) {
-				vocab.add(word);
-			}
-		}
-
 		for (int i = 0; i < T.size(); i++) {
 			IntegerArray L = T.get(i);
 			for (int loc : L) {
-				MDocument d = train.get(loc);
+				LDocument d = C1.get(loc);
 				String label = d.getAttrMap().get("label");
 				int lb = labelIdxer.indexOf(label);
 
-				List<Integer> ws = vocab.indexesOf(d.getTokens().getTokenStrings(0), 0);
+				LSentence s = d.getTokens();
 
-				DenseMatrix Xm = new DenseMatrix(ws.size(), 1);
-				for (int j = 0; j < ws.size(); j++) {
-					Xm.add(j, 0, ws.get(j));
+				DenseMatrix Xm = new DenseMatrix();
+				Xm.ensureCapacity(s.size());
+
+				for (LToken t : s) {
+					Xm.add(t.getFeatureVector());
 				}
 
 				if (i == 0) {
@@ -193,15 +287,16 @@ public class FakeApps {
 			}
 		}
 
-		for (MDocument d : test) {
+		for (LDocument d : C2) {
 			String label = d.getAttrMap().get("label");
 
-			List<Integer> ws = vocab.indexesOf(d.getTokens().getTokenStrings(0), 0);
+			LSentence s = d.getTokens();
 
-			DenseMatrix Xm = new DenseMatrix(ws.size(), 1);
+			DenseMatrix Xm = new DenseMatrix();
+			Xm.ensureCapacity(s.size());
 
-			for (int j = 0; j < ws.size(); j++) {
-				Xm.add(j, 0, ws.get(j));
+			for (LToken t : s) {
+				Xm.add(t.getFeatureVector());
 			}
 
 			Xt.add(Xm);
@@ -215,27 +310,15 @@ public class FakeApps {
 
 		Xt.trimToSize();
 
-		int size1 = 0;
-		int size2 = 0;
-		int max_len = 0;
-		int min_len = Integer.MAX_VALUE;
+		Indexer<String> wordIdxer = ext.getValueIndexers().get(0);
 
-		System.out.printf("data size: [%d -> %d]\n", size1, size2);
-		System.out.printf("max len: [%d]\n", max_len);
-		System.out.printf("min len: [%d]\n", min_len);
-
-		int vocab_size = vocab.size();
-		int emb_size = 200;
-		int l1_size = 100;
-
-		int l2_size = 20;
+		int vocab_size = wordIdxer.size();
+		int word_emb_size = 50;
+		int feat_emb_size = 10;
 		int output_size = 2;
-		int type = 0;
-
-		System.out.println(vocab.info());
 
 		DenseMatrix E = new DenseMatrix();
-		E.ensureCapacity(vocab.size());
+		E.ensureCapacity(wordIdxer.size());
 
 		{
 			String dir = FNPath.NAVER_DATA_DIR;
@@ -246,8 +329,8 @@ public class FakeApps {
 
 			WordSearcher ws = new WordSearcher(v, new RandomAccessDenseMatrix(emdFileName, false), null);
 
-			for (int i = 0; i < vocab.size(); i++) {
-				String word = vocab.getObject(i);
+			for (int i = 0; i < wordIdxer.size(); i++) {
+				String word = wordIdxer.getObject(i);
 				DenseVector e = ws.getVector(word);
 
 				if (e == null) {
@@ -256,21 +339,58 @@ public class FakeApps {
 				E.add(e);
 			}
 			// E.add(1d / VectorMath.normL2(E));
-			emb_size = E.colSize();
+			feat_emb_size = E.colSize();
 		}
 
-		NeuralNet nn = new NeuralNet(labelIdxer, vocab, TaskType.SEQ_CLASSIFICATION);
+		NeuralNet nn = new NeuralNet(labelIdxer, null, TaskType.SEQ_CLASSIFICATION);
 
 		{
 
 			int num_filters = 100;
-			int[] window_sizes = new int[] { 2, 3, 4 };
+			int[] window_sizes = new int[] { 5 };
 			// int[] window_sizes = new int[] { 2};
 
 			// nn.add(new EmbeddingLayer(vocab_size, emb_size, true));
-			nn.add(new EmbeddingLayer(E, true));
+			// nn.add(new EmbeddingLayer(E, true, 0));
 
-			nn.add(new MultiWindowConvolutionalLayer(emb_size, window_sizes, num_filters));
+			{
+				ConcatenationLayer l = null;
+				{
+					Indexer<String> featIdxer = ext.getFeatureIndexer();
+					List<Indexer<String>> valIdxers = ext.getValueIndexers();
+
+					int feat_size = featIdxer.size();
+
+					Map<Integer, Layer> L = Generics.newHashMap(featIdxer.size());
+
+					for (int i = 0; i < feat_size; i++) {
+						String feat = featIdxer.getObject(i);
+						Indexer<String> valIdxer = valIdxers.get(i);
+						int emb_size = feat_emb_size;
+
+						if (feat.equals("word")) {
+							emb_size = word_emb_size;
+						} else {
+							emb_size = feat_emb_size;
+						}
+
+						EmbeddingLayer ll = null;
+
+						if (i == 0 && E != null) {
+							ll = new EmbeddingLayer(E, true, i);
+						} else {
+							ll = new EmbeddingLayer(valIdxer.size(), emb_size, true, i);
+						}
+						L.put(i, ll);
+					}
+
+					l = new ConcatenationLayer(featIdxer.size(), L);
+
+					nn.add(l);
+				}
+			}
+
+			nn.add(new MultiWindowConvolutionalLayer(nn.get(nn.size() - 1).getOutputSize(), window_sizes, num_filters));
 			// nn.add(new ConvolutionalLayer(emb_size, 4, num_filters));
 			nn.add(new NonlinearityLayer(new ReLU()));
 			// nn.add(new MaxPoolingLayer(num_filters));
@@ -301,7 +421,7 @@ public class FakeApps {
 				large = nonFakeLocs;
 			}
 
-			int max_iters = 10;
+			int max_iters = 100;
 
 			// for (int i = 0; i < max_iters; i++) {
 			// ArrayUtils.shuffle(large.values());
@@ -336,7 +456,7 @@ public class FakeApps {
 
 			for (int i = 0; i < Yt.size(); i++) {
 				DenseVector yh = Yt.row(i).row(0);
-				MDocument d = test.get(i);
+				LDocument d = C2.get(i);
 				String id = d.getAttrMap().get("id");
 				writer.write(String.format("%s\t%s\n", id, df.format(yh.value(1))));
 			}
@@ -375,13 +495,13 @@ public class FakeApps {
 			Indexer<String> l = Generics.newIndexer();
 			l.add("word");
 			l.add("pos");
-			MToken.INDEXER = l;
+			LToken.INDEXER = l;
 		}
 
 		String[] fileNames = { "M2_train_pos.txt", "M1_train_pos.txt", "M2_test_pos" };
 
-		MCollection train = new MCollection();
-		MCollection test = new MCollection();
+		LDocumentCollection train = new LDocumentCollection();
+		LDocumentCollection test = new LDocumentCollection();
 
 		for (File file : FileUtils.getFilesUnder(FNPath.DATA_DIR + "data")) {
 			if (file.getName().startsWith("M2_train_pos")) {
@@ -391,7 +511,7 @@ public class FakeApps {
 
 					String label = ps.get(1);
 					label = label.equals("0") ? "non-fake" : "fake";
-					MDocument d = MDocument.newDocument(ps.get(2));
+					LDocument d = LDocument.newDocument(ps.get(2));
 					d.getAttrMap().put("label", label);
 
 					train.add(d);
@@ -402,7 +522,7 @@ public class FakeApps {
 					ps = StrUtils.unwrap(ps);
 
 					String label = "non-fake";
-					MDocument d = MDocument.newDocument(ps.get(2));
+					LDocument d = LDocument.newDocument(ps.get(2));
 					d.getAttrMap().put("label", label);
 
 					train.add(d);
@@ -411,7 +531,7 @@ public class FakeApps {
 				for (String line : FileUtils.readLinesFromText(file)) {
 					List<String> ps = StrUtils.split("\t", line);
 					ps = StrUtils.unwrap(ps);
-					MDocument d = MDocument.newDocument(ps.get(2));
+					LDocument d = LDocument.newDocument(ps.get(2));
 					d.getAttrMap().put("id", ps.get(0));
 					test.add(d);
 				}
@@ -434,7 +554,7 @@ public class FakeApps {
 		IntegerArray N = new IntegerArray();
 
 		for (int i = 0; i < train.size(); i++) {
-			MDocument d = train.get(i);
+			LDocument d = train.get(i);
 			String label = d.getAttrMap().get("label");
 			int l = labelIdxer.indexOf(label);
 
@@ -455,7 +575,7 @@ public class FakeApps {
 		DenseTensor Xt = new DenseTensor();
 
 		for (int loc : T.get(0)) {
-			MDocument d = train.get(loc);
+			LDocument d = train.get(loc);
 			for (String word : d.getTokens().getTokenStrings(0)) {
 				vocab.add(word);
 			}
@@ -464,7 +584,7 @@ public class FakeApps {
 		for (int i = 0; i < T.size(); i++) {
 			IntegerArray L = T.get(i);
 			for (int loc : L) {
-				MDocument d = train.get(loc);
+				LDocument d = train.get(loc);
 				String label = d.getAttrMap().get("label");
 				int lb = labelIdxer.indexOf(label);
 
@@ -485,7 +605,7 @@ public class FakeApps {
 			}
 		}
 
-		for (MDocument d : test) {
+		for (LDocument d : test) {
 			String label = d.getAttrMap().get("label");
 
 			List<Integer> ws = vocab.indexesOf(d.getTokens().getTokenStrings(0), 0);
@@ -516,13 +636,8 @@ public class FakeApps {
 		System.out.printf("max len: [%d]\n", max_len);
 		System.out.printf("min len: [%d]\n", min_len);
 
-		int vocab_size = vocab.size();
 		int emb_size = 200;
-		int l1_size = 100;
-
-		int l2_size = 20;
 		int output_size = 2;
-		int type = 0;
 
 		System.out.println(vocab.info());
 
@@ -559,7 +674,7 @@ public class FakeApps {
 			int[] window_sizes = new int[] { 2, 3, 4 };
 
 			// nn.add(new EmbeddingLayer(vocab_size, emb_size, true));
-			nn.add(new EmbeddingLayer(E, true));
+			nn.add(new EmbeddingLayer(E, true, 0));
 
 			nn.add(new MultiWindowConvolutionalLayer(emb_size, window_sizes, num_filters));
 			// nn.add(new ConvolutionalLayer(emb_size, 4, num_filters));
@@ -627,7 +742,7 @@ public class FakeApps {
 
 			for (int i = 0; i < Yt.size(); i++) {
 				DenseVector yh = Yt.row(i).row(0);
-				MDocument d = test.get(i);
+				LDocument d = test.get(i);
 				String id = d.getAttrMap().get("id");
 				writer.write(String.format("%s\t%s\n", id, df.format(yh.value(1))));
 			}

@@ -3,9 +3,9 @@ package ohs.eden.data;
 import java.util.Collection;
 import java.util.List;
 
-import ohs.nlp.ling.types.MDocument;
-import ohs.nlp.ling.types.MSentence;
-import ohs.nlp.ling.types.MToken;
+import ohs.nlp.ling.types.LDocument;
+import ohs.nlp.ling.types.LSentence;
+import ohs.nlp.ling.types.LToken;
 import ohs.tree.trie.hash.HMTNode;
 import ohs.tree.trie.hash.HMTrie;
 import ohs.types.common.IntPair;
@@ -38,15 +38,15 @@ public class CandidatePhraseSearcher {
 		this.dict = dict;
 	}
 
-	public List<List<IntPair>> search(MDocument d) {
+	public List<List<IntPair>> search(LDocument d) {
 		List<List<IntPair>> ret = Generics.newArrayList(d.size());
-		for (MSentence s : d) {
+		for (LSentence s : d) {
 			ret.add(search(s));
 		}
 		return ret;
 	}
 
-	public List<IntPair> search(MSentence s) {
+	public List<IntPair> search(LSentence s) {
 		List<IntPair> ret = Generics.newArrayList();
 		int i = 0;
 		while (i < s.size()) {
@@ -55,7 +55,7 @@ public class CandidatePhraseSearcher {
 			HMTNode<String> node = dict.getRoot();
 
 			while (j < s.size()) {
-				MToken t = s.get(j);
+				LToken t = s.get(j);
 				String word = t.getString(0);
 				
 				if (node.hasChild(word)) {

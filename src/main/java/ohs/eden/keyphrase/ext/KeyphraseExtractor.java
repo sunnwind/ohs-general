@@ -20,9 +20,9 @@ import ohs.io.FileUtils;
 import ohs.io.TextFileWriter;
 import ohs.ir.eval.Metrics;
 import ohs.ml.neuralnet.com.BatchUtils;
-import ohs.nlp.ling.types.MDocument;
-import ohs.nlp.ling.types.MSentence;
-import ohs.nlp.ling.types.MToken;
+import ohs.nlp.ling.types.LDocument;
+import ohs.nlp.ling.types.LSentence;
+import ohs.nlp.ling.types.LToken;
 import ohs.types.generic.Counter;
 import ohs.types.generic.Vocab;
 import ohs.utils.Generics;
@@ -45,7 +45,7 @@ public class KeyphraseExtractor {
 		System.out.println("process ends.");
 	}
 
-	public static MDocument newDocumentFromJsonString(String s) throws Exception {
+	public static LDocument newDocumentFromJsonString(String s) throws Exception {
 		JSONParser p = new JSONParser();
 		JSONObject jdoc = (JSONObject) p.parse(s);
 		JSONArray jsents = null;
@@ -55,13 +55,13 @@ public class KeyphraseExtractor {
 			jsents = (JSONArray) o.get("sentences");
 		}
 
-		MDocument ret = new MDocument();
+		LDocument ret = new LDocument();
 
 		for (int i = 0; i < jsents.size(); i++) {
 			JSONObject o = (JSONObject) jsents.get(i);
 			JSONArray ja = (JSONArray) o.get("morphemeSets");
 
-			MSentence sent = new MSentence();
+			LSentence sent = new LSentence();
 
 			for (int j = 0; j < ja.size(); j++) {
 				JSONObject o2 = (JSONObject) ja.get(j);
@@ -69,7 +69,7 @@ public class KeyphraseExtractor {
 				String word = (String) o2.get("morpheme");
 				String pos = (String) o2.get("morphemeType");
 
-				MToken t = new MToken();
+				LToken t = new LToken();
 				t.add(word);
 				t.add(pos);
 				sent.add(t);
@@ -138,23 +138,23 @@ public class KeyphraseExtractor {
 
 			String cn = ps.get(0);
 
-			MDocument md1 = MDocument.newDocument(ps.get(1));
+			LDocument md1 = LDocument.newDocument(ps.get(1));
 
-			for (MSentence ms : md1) {
+			for (LSentence ms : md1) {
 				StringBuffer sb = new StringBuffer();
-				for (MToken t : ms) {
+				for (LToken t : ms) {
 					sb.append(t.get(0) + " ");
 				}
 				anss.add(sb.toString().replace(" ", ""));
 			}
 
-			MDocument md2 = MDocument.newDocument(ps.get(2));
+			LDocument md2 = LDocument.newDocument(ps.get(2));
 
 			StringBuffer sb = new StringBuffer();
 
-			for (MSentence ms : md2) {
+			for (LSentence ms : md2) {
 				StringBuffer sb2 = new StringBuffer();
-				for (MToken t : ms) {
+				for (LToken t : ms) {
 					sb2.append(t.get(0) + " ");
 				}
 				sb.append(sb2.toString().trim() + "\n");
@@ -238,7 +238,7 @@ public class KeyphraseExtractor {
 				}
 
 				String s = sb.toString().trim();
-				MDocument md = MDocument.newDocument(s);
+				LDocument md = LDocument.newDocument(s);
 				testData.add(String.format("%s\t%s", cn, md.toString().replace("\n", "<nl>")));
 
 				inputStream.close();
@@ -299,13 +299,13 @@ public class KeyphraseExtractor {
 
 			String cn = ps.get(0);
 
-			MDocument md2 = MDocument.newDocument(ps.get(1));
+			LDocument md2 = LDocument.newDocument(ps.get(1));
 
 			StringBuffer sb = new StringBuffer();
 
-			for (MSentence ms : md2) {
+			for (LSentence ms : md2) {
 				StringBuffer sb2 = new StringBuffer();
-				for (MToken t : ms) {
+				for (LToken t : ms) {
 					sb2.append(t.get(0) + " ");
 				}
 				sb.append(sb2.toString().trim() + "\n");
@@ -407,8 +407,8 @@ public class KeyphraseExtractor {
 		this.ranker = ranker;
 	}
 
-	public Counter<String> extract(MDocument md) {
-		Counter<MSentence> phrsScores = ranker.rank(md);
+	public Counter<String> extract(LDocument md) {
+		Counter<LSentence> phrsScores = ranker.rank(md);
 
 		int size = phrsScores.size();
 
@@ -418,14 +418,14 @@ public class KeyphraseExtractor {
 
 		Counter<String> ret = Generics.newCounter();
 
-		for (MSentence phrs : phrsScores.getSortedKeys()) {
+		for (LSentence phrs : phrsScores.getSortedKeys()) {
 			double score = phrsScores.getCount(phrs);
 			if (ret.size() == size) {
 				break;
 			}
 
 			StringBuffer sb = new StringBuffer();
-			for (MToken t : phrs) {
+			for (LToken t : phrs) {
 				sb.append(t.get(0) + " ");
 			}
 			ret.setCount(sb.toString().trim(), score);
@@ -474,7 +474,7 @@ public class KeyphraseExtractor {
 	 * @return 핵심구과 확률값을 가지고 있는 Counter
 	 */
 	public Counter<String> extract(String s) {
-		return extract(MDocument.newDocument(s));
+		return extract(LDocument.newDocument(s));
 	}
 
 	/**

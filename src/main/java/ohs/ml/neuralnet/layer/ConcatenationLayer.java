@@ -3,16 +3,13 @@ package ohs.ml.neuralnet.layer;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
-import org.apache.lucene.util.ArrayUtil;
-
-import ohs.io.FileUtils;
-import ohs.math.ArrayUtils;
 import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
-import ohs.ml.neuralnet.com.ParameterInitializer;
 import ohs.utils.Generics;
 
 public class ConcatenationLayer extends Layer {
@@ -30,17 +27,33 @@ public class ConcatenationLayer extends Layer {
 
 	private List<DenseMatrix> tmp_dZs = Generics.newArrayList();
 
-	private List<DenseTensor> Z;
+	private List<DenseTensor> Zs;
 
-	private List<Layer> L;
+	private Map<Integer, Layer> L;
 
 	private int output_size;
 
-	public ConcatenationLayer(List<Layer> L) {
+	private DenseTensor A;
+
+	private int feat_size;
+
+	public ConcatenationLayer(int feat_size, Map<Integer, Layer> L) {
+		this.feat_size = feat_size;
 		this.L = L;
-		for (Layer l : L) {
-			output_size += l.getOutputSize();
+
+		for (int i = 0; i < feat_size; i++) {
+			Layer l = L.get(i);
+
+			if (l == null) {
+				output_size++;
+			} else {
+				output_size += l.getOutputSize();
+			}
 		}
+	}
+
+	public ConcatenationLayer(ObjectInputStream ois) throws Exception {
+		readObject(ois);
 	}
 
 	@Override
@@ -48,63 +61,74 @@ public class ConcatenationLayer extends Layer {
 		DenseTensor dY = (DenseTensor) I;
 
 		if (tmp_dZs.size() == 0) {
-			tmp_dZs = Generics.newArrayList(L.size());
-			for (int i = 0; i < L.size(); i++) {
+			tmp_dZs = Generics.newArrayList(feat_size);
+			for (int i = 0; i < feat_size; i++) {
 				tmp_dZs.add(new DenseMatrix(0));
 			}
 		}
 
 		{
-			int size = dY.sizeOfInnerVectors();
-			for (int i = 0; i < tmp_dZs.size(); i++) {
-				DenseMatrix T = tmp_dZs.get(i);
-				VectorUtils.enlarge(T, size, L.get(i).getOutputSize());
+			int row_size = dY.sizeOfInnerVectors();
+
+			for (int i = 0; i < feat_size; i++) {
+				DenseMatrix tmp_dZ = tmp_dZs.get(i);
+				Layer l = L.get(i);
+
+				if (l == null) {
+
+				} else {
+					VectorUtils.enlarge(tmp_dZ, row_size, l.getOutputSize());
+				}
 			}
 		}
 
-		for (int i = 0, s = 0; i < L.size(); i++) {
+		for (int i = 0, s = 0; i < feat_size; i++) {
 			Layer l = L.get(i);
-			int e = s + l.getOutputSize();
-			int start = 0;
 
-			DenseTensor dZ = new DenseTensor();
-			dZ.ensureCapacity(dY.size());
+			if (l == null) {
+				s++;
+			} else {
+				int e = s + l.getOutputSize();
+				int start = 0;
 
-			DenseMatrix tmp_dZ = tmp_dZs.get(i);
+				DenseTensor dZ = new DenseTensor();
+				dZ.ensureCapacity(dY.size());
 
-			for (DenseMatrix dYm : dY) {
-				DenseMatrix dZm = tmp_dZ.subMatrix(start, dYm.rowSize());
-				dZm.setAll(0);
+				DenseMatrix tmp_dZ = tmp_dZs.get(i);
 
-				start += dYm.rowSize();
+				for (DenseMatrix dYm : dY) {
+					DenseMatrix dZm = tmp_dZ.subMatrix(start, dYm.rowSize());
+					dZm.setAll(0);
 
-				for (int j = 0; j < dYm.rowSize(); j++) {
-					DenseVector dym = dYm.row(j);
-					DenseVector dzm = dZm.row(j);
+					start += dYm.rowSize();
 
-					for (int k = s, m = 0; k < e; k++, m++) {
-						dzm.add(m, dym.value(k));
+					for (int j = 0; j < dYm.rowSize(); j++) {
+						DenseVector dym = dYm.row(j);
+						DenseVector dzm = dZm.row(j);
+
+						for (int k = s, m = 0; k < e; k++, m++) {
+							dzm.add(m, dym.value(k));
+						}
 					}
+					dZ.add(dZm);
 				}
-				dZ.add(dZm);
+				s = e;
+				l.backward(dZ);
 			}
-			s = e;
-
-			l.backward(dZ);
 		}
 
 		return null;
 	}
 
 	public ConcatenationLayer copy() {
-		List<Layer> lss = Generics.newArrayList(L.size());
-
-		for (Layer l : L) {
-			lss.add(l.copy());
-
+		Map<Integer, Layer> C = Generics.newHashMap(L.size());
+		for (Entry<Integer, Layer> e : L.entrySet()) {
+			int feat_idx = e.getKey();
+			Layer l = e.getValue();
+			C.put(feat_idx, l.copy());
 		}
 
-		ConcatenationLayer l = new ConcatenationLayer(lss);
+		ConcatenationLayer l = new ConcatenationLayer(feat_size, C);
 		return l;
 	}
 
@@ -112,14 +136,20 @@ public class ConcatenationLayer extends Layer {
 	public Object forward(Object I) {
 		DenseTensor X = (DenseTensor) I;
 		DenseTensor Y = new DenseTensor();
-		List<DenseTensor> Z = Generics.newArrayList(L.size());
+		List<DenseTensor> Zs = Generics.newArrayList(L.size());
 
 		Y.ensureCapacity(X.size());
 
 		VectorUtils.enlarge(tmp_Y, X.sizeOfInnerVectors(), output_size);
 
-		for (Layer l : L) {
-			Z.add((DenseTensor) l.forward(I));
+		for (int i = 0; i < feat_size; i++) {
+			Layer l = L.get(i);
+
+			if (l == null) {
+				Zs.add(null);
+			} else {
+				Zs.add((DenseTensor) l.forward(X));
+			}
 		}
 
 		int start = 0;
@@ -133,21 +163,29 @@ public class ConcatenationLayer extends Layer {
 
 			for (int j = 0; j < Ym.rowSize(); j++) {
 				DenseVector ym = Ym.row(j);
+				DenseVector xm = Xm.row(j);
 
-				for (int k = 0, m = 0; k < Z.size(); k++) {
-					DenseVector zm = Z.get(k).get(i).row(j);
-					for (int l = 0; l < zm.size(); l++) {
-						ym.add(m++, zm.value(l));
+				for (int k = 0, m = 0; k < Zs.size(); k++) {
+					DenseTensor Z = Zs.get(k);
+
+					if (Z == null) {
+						ym.add(m++, xm.value(k));
+					} else {
+						DenseVector zm = Z.get(i).row(j);
+						for (int l = 0; l < zm.size(); l++) {
+							ym.add(m++, zm.value(l));
+						}
 					}
 				}
 			}
 
+			Ym.unwrapValues();
 			Y.add(Ym);
 		}
 
 		this.X = X;
 		this.Y = Y;
-		this.Z = Z;
+		this.Zs = Zs;
 
 		return Y;
 
@@ -156,33 +194,36 @@ public class ConcatenationLayer extends Layer {
 	@Override
 	public DenseTensor getB() {
 		DenseTensor B = new DenseTensor();
-		for (Layer l : L) {
+		for (Layer l : L.values()) {
 			if (l.getB() != null) {
 				B.addAll(l.getB());
 			}
 		}
+
 		return B;
 	}
 
 	@Override
 	public DenseTensor getDB() {
 		DenseTensor dB = new DenseTensor();
-		for (Layer l : L) {
+		for (Layer l : L.values()) {
 			if (l.getDB() != null) {
 				dB.addAll(l.getDB());
 			}
 		}
+
 		return dB;
 	}
 
 	@Override
 	public DenseTensor getDW() {
 		DenseTensor dW = new DenseTensor();
-		for (Layer l : L) {
+		for (Layer l : L.values()) {
 			if (l.getDW() != null) {
 				dW.addAll(l.getDW());
 			}
 		}
+
 		return dW;
 	}
 
@@ -194,38 +235,58 @@ public class ConcatenationLayer extends Layer {
 	@Override
 	public DenseTensor getW() {
 		DenseTensor W = new DenseTensor();
-		for (Layer l : L) {
+		for (Layer l : L.values()) {
 			if (l.getW() != null) {
 				W.addAll(l.getW());
 			}
 		}
+
 		return W;
 	}
 
 	@Override
 	public void initWeights() {
-		for (Layer l : L) {
+		for (Layer l : L.values()) {
 			l.initWeights();
 		}
 	}
 
 	@Override
 	public void prepareTraining() {
-		for (Layer l : L) {
+		for (Layer l : L.values()) {
 			l.prepareTraining();
 		}
-
 	}
 
 	@Override
 	public void readObject(ObjectInputStream ois) throws Exception {
-	}
+		feat_size = ois.readInt();
+		int size = ois.readInt();
 
-	public void setOutputWordIndexes(boolean output_word_indexes) {
+		L = Generics.newHashMap(size);
+
+		for (int i = 0; i < size; i++) {
+			int feat_idx = ois.readInt();
+			String name = ois.readUTF();
+
+			Class c = Class.forName(name);
+			Layer l = (Layer) c.getDeclaredConstructor().newInstance();
+			l.readObject(ois);
+			L.put(feat_idx, l);
+		}
 	}
 
 	@Override
 	public void writeObject(ObjectOutputStream oos) throws Exception {
+		oos.writeInt(feat_size);
+		oos.writeInt(L.size());
+		for (Entry<Integer, Layer> e : L.entrySet()) {
+			int feat_idx = e.getKey();
+			Layer l = e.getValue();
+			oos.writeInt(feat_idx);
+			oos.writeUTF(l.getClass().getName());
+			l.writeObject(oos);
+		}
 	}
 
 }

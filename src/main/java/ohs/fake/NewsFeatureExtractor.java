@@ -1,24 +1,28 @@
-package ohs.ml.neuralnet.com;
+package ohs.fake;
 
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import ohs.io.FileUtils;
 import ohs.matrix.DenseVector;
+import ohs.ml.svm.wrapper.LibLinearWrapper;
 import ohs.nlp.ling.types.LDocumentCollection;
 import ohs.nlp.ling.types.LDocument;
 import ohs.nlp.ling.types.LSentence;
 import ohs.nlp.ling.types.LToken;
+import ohs.types.generic.Counter;
 import ohs.types.generic.Indexer;
 import ohs.types.generic.SetMap;
 import ohs.types.generic.Vocab.SYM;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
+import scala.annotation.meta.setter;
 
-public class NERFeatureExtractor {
+public class NewsFeatureExtractor {
 
 	private Indexer<String> featIdxer = Generics.newIndexer();
 
@@ -30,7 +34,9 @@ public class NERFeatureExtractor {
 
 	private int unk = 0;
 
-	public NERFeatureExtractor() {
+	private LibLinearWrapper llw;
+
+	public NewsFeatureExtractor() {
 		int idx = featIdxer.getIndex("word");
 		valIdxerMap.put(idx, Generics.newIndexer());
 		Indexer<String> wordIdxer = valIdxerMap.get(idx);
@@ -159,6 +165,39 @@ public class NERFeatureExtractor {
 		}
 	}
 
+	public void addTopicFeatures(LibLinearWrapper llw) {
+		this.llw = llw;
+
+		String[] feats = { "doc-topic", "sent-topic" };
+
+		for (int i = 0; i < feats.length; i++) {
+			String feat = feats[i];
+			int idx = featIdxer.getIndex(feat);
+			valIdxerMap.put(idx, Generics.newIndexer());
+
+			Indexer<String> featValIdxer = valIdxerMap.get(idx);
+
+			for (String val : llw.getLabelIndexer().getObjects()) {
+				featValIdxer.getIndex(String.format("%s=%s", feat, val));
+			}
+		}
+	}
+
+	public void addTitleWordFeatures() {
+		String feat = "title-word";
+
+		int idx = featIdxer.getIndex(feat);
+		valIdxerMap.put(idx, Generics.newIndexer());
+
+		Indexer<String> featValIdxer = valIdxerMap.get(idx);
+
+		String[] vals = { "yes", "no" };
+
+		for (String val : vals) {
+			featValIdxer.getIndex(String.format("%s=%s", feat, val));
+		}
+	}
+
 	public void extract(LDocumentCollection c) {
 		for (LDocument d : c) {
 			extract(d);
@@ -169,6 +208,8 @@ public class NERFeatureExtractor {
 		for (LSentence s : d) {
 			extract(s);
 		}
+		extractTopicFeatures(d);
+		extractTitleWordFeatures(d);
 	}
 
 	public void extract(LSentence s) {
@@ -177,6 +218,7 @@ public class NERFeatureExtractor {
 			extractTokenFeatures(t);
 		}
 		extractChunkFeatures(s);
+		extractSentenceTopicFeatures(s);
 	}
 
 	private void extractChunkFeatures(LSentence s) {
@@ -231,18 +273,115 @@ public class NERFeatureExtractor {
 		}
 	}
 
+	private void extractTopicFeatures(LDocument d) {
+		String feat = "doc-topic";
+
+		if (llw == null || !featIdxer.contains(feat)) {
+			return;
+		}
+
+		Counter<String> c = llw.score(d.getCounter(0));
+
+		String topic = c.argMax();
+		String val = String.format("%s=%s", feat, topic);
+
+		int f_idx = featIdxer.indexOf(feat);
+		int v_idx = valIdxerMap.get(f_idx).indexOf(val);
+
+		for (LToken t : d.getTokens()) {
+			DenseVector F = t.getFeatureVector();
+			F.add(f_idx, v_idx);
+		}
+	}
+
+	private void extractSentenceTopicFeatures(LSentence s) {
+		String feat = "sent-topic";
+
+		if (llw == null || !featIdxer.contains(feat)) {
+			return;
+		}
+
+		Counter<String> c = llw.score(s.getCounter(0));
+
+		String topic = c.argMax();
+
+		String val = String.format("%s=%s", feat, topic);
+		int f_idx = featIdxer.indexOf(feat);
+
+		Indexer<String> valIdxer = valIdxerMap.get(f_idx);
+		int v_idx = valIdxer.indexOf(val);
+
+		for (LToken t : s) {
+			DenseVector F = t.getFeatureVector();
+			F.add(f_idx, v_idx);
+		}
+	}
+
+	private void extractTitleWordFeatures(LDocument d) {
+		String feat = "title-word";
+
+		if (!featIdxer.contains(feat)) {
+			return;
+		}
+
+		Counter<String> c = Generics.newCounter();
+
+		{
+			for (LToken t : d.get(0)) {
+				String word = t.getString(0);
+				String pos = t.getString(1);
+
+				if (word.equals(LSentence.START) || word.equals(LSentence.END)) {
+					continue;
+				}
+
+				if (pos.startsWith("J") || pos.startsWith("X") || pos.startsWith("E")) {
+					continue;
+				}
+
+				if (pos.startsWith("SSC") || pos.startsWith("SC") || pos.startsWith("SSO") || pos.startsWith("SY")
+						|| pos.startsWith("SF")) {
+					continue;
+				}
+			}
+		}
+
+		int feat_idx = featIdxer.indexOf(feat);
+		Indexer<String> valIdxer = valIdxerMap.get(feat_idx);
+
+		for (int i = 0; i < d.size(); i++) {
+			LSentence s = d.get(i);
+
+			for (LToken t : s) {
+				DenseVector F = t.getFeatureVector();
+				String word = t.getString(0);
+				String pos = t.getString(1);
+				int val_idx = 0;
+
+				if (c.containsKey(word)) {
+					val_idx = valIdxer.indexOf(String.format("%s=%s", feat, "yes"));
+				} else {
+					val_idx = valIdxer.indexOf(String.format("%s=%s", feat, "no"));
+				}
+
+				F.add(feat_idx, val_idx);
+			}
+		}
+	}
+
 	private void extractTokenFeatures(LToken t) {
 		String word = t.getString(0);
 		String shape = getShape(word);
 
-		DenseVector F = new DenseVector(0);
+		DenseVector F = t.getFeatureVector();
 
-		{
+		if (F == null) {
 			int size = featIdxer.size();
 			if (featIdxer.contains("ch")) {
 				size += word.length();
 			}
 			F = new DenseVector(size);
+			t.setFeatureVector(F);
 		}
 
 		for (int feat_idx = 0; feat_idx < featIdxer.size(); feat_idx++) {
@@ -394,8 +533,6 @@ public class NERFeatureExtractor {
 				}
 			}
 		}
-
-		t.setFeatureVector(F);
 	}
 
 	public Indexer<String> getFeatureIndexer() {

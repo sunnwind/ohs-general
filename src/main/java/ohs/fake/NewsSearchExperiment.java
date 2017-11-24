@@ -39,8 +39,8 @@ import ohs.math.VectorUtils;
 import ohs.matrix.DenseVector;
 import ohs.matrix.SparseMatrix;
 import ohs.matrix.SparseVector;
-import ohs.nlp.ling.types.MDocument;
-import ohs.nlp.ling.types.MSentence;
+import ohs.nlp.ling.types.LDocument;
+import ohs.nlp.ling.types.LSentence;
 import ohs.types.common.IntPair;
 import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
@@ -182,14 +182,14 @@ public class NewsSearchExperiment {
 
 				File outFile = new File(FNPath.DATA_DIR + "rel_new/", String.format("%s.txt", id));
 
-				MDocument d = MDocument.newDocument(ps.get(2));
+				LDocument d = LDocument.newDocument(ps.get(2));
 
 				Counter<Integer> c1 = Generics.newCounter();
 				Counter<Integer> c2 = Generics.newCounter();
 				Counter<Integer> c3 = Generics.newCounter();
 
 				for (int j = 0; j < d.size(); j++) {
-					MSentence s = d.get(j);
+					LSentence s = d.get(j);
 					String st = StrUtils.join(" ", s.getTokenStrings(0));
 					SparseVector Q = ds.index(st);
 
@@ -289,7 +289,7 @@ public class NewsSearchExperiment {
 
 				File outFile = new File(FNPath.DATA_DIR + "rel_new/", String.format("%s.txt", id));
 
-				MDocument d = MDocument.newDocument(ps.get(2));
+				LDocument d = LDocument.newDocument(ps.get(2));
 
 				String searchText = StrUtils.join(" ", d.get(0).getTokenStrings(0));
 

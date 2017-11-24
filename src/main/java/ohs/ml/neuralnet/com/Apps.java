@@ -32,10 +32,10 @@ import ohs.ml.neuralnet.layer.RnnLayer;
 import ohs.ml.neuralnet.layer.SoftmaxLayer;
 import ohs.ml.neuralnet.nonlinearity.ReLU;
 import ohs.ml.neuralnet.nonlinearity.Tanh;
-import ohs.nlp.ling.types.MCollection;
-import ohs.nlp.ling.types.MDocument;
-import ohs.nlp.ling.types.MSentence;
-import ohs.nlp.ling.types.MToken;
+import ohs.nlp.ling.types.LDocumentCollection;
+import ohs.nlp.ling.types.LDocument;
+import ohs.nlp.ling.types.LSentence;
+import ohs.nlp.ling.types.LToken;
 import ohs.types.generic.Counter;
 import ohs.types.generic.Indexer;
 import ohs.types.generic.Pair;
@@ -49,7 +49,7 @@ import ohs.utils.StrUtils;
 
 public class Apps {
 
-	public static NERFeatureExtractor getNERFeatureExtractor(String extFileName, MDocument trainData) throws Exception {
+	public static NERFeatureExtractor getNERFeatureExtractor(String extFileName, LDocument trainData) throws Exception {
 		NERFeatureExtractor ext = new NERFeatureExtractor();
 
 		if (extFileName != null) {
@@ -314,14 +314,14 @@ public class Apps {
 		{
 			Indexer<String> l = Generics.newIndexer();
 			l.add("word");
-			MToken.INDEXER = l;
+			LToken.INDEXER = l;
 		}
 
 		String[] fileNames = { "Mission1_sample_1차수정본.txt" };
 
 		File inFile = new File(FNPath.DATA_DIR + "train_01", fileNames[0]);
 
-		MCollection data = new MCollection();
+		LDocumentCollection data = new LDocumentCollection();
 
 		for (String line : FileUtils.readLinesFromText(inFile)) {
 			List<String> ps = StrUtils.split("\t", line);
@@ -330,7 +330,7 @@ public class Apps {
 			String label = ps.get(1);
 			label = label.equals("0") ? "non-fake" : "fake";
 
-			MDocument d = MDocument.newDocument(ps.get(2));
+			LDocument d = LDocument.newDocument(ps.get(2));
 			d.getAttrMap().put("label", label);
 
 			data.add(d);
@@ -343,7 +343,7 @@ public class Apps {
 		IntegerArray N = new IntegerArray();
 
 		for (int i = 0; i < data.size(); i++) {
-			MDocument d = data.get(i);
+			LDocument d = data.get(i);
 			String label = d.getAttrMap().get("label");
 			int l = labelIdxer.indexOf(label);
 
@@ -359,7 +359,7 @@ public class Apps {
 		DenseMatrix Yt = new DenseMatrix();
 
 		for (int loc : T.get(0)) {
-			MDocument d = data.get(loc);
+			LDocument d = data.get(loc);
 
 			for (String word : d.getTokens().getTokenStrings(0)) {
 				vocab.add(word);
@@ -369,7 +369,7 @@ public class Apps {
 		for (int i = 0; i < T.size(); i++) {
 			IntegerArray L = T.get(i);
 			for (int loc : L) {
-				MDocument d = data.get(loc);
+				LDocument d = data.get(loc);
 				String label = d.getAttrMap().get("label");
 				int lb = labelIdxer.indexOf(label);
 
@@ -590,11 +590,11 @@ public class Apps {
 			l.add("pos");
 			l.add("chunk");
 			l.add("ner");
-			MToken.INDEXER = l;
+			LToken.INDEXER = l;
 		}
 
-		MDocument _X = MDocument.newDocument(FileUtils.readFromText(trainFileName));
-		MDocument _Y = MDocument.newDocument(FileUtils.readFromText(testFileName));
+		LDocument _X = LDocument.newDocument(FileUtils.readFromText(trainFileName));
+		LDocument _Y = LDocument.newDocument(FileUtils.readFromText(testFileName));
 
 		transformBIOtoBIOSE(_X);
 		transformBIOtoBIOSE(_Y);
@@ -620,11 +620,11 @@ public class Apps {
 		NERFeatureExtractor ext = getNERFeatureExtractor(read_ext ? extFileName : null, _X);
 
 		{
-			MDocument d = new MDocument();
+			LDocument d = new LDocument();
 			d.addAll(_X);
 			d.addAll(_Y);
 
-			d = d.toPaddedDocument();
+			d.doPadding();
 
 			ext.extract(d.subDocument(0, _X.size()));
 			ext.setIsTraining(false);
@@ -633,9 +633,9 @@ public class Apps {
 
 			Set<String> labels = Generics.newTreeSet();
 
-			for (MToken t : d.getTokens()) {
+			for (LToken t : d.getTokens()) {
 				String word = t.getString(0);
-				if (word.equals(MSentence.START) || word.equals(MSentence.END)) {
+				if (word.equals(LSentence.START) || word.equals(LSentence.END)) {
 					t.set(3, "O");
 				}
 				String ne = t.getString(3);
@@ -647,7 +647,7 @@ public class Apps {
 			labelIdxer.add("O");
 
 			for (int i = 0; i < d.size(); i++) {
-				MSentence s = d.get(i);
+				LSentence s = d.get(i);
 
 				DenseMatrix Xm = new DenseMatrix();
 				DenseVector Ym = new DenseVector(s.size());
@@ -655,7 +655,7 @@ public class Apps {
 				Xm.ensureCapacity(s.size());
 
 				for (int j = 0; j < s.size(); j++) {
-					MToken t = s.get(j);
+					LToken t = s.get(j);
 
 					Xm.add(t.getFeatureVector());
 					Ym.add(j, labelIdxer.getIndex(t.getString(3)));
@@ -778,17 +778,9 @@ public class Apps {
 
 				}
 
-				l1 = new ConcatenationLayer(ls);
+				l1 = new ConcatenationLayer(ls, null);
 
 				nn.add(l1);
-
-				if (cnn != null) {
-					List<NeuralNet> nns = Generics.newArrayList();
-					nns.add(cnn);
-
-					nn.add(new NNConcatenationLayer(nns));
-				}
-
 			}
 
 			// DiscreteFeatureEmbeddingLayer l = new
@@ -814,7 +806,7 @@ public class Apps {
 			nn.initWeights();
 		}
 
-		nn.writeObject(modelFileName);
+		// nn.writeObject(modelFileName);
 
 		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, nnp);
 
@@ -881,15 +873,15 @@ public class Apps {
 		{
 			Indexer<String> l = Generics.newIndexer();
 			l.add("word");
-			MToken.INDEXER = l;
+			LToken.INDEXER = l;
 		}
 
-		MDocument posData = new MDocument();
-		MDocument negData = new MDocument();
+		LDocument posData = new LDocument();
+		LDocument negData = new LDocument();
 
 		for (String line : FileUtils.readLinesFromText("../../data/sentiment/rt-polarity.pos")) {
 			line = StrUtils.normalizeSpaces(line);
-			MSentence s = MSentence.newSentence(line.replace(" ", "\n"));
+			LSentence s = LSentence.newSentence(line.replace(" ", "\n"));
 			posData.add(s);
 
 			s.getAttrMap().put("por", "pos");
@@ -897,7 +889,7 @@ public class Apps {
 
 		for (String line : FileUtils.readLinesFromText("../../data/sentiment/rt-polarity.neg")) {
 			line = StrUtils.normalizeSpaces(line);
-			MSentence s = MSentence.newSentence(line.replace(" ", "\n"));
+			LSentence s = LSentence.newSentence(line.replace(" ", "\n"));
 			negData.add(s);
 
 			s.getAttrMap().put("por", "neg");
@@ -906,11 +898,11 @@ public class Apps {
 		Vocab vocab = new Vocab();
 		vocab.add(SYM.UNK.getText());
 
-		for (MToken t : posData.getTokens()) {
+		for (LToken t : posData.getTokens()) {
 			vocab.add(t.getString(0));
 		}
 
-		MDocument data = new MDocument();
+		LDocument data = new LDocument();
 		data.addAll(posData);
 		data.addAll(negData);
 
@@ -918,7 +910,7 @@ public class Apps {
 		IntegerArray N = new IntegerArray();
 
 		for (int i = 0; i < data.size(); i++) {
-			MSentence s = data.get(i);
+			LSentence s = data.get(i);
 			String por = s.getAttrMap().get("por");
 			int label = labelIdxer.indexOf(por);
 
@@ -936,7 +928,7 @@ public class Apps {
 		for (int i = 0; i < T.size(); i++) {
 			IntegerArray L = T.get(i);
 			for (int loc : L) {
-				MSentence s = data.get(loc);
+				LSentence s = data.get(loc);
 				String por = s.getAttrMap().get("por");
 				int label = labelIdxer.indexOf(por);
 
@@ -995,15 +987,15 @@ public class Apps {
 		}
 	}
 
-	public static void transformBIOtoBIOSE(MDocument d) {
+	public static void transformBIOtoBIOSE(LDocument d) {
 
 		int w_loc = 0;
 		int ne_loc = 3;
 
 		for (int u = 0; u < d.size(); u++) {
-			MSentence s = d.get(u);
+			LSentence s = d.get(u);
 			for (int i = 0; i < s.size();) {
-				MToken t1 = s.get(i);
+				LToken t1 = s.get(i);
 				String w1 = t1.getString(w_loc);
 				String ne1 = t1.getString(ne_loc);
 
@@ -1011,7 +1003,7 @@ public class Apps {
 					int size = 1;
 
 					for (int k = i + 1; k < s.size(); k++) {
-						MToken t2 = s.get(k);
+						LToken t2 = s.get(k);
 						String w2 = t2.getString(w_loc);
 						String ne2 = t2.getString(ne_loc);
 
@@ -1026,7 +1018,7 @@ public class Apps {
 					;
 
 					for (int k = i; k < j; k++) {
-						MToken t2 = s.get(k);
+						LToken t2 = s.get(k);
 						String ne = t2.getString(ne_loc);
 
 						if (size == 1) {

@@ -583,7 +583,7 @@ public class PhraseClassification {
 		nn.initWeights();
 
 		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param);
-		trainer.train(X, Y, Xt, Yt, 100);
+		trainer.train(X, Y, Xt, new DenseVector(Yt.values()), 100);
 		trainer.finish();
 
 		List<String> lines = FileUtils.readLinesFromText(KPPath.KP_DIR + "phrs_test_S.txt.gz");

@@ -25,7 +25,7 @@ import ohs.ml.glove.GloveModel;
 import ohs.ml.glove.GloveParam;
 import ohs.ml.glove.GloveTrainer;
 import ohs.ml.neuralnet.com.BatchUtils;
-import ohs.nlp.ling.types.MToken;
+import ohs.nlp.ling.types.LToken;
 import ohs.tree.trie.hash.HMTrie;
 import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
@@ -506,7 +506,7 @@ public class DataHandler {
 						continue;
 					}
 
-					sb.append(String.format("%s%s%s", f, MToken.DELIM, s));
+					sb.append(String.format("%s%s%s", f, LToken.DELIM, s));
 					// sb.append(String.format("%s%s%s", f, "/", s));
 
 					if (k != l.size() - 1) {

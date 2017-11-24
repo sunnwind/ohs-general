@@ -38,6 +38,10 @@ public class MaxPoolingLayer extends Layer {
 	public MaxPoolingLayer(int num_filters) {
 		this.num_filters = num_filters;
 	}
+	
+	public MaxPoolingLayer(ObjectInputStream ois) throws Exception {
+		readObject(ois);
+	}
 
 	@Override
 	public DenseTensor backward(Object I) {

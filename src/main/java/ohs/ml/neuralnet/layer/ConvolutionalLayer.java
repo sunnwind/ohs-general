@@ -50,23 +50,6 @@ public class ConvolutionalLayer extends Layer {
 
 	private DenseMatrix tmp_Z = new DenseMatrix(0);
 
-	@Override
-	public void writeObject(ObjectOutputStream oos) throws Exception {
-		W.writeObject(oos);
-		b.writeObject(oos);
-		oos.writeInt(window_size);
-	}
-
-	@Override
-	public void readObject(ObjectInputStream ois) throws Exception {
-		W = new DenseMatrix(ois);
-		b = new DenseVector(ois);
-
-		filter_size = W.rowSize();
-		num_filters = W.colSize();
-		window_size = ois.readInt();
-	}
-
 	/**
 	 * filter biases
 	 */
@@ -117,6 +100,10 @@ public class ConvolutionalLayer extends Layer {
 
 	public ConvolutionalLayer(int emb_size, int window_size, int num_filters) {
 		this(new DenseMatrix(window_size * emb_size, num_filters), new DenseVector(num_filters), window_size, emb_size);
+	}
+
+	public ConvolutionalLayer(ObjectInputStream ois) throws Exception {
+		readObject(ois);
 	}
 
 	@Override
@@ -220,14 +207,7 @@ public class ConvolutionalLayer extends Layer {
 			 */
 
 			DenseMatrix Zm = null;
-			
-			try {
-				Zm = tmp_Z.subMatrix(start, num_feat_maps);
-			} catch (Exception e) {
-				Zm = tmp_Z.subMatrix(start, num_feat_maps);
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+			Zm = tmp_Z.subMatrix(start, num_feat_maps);
 			Zm.setAll(0);
 
 			/*
@@ -328,6 +308,23 @@ public class ConvolutionalLayer extends Layer {
 	public void prepareTraining() {
 		dW = W.copy(true);
 		db = b.copy(true);
+	}
+
+	@Override
+	public void readObject(ObjectInputStream ois) throws Exception {
+		W = new DenseMatrix(ois);
+		b = new DenseVector(ois);
+
+		filter_size = W.rowSize();
+		num_filters = W.colSize();
+		window_size = ois.readInt();
+	}
+
+	@Override
+	public void writeObject(ObjectOutputStream oos) throws Exception {
+		W.writeObject(oos);
+		b.writeObject(oos);
+		oos.writeInt(window_size);
 	}
 
 }

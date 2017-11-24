@@ -38,7 +38,7 @@ public class NeuralNet extends ArrayList<Layer> {
 
 	private Vocab vocab = new Vocab();
 
-	private TaskType tt;
+	private TaskType tt = TaskType.CLASSIFICATION;
 
 	/**
 	 * 
@@ -89,7 +89,6 @@ public class NeuralNet extends ArrayList<Layer> {
 	public NeuralNet copy() {
 		NeuralNet ret = new NeuralNet(labelIdxer, vocab, tt);
 		ret.ensureCapacity(size());
-
 		for (Layer l : this) {
 			ret.add(l.copy());
 		}

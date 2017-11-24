@@ -1,8 +1,8 @@
 package ohs.nlp.pos;
 
-import ohs.nlp.ling.types.MDocument;
-import ohs.nlp.ling.types.MSentence;
-import ohs.nlp.ling.types.MToken;
+import ohs.nlp.ling.types.LDocument;
+import ohs.nlp.ling.types.LSentence;
+import ohs.nlp.ling.types.LToken;
 import ohs.nlp.ling.types.MultiToken;
 import ohs.nlp.ling.types.TokenAttr;
 import ohs.utils.StrUtils;
@@ -14,7 +14,7 @@ public class SejongParser {
 
 		String surface = two[0];
 		String[] parts = two[1].split(MultiToken.DELIM.replace("+", "\\+"));
-		MToken[] toks = new MToken[parts.length];
+		LToken[] toks = new LToken[parts.length];
 		for (int i = 0; i < parts.length; i++) {
 			toks[i] = parseToken(parts[i]);
 		}
@@ -24,22 +24,22 @@ public class SejongParser {
 		return ret;
 	}
 
-	public static MDocument parseDocument(String s) {
+	public static LDocument parseDocument(String s) {
 		String[] lines = s.split("\n\n");
-		MSentence[] sents = new MSentence[lines.length];
+		LSentence[] sents = new LSentence[lines.length];
 		for (int i = 0; i < sents.length; i++) {
 			sents[i] = parseSentence(lines[i]);
 		}
 
-		MDocument doc = new MDocument(sents);
+		LDocument doc = new LDocument(sents);
 
 		enumerateStarts(doc);
 
 		return doc;
 	}
 
-	public static void enumerateStarts(MDocument doc) {
-		MToken[] mts = doc.toMultiTokens();
+	public static void enumerateStarts(LDocument doc) {
+		LToken[] mts = doc.toMultiTokens();
 		for (int i = 0, loc = 0; i < mts.length; i++) {
 			MultiToken mt = (MultiToken) mts[i];
 			mt.setStart(loc);
@@ -53,21 +53,21 @@ public class SejongParser {
 		}
 	}
 
-	public static MSentence parseSentence(String s) {
+	public static LSentence parseSentence(String s) {
 		String[] lines = s.split("\n");
 		MultiToken[] mts = new MultiToken[lines.length];
 		for (int i = 0; i < lines.length; i++) {
 			mts[i] = parseMultiToken(lines[i]);
 		}
-		return new MSentence(mts);
+		return new LSentence(mts);
 	}
 
-	public static MToken parseToken(String s) {
+	public static LToken parseToken(String s) {
 		String[] values = new String[TokenAttr.size()];
 
-		StrUtils.copy(s.split(MToken.DELIM), values);
+		StrUtils.copy(s.split(LToken.DELIM), values);
 
-		MToken ret = new MToken();
+		LToken ret = new LToken();
 		for (TokenAttr attr : TokenAttr.values()) {
 			ret.set(attr, values[attr.ordinal()]);
 		}

@@ -7,8 +7,8 @@ import java.util.Set;
 
 import ohs.io.FileUtils;
 import ohs.io.TextFileReader;
-import ohs.nlp.ling.types.MDocument;
-import ohs.nlp.ling.types.MSentence;
+import ohs.nlp.ling.types.LDocument;
+import ohs.nlp.ling.types.LSentence;
 import ohs.nlp.ling.types.MultiToken;
 import ohs.nlp.ling.types.TokenAttr;
 import ohs.tree.trie.hash.HMTNode;
@@ -33,7 +33,7 @@ public class MorphemeAnalyzer2 {
 		{
 			String document = "프랑스의 세계적인 의상 디자이너 엠마누엘 웅가로가 실내 장식용 직물 디자이너로 나섰다.\n";
 
-			MDocument doc = t.tokenize(document);
+			LDocument doc = t.tokenize(document);
 			a.analyze(doc);
 		}
 
@@ -101,9 +101,9 @@ public class MorphemeAnalyzer2 {
 		}
 	}
 
-	public void analyze(MDocument doc) {
+	public void analyze(LDocument doc) {
 		for (int i = 0; i < doc.size(); i++) {
-			MSentence sent = doc.getSentence(i);
+			LSentence sent = doc.getSentence(i);
 			MultiToken[] mts = sent.toMultiTokens();
 
 			for (int j = 0; j < mts.length; j++) {

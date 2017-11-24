@@ -11,10 +11,10 @@ import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseVector;
-import ohs.nlp.ling.types.MDocument;
-import ohs.nlp.ling.types.MDocumentCollection;
-import ohs.nlp.ling.types.MSentence;
-import ohs.nlp.ling.types.MToken;
+import ohs.nlp.ling.types.LDocument;
+import ohs.nlp.ling.types.LDocumentCollection;
+import ohs.nlp.ling.types.LSentence;
+import ohs.nlp.ling.types.LToken;
 import ohs.nlp.pos.NLPPath;
 import ohs.nlp.pos.SejongReader;
 import ohs.types.generic.CounterMap;
@@ -82,22 +82,22 @@ public class HMMTrainer {
 
 	public static void test02() throws Exception {
 
-		MDocumentCollection coll = new MDocumentCollection();
+		LDocumentCollection coll = new LDocumentCollection();
 
 		SejongReader r = new SejongReader(NLPPath.POS_DATA_FILE);
 		while (r.hasNext()) {
 			if (coll.size() == 1000) {
 				break;
 			}
-			MDocument doc = r.next();
+			LDocument doc = r.next();
 			coll.add(doc);
 
 		}
 		r.close();
 
-		for (MDocument doc : coll) {
-			for (MSentence ts : doc) {
-				for (MToken t : ts) {
+		for (LDocument doc : coll) {
+			for (LSentence ts : doc) {
+				for (LToken t : ts) {
 					String text = t.getString(0);
 					String text2 = UnicodeUtils.decomposeToJamoStr(text);
 
@@ -119,19 +119,19 @@ public class HMMTrainer {
 
 		wordIndexer.add("UNK");
 
-		List<MSentence> sents = coll.getSentences();
+		List<LSentence> sents = coll.getSentences();
 
 		IntegerMatrix wss = new IntegerMatrix(sents.size());
 		IntegerMatrix poss = new IntegerMatrix(sents.size());
 
 		for (int i = 0; i < sents.size(); i++) {
-			MSentence sent = sents.get(i);
+			LSentence sent = sents.get(i);
 
 			int[] ws = ArrayUtils.range(sent.size());
 			int[] pos = ArrayUtils.range(sent.size());
 
 			for (int j = 0; j < sent.size(); j++) {
-				MToken t = sent.get(j);
+				LToken t = sent.get(j);
 				ws[j] = wordIndexer.getIndex(t.getString(0));
 				pos[j] = posIndexer.getIndex(t.getString(1));
 			}

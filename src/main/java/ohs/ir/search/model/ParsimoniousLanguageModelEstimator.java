@@ -7,6 +7,7 @@ import ohs.math.ArrayMath;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.SparseVector;
+import ohs.types.generic.Vocab;
 
 /**
  * This class provides parsimonious language model (PLM) estimation methods.
@@ -39,7 +40,7 @@ public class ParsimoniousLanguageModelEstimator {
 		System.out.println("probess ends.");
 	}
 
-	private DocumentCollection dc;
+	private Vocab vocab;
 
 	private double epsilon = 0.0000001;
 
@@ -47,54 +48,8 @@ public class ParsimoniousLanguageModelEstimator {
 
 	private double mixture_d = 0.1;
 
-	public ParsimoniousLanguageModelEstimator(DocumentCollection dc) {
-		this.dc = dc;
-	}
-
-	public SparseVector estimateOld(SparseVector dv) {
-		SparseVector lm = dv.copy();
-		// lm.setAll(1f / lm.size());
-		lm.normalize();
-
-		NumberFormat nf = NumberFormat.getInstance();
-		nf.setMinimumFractionDigits(2);
-		nf.setGroupingUsed(false);
-
-		// System.out.println("<=== start ===>");
-
-		for (int i = 0; i < max_iters; i++) {
-			// System.out.println(VectorUtils.toCounter(lm, dc.getVocab()));
-
-			SparseVector lm_old = lm.copy();
-
-			for (int j = 0; j < dv.size(); j++) {
-				int w = dv.indexAt(j);
-				double cnt_w_in_d = dv.valueAt(j);
-				double pr_w_in_d = lm.valueAt(j);
-				double pr_w_in_c = dc.getVocab().getProb(w);
-
-				double e = Math.log(cnt_w_in_d);
-				e += Math.log(mixture_d);
-				e += Math.log(pr_w_in_d);
-				e -= Math.log(mixture_d * pr_w_in_d + (1 - mixture_d) * pr_w_in_c);
-				lm.setAt(j, e);
-			}
-
-			lm.add(-VectorMath.sumLogProbs(lm));
-
-			VectorMath.exp(lm);
-
-			double diff = ArrayMath.sumSquaredDifferences(lm.values(), lm_old.values());
-
-			if (diff < epsilon) {
-				// System.out.println(VectorUtils.toCounter(lm, dc.getVocab()));
-				break;
-			}
-		}
-
-		// System.out.println("<=== end ===>");
-
-		return lm;
+	public ParsimoniousLanguageModelEstimator(Vocab vocab) {
+		this.vocab = vocab;
 	}
 
 	public SparseVector estimate(SparseVector dv) {
@@ -119,7 +74,7 @@ public class ParsimoniousLanguageModelEstimator {
 				int w = dv.indexAt(j);
 				double cnt_w_in_d = dv.valueAt(j);
 				double pr_w_in_d = lm.valueAt(j);
-				double pr_w_in_c = dc.getVocab().getProb(w);
+				double pr_w_in_c = vocab.getProb(w);
 				double p1 = mixture_d * pr_w_in_d;
 				double p2 = mixture_d * pr_w_in_d + (1 - mixture_d) * pr_w_in_c;
 				double ratio = p1 / p2;
@@ -137,6 +92,52 @@ public class ParsimoniousLanguageModelEstimator {
 
 			logLL_old = logLL;
 		}
+		return lm;
+	}
+
+	public SparseVector estimateOld(SparseVector dv) {
+		SparseVector lm = dv.copy();
+		// lm.setAll(1f / lm.size());
+		lm.normalize();
+
+		NumberFormat nf = NumberFormat.getInstance();
+		nf.setMinimumFractionDigits(2);
+		nf.setGroupingUsed(false);
+
+		// System.out.println("<=== start ===>");
+
+		for (int i = 0; i < max_iters; i++) {
+			// System.out.println(VectorUtils.toCounter(lm, dc.getVocab()));
+
+			SparseVector lm_old = lm.copy();
+
+			for (int j = 0; j < dv.size(); j++) {
+				int w = dv.indexAt(j);
+				double cnt_w_in_d = dv.valueAt(j);
+				double pr_w_in_d = lm.valueAt(j);
+				double pr_w_in_c = vocab.getProb(w);
+
+				double e = Math.log(cnt_w_in_d);
+				e += Math.log(mixture_d);
+				e += Math.log(pr_w_in_d);
+				e -= Math.log(mixture_d * pr_w_in_d + (1 - mixture_d) * pr_w_in_c);
+				lm.setAt(j, e);
+			}
+
+			lm.add(-VectorMath.sumLogProbs(lm));
+
+			VectorMath.exp(lm);
+
+			double diff = ArrayMath.sumSquaredDifferences(lm.values(), lm_old.values());
+
+			if (diff < epsilon) {
+				// System.out.println(VectorUtils.toCounter(lm, dc.getVocab()));
+				break;
+			}
+		}
+
+		// System.out.println("<=== end ===>");
+
 		return lm;
 	}
 

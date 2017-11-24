@@ -10,7 +10,7 @@ import ohs.types.generic.Indexer;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
 
-public class MToken extends ArrayList<Object> {
+public class LToken extends ArrayList<Object> {
 
 	public static String DELIM = " ";
 
@@ -27,35 +27,37 @@ public class MToken extends ArrayList<Object> {
 		INDEXER.add("POS");
 	}
 
-	public static MToken newToken(String s) {
+	public static LToken newToken(String s) {
 		List<String> ps = StrUtils.split(s);
-		MToken ret = new MToken(ps.size());
+		LToken ret = new LToken(ps.size());
 		for (int i = 0; i < ps.size(); i++) {
 			ret.add(ps.get(i));
 		}
 		return ret;
 	}
 
-	private DenseVector fv;
-
-	private DenseVector cv;
+	private DenseVector fv = null;
 
 	protected int start = 0;
 
-	public MToken() {
+	public LToken() {
 		super();
 	}
 
-	public MToken(int size) {
+	public LToken(int size) {
 		super(size);
 	}
 
-	public MToken(int start, String word) {
+	public LToken(int start, String word) {
 		this.start = start;
 		add(word);
 	}
 
-	public MToken(String word) {
+	public LToken(ObjectInputStream ois) throws Exception {
+		readObject(ois);
+	}
+
+	public LToken(String word) {
 		this(0, word);
 	}
 
@@ -66,10 +68,6 @@ public class MToken extends ArrayList<Object> {
 			ret = get(idx);
 		}
 		return ret;
-	}
-
-	public DenseVector getCharacterVector() {
-		return cv;
 	}
 
 	public DenseVector getFeatureVector() {
@@ -94,10 +92,14 @@ public class MToken extends ArrayList<Object> {
 
 	public void readObject(ObjectInputStream ois) throws Exception {
 		start = ois.readInt();
-	}
+		int size = ois.readInt();
+		for (int i = 0; i < size; i++) {
+			add(ois.readObject());
+		}
 
-	public void SetCharacterVector(DenseVector cv) {
-		this.cv = cv;
+		if (ois.readBoolean()) {
+			fv = new DenseVector(ois);
+		}
 	}
 
 	public void setFeatureVector(DenseVector fv) {
@@ -133,6 +135,17 @@ public class MToken extends ArrayList<Object> {
 
 	public void writeObject(ObjectOutputStream oos) throws Exception {
 		oos.writeInt(start);
+		oos.writeInt(size());
+		for (Object o : this) {
+			oos.writeObject(o);
+		}
+
+		if (fv == null) {
+			oos.writeBoolean(false);
+		} else {
+			oos.writeBoolean(true);
+			fv.writeObject(oos);
+		}
 	}
 
 }

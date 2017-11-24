@@ -14,9 +14,9 @@ import ohs.math.ArrayMath;
 import ohs.math.VectorMath;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseVector;
-import ohs.nlp.ling.types.MDocument;
-import ohs.nlp.ling.types.MSentence;
-import ohs.nlp.ling.types.MToken;
+import ohs.nlp.ling.types.LDocument;
+import ohs.nlp.ling.types.LSentence;
+import ohs.nlp.ling.types.LToken;
 import ohs.types.common.IntPair;
 import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
@@ -54,10 +54,10 @@ public class PhraseRanker {
 
 			List<String> ansPhrss = Generics.newArrayList();
 
-			MDocument md1 = MDocument.newDocument(ps.get(1));
-			MDocument md2 = MDocument.newDocument(ps.get(2));
+			LDocument md1 = LDocument.newDocument(ps.get(1));
+			LDocument md2 = LDocument.newDocument(ps.get(2));
 
-			Counter<MSentence> phrss = pr.rank(md2);
+			Counter<LSentence> phrss = pr.rank(md2);
 
 			int pred_phrs_size = pnp.predict(md2);
 
@@ -69,10 +69,10 @@ public class PhraseRanker {
 
 			StringBuffer sb2 = new StringBuffer();
 
-			for (MSentence mt : phrss.getSortedKeys()) {
+			for (LSentence mt : phrss.getSortedKeys()) {
 				StringBuffer sb = new StringBuffer();
 				double score = phrss.getCount(mt);
-				for (MToken t : mt) {
+				for (LToken t : mt) {
 					sb.append(t.get(0));
 				}
 
@@ -110,14 +110,14 @@ public class PhraseRanker {
 		this.cps = cps;
 	}
 
-	private Counter<MSentence> getPhraseCounts(MDocument doc, List<List<IntPair>> psData) {
-		Counter<MSentence> ret = Generics.newCounter();
+	private Counter<LSentence> getPhraseCounts(LDocument doc, List<List<IntPair>> psData) {
+		Counter<LSentence> ret = Generics.newCounter();
 		for (int i = 0; i < doc.size(); i++) {
-			List<MToken> ts = doc.get(i);
+			List<LToken> ts = doc.get(i);
 			List<IntPair> ps = psData.get(i);
 
 			for (IntPair p : ps) {
-				MSentence phrs = new MSentence();
+				LSentence phrs = new LSentence();
 				for (int j = p.getFirst(); j < p.getSecond(); j++) {
 					phrs.add(ts.get(j));
 				}
@@ -128,11 +128,11 @@ public class PhraseRanker {
 		return ret;
 	}
 
-	private CounterMap<MSentence, MToken> getPhraseToWords(MDocument d, List<List<IntPair>> psData) {
-		CounterMap<MSentence, MToken> ret = Generics.newCounterMap();
+	private CounterMap<LSentence, LToken> getPhraseToWords(LDocument d, List<List<IntPair>> psData) {
+		CounterMap<LSentence, LToken> ret = Generics.newCounterMap();
 
 		for (int i = 0; i < d.size(); i++) {
-			MSentence s = d.get(i);
+			LSentence s = d.get(i);
 			List<IntPair> ps = psData.get(i);
 
 			if (ps.size() == 0) {
@@ -140,7 +140,7 @@ public class PhraseRanker {
 			}
 
 			for (IntPair p : ps) {
-				MSentence phrs = new MSentence();
+				LSentence phrs = new LSentence();
 
 				for (int j = p.getFirst(); j < p.getSecond(); j++) {
 					phrs.add(s.get(j));
@@ -152,14 +152,14 @@ public class PhraseRanker {
 				for (int j = lower_boud; j < p.getFirst(); j++) {
 					double dist = p.getFirst() - j;
 					double score = 1d / dist;
-					MToken t = s.get(j);
+					LToken t = s.get(j);
 					ret.incrementCount(phrs, t, score);
 				}
 
 				for (int j = p.getSecond(); j < upper_bound; j++) {
 					double dist = j - p.getSecond() + 1;
 					double score = 1d / dist;
-					MToken t = s.get(j);
+					LToken t = s.get(j);
 					ret.incrementCount(phrs, t, score);
 				}
 			}
@@ -169,13 +169,13 @@ public class PhraseRanker {
 		return ret;
 	}
 
-	private DenseVector getPhraseWeights(Indexer<MSentence> phrsIdxer, Indexer<MToken> wordIdxer,
+	private DenseVector getPhraseWeights(Indexer<LSentence> phrsIdxer, Indexer<LToken> wordIdxer,
 			DenseVector wordWeights) {
 		DenseVector ret = new DenseVector(phrsIdxer.size());
 		for (int p = 0; p < phrsIdxer.size(); p++) {
-			MSentence phrs = phrsIdxer.getObject(p);
+			LSentence phrs = phrsIdxer.getObject(p);
 			double weight = 0;
-			for (MToken t : phrs) {
+			for (LToken t : phrs) {
 				int w = wordIdxer.indexOf(t);
 				weight += wordWeights.value(w);
 			}
@@ -185,23 +185,23 @@ public class PhraseRanker {
 	}
 
 	public List<String> getWords(String content) {
-		MDocument doc = MDocument.newDocument(content);
+		LDocument doc = LDocument.newDocument(content);
 		List<String> ret = Generics.newArrayList();
-		for (MSentence sent : doc) {
-			for (MToken t : sent) {
+		for (LSentence sent : doc) {
+			for (LToken t : sent) {
 				ret.add(String.format("%s_/_%s", t.getString(0), t.getString(1)));
 			}
 		}
 		return ret;
 	}
 
-	private CounterMap<MToken, MToken> getWordToWords(MDocument doc) {
-		CounterMap<MToken, MToken> ret = Generics.newCounterMap();
+	private CounterMap<LToken, LToken> getWordToWords(LDocument doc) {
+		CounterMap<LToken, LToken> ret = Generics.newCounterMap();
 		for (int i = 0; i < doc.size(); i++) {
-			MSentence s = doc.get(i);
+			LSentence s = doc.get(i);
 
 			for (int j = 0; j < s.size(); j++) {
-				MToken t1 = s.get(j);
+				LToken t1 = s.get(j);
 
 				double score1 = 1d / (j + 1);
 				// phrsBiases.incrementCount(t1, score1);
@@ -209,7 +209,7 @@ public class PhraseRanker {
 				int m = Math.min(i + window_size, s.size());
 
 				for (int k = j + 1; k < m; k++) {
-					MToken t2 = s.get(k);
+					LToken t2 = s.get(k);
 					double dist = k - j;
 					double score2 = 1d / dist;
 					ret.incrementCount(t1, t2, score2);
@@ -219,11 +219,11 @@ public class PhraseRanker {
 		return ret;
 	}
 
-	private DenseVector getWordWeights(Indexer<MToken> wordIdxer, Counter<MToken> wordCnts) {
+	private DenseVector getWordWeights(Indexer<LToken> wordIdxer, Counter<LToken> wordCnts) {
 		DenseVector ret = new DenseVector(wordIdxer.size());
 
 		for (int w = 0; w < wordIdxer.size(); w++) {
-			MToken t = wordIdxer.getObject(w);
+			LToken t = wordIdxer.getObject(w);
 			String word = t.getString(0);
 			double doc_freq = featIdxer.getDocFreq(word);
 			double cnt = wordCnts.getCount(t);
@@ -237,21 +237,21 @@ public class PhraseRanker {
 		return ret;
 	}
 
-	public Counter<MSentence> rank(MDocument doc) {
+	public Counter<LSentence> rank(LDocument doc) {
 		List<List<IntPair>> pss = cps.search(doc);
-		CounterMap<MSentence, MToken> phrsSims = getPhraseToWords(doc, pss);
-		CounterMap<MToken, MToken> wordSims = getWordToWords(doc);
-		Counter<MSentence> phrsCnts = getPhraseCounts(doc, pss);
-		Counter<MToken> wordCnts = Generics.newCounter();
+		CounterMap<LSentence, LToken> phrsSims = getPhraseToWords(doc, pss);
+		CounterMap<LToken, LToken> wordSims = getWordToWords(doc);
+		Counter<LSentence> phrsCnts = getPhraseCounts(doc, pss);
+		Counter<LToken> wordCnts = Generics.newCounter();
 
-		for (List<MToken> ts : doc) {
-			for (MToken t : ts) {
+		for (List<LToken> ts : doc) {
+			for (LToken t : ts) {
 				wordCnts.incrementCount(t, 1);
 			}
 		}
 
-		Indexer<MSentence> phrsIdxer = Generics.newIndexer(phrsCnts.keySet());
-		Indexer<MToken> wordIdxer = Generics.newIndexer(wordCnts.keySet());
+		Indexer<LSentence> phrsIdxer = Generics.newIndexer(phrsCnts.keySet());
+		Indexer<LToken> wordIdxer = Generics.newIndexer(wordCnts.keySet());
 
 		DenseVector wordWeights = getWordWeights(wordIdxer, wordCnts);
 		DenseVector phrsWeights = getPhraseWeights(phrsIdxer, wordIdxer, wordWeights);
@@ -261,13 +261,13 @@ public class PhraseRanker {
 
 		DenseMatrix T1 = new DenseMatrix(phrsIdxer.size(), wordIdxer.size());
 
-		for (MSentence phrs : phrsSims.keySet()) {
+		for (LSentence phrs : phrsSims.keySet()) {
 			int p = phrsIdxer.indexOf(phrs);
 			double p_weight = phrsWeights.value(p);
-			Counter<MToken> c = phrsSims.getCounter(phrs);
+			Counter<LToken> c = phrsSims.getCounter(phrs);
 
-			for (Entry<MToken, Double> e : c.entrySet()) {
-				MToken word = e.getKey();
+			for (Entry<LToken, Double> e : c.entrySet()) {
+				LToken word = e.getKey();
 				double sim = e.getValue();
 				int w = wordIdxer.indexOf(word);
 				double w_weight = wordWeights.value(w);
@@ -281,13 +281,13 @@ public class PhraseRanker {
 
 		DenseMatrix T2 = new DenseMatrix(wordIdxer.size());
 
-		for (MToken t1 : wordSims.keySet()) {
+		for (LToken t1 : wordSims.keySet()) {
 			int w1 = wordIdxer.indexOf(t1);
 			double weight1 = wordWeights.value(w1);
-			Counter<MToken> c = wordSims.getCounter(t1);
+			Counter<LToken> c = wordSims.getCounter(t1);
 
-			for (Entry<MToken, Double> e : c.entrySet()) {
-				MToken t2 = e.getKey();
+			for (Entry<LToken, Double> e : c.entrySet()) {
+				LToken t2 = e.getKey();
 				double sim = e.getValue();
 				int w2 = wordIdxer.indexOf(t2);
 				double weight2 = wordWeights.value(w2);
@@ -332,10 +332,10 @@ public class PhraseRanker {
 
 		ArrayMath.randomWalk(T4.values(), cents.values(), null, 500, 10);
 
-		Counter<MSentence> ret = Generics.newCounter();
+		Counter<LSentence> ret = Generics.newCounter();
 
 		for (int w = 0; w < phrsIdxer.size(); w++) {
-			MSentence phrs = phrsIdxer.getObject(w);
+			LSentence phrs = phrsIdxer.getObject(w);
 			ret.incrementCount(phrs, cents.value(w));
 		}
 

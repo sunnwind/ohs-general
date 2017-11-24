@@ -42,9 +42,9 @@ import ohs.eden.keyphrase.cluster.KPPath;
 import ohs.io.FileUtils;
 import ohs.io.TextFileWriter;
 import ohs.ir.weight.TermWeighting;
-import ohs.nlp.ling.types.MDocument;
-import ohs.nlp.ling.types.MSentence;
-import ohs.nlp.ling.types.MToken;
+import ohs.nlp.ling.types.LDocument;
+import ohs.nlp.ling.types.LSentence;
+import ohs.nlp.ling.types.LToken;
 import ohs.types.common.IntPair;
 import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
@@ -167,13 +167,13 @@ public class DataHandler {
 
 				String content = title + "<nl>" + abs;
 
-				MDocument d = new MDocument();
+				LDocument d = new LDocument();
 
 				for (String sent : content.split("<nl>")) {
-					MSentence s = new MSentence();
+					LSentence s = new LSentence();
 
 					for (String word : StrUtils.split(sent)) {
-						MToken t = new MToken();
+						LToken t = new LToken();
 						t.add(word);
 						s.add(t);
 					}
@@ -185,7 +185,7 @@ public class DataHandler {
 				Counter<String> cc = Generics.newCounter();
 
 				for (int i = 0; i < locData.size(); i++) {
-					MSentence s = d.get(i);
+					LSentence s = d.get(i);
 					List<IntPair> locs = locData.get(i);
 
 					for (IntPair p : locs) {
@@ -269,13 +269,13 @@ public class DataHandler {
 
 				String content = title + "<nl>" + abs;
 
-				MDocument d = new MDocument();
+				LDocument d = new LDocument();
 
 				for (String sent : content.split("<nl>")) {
-					MSentence s = new MSentence();
+					LSentence s = new LSentence();
 
 					for (String word : StrUtils.split(sent)) {
-						MToken t = new MToken();
+						LToken t = new LToken();
 						t.add(word);
 						s.add(t);
 					}
@@ -287,7 +287,7 @@ public class DataHandler {
 				Counter<String> tmp = Generics.newCounter();
 
 				for (int i = 0; i < locData.size(); i++) {
-					MSentence s = d.get(i);
+					LSentence s = d.get(i);
 					List<IntPair> locs = locData.get(i);
 
 					for (IntPair p : locs) {
@@ -968,7 +968,7 @@ public class DataHandler {
 				continue;
 			}
 
-			MSentence s = new MSentence();
+			LSentence s = new LSentence();
 
 			for (LNode node : Analyzer.parseJava(sent)) {
 				Morpheme m = node.morpheme();
@@ -977,7 +977,7 @@ public class DataHandler {
 				String word = m.surface();
 				String pos = vals[0];
 
-				MToken t = new MToken(2);
+				LToken t = new LToken(2);
 				t.add(word);
 				t.add(pos);
 				s.add(t);

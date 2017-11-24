@@ -11,9 +11,9 @@ import java.util.zip.ZipInputStream;
 
 import ohs.io.FileUtils;
 import ohs.io.TextFileWriter;
-import ohs.nlp.ling.types.MDocument;
-import ohs.nlp.ling.types.MSentence;
-import ohs.nlp.ling.types.MToken;
+import ohs.nlp.ling.types.LDocument;
+import ohs.nlp.ling.types.LSentence;
+import ohs.nlp.ling.types.LToken;
 import ohs.nlp.ling.types.MultiToken;
 import ohs.nlp.ling.types.TokenAttr;
 import ohs.types.generic.CounterMap;
@@ -44,10 +44,10 @@ public class SejongDataHandler {
 
 		SejongReader reader = new SejongReader(NLPPath.POS_DATA_FILE);
 		while (reader.hasNext()) {
-			MDocument doc = reader.next();
+			LDocument doc = reader.next();
 
-			for (MSentence sent : doc) {
-				for (MToken mt : sent) {
+			for (LSentence sent : doc) {
+				for (LToken mt : sent) {
 					String ot = mt.get(TokenAttr.WORD);
 					String[] words = mt.getSub(TokenAttr.WORD);
 					String[] poss = mt.getSub(TokenAttr.POS);
@@ -137,7 +137,7 @@ public class SejongDataHandler {
 							}
 
 							if (start > -1 && end - start != 0) {
-								String str1 = StrUtils.join(MToken.DELIM, MultiToken.DELIM, words, poss, start,
+								String str1 = StrUtils.join(LToken.DELIM, MultiToken.DELIM, words, poss, start,
 										end + 1);
 								String str2 = StrUtils.join("", words, start, end + 1);
 
@@ -211,13 +211,13 @@ public class SejongDataHandler {
 
 		SejongReader reader = new SejongReader(NLPPath.POS_DATA_FILE);
 		while (reader.hasNext()) {
-			MDocument doc = reader.next();
+			LDocument doc = reader.next();
 
-			for (MSentence sent : doc.getSentences()) {
-				for (MToken tok : sent.getTokens()) {
+			for (LSentence sent : doc.getSentences()) {
+				for (LToken tok : sent.getTokens()) {
 					MultiToken mt = (MultiToken) tok;
 
-					for (MToken t : mt.getTokens()) {
+					for (LToken t : mt.getTokens()) {
 						cm.incrementCount(t.get(TokenAttr.WORD), t.get(TokenAttr.POS), 1);
 					}
 				}
@@ -250,24 +250,24 @@ public class SejongDataHandler {
 
 		SejongReader reader = new SejongReader(NLPPath.POS_DATA_FILE);
 		while (reader.hasNext()) {
-			MDocument doc = reader.next();
+			LDocument doc = reader.next();
 
-			for (MSentence sent : doc.getSentences()) {
+			for (LSentence sent : doc.getSentences()) {
 				for (MultiToken mt : sent.toMultiTokens()) {
 
 					if (mt.size() > 0) {
-						MToken t = mt.getToken(0);
+						LToken t = mt.getToken(0);
 						String word = t.get(TokenAttr.WORD);
 						String pos = t.get(TokenAttr.POS);
 						cm2.incrementCount(word, pos, 1);
 					}
 
 					for (int i = 1; i < mt.size(); i++) {
-						MToken t1 = mt.getToken(i - 1);
+						LToken t1 = mt.getToken(i - 1);
 						String word1 = t1.get(TokenAttr.WORD);
 						String pos1 = t1.get(TokenAttr.POS);
 
-						MToken t2 = mt.getToken(i);
+						LToken t2 = mt.getToken(i);
 						String word2 = t2.get(TokenAttr.WORD);
 						String pos2 = t2.get(TokenAttr.POS);
 
@@ -327,7 +327,7 @@ public class SejongDataHandler {
 								String[] two = StrUtils.split2Two("/", subparts[j]);
 								String word = two[0];
 								String pos = two[1];
-								subparts[j] = word + MToken.DELIM + pos;
+								subparts[j] = word + LToken.DELIM + pos;
 							}
 
 							parts[2] = StrUtils.join(MultiToken.DELIM, subparts);

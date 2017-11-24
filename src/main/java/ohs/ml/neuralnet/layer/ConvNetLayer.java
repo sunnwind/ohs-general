@@ -1,5 +1,8 @@
 package ohs.ml.neuralnet.layer;
 
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+
 import ohs.matrix.DenseTensor;
 import ohs.ml.neuralnet.nonlinearity.ReLU;
 
@@ -48,23 +51,24 @@ public class ConvNetLayer extends Layer {
 		this.window_size = window_size;
 
 		cl = new ConvolutionalLayer(emb_size, window_size, num_filters);
-
 		nl = new NonlinearityLayer(new ReLU());
-
 		pl = new MaxPoolingLayer(num_filters);
 	}
 
 	@Override
 	public Object backward(Object I) {
-		Object O = cl.backward(I);
+		Object O = pl.backward(I);
 		O = nl.backward(O);
-		O = pl.backward(O);
+		O = cl.backward(O);
 		return O;
 	}
 
 	@Override
 	public Layer copy() {
-		return new ConvNetLayer(cl, nl, pl);
+		ConvolutionalLayer cl2 = cl.copy();
+		NonlinearityLayer nl2 = nl.copy();
+		MaxPoolingLayer pl2 = pl.copy();
+		return new ConvNetLayer(cl2, nl2, pl2);
 	}
 
 	@Override
@@ -113,6 +117,21 @@ public class ConvNetLayer extends Layer {
 	@Override
 	public void prepareTraining() {
 		cl.prepareTraining();
+		nl.prepareTraining();
+		pl.prepareTraining();
+	}
+
+	@Override
+	public void readObject(ObjectInputStream ois) throws Exception {
+		cl = new ConvolutionalLayer(ois);
+		nl = new NonlinearityLayer(ois);
+		pl = new MaxPoolingLayer(ois);
+	}
+
+	public void writeObject(ObjectOutputStream oos) throws Exception {
+		cl.writeObject(oos);
+		nl.writeObject(oos);
+		pl.writeObject(oos);
 	}
 
 }

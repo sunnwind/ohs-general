@@ -5,19 +5,19 @@ import java.util.List;
 import java.util.Set;
 
 import ohs.io.TextFileReader;
-import ohs.nlp.ling.types.MDocument;
-import ohs.nlp.ling.types.MSentence;
-import ohs.nlp.ling.types.MToken;
+import ohs.nlp.ling.types.LDocument;
+import ohs.nlp.ling.types.LSentence;
+import ohs.nlp.ling.types.LToken;
 import ohs.utils.Generics;
 
-public class SejongReader implements Iterator<MDocument> {
+public class SejongReader implements Iterator<LDocument> {
 
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 
 		SejongReader r = new SejongReader(NLPPath.POS_DATA_FILE);
 		while (r.hasNext()) {
-			MDocument doc = r.next();
+			LDocument doc = r.next();
 		}
 		r.close();
 
@@ -26,7 +26,7 @@ public class SejongReader implements Iterator<MDocument> {
 
 	private TextFileReader reader;
 
-	private MDocument doc;
+	private LDocument doc;
 
 	private int num_docs;
 
@@ -47,12 +47,12 @@ public class SejongReader implements Iterator<MDocument> {
 		reader.close();
 	}
 
-	private void filter(MDocument doc) {
-		List<MSentence> sents = Generics.newArrayList();
+	private void filter(LDocument doc) {
+		List<LSentence> sents = Generics.newArrayList();
 
-		for (MSentence sent : doc) {
+		for (LSentence sent : doc) {
 			boolean isValid = true;
-			for (MToken tok : sent) {
+			for (LToken tok : sent) {
 				String pos = tok.getString(1);
 				if (!posSet.contains(pos)) {
 					isValid = false;
@@ -106,7 +106,7 @@ public class SejongReader implements Iterator<MDocument> {
 	}
 
 	@Override
-	public MDocument next() {
+	public LDocument next() {
 		return doc;
 	}
 
