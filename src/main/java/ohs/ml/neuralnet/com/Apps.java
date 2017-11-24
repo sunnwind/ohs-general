@@ -2,6 +2,7 @@ package ohs.ml.neuralnet.com;
 
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import ohs.corpus.type.DocumentCollection;
@@ -25,15 +26,14 @@ import ohs.ml.neuralnet.layer.FullyConnectedLayer;
 import ohs.ml.neuralnet.layer.Layer;
 import ohs.ml.neuralnet.layer.MultiWindowConvolutionalLayer;
 import ohs.ml.neuralnet.layer.MultiWindowMaxPoolingLayer;
-import ohs.ml.neuralnet.layer.NNConcatenationLayer;
 import ohs.ml.neuralnet.layer.NonlinearityLayer;
 import ohs.ml.neuralnet.layer.RecurrentLayer.Type;
 import ohs.ml.neuralnet.layer.RnnLayer;
 import ohs.ml.neuralnet.layer.SoftmaxLayer;
 import ohs.ml.neuralnet.nonlinearity.ReLU;
 import ohs.ml.neuralnet.nonlinearity.Tanh;
-import ohs.nlp.ling.types.LDocumentCollection;
 import ohs.nlp.ling.types.LDocument;
+import ohs.nlp.ling.types.LDocumentCollection;
 import ohs.nlp.ling.types.LSentence;
 import ohs.nlp.ling.types.LToken;
 import ohs.types.generic.Counter;
@@ -104,7 +104,7 @@ public class Apps {
 			ext.addGazeteerFeatures("org", orgs);
 			ext.addGazeteerFeatures("loc", locs);
 			ext.addGazeteerFeatures("misc", miscs);
-			ext.addCharacterFeatures();
+			// ext.addCharacterFeatures();
 		}
 
 		return ext;
@@ -751,7 +751,7 @@ public class Apps {
 
 				int feat_size = featIdxer.size();
 
-				List<Layer> ls = Generics.newArrayList();
+				Map<Integer, Layer> L = Generics.newHashMap();
 
 				for (int i = 0; i < feat_size; i++) {
 					String feat = featIdxer.getObject(i);
@@ -773,12 +773,11 @@ public class Apps {
 					} else {
 						EmbeddingLayer ll = new EmbeddingLayer(valIdxer.size(), emb_size, true, i);
 						ll.setOutputWordIndexes(false);
-						ls.add(ll);
+						L.put(i, ll);
 					}
-
 				}
 
-				l1 = new ConcatenationLayer(ls, null);
+				l1 = new ConcatenationLayer(feat_size, L);
 
 				nn.add(l1);
 			}

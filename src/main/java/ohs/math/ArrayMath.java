@@ -1359,11 +1359,10 @@ public class ArrayMath {
 
 		{
 
-			for(double i = 0; i < 100; i += 0.00001) {
+			for (double i = 0; i < 100; i += 0.00001) {
 				System.out.println(Math.pow(3, i));
 			}
 
-			
 			System.exit(0);
 		}
 
@@ -3647,6 +3646,7 @@ public class ArrayMath {
 		}
 		double max = max(a);
 		double sum = 0;
+		double eps = 0;
 		for (int i = 0; i < a.length; i++) {
 			b[i] = Math.exp(a[i] - max) + eps;
 			sum += b[i];

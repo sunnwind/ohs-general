@@ -55,9 +55,10 @@ public class NeuralNetTrainer {
 			int correct_cnt = 0;
 			double cost = 0;
 			int range_loc = 0;
+			int[][] rs = ranges;
 
-			while ((range_loc = range_cnt.getAndIncrement()) < ranges.length) {
-				int[] r = ranges[range_loc];
+			while ((range_loc = range_cnt.getAndIncrement()) < rs.length) {
+				int[] r = rs[range_loc];
 				int[] locs = BatchUtils.getIndexes(data_locs, r);
 
 				DenseTensor Xm = X.subTensor(locs);
@@ -112,21 +113,25 @@ public class NeuralNetTrainer {
 
 	private List<ParameterUpdater> pus;
 
+	private List<Worker> ws;
+
 	private AtomicInteger range_cnt;
 
 	private ThreadPoolExecutor tpe;
 
 	private TaskType tt;
 
-	private DenseMatrix Wnobias;
-
-	private List<Worker> ws;
+	private DenseTensor W;
 
 	private DenseTensor Wbest;
+
+	private DenseMatrix Wnobias;
 
 	private DenseTensor X;
 
 	private DenseMatrix Y;
+
+	private double best_score = 0;
 
 	public NeuralNetTrainer(NeuralNet nn, NeuralNetParams nnp) throws Exception {
 		prepare(nn, nnp.getThreadSize(), nnp.getBatchSize(), nnp.getLearnRate(), nnp.getRegLambda(),
@@ -167,7 +172,7 @@ public class NeuralNetTrainer {
 
 		nnmr.shutdown();
 
-		VectorUtils.copy(Wbest, onn.getW(false));
+		VectorUtils.copy(Wbest, W);
 	}
 
 	private void prepare(NeuralNet nn, int thread_size, int batch_size, double learn_rate, double reg_lambda,
@@ -221,6 +226,8 @@ public class NeuralNetTrainer {
 		}
 
 		Wbest = nn.getW(false).copy(true);
+
+		W = onn.getW(false);
 
 		tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
 
@@ -283,11 +290,6 @@ public class NeuralNetTrainer {
 			data_size = Y.size();
 		}
 
-		double best_f1 = 0;
-		double best_acc = 0;
-		double best_cost = 0;
-		int best_cor_cnt = 0;
-
 		int s = total_iters;
 		int e = total_iters + max_iters;
 		int iters = 0;
@@ -325,32 +327,54 @@ public class NeuralNetTrainer {
 
 			double acc = 1d * cor_cnt / data_size;
 
-			double norm = ArrayMath.normL2(Wnobias.values());
+			double norm = ArrayMath.normL2(W.values());
 
 			System.out.printf("%dth, cost: %f, acc: %f (%d/%d), time: %s (%s), norm: %f, learn-rate: %f\n", i + 1, cost,
 					acc, cor_cnt, data_size, timer2.stop(), timer1.stop(), norm, learn_rate);
 
-			Performance p = null;
+			{
+				Performance p = null;
 
-			if (Xt != null && Yt != null) {
-				Timer timer3 = Timer.newTimer();
-				p = evaluate(Xt, Yt);
-				System.out.println(p.toString());
-				System.out.printf("time:\t%s\n", timer3.stop());
-			}
+				if (Xt != null && Yt != null) {
+					Timer timer3 = Timer.newTimer();
+					p = evaluate(Xt, Yt);
+					System.out.println(p.toString());
+					System.out.printf("testing time:\t%s\n", timer3.stop());
+				}
 
-			if (p == null) {
-				if (best_cost < cost) {
-					best_cost = cost;
-					best_cor_cnt = cor_cnt;
-					best_acc = acc;
-					VectorUtils.copy(onn.getW(false), Wbest);
+				boolean is_better = false;
+				double ratio = 1;
+
+				if (p == null) {
+					double score = cost;
+					if (score < best_score) {
+						best_score = score;
+						is_better = true;
+					}
+
+					ratio = (score / best_score);
+
+				} else {
+					double score = p.getMicroF1();
+					if (score > best_score) {
+						best_score = score;
+						is_better = true;
+					}
+					ratio = best_score / score;
 				}
-			} else {
-				if (best_f1 < p.getMicroF1()) {
-					best_f1 = p.getMicroF1();
-					VectorUtils.copy(onn.getW(false), Wbest);
+
+				String status = "old";
+
+				if (is_better) {
+					status = "new";
+					VectorUtils.copy(W, Wbest);
+				} else {
+					if (ratio < 0.9) {
+						VectorUtils.copy(Wbest, W);
+					}
 				}
+
+				System.out.printf("best score:\t[%f, %s]\n", best_score, status);
 			}
 
 			if (iters % grad_acc_reset_size == 0) {

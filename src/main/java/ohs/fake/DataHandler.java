@@ -1,9 +1,9 @@
 package ohs.fake;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -16,20 +16,23 @@ import org.bitbucket.eunjeon.seunjeon.Morpheme;
 
 import ohs.corpus.type.RawDocumentCollection;
 import ohs.io.FileUtils;
-import ohs.io.TextFileReader;
 import ohs.io.TextFileWriter;
-import ohs.ir.medical.general.MIRPath;
 import ohs.ir.weight.TermWeighting;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
+import ohs.matrix.DenseVector;
+import ohs.matrix.SparseMatrix;
 import ohs.matrix.SparseVector;
-import ohs.nlp.ling.types.LDocumentCollection;
+import ohs.ml.feat.select.ChisquareComputer;
 import ohs.nlp.ling.types.LDocument;
+import ohs.nlp.ling.types.LDocumentCollection;
 import ohs.nlp.ling.types.LSentence;
 import ohs.nlp.ling.types.LToken;
 import ohs.types.generic.Counter;
 import ohs.types.generic.CounterMap;
 import ohs.types.generic.Indexer;
+import ohs.types.generic.Vocab;
+import ohs.types.number.IntegerArray;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
 import scala.collection.mutable.WrappedArray;
@@ -151,13 +154,84 @@ public class DataHandler {
 		// dh.selectSubset1();
 		// dh.extractVocab();
 
-		dh.formatM2Sentences();
+		// dh.formatM2Sentences();
 		// dh.makeDicts();
 		// dh.makePersonDict();
 		// dh.makeOrgaizationDict();
 		// dh.makeDicts();
+		dh.computeChisquares();
 
 		System.out.println("process ends.");
+	}
+
+	public void computeChisquares() throws Exception {
+		List<File> files = FileUtils.getFilesUnder(FNPath.NAVER_NEWS_COL_LINE_POS_DIR);
+
+		Collections.reverse(files);
+
+		Vocab vocab = new Vocab();
+		Indexer<String> labelIdxer = Generics.newIndexer();
+
+		IntegerArray Y = new IntegerArray(1000000);
+		List<SparseVector> X = Generics.newArrayList(100000);
+
+		for (int i = 0; i < files.size(); i++) {
+			File file = files.get(i);
+			List<String> lines = FileUtils.readLinesFromText(file);
+
+			for (String line : lines) {
+				List<String> ps = StrUtils.split("\t", line);
+				ps = StrUtils.unwrap(ps);
+
+				String topic = ps.get(2).replace("/", "-");
+
+				LDocument d = LDocument.newDocument(ps.get(4));
+
+				if (X.size() == 100000) {
+					break;
+				}
+
+				Y.add(labelIdxer.getIndex(topic));
+
+				Counter<String> c = Generics.newCounter();
+
+				for (LToken t : d.getTokens()) {
+					String word = t.getString(0);
+					String pos = t.getString(1);
+
+					if (pos.startsWith("N") || pos.startsWith("V") || pos.startsWith("U")) {
+
+					} else {
+						continue;
+					}
+
+					c.incrementCount(word, 1);
+				}
+
+				SparseVector x = VectorUtils.toSparseVector(c, vocab, true);
+
+				X.add(x);
+			}
+
+			if (X.size() == 100000) {
+				break;
+			}
+		}
+
+		Y.trimToSize();
+
+		ChisquareComputer cc = new ChisquareComputer(labelIdxer, vocab, new SparseMatrix(X),
+				new DenseVector(Y.values()));
+
+		for (int i = 0; i < labelIdxer.size(); i++) {
+			String topic = labelIdxer.get(i).replace("/", "-");
+			DenseVector c1 = cc.compute(i);
+			Counter<String> c2 = VectorUtils.toCounter(c1, vocab);
+			c2.keepTopNKeys(5000);
+
+			FileUtils.writeStringCounterAsText(String.format("%s/%s.txt", FNPath.DATA_DIR + "dict_topic", topic), c2);
+		}
+
 	}
 
 	public void makeDicts() throws Exception {
