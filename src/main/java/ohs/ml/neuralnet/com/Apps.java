@@ -115,9 +115,9 @@ public class Apps {
 
 		// testMNIST();
 		// testCharRNN();
-		testNER();
+		// testNER();
 
-		// testSentenceClassification();
+		testSentenceClassification();
 		// testDocumentClassification();
 
 		System.out.println("process ends.");

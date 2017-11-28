@@ -3,22 +3,21 @@ package ohs.fake;
 import java.io.File;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Pattern;
 
 import org.bitbucket.eunjeon.seunjeon.Analyzer;
 import org.bitbucket.eunjeon.seunjeon.LNode;
 import org.bitbucket.eunjeon.seunjeon.Morpheme;
 
-import ohs.corpus.type.RawDocumentCollection;
 import ohs.io.FileUtils;
 import ohs.io.TextFileWriter;
 import ohs.ir.weight.TermWeighting;
-import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.DenseVector;
 import ohs.matrix.SparseMatrix;
@@ -29,8 +28,9 @@ import ohs.nlp.ling.types.LDocumentCollection;
 import ohs.nlp.ling.types.LSentence;
 import ohs.nlp.ling.types.LToken;
 import ohs.types.generic.Counter;
-import ohs.types.generic.CounterMap;
 import ohs.types.generic.Indexer;
+import ohs.types.generic.ListMap;
+import ohs.types.generic.SetMap;
 import ohs.types.generic.Vocab;
 import ohs.types.number.IntegerArray;
 import ohs.utils.Generics;
@@ -152,6 +152,7 @@ public class DataHandler {
 		// dh.tagPos();
 		// dh.tagPOS4NaverNews();
 		// dh.selectSubset1();
+		dh.selectSubsetNews2();
 		// dh.extractVocab();
 
 		// dh.formatM2Sentences();
@@ -159,7 +160,8 @@ public class DataHandler {
 		// dh.makePersonDict();
 		// dh.makeOrgaizationDict();
 		// dh.makeDicts();
-		dh.computeChisquares();
+		// dh.computeChisquares();
+		// dh.getM2Labels();
 
 		System.out.println("process ends.");
 	}
@@ -175,6 +177,8 @@ public class DataHandler {
 		IntegerArray Y = new IntegerArray(1000000);
 		List<SparseVector> X = Generics.newArrayList(100000);
 
+		int doc_size = 1000000;
+
 		for (int i = 0; i < files.size(); i++) {
 			File file = files.get(i);
 			List<String> lines = FileUtils.readLinesFromText(file);
@@ -187,7 +191,7 @@ public class DataHandler {
 
 				LDocument d = LDocument.newDocument(ps.get(4));
 
-				if (X.size() == 100000) {
+				if (X.size() == doc_size) {
 					break;
 				}
 
@@ -213,7 +217,7 @@ public class DataHandler {
 				X.add(x);
 			}
 
-			if (X.size() == 100000) {
+			if (X.size() == doc_size) {
 				break;
 			}
 		}
@@ -469,98 +473,70 @@ public class DataHandler {
 		}
 
 		FileUtils.writeAsText(FNPath.DATA_DIR + "M2_test_sents.txt", sb.toString().trim());
-
 	}
 
-	public void selectSubset2() throws Exception {
-		RawDocumentCollection rdc = new RawDocumentCollection(FNPath.NAVER_NEWS_COL_DC_DIR);
+	public void getM2Labels() throws Exception {
 
-		TextFileWriter writer = new TextFileWriter(FNPath.NAVER_DATA_DIR + "dissam_docs.txt");
-		int cnt = 0;
+		List<String> lines = FileUtils.readLinesFromText(FNPath.DATA_DIR + "M2_test_sents_labeled.txt");
 
-		for (int i = 0; i < rdc.size(); i++) {
-			Map<String, String> m = rdc.getMap(i);
+		List<String> outs = Generics.newArrayList(lines.size());
 
-			String id = m.get("id");
-			String cat = m.get("cat1");
-			String title = m.get("title");
-			String content = m.get("body");
+		for (int i = 0; i < lines.size();) {
+			if (lines.get(i).startsWith("DOCID")) {
+				String docid = lines.get(i).split("\t")[1];
 
-			String s = title + "\n" + content.replace(StrUtils.LINE_REP, "\n");
-			s = s.trim();
-
-			LDocument md = LDocument.newDocument(s);
-
-			CounterMap<String, Integer> cm = Generics.newCounterMap();
-			Indexer<String> wordIdxer = Generics.newIndexer();
-			List<String> l = Generics.newArrayList(md.size());
-
-			for (int j = 0; j < md.size(); j++) {
-				LSentence ms = md.get(j);
-
-				String type = "T";
-
-				if (j != 0) {
-					type = "B";
-				}
-
-				Counter<Integer> c = cm.getCounter(type);
-
-				StringBuffer sb = new StringBuffer();
-
-				for (LToken t : ms) {
-					String word = t.getString(0);
-					String pos = t.getString(1);
-					sb.append(word + " ");
-
-					if (pos.startsWith("N")) {
-						String ss = String.format("%s / %s", t.get(0), t.get(1));
-						int w = wordIdxer.getIndex(ss);
-						c.incrementCount(w, 1);
+				int j = 0;
+				for (int k = i + 1; k < lines.size(); k++) {
+					if (lines.get(k).startsWith("DOCID")) {
+						j = k;
+						break;
 					}
 				}
-				l.add(sb.toString().trim());
-			}
 
-			String text = StrUtils.join("\n", l);
-			SparseVector sv1 = new SparseVector(cm.getCounter("T"));
-			SparseVector sv2 = new SparseVector(cm.getCounter("B"));
-
-			double cosine = VectorMath.cosine(sv1, sv2);
-
-			if (sv1.size() == 0 || sv2.size() == 0) {
-				continue;
-			}
-
-			if (cosine < 0.1) {
-
-				// System.out.println("=============");
-				// System.out.printf("cosine:\t%f\n", cosine);
-				// System.out.println(VectorUtils.toCounter(sv1, wordIdxer));
-				// System.out.println(VectorUtils.toCounter(sv2, wordIdxer));
-				// System.out.println("------------");
-				// System.out.println(text);
-				// System.out.println();
-
-				StringBuffer sb = new StringBuffer();
-				sb.append(String.format("id:\t%s", id));
-				sb.append(String.format("\ndseq:\t%d", i));
-				sb.append(String.format("\ncat1:\t%s", cat));
-				sb.append("\ntext:");
-				sb.append("\n" + text);
-				sb.append(String.format("\nTV:\t%s", VectorUtils.toCounter(sv1, wordIdxer)));
-				sb.append(String.format("\nBV:\t%s", VectorUtils.toCounter(sv2, wordIdxer)));
-				sb.append(String.format("\ncosine:\t%f", cosine));
-
-				writer.write(sb + "\n\n");
-
-				if (++cnt == 50000) {
-					break;
+				if (j == 0) {
+					j = lines.size() - 1;
 				}
+
+				int label = 0;
+
+				String s = StrUtils.join("\n", lines, i, j);
+
+				if (s.contains("\tX") || s.contains("\tx")) {
+					label = 1;
+				}
+
+				outs.add(String.format("%s\t%d", docid, label));
+
+				i = j;
+			} else {
+				i++;
 			}
 		}
-		rdc.close();
-		writer.close();
+
+		System.out.println(StrUtils.join("\n", outs));
+
+		StringBuffer sb = new StringBuffer();
+
+		// for (LDocument d : c) {
+		//
+		// sb.append(String.format("DOCID\t%s", d.getAttrMap().get("id")));
+		// sb.append(String.format("\nLABEL\t%s", d.getAttrMap().get("label")));
+		// List<String> l = Generics.newArrayList(d.size());
+		//
+		// for (LSentence s : d) {
+		// String p1 = StrUtils.join(" ", s.getTokenStrings(0));
+		// String p2 = "O";
+		// String[] ps = { p1, p2 };
+		// ps = StrUtils.wrap(ps);
+		// l.add(StrUtils.join("\t", ps));
+		// }
+		//
+		// sb.append("\n" + StrUtils.join("\n", l));
+		// sb.append("\n\n");
+		// }
+
+		// FileUtils.writeAsText(FNPath.DATA_DIR + "M2_test_sents.txt",
+		// sb.toString().trim());
 	}
 
 	public void selectSubsetNews() throws Exception {
@@ -609,110 +585,319 @@ public class DataHandler {
 		System.out.println((int) c.totalCount());
 	}
 
+	public void selectSubsetNews2() throws Exception {
+
+		List<File> files = FileUtils.getFilesUnder(FNPath.NAVER_NEWS_COL_LINE_DIR);
+
+		Collections.reverse(files);
+
+		SetMap<String, String> sm = Generics.newSetMap();
+
+		int col_size = 100000;
+
+		String regex = "[\\p{Punct}\\s\u2029]+";
+		// "[\\s\u2029]+"
+
+		for (int i = 0, j = 0; i < files.size() && i < 1; i++) {
+			File file = files.get(i);
+
+			for (String line : FileUtils.readLinesFromText(file)) {
+				List<String> ps = StrUtils.split("\t", line);
+				ps = StrUtils.unwrap(ps);
+
+				String id = ps.get(0);
+				String topic = ps.get(2);
+				String title = ps.get(4);
+				String body = ps.get(5);
+
+				String s = title + "\n" + body;
+
+				Counter<String> c = Generics.newCounter();
+
+				for (String t : s.split(regex)) {
+					c.incrementCount(t, 1);
+				}
+
+				if (c.totalCount() < 100) {
+					continue;
+				}
+
+				sm.put(topic, id);
+
+				if (j == col_size) {
+					break;
+				}
+			}
+
+			if (j == col_size) {
+				break;
+			}
+		}
+
+		for (String topic : sm.keySet()) {
+			Set<String> set = sm.get(topic);
+
+			List<String> list = Generics.newArrayList(set);
+			Collections.shuffle(list);
+
+			list = list.subList(0, Math.min(list.size(), 200));
+			sm.put(topic, Generics.newHashSet(list));
+		}
+
+		ListMap<String, String> lm = Generics.newListMap();
+
+		for (int i = 0, j = 0; i < files.size() && i < 1; i++) {
+			File file = files.get(i);
+
+			for (String line : FileUtils.readLinesFromText(file)) {
+				List<String> ps = StrUtils.split("\t", line);
+				ps = StrUtils.unwrap(ps);
+
+				String id = ps.get(0);
+				String topic = ps.get(2);
+				String title = ps.get(4);
+				String body = ps.get(5);
+
+				if (sm.contains(topic, id)) {
+					body = body.replace(".\" ", ".\"\n");
+					body = body.replace(". ", ".\n");
+				}
+
+				String s = title + "\n" + body;
+
+				lm.put(topic, id + "\t" + s);
+
+				if (j == col_size) {
+					break;
+				}
+			}
+
+			if (j == col_size) {
+				break;
+			}
+		}
+
+		for (String topic : lm.keySet()) {
+			List<String> ins = lm.get(topic);
+			List<String> outs = Generics.newArrayList();
+
+			for (int i = 0; i < ins.size(); i++) {
+				List<String> ps = StrUtils.split("\t", ins.get(i));
+				String id = ps.get(0);
+				String s = ps.get(1);
+
+				topic = topic.replace("/", "-");
+
+				StringBuffer sb = new StringBuffer();
+				sb.append(String.format("Label:\t%d", 0));
+				sb.append(String.format("\nTopic:\t%s", topic));
+				sb.append(String.format("\nID:\t%s", id));
+
+				List<String> sents = StrUtils.split("\n", s);
+
+				for (int j = 0; j < sents.size(); j++) {
+					if (j == 0) {
+						sb.append(String.format("\nT:\t%s", sents.get(j)));
+						sb.append(String.format("\nFT:\t%s", sents.get(j)));
+					} else {
+						sb.append(String.format("\nB:\t%s", sents.get(j)));
+					}
+
+				}
+
+				outs.add(sb.toString());
+			}
+
+			FileUtils.writeAsText(String.format("%s/M1_train/%s.txt", FNPath.DATA_DIR, topic),
+					StrUtils.join("\n\n", outs));
+
+		}
+
+	}
+
 	public void tagPos() throws Exception {
 		for (File inFile : FileUtils.getFilesUnder(FNPath.DATA_DIR + "data")) {
 
-			// if (!inFile.getName().contains("M2_train")) {
-			// continue;
-			// }
-
-			if (inFile.getName().contains("pos")) {
-				continue;
-			}
-
-			File outFile = new File(inFile.getParentFile(), inFile.getName().replace(".txt", "_pos.txt"));
+			File outFile = new File(FNPath.DATA_DIR + "data_pos", inFile.getName().replace(".txt", "_pos.txt"));
 			String input = FileUtils.readFromText(inFile.getPath(), "euc-kr");
 
 			List<String> ins = StrUtils.split("\r\n", input);
 			List<String> outs = Generics.newLinkedList();
 
-			for (int i = 1; i < ins.size(); i++) {
-				String line = ins.get(i);
+			Pattern m = Pattern.compile("^\\d_\\d+");
 
-				String id = "";
-				String title = "";
-				String body = "";
-				String label = "";
-				String corTitle = "";
+			for (int i = 1; i < ins.size();) {
+				String in1 = ins.get(i);
+				String text = "";
 
-				List<String> ps = StrUtils.split("\t", line);
-
-				{
+				if (m.matcher(ins.get(i)).find()) {
 					int j = 0;
-					id = ps.get(j++);
-					title = ps.get(j++);
-					body = ps.get(j++);
 
-					if (ps.size() >= 4) {
-						label = ps.get(j++);
+					for (int k = i + 1; k < ins.size(); k++) {
+						String in2 = ins.get(k);
+						if (m.matcher(ins.get(k)).find()) {
+							j = k;
+							break;
+						}
 					}
 
-					if (ps.size() >= 5) {
-						corTitle = ps.get(j++);
-						corTitle = StrUtils.normalizeSpaces(corTitle);
+					if (j == 0) {
+						j = i + 1;
 					}
+
+					text = StrUtils.join("\n", ins, i, j);
+					text = text.replace(". ", ".\n");
+					text = text.replace("\n", "<nl>");
+					i = j;
+
+					String id = "";
+					String title = "";
+					String body = "";
+					String label = "";
+					String corTitle = "";
+
+					List<String> ps = StrUtils.split("\t", text);
+
+					System.out.println(ps.toString());
+
+					{
+						int k = 0;
+						id = ps.get(k++);
+						title = ps.get(k++);
+						body = ps.get(k++);
+
+						StringBuffer sb = new StringBuffer();
+
+						for (String p : body.split("<nl>")) {
+							p = p.trim();
+							if (p.length() == 0) {
+								continue;
+							}
+							sb.append(p + "\n");
+						}
+
+						body = sb.toString().trim();
+						// System.out.printf("[%s]\n", body);
+
+						if (ps.size() >= 4) {
+							label = ps.get(k++);
+						}
+
+						if (ps.size() >= 5) {
+							corTitle = ps.get(k++);
+							corTitle = StrUtils.normalizeSpaces(corTitle);
+						}
+					}
+
+					{
+						LDocumentCollection data = new LDocumentCollection();
+
+						String[] items = new String[] { title + "\n" + body, corTitle };
+
+						for (String item : items) {
+							LDocument d = new LDocument();
+							for (String p : item.split("\n")) {
+								p = p.trim();
+
+								if (p.length() == 0) {
+									continue;
+								}
+
+								LSentence s = new LSentence();
+								for (LNode node : Analyzer.parseJava(p)) {
+									Morpheme mm = node.morpheme();
+									WrappedArray<String> fs = mm.feature();
+									String[] vals = (String[]) fs.array();
+									String word = mm.surface();
+									String pos = vals[0];
+
+									LToken t = new LToken(2);
+									t.add(word);
+									t.add(pos);
+									s.add(t);
+								}
+								d.add(s);
+							}
+
+							data.add(d);
+						}
+
+						List<String> l = Generics.newArrayList(4);
+
+						l.add(id);
+						l.add(label);
+						l.add(data.get(0).toString().replace("\n", "<nl>"));
+						l.add(data.get(1).toString().replace("\n", "<nl>"));
+
+						l = StrUtils.wrap(l);
+
+						outs.add(StrUtils.join("\t", l));
+					}
+
+				} else {
+					i++;
 				}
 
-				{
-					StringBuffer sb = new StringBuffer();
-
-					String[] sents = body.replace(".[\\\\s\\u2029]", ".\n").split("\n");
-
-					for (String s : sents) {
-						s = StrUtils.normalizeSpaces(s);
-
-						if (s.length() == 0) {
-							continue;
-						}
-						sb.append(s + "\n");
-					}
-					body = sb.toString().trim();
-				}
-
-				LDocumentCollection data = new LDocumentCollection();
-
-				String[] items = new String[] { title + "\n" + body, corTitle };
-
-				for (String item : items) {
-					LDocument d = new LDocument();
-					for (String p : item.split("\n")) {
-						p = p.trim();
-
-						if (p.length() == 0) {
-							continue;
-						}
-
-						LSentence s = new LSentence();
-						for (LNode node : Analyzer.parseJava(p)) {
-							Morpheme m = node.morpheme();
-							WrappedArray<String> fs = m.feature();
-							String[] vals = (String[]) fs.array();
-							String word = m.surface();
-							String pos = vals[0];
-
-							LToken t = new LToken(2);
-							t.add(word);
-							t.add(pos);
-							s.add(t);
-						}
-						d.add(s);
-					}
-
-					data.add(d);
-				}
-
-				List<String> l = Generics.newArrayList(4);
-
-				l.add(id);
-				l.add(label);
-				l.add(data.get(0).toString().replace("\n", "<nl>"));
-				l.add(data.get(1).toString().replace("\n", "<nl>"));
-
-				l = StrUtils.wrap(l);
-
-				outs.add(StrUtils.join("\t", l));
+				// {
+				// StringBuffer sb = new StringBuffer();
+				//
+				// String[] sents = body.replace(".[\\\\s\\u2029]", ".\n").split("\n");
+				//
+				// for (String s : sents) {
+				// s = StrUtils.normalizeSpaces(s);
+				//
+				// if (s.length() == 0) {
+				// continue;
+				// }
+				// sb.append(s + "\n");
+				// }
+				// body = sb.toString().trim();
+				// }
+				//
+				// LDocumentCollection data = new LDocumentCollection();
+				//
+				// String[] items = new String[] { title + "\n" + body, corTitle };
+				//
+				// for (String item : items) {
+				// LDocument d = new LDocument();
+				// for (String p : item.split("\n")) {
+				// p = p.trim();
+				//
+				// if (p.length() == 0) {
+				// continue;
+				// }
+				//
+				// LSentence s = new LSentence();
+				// for (LNode node : Analyzer.parseJava(p)) {
+				// Morpheme m = node.morpheme();
+				// WrappedArray<String> fs = m.feature();
+				// String[] vals = (String[]) fs.array();
+				// String word = m.surface();
+				// String pos = vals[0];
+				//
+				// LToken t = new LToken(2);
+				// t.add(word);
+				// t.add(pos);
+				// s.add(t);
+				// }
+				// d.add(s);
+				// }
+				//
+				// data.add(d);
+				// }
+				//
+				// List<String> l = Generics.newArrayList(4);
+				//
+				// l.add(id);
+				// l.add(label);
+				// l.add(data.get(0).toString().replace("\n", "<nl>"));
+				// l.add(data.get(1).toString().replace("\n", "<nl>"));
+				//
+				// l = StrUtils.wrap(l);
+				//
+				// outs.add(StrUtils.join("\t", l));
 			}
-
+			//
 			FileUtils.writeStringCollectionAsText(outFile.getPath(), outs);
 		}
 	}

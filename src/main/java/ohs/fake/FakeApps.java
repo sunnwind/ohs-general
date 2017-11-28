@@ -65,10 +65,23 @@ public class FakeApps {
 		if (extFileName != null) {
 			ext.readObject(extFileName);
 		} else {
-			String dirName = "../../data/fake_news/dict/";
+			Set<String> pers = Generics.newHashSet();
+			Set<String> orgs = Generics.newHashSet();
 
-			Set<String> pers = FileUtils.readStringHashSetFromText(dirName + "pers.txt");
-			Set<String> orgs = FileUtils.readStringHashSetFromText(dirName + "orgs.txt");
+			{
+				String dirName = "../../data/fake_news/dict/";
+				pers = FileUtils.readStringHashSetFromText(dirName + "pers.txt");
+				orgs = FileUtils.readStringHashSetFromText(dirName + "orgs.txt");
+			}
+
+			Set<String> pol = Generics.newHashSet();
+			Set<String> eco = Generics.newHashSet();
+
+			{
+				String dirName = "../../data/fake_news/dict_topic/";
+				pol = FileUtils.readStringCounterFromText(dirName + "정치.txt").keySet();
+				eco = FileUtils.readStringCounterFromText(dirName + "경제.txt").keySet();
+			}
 
 			Set<String> poss = Generics.newHashSet(X.getTokenStrings(1));
 			Set<String> prefixes = Generics.newHashSet();
@@ -100,16 +113,18 @@ public class FakeApps {
 				prefixes = c.keySet();
 			}
 
-			ext.addPosFeatures(poss);
-			ext.addCapitalFeatures();
+			// ext.addPosFeatures(poss);
+			// ext.addCapitalFeatures();
 			// ext.addPuctuationFeatures();
 			// ext.addShapeOneFeatures();
 			// ext.addShapeTwoFeatures();
 			// ext.addShapeThreeFeatures();
 			// ext.addSuffixFeatures(suffixes);
 			// ext.addPrefixFeatures(prefixes);
-			ext.addGazeteerFeatures("per", pers);
-			ext.addGazeteerFeatures("org", orgs);
+			// ext.addGazeteerFeatures("per", pers);
+			// ext.addGazeteerFeatures("org", orgs);
+			// ext.addGazeteerFeatures("pol", pol);
+			// ext.addGazeteerFeatures("eco", eco);
 			ext.addTitleWordFeatures();
 			ext.addTopicFeatures(llw);
 
@@ -130,9 +145,8 @@ public class FakeApps {
 		nnp.setGradientClipCutoff(5);
 
 		nnp.setThreadSize(5);
-		nnp.setBatchSize(5);
+		nnp.setBatchSize(1);
 		nnp.setGradientAccumulatorResetSize(1000);
-		nnp.setK2(1);
 
 		nnp.setIsFullSequenceBatch(true);
 		nnp.setIsRandomBatch(true);
@@ -152,13 +166,12 @@ public class FakeApps {
 			LToken.INDEXER = l;
 		}
 
-		String[] fileNames = { "M1_train_pos.txt", "M2_train_pos.txt", "M1_test_pos" };
-
 		LDocumentCollection C1 = new LDocumentCollection();
 		LDocumentCollection C2 = new LDocumentCollection();
 
-		for (File file : FileUtils.getFilesUnder(FNPath.DATA_DIR + "data")) {
-			if (file.getName().startsWith("M1_train_pos")) {
+		for (File file : FileUtils.getFilesUnder(FNPath.DATA_DIR + "data_pos")) {
+			String fName = file.getName();
+			if (fName.startsWith("M1_train_pos") || fName.startsWith("M1_train-2_pos")) {
 				for (String line : FileUtils.readLinesFromText(file)) {
 					List<String> ps = StrUtils.split("\t", line);
 					ps = StrUtils.unwrap(ps);
@@ -173,7 +186,7 @@ public class FakeApps {
 					}
 					C1.add(d);
 				}
-			} else if (file.getName().startsWith("M2_train_pos")) {
+			} else if (fName.startsWith("M2_train_pos")) {
 				for (String line : FileUtils.readLinesFromText(file)) {
 					List<String> ps = StrUtils.split("\t", line);
 					ps = StrUtils.unwrap(ps);
@@ -184,41 +197,14 @@ public class FakeApps {
 
 					C1.add(d);
 				}
-			} else if (file.getName().startsWith("M1_test_pos")) {
-				for (String line : FileUtils.readLinesFromText(file)) {
-					List<String> ps = StrUtils.split("\t", line);
-					ps = StrUtils.unwrap(ps);
-					LDocument d = LDocument.newDocument(ps.get(2));
-					d.getAttrMap().put("id", ps.get(0));
-					C2.add(d);
-				}
 			}
 		}
 
 		C1.doPadding();
 		C2.doPadding();
 
-		// LibLinearWrapper llw = new LibLinearWrapper();
-		// llw.read("../../data/fake_news/topic_model.txt");
-		//
-		// for (MDocument d : _X) {
-		//
-		// {
-		// Counter<String> c = llw.score(d.getCounter(0));
-		//
-		// System.out.println(StrUtils.join(" ", d.getTokenStrings(0)));
-		// System.out.println(c.toString());
-		// }
-		//
-		// for (MSentence s : d) {
-		// Counter<String> c = llw.score(s.getCounter(0));
-		// System.out.println(StrUtils.join(" ", s.getTokenStrings(0)));
-		// System.out.println(c.toString());
-		// System.out.println();
-		// }
-		//
-		// System.out.println();
-		// }
+		String modelFileName = FNPath.DATA_DIR + "m1_model.ser";
+		String extFileName = FNPath.DATA_DIR + "m1_ext.ser";
 
 		NewsFeatureExtractor ext = getFeatureExtractor(null, C1);
 
@@ -317,42 +303,13 @@ public class FakeApps {
 		int feat_emb_size = 10;
 		int output_size = 2;
 
-		DenseMatrix E = new DenseMatrix();
-		E.ensureCapacity(wordIdxer.size());
-
-		{
-			String dir = FNPath.NAVER_DATA_DIR;
-			String emdFileName = dir + "emb/glove_ra.ser";
-			String vocabFileName = dir + "col/dc/vocab.ser";
-
-			Vocab v = DocumentCollection.readVocab(vocabFileName);
-
-			WordSearcher ws = new WordSearcher(v, new RandomAccessDenseMatrix(emdFileName, false), null);
-
-			for (int i = 0; i < wordIdxer.size(); i++) {
-				String word = wordIdxer.getObject(i);
-				DenseVector e = ws.getVector(word);
-
-				if (e == null) {
-					e = new DenseVector(ws.getEmbeddingMatrix().colSize());
-				}
-				E.add(e);
-			}
-			// E.add(1d / VectorMath.normL2(E));
-			feat_emb_size = E.colSize();
-		}
+		boolean read_nn_model = false;
 
 		NeuralNet nn = new NeuralNet(labelIdxer, null, TaskType.SEQ_CLASSIFICATION);
 
-		{
-
-			int num_filters = 100;
-			int[] window_sizes = new int[] { 5 };
-			// int[] window_sizes = new int[] { 2};
-
-			// nn.add(new EmbeddingLayer(vocab_size, emb_size, true));
-			// nn.add(new EmbeddingLayer(E, true, 0));
-
+		if (read_nn_model) {
+			nn.readObject(modelFileName);
+		} else {
 			{
 				ConcatenationLayer l = null;
 				{
@@ -374,13 +331,7 @@ public class FakeApps {
 							emb_size = feat_emb_size;
 						}
 
-						EmbeddingLayer ll = null;
-
-						if (i == 0 && E != null) {
-							ll = new EmbeddingLayer(E, true, i);
-						} else {
-							ll = new EmbeddingLayer(valIdxer.size(), emb_size, true, i);
-						}
+						EmbeddingLayer ll = new EmbeddingLayer(valIdxer.size(), emb_size, true, i);
 						L.put(i, ll);
 					}
 
@@ -389,6 +340,9 @@ public class FakeApps {
 					nn.add(l);
 				}
 			}
+
+			int num_filters = 100;
+			int[] window_sizes = new int[] { 5 };
 
 			nn.add(new MultiWindowConvolutionalLayer(nn.get(nn.size() - 1).getOutputSize(), window_sizes, num_filters));
 			// nn.add(new ConvolutionalLayer(emb_size, 4, num_filters));
@@ -423,30 +377,12 @@ public class FakeApps {
 
 			int max_iters = 100;
 
-			// for (int i = 0; i < max_iters; i++) {
-			// ArrayUtils.shuffle(large.values());
-			//
-			// for (int j = 0; j < large.size();) {
-			// int k = Math.min(large.size(), j + small.size());
-			// IntegerArray locs = new IntegerArray(small.size() * 2);
-			//
-			// for (int l = j; l < k; l++) {
-			// locs.add(large.get(l));
-			// }
-			// j = k;
-			//
-			// locs.addAll(small);
-			// locs.trimToSize();
-			//
-			// DenseTensor Xm = X.subTensor(locs.values());
-			// DenseMatrix Ym = Y.subMatrix(locs.values());
-			// trainer.train(Xm, Ym, Xv, Yv, 1);
-			// }
-			// }
-
 			trainer.train(X, Y, Xv, Yv, max_iters);
 			trainer.finish();
 		}
+
+		nn.writeObject(modelFileName);
+		ext.writeObject(extFileName);
 
 		{
 			DenseTensor Yt = (DenseTensor) nn.forward(Xt);

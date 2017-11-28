@@ -133,6 +133,8 @@ public class NeuralNetTrainer {
 
 	private double best_score = 0;
 
+	private boolean copy_best_model = true;
+
 	public NeuralNetTrainer(NeuralNet nn, NeuralNetParams nnp) throws Exception {
 		prepare(nn, nnp.getThreadSize(), nnp.getBatchSize(), nnp.getLearnRate(), nnp.getRegLambda(),
 				nnp.getGradientClipCutoff(), nnp.getOptimizerType(), nnp.isFullSequenceBatch(), nnp.isRandomBatch(),
@@ -172,7 +174,9 @@ public class NeuralNetTrainer {
 
 		nnmr.shutdown();
 
-		VectorUtils.copy(Wbest, W);
+		if (copy_best_model) {
+			VectorUtils.copy(Wbest, W);
+		}
 	}
 
 	private void prepare(NeuralNet nn, int thread_size, int batch_size, double learn_rate, double reg_lambda,
@@ -227,7 +231,7 @@ public class NeuralNetTrainer {
 
 		Wbest = nn.getW(false).copy(true);
 
-		W = onn.getW(false);
+		W = nn.getW(false);
 
 		tpe = (ThreadPoolExecutor) Executors.newFixedThreadPool(thread_size);
 
@@ -238,6 +242,10 @@ public class NeuralNetTrainer {
 		}
 
 		nnmr = new NeuralNetMultiRunner(nns);
+	}
+
+	public void setCopyBestModel(boolean copy_best_model) {
+		this.copy_best_model = copy_best_model;
 	}
 
 	public void train(DenseTensor X, DenseMatrix Y, DenseTensor Xt, DenseMatrix Yt, int max_iters) throws Exception {
