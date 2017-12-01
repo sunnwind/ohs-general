@@ -3,6 +3,7 @@ package ohs.nlp.ling.types;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -79,6 +80,19 @@ public class LSentence extends ArrayList<LToken> {
 
 	public LSentence(ObjectInputStream ois) throws Exception {
 		readObject(ois);
+	}
+
+	@Override
+	public LSentence clone() {
+		LSentence ret = new LSentence(size());
+
+		for (LToken t : this) {
+			ret.add(t.clone());
+		}
+
+		ret.setAttrMap((Map<String, String>) ((HashMap<String, String>) attrMap).clone());
+		ret.setFeatureVector(fv == null ? null : fv.copy());
+		return ret;
 	}
 
 	public void doPadding() {

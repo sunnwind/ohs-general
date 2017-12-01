@@ -36,6 +36,17 @@ public class LToken extends ArrayList<Object> {
 		return ret;
 	}
 
+	@Override
+	public LToken clone() {
+		LToken ret = new LToken(size());
+		for (Object obj : this) {
+			ret.add(obj);
+		}
+		ret.setFeatureVector(fv == null ? null : fv.copy());
+		ret.setStart(start);
+		return ret;
+	}
+
 	private DenseVector fv = null;
 
 	protected int start = 0;

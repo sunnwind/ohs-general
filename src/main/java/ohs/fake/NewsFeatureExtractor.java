@@ -600,6 +600,7 @@ public class NewsFeatureExtractor {
 	}
 
 	public void writeObject(String fileName) throws Exception {
+		System.out.printf("write at [%s]\n", fileName);
 		ObjectOutputStream oos = FileUtils.openObjectOutputStream(fileName, false);
 		writeObject(oos);
 		oos.flush();

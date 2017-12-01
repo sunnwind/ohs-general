@@ -135,6 +135,8 @@ public class NeuralNetTrainer {
 
 	private boolean copy_best_model = true;
 
+	private int eval_window_size = 1;
+
 	public NeuralNetTrainer(NeuralNet nn, NeuralNetParams nnp) throws Exception {
 		prepare(nn, nnp.getThreadSize(), nnp.getBatchSize(), nnp.getLearnRate(), nnp.getRegLambda(),
 				nnp.getGradientClipCutoff(), nnp.getOptimizerType(), nnp.isFullSequenceBatch(), nnp.isRandomBatch(),
@@ -248,6 +250,10 @@ public class NeuralNetTrainer {
 		this.copy_best_model = copy_best_model;
 	}
 
+	public void setEvaluationWindowSize(int eval_window_size) {
+		this.eval_window_size = eval_window_size;
+	}
+
 	public void train(DenseTensor X, DenseMatrix Y, DenseTensor Xt, DenseMatrix Yt, int max_iters) throws Exception {
 		if (Y.colSize() > 1) {
 			if (is_full_seq_batch) {
@@ -343,7 +349,7 @@ public class NeuralNetTrainer {
 			{
 				Performance p = null;
 
-				if (Xt != null && Yt != null) {
+				if (Xt != null && Yt != null && total_iters % eval_window_size == 0) {
 					Timer timer3 = Timer.newTimer();
 					p = evaluate(Xt, Yt);
 					System.out.println(p.toString());
@@ -377,9 +383,9 @@ public class NeuralNetTrainer {
 					status = "new";
 					VectorUtils.copy(W, Wbest);
 				} else {
-					if (ratio < 0.9) {
-						VectorUtils.copy(Wbest, W);
-					}
+//					if (ratio < 0.9) {
+//						VectorUtils.copy(Wbest, W);
+//					}
 				}
 
 				System.out.printf("best score:\t[%f, %s]\n", best_score, status);

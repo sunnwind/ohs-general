@@ -149,10 +149,14 @@ public class DataHandler {
 	public static void main(String[] args) throws Exception {
 		System.out.println("process begins.");
 		DataHandler dh = new DataHandler();
-		// dh.tagPos();
+		// dh.selectNewsSubset();
+		// dh.buildM1ExtraData();
+		// dh.buildM2ExtraData();
+
+		dh.tagPos();
 		// dh.tagPOS4NaverNews();
 		// dh.selectSubset1();
-		dh.selectSubsetNews2();
+		// dh.selectSubsetNews2();
 		// dh.extractVocab();
 
 		// dh.formatM2Sentences();
@@ -585,7 +589,131 @@ public class DataHandler {
 		System.out.println((int) c.totalCount());
 	}
 
-	public void selectSubsetNews2() throws Exception {
+	public void buildM1ExtraData() throws Exception {
+
+		List<String> res = Generics.newArrayList();
+
+		for (File file : FileUtils.getFilesUnder(FNPath.DATA_DIR + "M1_tagging")) {
+			String s = FileUtils.readFromText(file);
+			s = s.replace("\r", "");
+			List<String> lines = StrUtils.split("\n\n", s);
+
+			for (int i = 0; i < lines.size(); i++) {
+				String line = lines.get(i);
+
+				List<String> lines2 = StrUtils.split("\n", line);
+
+				String id = "";
+				String label = "";
+				String topic = "";
+
+				String title = "";
+				String fakeTitle = "";
+				List<String> sents = Generics.newArrayList();
+
+				boolean is_valid = true;
+
+				for (int j = 0; j < lines2.size(); j++) {
+					List<String> ps = StrUtils.split("\t", lines2.get(j));
+
+					if (ps.size() != 2) {
+						is_valid = false;
+						break;
+					}
+
+					String val = ps.get(1);
+
+					if (j == 0) {
+						label = val;
+					} else if (j == 1) {
+						topic = val;
+					} else if (j == 2) {
+						id = val;
+					} else if (j == 3) {
+						title = val;
+					} else if (j == 4) {
+						fakeTitle = val;
+					} else {
+						sents.add(val);
+					}
+				}
+
+				if (!is_valid) {
+					continue;
+				}
+
+				if (label.equals("0")) {
+					title = "";
+				}
+
+				List<String> vals = Generics.newArrayList();
+				vals.add(id);
+				vals.add(fakeTitle);
+				vals.add(StrUtils.join("<nl>", sents));
+				vals.add(label);
+				vals.add(title);
+				res.add(StrUtils.join("\t", vals));
+			}
+		}
+
+		String out = "식별자\t뉴스제목\t뉴스본문\tLabel\t정답뉴스제목" + "\n" + StrUtils.join("\n", res);
+
+		FileUtils.writeAsText(FNPath.DATA_DIR + "data/M1_train-3.txt", out);
+	}
+
+	public void buildM2ExtraData() throws Exception {
+
+		List<String> res = Generics.newArrayList();
+
+		for (File file : FileUtils.getFilesUnder(FNPath.DATA_DIR + "M2_tagging")) {
+			String s = FileUtils.readFromText(file);
+			List<String> lines = StrUtils.split("\n\n", s);
+
+			for (int i = 0; i < lines.size(); i++) {
+				String line = lines.get(i);
+
+				List<String> lines2 = StrUtils.split("\n", line);
+
+				String id = "";
+				String label = "";
+				String topic = "";
+
+				String title = "";
+				List<String> sents = Generics.newArrayList();
+
+				for (int j = 0; j < lines2.size(); j++) {
+					List<String> ps = StrUtils.split("\t", lines2.get(j));
+					String val = ps.get(1);
+
+					if (j == 0) {
+						label = val;
+					} else if (j == 1) {
+						topic = val;
+					} else if (j == 2) {
+						id = val;
+					} else if (j == 3) {
+						title = val;
+					} else if (j == 4) {
+					} else {
+						sents.add(val);
+					}
+				}
+
+				List<String> vals = Generics.newArrayList();
+				vals.add(id);
+				vals.add(title);
+				vals.add(StrUtils.join("<nl>", sents));
+				vals.add(label);
+				res.add(StrUtils.join("\t", vals));
+			}
+		}
+
+		String out = "식별자\t뉴스제목\t뉴스본문\tLabel" + "\n" + StrUtils.join("\n", res);
+
+		FileUtils.writeAsText(FNPath.DATA_DIR + "data/M2_train-3.txt", out);
+	}
+
+	public void selectNewsSubset() throws Exception {
 
 		List<File> files = FileUtils.getFilesUnder(FNPath.NAVER_NEWS_COL_LINE_DIR);
 
@@ -593,12 +721,14 @@ public class DataHandler {
 
 		SetMap<String, String> sm = Generics.newSetMap();
 
-		int col_size = 100000;
+		int col_size = 1000000;
 
 		String regex = "[\\p{Punct}\\s\u2029]+";
-		// "[\\s\u2029]+"
 
-		for (int i = 0, j = 0; i < files.size() && i < 1; i++) {
+		int doc_cnt = 0;
+		int num_files = 10;
+
+		for (int i = 0; i < files.size() && i < num_files; i++) {
 			File file = files.get(i);
 
 			for (String line : FileUtils.readLinesFromText(file)) {
@@ -624,12 +754,12 @@ public class DataHandler {
 
 				sm.put(topic, id);
 
-				if (j == col_size) {
+				if (doc_cnt++ == col_size) {
 					break;
 				}
 			}
 
-			if (j == col_size) {
+			if (doc_cnt == col_size) {
 				break;
 			}
 		}
@@ -640,13 +770,13 @@ public class DataHandler {
 			List<String> list = Generics.newArrayList(set);
 			Collections.shuffle(list);
 
-			list = list.subList(0, Math.min(list.size(), 200));
+			list = list.subList(0, Math.min(list.size(), 1000));
 			sm.put(topic, Generics.newHashSet(list));
 		}
 
 		ListMap<String, String> lm = Generics.newListMap();
 
-		for (int i = 0, j = 0; i < files.size() && i < 1; i++) {
+		for (int i = 0; i < files.size() && i < num_files; i++) {
 			File file = files.get(i);
 
 			for (String line : FileUtils.readLinesFromText(file)) {
@@ -661,19 +791,9 @@ public class DataHandler {
 				if (sm.contains(topic, id)) {
 					body = body.replace(".\" ", ".\"\n");
 					body = body.replace(". ", ".\n");
+					String s = title + "\n" + body;
+					lm.put(topic, id + "\t" + s);
 				}
-
-				String s = title + "\n" + body;
-
-				lm.put(topic, id + "\t" + s);
-
-				if (j == col_size) {
-					break;
-				}
-			}
-
-			if (j == col_size) {
-				break;
 			}
 		}
 
@@ -708,7 +828,7 @@ public class DataHandler {
 				outs.add(sb.toString());
 			}
 
-			FileUtils.writeAsText(String.format("%s/M1_train/%s.txt", FNPath.DATA_DIR, topic),
+			FileUtils.writeAsText(String.format("%s/M1_tagging/%s.txt", FNPath.DATA_DIR, topic),
 					StrUtils.join("\n\n", outs));
 
 		}
@@ -717,38 +837,34 @@ public class DataHandler {
 
 	public void tagPos() throws Exception {
 		for (File inFile : FileUtils.getFilesUnder(FNPath.DATA_DIR + "data")) {
+			boolean is_ext_data = false;
+
+			if (!inFile.getName().contains("M1_train-3")) {
+				continue;
+			}
+
+			if (inFile.getName().contains("train-3")) {
+				is_ext_data = true;
+			}
+
+			String encoding = "euc-kr";
+			String delim = "\r\n";
+
+			if (is_ext_data) {
+				encoding = "UTF-8";
+				delim = "\n";
+			}
 
 			File outFile = new File(FNPath.DATA_DIR + "data_pos", inFile.getName().replace(".txt", "_pos.txt"));
-			String input = FileUtils.readFromText(inFile.getPath(), "euc-kr");
+			String input = FileUtils.readFromText(inFile.getPath(), encoding);
 
-			List<String> ins = StrUtils.split("\r\n", input);
+			List<String> ins = StrUtils.split(delim, input);
 			List<String> outs = Generics.newLinkedList();
 
-			Pattern m = Pattern.compile("^\\d_\\d+");
-
-			for (int i = 1; i < ins.size();) {
-				String in1 = ins.get(i);
-				String text = "";
-
-				if (m.matcher(ins.get(i)).find()) {
-					int j = 0;
-
-					for (int k = i + 1; k < ins.size(); k++) {
-						String in2 = ins.get(k);
-						if (m.matcher(ins.get(k)).find()) {
-							j = k;
-							break;
-						}
-					}
-
-					if (j == 0) {
-						j = i + 1;
-					}
-
-					text = StrUtils.join("\n", ins, i, j);
-					text = text.replace(". ", ".\n");
-					text = text.replace("\n", "<nl>");
-					i = j;
+			if (is_ext_data) {
+				for (int i = 1; i < ins.size(); i++) {
+					String in = ins.get(i);
+					String text = "";
 
 					String id = "";
 					String title = "";
@@ -756,9 +872,9 @@ public class DataHandler {
 					String label = "";
 					String corTitle = "";
 
-					List<String> ps = StrUtils.split("\t", text);
+					List<String> ps = StrUtils.split("\t", in);
 
-					System.out.println(ps.toString());
+					// System.out.println(ps.toString());
 
 					{
 						int k = 0;
@@ -833,73 +949,126 @@ public class DataHandler {
 
 						outs.add(StrUtils.join("\t", l));
 					}
-
-				} else {
-					i++;
 				}
+				FileUtils.writeStringCollectionAsText(outFile.getPath(), outs);
+			} else {
+				Pattern m = Pattern.compile("^\\d_\\d+");
+				for (int i = 1; i < ins.size();) {
+					String in1 = ins.get(i);
+					String text = "";
 
-				// {
-				// StringBuffer sb = new StringBuffer();
-				//
-				// String[] sents = body.replace(".[\\\\s\\u2029]", ".\n").split("\n");
-				//
-				// for (String s : sents) {
-				// s = StrUtils.normalizeSpaces(s);
-				//
-				// if (s.length() == 0) {
-				// continue;
-				// }
-				// sb.append(s + "\n");
-				// }
-				// body = sb.toString().trim();
-				// }
-				//
-				// LDocumentCollection data = new LDocumentCollection();
-				//
-				// String[] items = new String[] { title + "\n" + body, corTitle };
-				//
-				// for (String item : items) {
-				// LDocument d = new LDocument();
-				// for (String p : item.split("\n")) {
-				// p = p.trim();
-				//
-				// if (p.length() == 0) {
-				// continue;
-				// }
-				//
-				// LSentence s = new LSentence();
-				// for (LNode node : Analyzer.parseJava(p)) {
-				// Morpheme m = node.morpheme();
-				// WrappedArray<String> fs = m.feature();
-				// String[] vals = (String[]) fs.array();
-				// String word = m.surface();
-				// String pos = vals[0];
-				//
-				// LToken t = new LToken(2);
-				// t.add(word);
-				// t.add(pos);
-				// s.add(t);
-				// }
-				// d.add(s);
-				// }
-				//
-				// data.add(d);
-				// }
-				//
-				// List<String> l = Generics.newArrayList(4);
-				//
-				// l.add(id);
-				// l.add(label);
-				// l.add(data.get(0).toString().replace("\n", "<nl>"));
-				// l.add(data.get(1).toString().replace("\n", "<nl>"));
-				//
-				// l = StrUtils.wrap(l);
-				//
-				// outs.add(StrUtils.join("\t", l));
+					if (m.matcher(ins.get(i)).find()) {
+						int j = 0;
+
+						for (int k = i + 1; k < ins.size(); k++) {
+							String in2 = ins.get(k);
+							if (m.matcher(ins.get(k)).find()) {
+								j = k;
+								break;
+							}
+						}
+
+						if (j == 0) {
+							j = i + 1;
+						}
+
+						text = StrUtils.join("\n", ins, i, j);
+						text = text.replace(". ", ".\n");
+						text = text.replace("\n", "<nl>");
+						i = j;
+
+						String id = "";
+						String title = "";
+						String body = "";
+						String label = "";
+						String corTitle = "";
+
+						List<String> ps = StrUtils.split("\t", text);
+
+						System.out.println(ps.toString());
+
+						{
+							int k = 0;
+							id = ps.get(k++);
+							title = ps.get(k++);
+							body = ps.get(k++);
+
+							StringBuffer sb = new StringBuffer();
+
+							for (String p : body.split("<nl>")) {
+								p = p.trim();
+								if (p.length() == 0) {
+									continue;
+								}
+								sb.append(p + "\n");
+							}
+
+							body = sb.toString().trim();
+							// System.out.printf("[%s]\n", body);
+
+							if (ps.size() >= 4) {
+								label = ps.get(k++);
+							}
+
+							if (ps.size() >= 5) {
+								corTitle = ps.get(k++);
+								corTitle = StrUtils.normalizeSpaces(corTitle);
+							}
+						}
+
+						{
+							LDocumentCollection data = new LDocumentCollection();
+
+							String[] items = new String[] { title + "\n" + body, corTitle };
+
+							for (String item : items) {
+								LDocument d = new LDocument();
+								for (String p : item.split("\n")) {
+									p = p.trim();
+
+									if (p.length() == 0) {
+										continue;
+									}
+
+									LSentence s = new LSentence();
+									for (LNode node : Analyzer.parseJava(p)) {
+										Morpheme mm = node.morpheme();
+										WrappedArray<String> fs = mm.feature();
+										String[] vals = (String[]) fs.array();
+										String word = mm.surface();
+										String pos = vals[0];
+
+										LToken t = new LToken(2);
+										t.add(word);
+										t.add(pos);
+										s.add(t);
+									}
+									d.add(s);
+								}
+
+								data.add(d);
+							}
+
+							List<String> l = Generics.newArrayList(4);
+
+							l.add(id);
+							l.add(label);
+							l.add(data.get(0).toString().replace("\n", "<nl>"));
+							l.add(data.get(1).toString().replace("\n", "<nl>"));
+
+							l = StrUtils.wrap(l);
+
+							outs.add(StrUtils.join("\t", l));
+						}
+
+					} else {
+						i++;
+					}
+				}
+				FileUtils.writeStringCollectionAsText(outFile.getPath(), outs);
 			}
-			//
-			FileUtils.writeStringCollectionAsText(outFile.getPath(), outs);
 		}
+
 	}
 
 	public void tagPosNews() throws Exception {

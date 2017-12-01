@@ -3,6 +3,7 @@ package ohs.nlp.ling.types;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -58,6 +59,18 @@ public class LDocument extends ArrayList<LSentence> {
 
 	public LDocument(ObjectInputStream ois) throws Exception {
 		readObject(ois);
+	}
+
+	@Override
+	public LDocument clone() {
+		LDocument ret = new LDocument(size());
+		for (LSentence s : this) {
+			ret.add(s.clone());
+		}
+		HashMap<String, String> am = (HashMap<String, String>) attrMap;
+		ret.setAttrMap((Map<String, String>) am.clone());
+		ret.setFeatureVector(fv == null ? null : fv.copy());
+		return ret;
 	}
 
 	public void doPadding() {
@@ -126,6 +139,10 @@ public class LDocument extends ArrayList<LSentence> {
 				fv = new SparseVector(ois);
 			}
 		}
+	}
+
+	public void setAttrMap(Map<String, String> attrMap) {
+		this.attrMap = attrMap;
 	}
 
 	public void setFeatureVector(Vector fv) {

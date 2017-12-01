@@ -3,6 +3,7 @@ package ohs.nlp.ling.types;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -34,6 +35,19 @@ public class LDocumentCollection extends ArrayList<LDocument> {
 
 	public LDocumentCollection(List<LDocument> m) {
 		super(m);
+	}
+
+	@Override
+	public LDocumentCollection clone() {
+		LDocumentCollection ret = new LDocumentCollection(size());
+
+		for (LDocument d : this) {
+			ret.add(d.clone());
+		}
+
+		HashMap<String, String> am = (HashMap<String, String>) attrMap;
+		ret.setAttrMap((Map<String, String>) am.clone());
+		return ret;
 	}
 
 	public void doPadding() {
@@ -105,6 +119,10 @@ public class LDocumentCollection extends ArrayList<LDocument> {
 		ObjectInputStream ois = FileUtils.openObjectInputStream(fileName);
 		readObject(ois);
 		ois.close();
+	}
+
+	public void setAttrMap(Map<String, String> attrMap) {
+		this.attrMap = attrMap;
 	}
 
 	public int sizeOfSentences() {

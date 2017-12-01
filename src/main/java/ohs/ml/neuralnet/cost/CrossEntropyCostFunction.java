@@ -88,7 +88,7 @@ public class CrossEntropyCostFunction implements CostFunction {
 			d.setSum(sum);
 		}
 
-		cost /= Yh.rowSize() * -1f;
+		cost /= y.size() * -1f;
 		return D;
 	}
 
