@@ -132,7 +132,7 @@ public class Apps {
 		nnp.setLearnRate(0.001);
 		nnp.setRegLambda(0.001);
 		nnp.setThreadSize(5);
-		nnp.setWeightDecayL2(0.9999);
+		nnp.setL2WeightDecay(0.9999);
 		nnp.setGradientDecay(1);
 		nnp.setK2(1);
 		nnp.setOptimizerType(OptimizerType.ADAM);
@@ -300,7 +300,7 @@ public class Apps {
 		nnp.setLearnRate(0.001);
 		nnp.setLearnRateDecay(0.9);
 		nnp.setLearnRateDecaySize(100);
-		nnp.setWeightDecayL2(1);
+		nnp.setL2WeightDecay(1);
 		nnp.setRegLambda(0.001);
 		nnp.setThreadSize(5);
 		nnp.setK2(1);
@@ -562,7 +562,7 @@ public class Apps {
 		nnp.setLearnRate(0.001);
 		nnp.setLearnRateDecay(1);
 		nnp.setLearnRateDecaySize(50);
-		nnp.setWeightDecayL2(1);
+		nnp.setL2WeightDecay(1);
 		nnp.setGradientDecay(1);
 		nnp.setRegLambda(0.001);
 		nnp.setGradientClipCutoff(5);

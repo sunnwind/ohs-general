@@ -110,7 +110,7 @@ public class FakeApps {
 			// ext.addGazeteerFeatures("org", orgs);
 			// ext.addGazeteerFeatures("pol", pol);
 			// ext.addGazeteerFeatures("eco", eco);
-			ext.addTitleWordFeatures();
+			// ext.addTitleWordFeatures();
 			// ext.addTopicFeatures(llw);
 
 		}
@@ -163,11 +163,11 @@ public class FakeApps {
 		}
 	}
 
-	private void addLayers(NeuralNet nn, NewsFeatureExtractor ext) {
+	private void createCNN(NeuralNet nn, NewsFeatureExtractor ext) {
 		ConcatenationLayer l = null;
 
 		int word_emb_size = 50;
-		int feat_emb_size = 10;
+		int feat_emb_size = 5;
 		int output_size = 2;
 		{
 			Indexer<String> featIdxer = ext.getFeatureIndexer();
@@ -198,7 +198,7 @@ public class FakeApps {
 		}
 
 		int num_filters = 100;
-		int[] window_sizes = new int[] { 2, 3, 5 };
+		int[] window_sizes = new int[] { 2, 4 };
 
 		nn.add(new MultiWindowConvolutionalLayer(nn.get(nn.size() - 1).getOutputSize(), window_sizes, num_filters));
 		// nn.add(new ConvolutionalLayer(emb_size, 4, num_filters));
@@ -210,7 +210,6 @@ public class FakeApps {
 		nn.add(new SoftmaxLayer(output_size));
 		nn.prepareTraining();
 		nn.initWeights();
-
 	}
 
 	private void buildData() {
@@ -298,12 +297,12 @@ public class FakeApps {
 		nnp.setLearnRate(0.001);
 		nnp.setLearnRateDecay(0.9);
 		nnp.setLearnRateDecaySize(100);
-		nnp.setWeightDecayL2(1);
+		nnp.setL2WeightDecay(1);
 		nnp.setGradientDecay(1);
 		nnp.setRegLambda(0.001);
 		nnp.setGradientClipCutoff(Double.MAX_VALUE);
 
-		nnp.setThreadSize(6);
+		nnp.setThreadSize(5);
 		nnp.setBatchSize(5);
 		nnp.setGradientAccumulatorResetSize(1000);
 
@@ -361,7 +360,7 @@ public class FakeApps {
 			String name = file.getName();
 
 			if (is_M1) {
-				if (name.startsWith("M1_train-3")) {
+				if (name.startsWith("M1_train-1")) {
 					for (String line : FileUtils.readLinesFromText(file)) {
 						List<String> ps = StrUtils.unwrap(StrUtils.split("\t", line));
 
@@ -404,7 +403,7 @@ public class FakeApps {
 			String name = file.getName();
 
 			if (is_m1_data) {
-				if (name.startsWith("M1_train-1") || name.startsWith("M1_train-2")) {
+				if (name.startsWith("M1_train-3") || name.startsWith("M1_train-2")) {
 					for (String line : FileUtils.readLinesFromText(file)) {
 						List<String> ps = StrUtils.unwrap(StrUtils.split("\t", line));
 
@@ -501,7 +500,7 @@ public class FakeApps {
 		if (read_nn_model) {
 			nn.readObject(modelFileName);
 		} else {
-			addLayers(nn, ext);
+			createCNN(nn, ext);
 		}
 
 		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, nnp);
@@ -610,7 +609,7 @@ public class FakeApps {
 		if (read_nn_model) {
 			nn.readObject(modelFileName);
 		} else {
-			addLayers(nn, ext);
+			createCNN(nn, ext);
 		}
 
 		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, nnp);

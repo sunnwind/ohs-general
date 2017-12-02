@@ -231,7 +231,7 @@ public class NeuralNetParams {
 		this.use_hard_grad_clipping = use_hard_grad_clipping;
 	}
 
-	public void setWeightDecayL2(double weight_decay_L2) {
+	public void setL2WeightDecay(double weight_decay_L2) {
 		this.weight_decay_L2 = weight_decay_L2;
 	}
 

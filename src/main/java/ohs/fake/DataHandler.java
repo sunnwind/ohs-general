@@ -166,8 +166,23 @@ public class DataHandler {
 		// dh.makeDicts();
 		// dh.computeChisquares();
 		// dh.getM2Labels();
+		// dh.test();
 
 		System.out.println("process ends.");
+	}
+
+	public void test() throws Exception {
+		String text = FileUtils.readFromText(FNPath.DATA_DIR + "M1_tagging/연예.txt");
+		String text2 = text.replace("Label:", "\nLabel:").trim();
+
+		// text2 = text2.replace("\n", "<nl>");
+		// text2 = text2.replace("\t", "<tab>");
+		//
+		// text2 = StrUtils.normalizeSpaces(text2);
+		// text2 = text2.replace("<nl>", "\n");
+		// text2 = text2.replace("<tab>", "\t");
+
+		FileUtils.writeAsText(FNPath.DATA_DIR + "M1_tagging/연예-2.txt", text2.trim());
 	}
 
 	public void computeChisquares() throws Exception {
@@ -640,6 +655,18 @@ public class DataHandler {
 
 				if (!is_valid) {
 					continue;
+				}
+
+				Counter<String> c = Generics.newCounter();
+
+				for (String sent : sents) {
+					for (String t : StrUtils.split(" ", sent)) {
+						c.incrementCount(t, 1);
+					}
+				}
+
+				if (c.totalCount() > 10000) {
+					System.out.println();
 				}
 
 				if (label.equals("0")) {
