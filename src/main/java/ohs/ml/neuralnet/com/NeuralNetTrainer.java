@@ -215,7 +215,7 @@ public class NeuralNetTrainer {
 			// pu.setWeightDecay(reg_lambda, learn_rate, tmp_data_size);
 			pu.setOptimizerType(ot);
 			pu.setGradientClipCutoff(grad_clip_cutoff);
-			pu.setWeightDecay(weight_decay);
+			pu.setL2WeightDecay(weight_decay);
 			pu.setGradientDecay(grad_decay);
 			pu.setUseAverageGradients(use_avg_grad);
 			pu.setUseHardGradClipping(use_hard_grad_clipping);

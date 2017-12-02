@@ -50,7 +50,7 @@ public class ParameterUpdater {
 
 	private double learn_rate = 0.001;
 
-	private double weight_decay_L2 = 1;
+	private double l2_weight_decay = 1;
 
 	private double grad_decay = 1;
 
@@ -156,8 +156,8 @@ public class ParameterUpdater {
 		this.use_hard_grad_clipping = use_hard_grad_clipping;
 	}
 
-	public void setWeightDecay(double weight_decay) {
-		this.weight_decay_L2 = weight_decay;
+	public void setL2WeightDecay(double l2_weight_decay) {
+		this.l2_weight_decay = l2_weight_decay;
 	}
 
 	/**
@@ -168,7 +168,7 @@ public class ParameterUpdater {
 	 * @param data_size
 	 */
 	public void setWeightDecay(double reg_lambda, double learn_rate, long data_size) {
-		weight_decay_L2 = (1 - reg_lambda * learn_rate / data_size);
+		l2_weight_decay = (1 - reg_lambda * learn_rate / data_size);
 	}
 
 	public void update(int batch_size) {
@@ -215,7 +215,7 @@ public class ParameterUpdater {
 					if (ot == OptimizerType.SIMPLE) {
 						for (int k = 0; k < dWm.size(); k++) {
 							dw = dWm.value(k) * grad_decay;
-							w = Wm.value(k) * weight_decay_L2;
+							w = Wm.value(k) * l2_weight_decay;
 
 							w -= learn_rate * dw;
 							Wm.set(k, w);
@@ -224,7 +224,7 @@ public class ParameterUpdater {
 					} else if (ot == OptimizerType.ADAGRAD) {
 						for (int k = 0; k < dWm.size(); k++) {
 							dw = dWm.value(k) * grad_decay;
-							w = Wm.value(k) * weight_decay_L2;
+							w = Wm.value(k) * l2_weight_decay;
 
 							r1.add(k, Math.pow(dw, 2));
 
@@ -236,7 +236,7 @@ public class ParameterUpdater {
 						sum = 0;
 						for (int k = 0; k < dWm.size(); k++) {
 							dw = dWm.value(k) * grad_decay;
-							w = Wm.value(k) * weight_decay_L2;
+							w = Wm.value(k) * l2_weight_decay;
 
 							dwa1 = ArrayMath.addAfterMultiply(r1.value(k), decay_rate, Math.pow(dw, 2), 1 - decay_rate);
 							r1.set(k, dwa1);
@@ -248,7 +248,7 @@ public class ParameterUpdater {
 					} else if (ot == OptimizerType.ADAM) {
 						for (int k = 0; k < dWm.size(); k++) {
 							dw = dWm.value(k) * grad_decay;
-							w = Wm.value(k) * weight_decay_L2;
+							w = Wm.value(k) * l2_weight_decay;
 
 							dwa1 = ArrayMath.addAfterMultiply(r1.value(k), beta1, dw);
 							dwa2 = ArrayMath.addAfterMultiply(r2.value(k), beta2, Math.pow(dw, 2));
@@ -269,7 +269,7 @@ public class ParameterUpdater {
 					} else if (ot == OptimizerType.ADAMAX) {
 						for (int k = 0; k < dWm.size(); k++) {
 							dw = dWm.value(k) * grad_decay;
-							w = Wm.value(k) * weight_decay_L2;
+							w = Wm.value(k) * l2_weight_decay;
 
 							dwa1 = ArrayMath.addAfterMultiply(r1.value(k), beta1, dw);
 							dwa2 = Math.max(beta2 * r2.value(k), Math.abs(dw));
@@ -288,7 +288,7 @@ public class ParameterUpdater {
 					} else if (ot == OptimizerType.NADAM) {
 						for (int k = 0; k < dWm.size(); k++) {
 							dw = dWm.value(k) * grad_decay;
-							w = Wm.value(k) * weight_decay_L2;
+							w = Wm.value(k) * l2_weight_decay;
 
 							dwa1 = ArrayMath.addAfterMultiply(r1.value(k), beta1, dw);
 							dwa2 = ArrayMath.addAfterMultiply(r2.value(k), beta2, Math.pow(dw, 2));
