@@ -1,5 +1,10 @@
 package ohs.ml.neuralnet.layer;
 
+import java.io.File;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+
+import ohs.io.FileUtils;
 import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
@@ -35,9 +40,26 @@ public class MultiWindowMaxPoolingLayer extends Layer {
 	 */
 	private DenseTensor Y;
 
+	@Override
+	public void writeObject(ObjectOutputStream oos) throws Exception {
+		oos.writeInt(num_filters);
+		windowSizes.writeObject(oos);
+	}
+
+	@Override
+	public void readObject(ObjectInputStream ois) throws Exception {
+		num_filters = ois.readInt();
+		windowSizes = new IntegerArray(ois);
+		windowSizes.trimToSize();
+	}
+
 	public MultiWindowMaxPoolingLayer(int num_filters, int[] window_sizes) {
 		this.num_filters = num_filters;
 		this.windowSizes = new IntegerArray(window_sizes);
+	}
+
+	public MultiWindowMaxPoolingLayer() {
+
 	}
 
 	@Override
@@ -54,9 +76,9 @@ public class MultiWindowMaxPoolingLayer extends Layer {
 		VectorUtils.enlarge(tmp_dX, X.sizeOfInnerVectors(), num_filters);
 
 		for (int i = 0, start = 0; i < dY.size(); i++) {
-			DenseMatrix dYm = dY.row(i);
-			DenseMatrix Xm = X.row(i);
-			DenseMatrix Lm = L.row(i);
+			DenseMatrix dYm = dY.get(i);
+			DenseMatrix Xm = X.get(i);
+			DenseMatrix Lm = L.get(i);
 
 			DenseMatrix dXm = tmp_dX.subMatrix(start, Xm.rowSize());
 			dXm.setAll(0);

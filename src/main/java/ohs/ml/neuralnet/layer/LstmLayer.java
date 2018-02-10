@@ -421,6 +421,15 @@ public class LstmLayer extends RecurrentLayer {
 				VectorMath.product(h_prev, Whh, z, true);
 				VectorMath.add(b, z);
 
+				/*
+				 * i: input gate (current cell matters)
+				 * 
+				 * f: forget gate (gate 0, forget past)
+				 * 
+				 * o: output gate (how much cell is exposed)
+				 * 
+				 */
+
 				DenseVector i = Im.row(t);
 				DenseVector f = Fm.row(t);
 				DenseVector o = Om.row(t);
@@ -521,20 +530,28 @@ public class LstmLayer extends RecurrentLayer {
 	}
 
 	@Override
-	public void initWeights() {
-		ParameterInitializer.init2(Wxh);
-		// VectorMath.identity(Whh, 1);
+	public void initWeights(ParameterInitializer pi) {
+		pi.init(Wxh);
 
 		for (int i = 0; i < hidden_size; i++) {
 			Whh.set(i, i, 1);
 			Whh.set(i, hidden_size + i, 1);
 			Whh.set(i, hidden_size * 2 + i, 1);
 			Whh.set(i, hidden_size * 3 + i, 1);
+
+			/*
+			 * Jozefowicz, R., Zaremba, W., & Sutskever, I. (2015). An empirical exploration
+			 * of recurrent network architectures. Proceedings of the 32nd International
+			 * Conference on Machine Learning, 2342–2350.
+			 * 
+			 * forget gate bias
+			 */
+			b.add(hidden_size + i, 1);
 		}
 	}
 
 	@Override
-	public void prepareTraining() {
+	public void createGradientHolders() {
 		dWxh = Wxh.copy(true);
 		dWhh = Whh.copy(true);
 		db = b.copy(true);

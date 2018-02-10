@@ -25,6 +25,7 @@ import ohs.ml.eval.PerformanceEvaluator;
 import ohs.ml.neuralnet.com.NeuralNet;
 import ohs.ml.neuralnet.com.NeuralNetParams;
 import ohs.ml.neuralnet.com.NeuralNetTrainer;
+import ohs.ml.neuralnet.com.ParameterInitializer;
 import ohs.ml.neuralnet.com.ParameterUpdater.OptimizerType;
 import ohs.ml.neuralnet.com.TaskType;
 import ohs.ml.neuralnet.layer.FullyConnectedLayer;
@@ -54,73 +55,6 @@ public class TopicClassification {
 		// c.trainNN();
 
 		System.out.println("process ends.");
-	}
-
-	public void prepareNNData() throws Exception {
-		String dir = FNPath.NAVER_DATA_DIR;
-		String emdFileName = dir + "emb/glove_ra.ser";
-		String vocabFileName = dir + "col/dc/vocab.ser";
-
-		Vocab vocab = DocumentCollection.readVocab(vocabFileName);
-
-		RandomAccessDenseMatrix E = new RandomAccessDenseMatrix(emdFileName, true);
-
-		WordSearcher ws = new WordSearcher(vocab, E, null);
-
-		Indexer<String> labeIdxer = Generics.newIndexer();
-
-		TextFileReader reader = new TextFileReader(FNPath.NAVER_DATA_DIR + "news_2007.txt");
-
-		List<DenseVector> X = Generics.newLinkedList();
-		List<Double> Y = Generics.newArrayList();
-		int doc_cnt = 0;
-
-		while (reader.hasNext()) {
-			reader.printProgress();
-
-			List<String> ps = StrUtils.split("\t", reader.next());
-			ps = StrUtils.unwrap(ps);
-
-			LDocument d = LDocument.newDocument(ps.get(1));
-			d.getAttrMap().put("label", ps.get(0));
-
-			DenseVector x = new DenseVector(E.colSize());
-			double num_words = 0;
-			for (String word : d.getTokenStrings(0)) {
-				double doc_freq = vocab.getDocFreq(word);
-				double cnt = vocab.getCount(word);
-				double tfidf = TermWeighting.tfidf(cnt, vocab.getDocCnt(), doc_freq);
-
-				DenseVector e = ws.getVector(word);
-
-				if (e != null) {
-					VectorMath.addAfterMultiply(e, tfidf, x);
-					num_words++;
-				}
-			}
-
-			if (num_words < 20) {
-				continue;
-			}
-
-			x.multiply(1d / num_words);
-
-			int y = labeIdxer.getIndex(d.getAttrMap().get("label"));
-
-			X.add(x);
-			Y.add((double) y);
-
-			if (doc_cnt++ > 200000) {
-				break;
-			}
-		}
-		reader.printProgress();
-		reader.close();
-
-		new DenseMatrix(X).writeObject(FNPath.DATA_DIR + "topic_X.ser.gz");
-		new DenseVector(Y).writeObject(FNPath.DATA_DIR + "topic_Y.ser.gz");
-
-		FileUtils.writeStringIndexerAsText(FNPath.DATA_DIR + "topic_idxer.txt", labeIdxer);
 	}
 
 	public void prepareSvmData() throws Exception {
@@ -252,84 +186,4 @@ public class TopicClassification {
 		}
 	}
 
-	public void trainNN() throws Exception {
-		NeuralNetParams nnp = new NeuralNetParams();
-		nnp.setInputSize(100);
-		nnp.setHiddenSize(50);
-		nnp.setOutputSize(10);
-
-		nnp.setBatchSize(10);
-		nnp.setLearnRate(0.001);
-		nnp.setRegLambda(0.001);
-		nnp.setThreadSize(5);
-		nnp.setGradientClipCutoff(5);
-		nnp.setOptimizerType(OptimizerType.ADAM);
-
-		DenseTensor X = new DenseTensor();
-		DenseMatrix Y = new DenseMatrix();
-
-		DenseTensor Xt = new DenseTensor();
-		DenseMatrix Yt = new DenseMatrix();
-
-		Indexer<String> labelIdxer = FileUtils.readStringIndexerFromText(FNPath.DATA_DIR + "topic_idxer.txt");
-		Vocab vocab = new Vocab();
-
-		{
-
-			DenseMatrix DX = new DenseMatrix(FNPath.DATA_DIR + "topic_X.ser.gz");
-			DenseVector DY = new DenseVector(FNPath.DATA_DIR + "topic_Y.ser.gz");
-
-			IntegerArray L = new IntegerArray(DY.values());
-
-			IntegerMatrix G = DataSplitter.splitGroupsByLabels(DataSplitter.groupByLabels(L),
-					new int[] { 500, Integer.MAX_VALUE });
-
-			for (int i = 0; i < G.size(); i++) {
-				IntegerArray Gm = G.get(i);
-
-				for (int j = 0; j < Gm.size(); j++) {
-					int loc = Gm.get(j);
-					if (i == 0) {
-						Xt.add(DX.row(loc).toDenseMatrix());
-						Yt.add(new DenseVector(new double[] { DY.value(loc) }));
-					} else {
-						X.add(DX.row(loc).toDenseMatrix());
-						Y.add(new DenseVector(new double[] { DY.value(loc) }));
-					}
-				}
-			}
-		}
-
-		for (DenseMatrix Xm : X) {
-			for (DenseVector xm : Xm) {
-				if (!ArrayChecker.isValid(xm.values())) {
-					System.out.println();
-				}
-			}
-		}
-
-		int vocab_size = 200;
-		int l1_size = 100;
-		int l2_size = 25;
-		int output_size = labelIdxer.size();
-
-		NeuralNet nn = new NeuralNet(labelIdxer, null, TaskType.CLASSIFICATION);
-
-		nn.add(new FullyConnectedLayer(vocab_size, l1_size));
-		// nn.add(new BatchNormalizationLayer(l1_size));
-		nn.add(new NonlinearityLayer(new ReLU()));
-		// nn.add(new DropoutLayer());
-		nn.add(new FullyConnectedLayer(l1_size, l2_size));
-		// nn.add(new BatchNormalizationLayer(l2_size));
-		nn.add(new NonlinearityLayer(new ReLU()));
-		// nn.add(new DropoutLayer());
-		nn.add(new FullyConnectedLayer(l2_size, output_size));
-		nn.add(new SoftmaxLayer(output_size));
-		nn.prepareTraining();
-		nn.initWeights();
-
-		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, nnp);
-		trainer.train(X, Y, Xt, Yt, 10000);
-		trainer.finish();
-	}
 }

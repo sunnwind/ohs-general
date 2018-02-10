@@ -4,6 +4,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
 import ohs.matrix.DenseTensor;
+import ohs.ml.neuralnet.com.ParameterInitializer;
 import ohs.ml.neuralnet.nonlinearity.ReLU;
 
 /**
@@ -110,15 +111,15 @@ public class ConvNetLayer extends Layer {
 	}
 
 	@Override
-	public void initWeights() {
-		cl.initWeights();
+	public void initWeights(ParameterInitializer pi) {
+		cl.initWeights(pi);
 	}
 
 	@Override
-	public void prepareTraining() {
-		cl.prepareTraining();
-		nl.prepareTraining();
-		pl.prepareTraining();
+	public void createGradientHolders() {
+		cl.createGradientHolders();
+		nl.createGradientHolders();
+		pl.createGradientHolders();
 	}
 
 	@Override

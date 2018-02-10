@@ -93,6 +93,10 @@ public class NonlinearityLayer extends Layer {
 		return Y;
 	}
 
+	public NonlinearityLayer() {
+
+	}
+
 	public Nonlinearity getNonlinearity() {
 		return non;
 	}

@@ -25,9 +25,11 @@ public class LSentence extends ArrayList<LToken> {
 	 */
 	private static final long serialVersionUID = -3571196248876992657L;
 
-	public static final String START = "<s>";
+	public static final String STARTING = "<bos>";
 
-	public static final String END = "</s>";
+	public static final String ENDING = "<eos>";
+
+	public static final String PADDING = "PADDING";
 
 	public static LSentence newSentence(String s) {
 		s = s.replace("<nl>", "\n");
@@ -99,13 +101,16 @@ public class LSentence extends ArrayList<LToken> {
 		LToken t1 = new LToken();
 		LToken t2 = new LToken();
 
-		t1.add(START);
-		t2.add(END);
+		t1.add(STARTING);
+		t2.add(ENDING);
 
 		for (int j = 1; j < LToken.INDEXER.size(); j++) {
-			t1.add("");
-			t2.add("");
+			t1.add(PADDING);
+			t2.add(PADDING);
 		}
+
+		t1.setIsPadding(true);
+		t2.setIsPadding(true);
 
 		List<LToken> ts = Generics.newArrayList(size() + 2);
 		ts.add(t1);
@@ -216,7 +221,12 @@ public class LSentence extends ArrayList<LToken> {
 			}
 		}
 		return sb.toString();
+	}
 
+	public LDocument toDocument() {
+		LDocument ret = new LDocument(1);
+		ret.add(this);
+		return ret;
 	}
 
 	public void writeObject(ObjectOutputStream oos) throws Exception {

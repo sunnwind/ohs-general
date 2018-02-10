@@ -3217,12 +3217,32 @@ public class ArrayMath {
 	 * @return
 	 */
 	public static double random(double min, double max, double[] x) {
-		Random random = new Random();
+		Random r = new Random();
 		double range = max - min;
 		double sum = 0;
 		for (int i = 0; i < x.length; i++) {
-			x[i] = range * random.nextDouble() + min;
+			x[i] = range * r.nextDouble() + min;
 			sum += x[i];
+		}
+		return sum;
+	}
+
+	public static double randomn(double mean, double std, double[] x) {
+		Random r = new Random();
+		double sum = 0;
+		for (int i = 0; i < x.length; i++) {
+			double rv = r.nextGaussian();
+			double v = std * rv + mean;
+			x[i] = v;
+			sum += x[i];
+		}
+		return sum;
+	}
+
+	public static double randomn(double mean, double std, double[][] x) {
+		double sum = 0;
+		for (int i = 0; i < x.length; i++) {
+			sum += randomn(mean, std, x[i]);
 		}
 		return sum;
 	}

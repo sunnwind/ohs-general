@@ -1,5 +1,6 @@
 package ohs.ml.neuralnet.layer;
 
+import ohs.math.VectorMath;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseVector;
 
@@ -29,6 +30,21 @@ public abstract class RecurrentLayer extends Layer {
 	protected int shift_size = 1;
 
 	protected int window_size = 1;
+
+	/**
+	 * Semeniuta, S., Severyn, A., & Barth, E. (2016). Recurrent Dropout without
+	 * Memory Loss. Retrieved from http://arxiv.org/abs/1603.05118
+	 * 
+	 * @param X
+	 * @param p
+	 */
+	public static void dropout(DenseMatrix X, double p) {
+		DenseMatrix M = X.copy(true);
+		VectorMath.random(0, 1, M);
+		VectorMath.mask(M, p);
+		M.multiply(1f / p); // inverted drop-out
+		VectorMath.multiply(X, M, X);
+	}
 
 	public RecurrentLayer() {
 

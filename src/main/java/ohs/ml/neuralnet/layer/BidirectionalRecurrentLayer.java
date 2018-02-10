@@ -10,6 +10,7 @@ import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
+import ohs.ml.neuralnet.com.ParameterInitializer;
 import ohs.ml.neuralnet.nonlinearity.Nonlinearity;
 import ohs.types.number.IntegerArray;
 import ohs.utils.Generics;
@@ -18,6 +19,11 @@ import ohs.utils.Generics;
  * 
  * Graves, A. (2012). Supervised Sequence Labelling with Recurrent Neural
  * Networks. http://doi.org/10.1007/978-3-642-24797-2
+ * 
+ * 
+ * https://github.com/aymericdamien/TensorFlow-Examples/blob/master/examples/3_NeuralNetworks/bidirectional_rnn.py
+ * 
+ * https://guillaumegenthial.github.io/sequence-tagging-with-tensorflow.html
  * 
  * @author ohs
  */
@@ -72,12 +78,55 @@ public class BidirectionalRecurrentLayer extends RecurrentLayer {
 		this.output_size = fwd.getOutputSize();
 	}
 
+	private DenseMatrix tmp_dZ = new DenseMatrix(0);
+
 	@Override
 	public Object backward(Object I) {
-		DenseTensor dYf = (DenseTensor) I;
-		DenseTensor dYb = reverse(dYf);
+		DenseTensor dY = (DenseTensor) I;
+		DenseTensor dYf = new DenseTensor();
+		DenseTensor dYb = new DenseTensor();
+
+		dYf.ensureCapacity(dY.size());
+		dYb.ensureCapacity(dY.size());
+
+		VectorUtils.enlarge(tmp_dZ, dY.sizeOfInnerVectors() * 2, output_size);
+
+		{
+			int start = 0;
+			for (int i = 0; i < dY.size(); i++) {
+				DenseMatrix dYm = dY.get(i);
+
+				int size = dYm.rowSize();
+
+				DenseMatrix dYfm = tmp_dZ.subMatrix(start, size);
+				start += size;
+
+				DenseMatrix dYbm = tmp_dZ.subMatrix(start, size);
+				start += size;
+
+				dYfm.setAll(0);
+				dYbm.setAll(0);
+
+				for (int j = 0; j < dYm.rowSize(); j++) {
+					DenseVector dym = dYm.row(j);
+					DenseVector dyfm = dYfm.row(j);
+					DenseVector dybm = dYbm.row(j);
+
+					VectorUtils.copy(dym, 0, dyfm, 0, output_size);
+					VectorUtils.copy(dym, output_size, dybm, 0, output_size);
+				}
+
+				dYf.add(dYfm);
+				dYb.add(dYfm);
+			}
+		}
+
+		dYb = reverse(dYb);
+
 		DenseTensor dXf = (DenseTensor) fwd.backward(dYf);
 		DenseTensor dXb = (DenseTensor) bwd.backward(dYb);
+
+		dXb = reverse(dXb);
 
 		VectorUtils.enlarge(tmp_dX, dYf.sizeOfInnerVectors(), dXf.get(0).colSize());
 
@@ -87,15 +136,14 @@ public class BidirectionalRecurrentLayer extends RecurrentLayer {
 		int start = 0;
 
 		for (int i = 0; i < dYf.size(); i++) {
-			DenseMatrix dXfm = dXf.row(i);
-			DenseMatrix dXbm = dXb.row(i);
+			DenseMatrix dXfm = dXf.get(i);
+			DenseMatrix dXbm = dXb.get(i);
 			DenseMatrix dXm = tmp_dX.subMatrix(start, dXfm.rowSize());
 			dXm.setAll(0);
 
 			start += dXfm.rowSize();
 
-			addReversely(dXfm, dXbm, dXm);
-
+			VectorMath.add(dXfm, dXbm, dXm);
 			dX.add(dXm);
 		}
 
@@ -115,22 +163,29 @@ public class BidirectionalRecurrentLayer extends RecurrentLayer {
 		DenseTensor Yf = (DenseTensor) fwd.forward(Xf);
 		DenseTensor Yb = (DenseTensor) bwd.forward(Xb);
 
+		Yb = reverse(Yb);
+
 		DenseTensor Y = new DenseTensor();
 		Y.ensureCapacity(Xf.size());
 
-		VectorUtils.enlarge(tmp_Y, Xf.sizeOfInnerVectors(), output_size);
+		VectorUtils.enlarge(tmp_Y, Xf.sizeOfInnerVectors(), output_size * 2);
 
 		int start = 0;
 
 		for (int i = 0; i < Yf.size(); i++) {
-			DenseMatrix Yfm = Yf.row(i);
-			DenseMatrix Ybm = Yb.row(i);
+			DenseMatrix Yfm = Yf.get(i);
+			DenseMatrix Ybm = Yb.get(i);
 			DenseMatrix Ym = tmp_Y.subMatrix(start, Yfm.rowSize());
 			Ym.setAll(0);
 
 			start += Yfm.rowSize();
 
-			addReversely(Yfm, Ybm, Ym);
+			for (int j = 0; j < Ym.rowSize(); j++) {
+				DenseVector yfm = Yfm.row(j);
+				DenseVector ybm = Ybm.row(j);
+				DenseVector ym = Ym.row(j);
+				VectorUtils.copyRows(new DenseMatrix(new DenseVector[] { yfm, ybm }), ym);
+			}
 
 			Y.add(Ym);
 		}
@@ -190,15 +245,15 @@ public class BidirectionalRecurrentLayer extends RecurrentLayer {
 	}
 
 	@Override
-	public void initWeights() {
-		fwd.initWeights();
-		bwd.initWeights();
+	public void initWeights(ParameterInitializer pi) {
+		fwd.initWeights(pi);
+		bwd.initWeights(pi);
 	}
 
 	@Override
-	public void prepareTraining() {
-		fwd.prepareTraining();
-		bwd.prepareTraining();
+	public void createGradientHolders() {
+		fwd.createGradientHolders();
+		bwd.createGradientHolders();
 	}
 
 	@Override

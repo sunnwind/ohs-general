@@ -3,9 +3,12 @@ package ohs.matrix;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.text.NumberFormat;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+
+import com.google.common.collect.Lists;
 
 import ohs.io.FileUtils;
 import ohs.math.ArrayMath;

@@ -165,18 +165,6 @@ public class DenseTensor extends ArrayList<DenseMatrix> {
 		ois.close();
 	}
 
-	public DenseMatrix row(int i) {
-		return get(i);
-	}
-
-	public DenseTensor rows(int start, int size) {
-		DenseMatrix[] ret = new DenseMatrix[size];
-		for (int i = start, j = 0; i < start + size; i++, j++) {
-			ret[j] = get(i);
-		}
-		return new DenseTensor(ret);
-	}
-
 	public void setAll(double v) {
 		for (DenseMatrix a : this) {
 			a.setAll(v);
@@ -220,18 +208,25 @@ public class DenseTensor extends ArrayList<DenseMatrix> {
 		set(j, a);
 	}
 
-	@Override
 	public String toString() {
+		return toString(20, 20);
+	}
+
+	public String toString(int num_vecs, int vec_size) {
 		StringBuffer sb = new StringBuffer();
 		sb.append(info());
 
-		int size1 = 10;
-		int size3 = 10;
+		boolean stop = false;
 
-		for (int i = 0; i < size() && i < size1; i++) {
+		for (int i = 0, u = 0; i < size(); i++) {
 			DenseMatrix dm = get(i);
 
 			for (int j = 0; j < dm.rowSize(); j++) {
+				if (u++ == num_vecs) {
+					stop = true;
+					break;
+				}
+
 				DenseVector dv = dm.row(j);
 				sb.append(String.format("\n(%d, %d, %d)\t[", i, j, dv.size()));
 
@@ -244,7 +239,7 @@ public class DenseTensor extends ArrayList<DenseMatrix> {
 						sb.append(Double.toString(dv.value(k)));
 					}
 
-					if (k == size3) {
+					if (k == vec_size) {
 						sb.append(" ...");
 						break;
 					}
@@ -256,20 +251,26 @@ public class DenseTensor extends ArrayList<DenseMatrix> {
 				sb.append("]");
 			}
 
+			if (stop) {
+				break;
+			}
 		}
 
 		return sb.toString();
 	}
 
 	public void unwrapValues() {
-		vals = new double[size()][][];
+		if (vals == null || vals.length != size()) {
+			vals = new double[size()][][];
+		}
+
 		for (int i = 0; i < vals.length; i++) {
 			vals[i] = get(i).values();
 		}
 	}
 
 	public double value(int i, int j, int k) {
-		return row(i).row(j).value(k);
+		return get(i).row(j).value(k);
 	}
 
 	public double[][][] values() {

@@ -145,6 +145,14 @@ public class LDocumentCollection extends ArrayList<LDocument> {
 		return new LDocumentCollection(subList(i, j));
 	}
 
+	public LDocumentCollection subCollection(int[] idxs) {
+		LDocumentCollection ret = new LDocumentCollection(idxs.length);
+		for (int idx : idxs) {
+			ret.add(get(idx));
+		}
+		return ret;
+	}
+
 	public void writeObejct(String fileName) throws Exception {
 		System.out.printf("write at [%s]\n", fileName);
 		ObjectOutputStream oos = FileUtils.openObjectOutputStream(fileName);

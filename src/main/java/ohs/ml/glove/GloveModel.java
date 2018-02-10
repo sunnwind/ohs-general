@@ -138,8 +138,8 @@ public class GloveModel {
 	}
 
 	public void init() {
-		ParameterInitializer.init2(W1);
-		ParameterInitializer.init2(W2);
+		new ParameterInitializer().init(W1);
+		new ParameterInitializer().init(W2);
 	}
 
 	public void readObject(ObjectInputStream ois) throws Exception {

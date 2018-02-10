@@ -4,23 +4,23 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import ohs.io.FileUtils;
 import ohs.matrix.DenseVector;
 import ohs.ml.svm.wrapper.LibLinearWrapper;
-import ohs.nlp.ling.types.LDocumentCollection;
 import ohs.nlp.ling.types.LDocument;
+import ohs.nlp.ling.types.LDocumentCollection;
 import ohs.nlp.ling.types.LSentence;
 import ohs.nlp.ling.types.LToken;
 import ohs.types.generic.Counter;
+import ohs.types.generic.CounterMap;
 import ohs.types.generic.Indexer;
 import ohs.types.generic.SetMap;
 import ohs.types.generic.Vocab.SYM;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
-import scala.annotation.meta.setter;
+import ohs.utils.UnicodeUtils;
 
 public class NewsFeatureExtractor {
 
@@ -30,7 +30,7 @@ public class NewsFeatureExtractor {
 
 	private SetMap<String, String> gzData = Generics.newSetMap();
 
-	public boolean is_training = true;
+	private boolean is_training = false;
 
 	private int unk = 0;
 
@@ -168,7 +168,8 @@ public class NewsFeatureExtractor {
 	public void addTopicFeatures(LibLinearWrapper llw) {
 		this.llw = llw;
 
-		String[] feats = { "doc-topic", "sent-topic" };
+		// String[] feats = { "doc-topic", "sent-topic" };
+		String[] feats = { "sent-topic" };
 
 		for (int i = 0; i < feats.length; i++) {
 			String feat = feats[i];
@@ -183,15 +184,30 @@ public class NewsFeatureExtractor {
 		}
 	}
 
-	public void addTitleWordFeatures() {
-		String feat = "title-word";
+	public void addWordSectionFeatures() {
+		String feat = "word_sec";
 
 		int idx = featIdxer.getIndex(feat);
 		valIdxerMap.put(idx, Generics.newIndexer());
 
 		Indexer<String> featValIdxer = valIdxerMap.get(idx);
 
-		String[] vals = { "yes", "no" };
+		String[] vals = { "in_title", "in_body", "in_both" };
+
+		for (String val : vals) {
+			featValIdxer.getIndex(String.format("%s=%s", feat, val));
+		}
+	}
+
+	public void addWordLocationFeatures1() {
+		String feat = "word_loc";
+
+		int idx = featIdxer.getIndex(feat);
+		valIdxerMap.put(idx, Generics.newIndexer());
+
+		Indexer<String> featValIdxer = valIdxerMap.get(idx);
+
+		String[] vals = { "single", "multiple" };
 
 		for (String val : vals) {
 			featValIdxer.getIndex(String.format("%s=%s", feat, val));
@@ -209,7 +225,7 @@ public class NewsFeatureExtractor {
 			extract(s);
 		}
 		extractTopicFeatures(d);
-		extractTitleWordFeatures(d);
+		extractWordSectionFeatures(d);
 	}
 
 	public void extract(LSentence s) {
@@ -243,6 +259,9 @@ public class NewsFeatureExtractor {
 						Set<String> gz = gzData.get(feat);
 
 						if (gz.contains(sub)) {
+							// System.out.printf("match: [%s]\n", sub);
+							boolean check = true;
+							check = false;
 							for (int u = i; u < j; u++) {
 								feat_flags[u][k] = true;
 							}
@@ -317,21 +336,24 @@ public class NewsFeatureExtractor {
 		}
 	}
 
-	private void extractTitleWordFeatures(LDocument d) {
-		String feat = "title-word";
+	private void extractWordSectionFeatures(LDocument d) {
+		String feat = "word_sec";
 
 		if (!featIdxer.contains(feat)) {
 			return;
 		}
 
-		Counter<String> c = Generics.newCounter();
+		CounterMap<String, String> cm = Generics.newCounterMap();
 
-		{
-			for (LToken t : d.get(0)) {
+		for (int i = 0; i < d.size(); i++) {
+			LSentence s = d.get(i);
+
+			for (int j = 0; j < s.size(); j++) {
+				LToken t = s.get(j);
 				String word = t.getString(0);
 				String pos = t.getString(1);
 
-				if (word.equals(LSentence.START) || word.equals(LSentence.END)) {
+				if (word.equals(LSentence.STARTING) || word.equals(LSentence.ENDING)) {
 					continue;
 				}
 
@@ -343,6 +365,13 @@ public class NewsFeatureExtractor {
 						|| pos.startsWith("SF")) {
 					continue;
 				}
+
+				String sec = "body";
+
+				if (i == 0) {
+					sec = "title";
+				}
+				cm.incrementCount(word, sec, 1);
 			}
 		}
 
@@ -358,10 +387,16 @@ public class NewsFeatureExtractor {
 				String pos = t.getString(1);
 				int val_idx = 0;
 
-				if (c.containsKey(word)) {
-					val_idx = valIdxer.indexOf(String.format("%s=%s", feat, "yes"));
+				Counter<String> c = cm.getCounter(word);
+
+				if (c.size() == 2) {
+					val_idx = valIdxer.indexOf(String.format("%s=%s", feat, "in_both"));
 				} else {
-					val_idx = valIdxer.indexOf(String.format("%s=%s", feat, "no"));
+					if (c.containsKey("in_title")) {
+						val_idx = valIdxer.indexOf(String.format("%s=%s", feat, "in_title"));
+					} else if (c.containsKey("in_body")) {
+						val_idx = valIdxer.indexOf(String.format("%s=%s", feat, "in_body"));
+					}
 				}
 
 				F.add(feat_idx, val_idx);
@@ -395,7 +430,7 @@ public class NewsFeatureExtractor {
 
 			} else if (feat.equals("pos")) {
 				int val_idx = valIdxer.indexOf(String.format("%s=%s", feat, "nopos"));
-				if (word.equals(LSentence.START) || word.equals(LSentence.END)) {
+				if (word.equals(LSentence.STARTING) || word.equals(LSentence.ENDING)) {
 
 				} else {
 					String pos = t.getString(1);
@@ -494,7 +529,8 @@ public class NewsFeatureExtractor {
 
 				F.set(feat_idx, val_idx);
 			} else if (feat.equals("shape2")) {
-				String val = String.format("%s=%s", feat, shape.replaceAll("a+", "a~").replaceAll("A{2,}", "A~A"));
+				String shape2 = shape.replaceAll("a+", "a~").replaceAll("A{2,}", "A~A").replaceAll("K+", "K~");
+				String val = String.format("%s=%s", feat, shape2);
 				int val_idx = is_training ? valIdxer.getIndex(val) : valIdxer.indexOf(val);
 
 				if (val_idx < 0) {
@@ -512,7 +548,8 @@ public class NewsFeatureExtractor {
 					suffix = word.substring(loc).toLowerCase();
 				}
 
-				String val = String.format("%s=%s", feat, shape.replaceAll("a+", "a~").replaceAll("A{2,}", "A~A"));
+				String shape2 = shape.replaceAll("a+", "a~").replaceAll("A{2,}", "A~A").replaceAll("K+", "K~");
+				String val = String.format("%s=%s", feat, shape2);
 				if (suffix.length() > 0) {
 					val += "|" + suffix;
 				}
@@ -548,6 +585,8 @@ public class NewsFeatureExtractor {
 				sb.append("A");
 			} else if (Character.isLowerCase(c)) {
 				sb.append("a");
+			} else if (UnicodeUtils.isKorean(c)) {
+				sb.append("K");
 			} else {
 				sb.append(c);
 			}
@@ -578,6 +617,7 @@ public class NewsFeatureExtractor {
 	}
 
 	public void readObject(String fileName) throws Exception {
+		System.out.printf("read at [%s]\n", fileName);
 		ObjectInputStream ois = FileUtils.openObjectInputStream(fileName);
 		readObject(ois);
 		ois.close();

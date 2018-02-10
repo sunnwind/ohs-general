@@ -7,7 +7,6 @@ import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
-import ohs.types.generic.Pair;
 
 /**
  * http://cs231n.github.io/neural-networks-2/
@@ -43,7 +42,7 @@ public class DropoutLayer extends Layer {
 	@Override
 	public DenseTensor backward(Object I) {
 		DenseTensor dY = (DenseTensor) I;
-		VectorUtils.enlarge(tmp_dX, dY.sizeOfInnerVectors(), dY.row(0).colSize());
+		VectorUtils.enlarge(tmp_dX, dY.sizeOfInnerVectors(), dY.get(0).colSize());
 
 		DenseTensor dX = new DenseTensor();
 		dX.ensureCapacity(dY.size());
@@ -69,14 +68,7 @@ public class DropoutLayer extends Layer {
 
 	@Override
 	public Object forward(Object I) {
-		DenseTensor X = null;
-
-		if (I instanceof Pair) {
-			Pair<DenseTensor, DenseTensor> p = (Pair<DenseTensor, DenseTensor>) I;
-			X = p.getSecond();
-		} else {
-			X = (DenseTensor) I;
-		}
+		DenseTensor X = (DenseTensor) I;
 
 		VectorUtils.enlarge(tmp_Y, X.sizeOfInnerVectors(), X.get(0).colSize());
 
@@ -90,9 +82,7 @@ public class DropoutLayer extends Layer {
 
 			start += Xm.rowSize();
 
-			if (is_testing) {
-				VectorUtils.copy(Xm, Ym);
-			} else {
+			if (is_training) {
 				VectorUtils.enlarge(tmp_M, Xm.rowSize(), Xm.colSize());
 
 				DenseMatrix M = tmp_M.subMatrix(Xm.rowSize());
@@ -102,6 +92,8 @@ public class DropoutLayer extends Layer {
 				VectorMath.mask(M, p);
 				M.multiply(1f / p); // inverted drop-out
 				VectorMath.multiply(Xm, M, Ym);
+			} else {
+				VectorUtils.copy(Xm, Ym);
 			}
 
 			Y.add(Ym);

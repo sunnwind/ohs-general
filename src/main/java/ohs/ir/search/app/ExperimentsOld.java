@@ -683,7 +683,7 @@ public class ExperimentsOld {
 
 		NeuralNet nn = new NeuralNet();
 		nn.readObject(MIRPath.TREC_CDS_2014_DIR + "reranker.ser.gz");
-		nn.setIsTesting(true);
+		nn.setIsTraining(true);
 
 		RandomAccessDenseMatrix E = new RandomAccessDenseMatrix(MIRPath.TREC_CDS_2014_DIR + "glove_model_raf.ser");
 

@@ -290,7 +290,7 @@ public class VectorMath {
 	public static double clip(DenseTensor a, double min, double max, DenseTensor b) {
 		double sum = 0;
 		for (int i = 0; i < a.size(); i++) {
-			sum += clip(a.row(i), min, max, b.row(i));
+			sum += clip(a.get(i), min, max, b.get(i));
 		}
 		return sum;
 	}
@@ -1263,6 +1263,14 @@ public class VectorMath {
 		return sum;
 	}
 
+	public static double randomn(double mean, double std, DenseMatrix x) {
+		double sum = 0;
+		for (int i = 0; i < x.rowSize(); i++) {
+			sum += randomn(mean, std, x.row(i));
+		}
+		return sum;
+	}
+
 	/**
 	 * @param min
 	 *            inclusive
@@ -1273,6 +1281,12 @@ public class VectorMath {
 	 */
 	public static double random(double min, double max, DenseVector x) {
 		double sum = ArrayMath.random(min, max, x.values());
+		x.setSum(sum);
+		return sum;
+	}
+
+	public static double randomn(double mean, double std, DenseVector x) {
+		double sum = ArrayMath.randomn(mean, std, x.values());
 		x.setSum(sum);
 		return sum;
 	}

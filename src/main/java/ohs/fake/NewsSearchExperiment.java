@@ -162,7 +162,8 @@ public class NewsSearchExperiment {
 
 		String[] fileNames = { "Mission1_sample_1차수정본.txt", "Mission2_sample_1차수정본.txt" };
 
-		ParsimoniousLanguageModelEstimator ple = new ParsimoniousLanguageModelEstimator(ds.getDocumentCollection());
+		ParsimoniousLanguageModelEstimator ple = new ParsimoniousLanguageModelEstimator(
+				ds.getDocumentCollection().getVocab());
 		// ple.setDocumentMixture(0.5);
 		Vocab vocab = ds.getVocab();
 

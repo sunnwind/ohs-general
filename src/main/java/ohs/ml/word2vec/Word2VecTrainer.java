@@ -104,7 +104,7 @@ public class Word2VecTrainer {
 
 				cost *= -1;
 
-				updater.update();
+				updater.update(batch_size);
 
 				double acc = 1f * correct_cnt / train_word_cnt;
 

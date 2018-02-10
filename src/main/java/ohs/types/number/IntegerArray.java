@@ -813,13 +813,12 @@ public class IntegerArray implements RandomAccess, Cloneable, java.io.Serializab
 	}
 
 	public void readObject(ObjectInputStream ois) throws Exception {
-		vals = DEFAULT_CAPACITY_EMPTY_VALUES;
-
 		int size = ois.readInt();
-		ensureCapacity(size);
+		vals = new int[size];
 		for (int i = 0; i < size; i++) {
-			add(ois.readInt());
+			vals[i] = ois.readInt();
 		}
+		this.size = size;
 	}
 
 	public void readObject(String fileName) throws Exception {

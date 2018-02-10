@@ -9,7 +9,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import ohs.math.ArrayMath;
 import ohs.math.ArrayUtils;
-import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
@@ -18,10 +17,7 @@ import ohs.ml.eval.Performance;
 import ohs.ml.eval.PerformanceEvaluator;
 import ohs.ml.neuralnet.com.ParameterUpdater.OptimizerType;
 import ohs.ml.neuralnet.cost.CrossEntropyCostFunction;
-import ohs.ml.neuralnet.layer.Layer;
 import ohs.types.generic.Pair;
-import ohs.types.number.IntegerArray;
-import ohs.types.number.IntegerMatrix;
 import ohs.utils.Generics;
 import ohs.utils.Timer;
 
@@ -62,7 +58,7 @@ public class NeuralNetTrainer {
 				int[] locs = BatchUtils.getIndexes(data_locs, r);
 
 				DenseTensor Xm = X.subTensor(locs);
-				DenseMatrix Ym = Y.subMatrix(locs);
+				DenseTensor Ym = Y.subTensor(locs);
 
 				DenseTensor Yhm = (DenseTensor) nn.forward(Xm);
 				DenseTensor D = cf.evaluate(Yhm, Ym);
@@ -129,7 +125,7 @@ public class NeuralNetTrainer {
 
 	private DenseTensor X;
 
-	private DenseMatrix Y;
+	private DenseTensor Y;
 
 	private double best_score = 0;
 
@@ -145,23 +141,54 @@ public class NeuralNetTrainer {
 				nnp.getUseHardGradientClipping());
 	}
 
-	public Performance evaluate(DenseTensor X, DenseMatrix Y) throws Exception {
+	private DenseMatrix getOutputSequence(DenseTensor Y) {
+		DenseMatrix ret = new DenseMatrix();
+		ret.ensureCapacity(Y.size());
+
+		for (int i = 0; i < Y.size(); i++) {
+			DenseMatrix Ym = Y.get(i);
+			DenseVector _Y = Ym.column(0);
+			ret.add(_Y);
+		}
+		ret.unwrapValues();
+		return ret;
+	}
+
+	private DenseVector getOutputs(DenseTensor Y) {
+		DenseVector ret = new DenseVector(Y.size());
+
+		for (int i = 0; i < Y.size(); i++) {
+			DenseMatrix Ym = Y.get(i);
+			ret.add(i, Ym.value(0, 0));
+		}
+		return ret;
+	}
+
+	public Performance evaluate(DenseTensor X, DenseTensor Y) throws Exception {
 		for (NeuralNet nn : nns) {
-			nn.setIsTesting(true);
+			nn.setIsTraining(false);
 		}
 
-		DenseMatrix Yh = nnmr.classify(X);
+		DenseTensor Yh = nnmr.classify(X);
 
 		Performance p = null;
 
-		if (Y.colSize() > 1) {
-			p = eval.evaluteSequences(Y, Yh, onn.getLabelIndexer());
+		if (tt == TaskType.TOKEN_SEQ_LABELING) {
+			DenseMatrix _Y = getOutputSequence(Y);
+			DenseMatrix _Yh = getOutputSequence(Yh);
+			p = eval.evaluteSequences(_Y, _Yh, onn.getLabelIndexer());
+		} else if (tt == TaskType.TOKEN_CLASSIFICAITON) {
+			DenseMatrix _Y = getOutputSequence(Y);
+			DenseMatrix _Yh = getOutputSequence(Yh);
+			p = eval.evalute(_Y.toDenseVector(), _Yh.toDenseVector(), onn.getLabelIndexer());
 		} else {
-			p = eval.evalute(Y, Yh, onn.getLabelIndexer());
+			DenseVector _Y = getOutputs(Y);
+			DenseVector _Yh = getOutputs(Yh);
+			p = eval.evalute(_Y, _Yh, onn.getLabelIndexer());
 		}
 
 		for (NeuralNet nn : nns) {
-			nn.setIsTesting(false);
+			nn.setIsTraining(true);
 		}
 
 		return p;
@@ -171,7 +198,7 @@ public class NeuralNetTrainer {
 		tpe.shutdown();
 
 		for (NeuralNet nn : nns) {
-			nn.setIsTesting(true);
+			nn.setIsTraining(false);
 		}
 
 		nnmr.shutdown();
@@ -202,7 +229,8 @@ public class NeuralNetTrainer {
 
 		for (int i = 0; i < thread_size - 1; i++) {
 			NeuralNet n = nn.copy();
-			n.prepareTraining();
+			n.createGradientHolders();
+			n.setIsTraining(true);
 
 			nns.add(n);
 		}
@@ -254,18 +282,22 @@ public class NeuralNetTrainer {
 		this.eval_window_size = eval_window_size;
 	}
 
-	public void train(DenseTensor X, DenseMatrix Y, DenseTensor Xt, DenseMatrix Yt, int max_iters) throws Exception {
-		if (Y.colSize() > 1) {
+	private int data_size = 0;
+
+	public void train(DenseTensor X, DenseTensor Y, DenseTensor Xt, DenseTensor Yt, int max_iters) throws Exception {
+		data_size = Y.sizeOfEntries();
+
+		if (Y.get(0).size() > 1) {
 			if (is_full_seq_batch) {
-				data_locs = ArrayUtils.range(Y.rowSize());
-				ranges = BatchUtils.getBatchRanges(Y.rowSize(), batch_size);
+				data_locs = ArrayUtils.range(Y.size());
+				ranges = BatchUtils.getBatchRanges(Y.size(), batch_size);
 			} else {
 				List<DenseMatrix> _X = Generics.newArrayList();
-				List<DenseVector> _Y = Generics.newArrayList();
+				List<DenseMatrix> _Y = Generics.newArrayList();
 
 				for (int i = 0; i < X.size(); i++) {
 					DenseMatrix Xm = X.get(i);
-					DenseVector Ym = Y.get(i);
+					DenseMatrix Ym = Y.get(i);
 
 					for (int j = 0; j < Xm.rowSize();) {
 						int size = batch_size;
@@ -275,34 +307,24 @@ public class NeuralNetTrainer {
 						}
 
 						_X.add(Xm.subMatrix(j, size));
-						_Y.add(Ym.subVector(j, size));
+						_Y.add(Ym.subMatrix(j, size));
 						j += size;
 					}
 				}
 
 				X = new DenseTensor(_X);
-				Y = new DenseMatrix(_Y);
+				Y = new DenseTensor(_Y);
 
-				data_locs = ArrayUtils.range(Y.rowSize());
-				ranges = BatchUtils.getBatchRanges(Y.rowSize(), 1);
+				data_locs = ArrayUtils.range(Y.size());
+				ranges = BatchUtils.getBatchRanges(Y.size(), 1);
 			}
 		} else {
-			data_locs = ArrayUtils.range(Y.rowSize());
-			ranges = BatchUtils.getBatchRanges(Y.rowSize(), batch_size);
+			data_locs = ArrayUtils.range(Y.size());
+			ranges = BatchUtils.getBatchRanges(Y.size(), batch_size);
 		}
 
 		this.X = X;
 		this.Y = Y;
-
-		int data_size = 0;
-		if (Y.colSize() > 1) {
-			/*
-			 * sequence labeling
-			 */
-			data_size = Y.sizeOfEntries();
-		} else {
-			data_size = Y.size();
-		}
 
 		int s = total_iters;
 		int e = total_iters + max_iters;
@@ -383,9 +405,9 @@ public class NeuralNetTrainer {
 					status = "new";
 					VectorUtils.copy(W, Wbest);
 				} else {
-//					if (ratio < 0.9) {
-//						VectorUtils.copy(Wbest, W);
-//					}
+					// if (ratio < 0.9) {
+					// VectorUtils.copy(Wbest, W);
+					// }
 				}
 
 				System.out.printf("best score:\t[%f, %s]\n", best_score, status);

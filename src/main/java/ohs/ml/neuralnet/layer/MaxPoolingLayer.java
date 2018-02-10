@@ -57,9 +57,9 @@ public class MaxPoolingLayer extends Layer {
 		VectorUtils.enlarge(tmp_dX, X.sizeOfInnerVectors(), num_filters);
 
 		for (int i = 0, start = 0; i < dY.size(); i++) {
-			DenseMatrix dYm = dY.row(i);
-			DenseMatrix Xm = X.row(i);
-			DenseMatrix Lm = L.row(i);
+			DenseMatrix dYm = dY.get(i);
+			DenseMatrix Xm = X.get(i);
+			DenseMatrix Lm = L.get(i);
 
 			int num_feature_maps = Xm.rowSize();
 

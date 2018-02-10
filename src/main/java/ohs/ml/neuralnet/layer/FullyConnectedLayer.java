@@ -3,16 +3,12 @@ package ohs.ml.neuralnet.layer;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
-import ohs.math.ArrayChecker;
-import ohs.math.ArrayMath;
-import ohs.math.VectorChecker;
 import ohs.math.VectorMath;
 import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
 import ohs.ml.neuralnet.com.ParameterInitializer;
-import scala.Predef.ArrayCharSequence;
 
 /**
  * 
@@ -49,6 +45,20 @@ public class FullyConnectedLayer extends Layer {
 	private int input_size;
 
 	private int output_size;
+
+	private DenseVector Nw = new DenseVector(0);
+
+	private DenseMatrix Nx = new DenseMatrix(0);
+
+	private DenseMatrix tmp_Nx = new DenseMatrix(0);
+
+	private DenseTensor N;
+
+	private DenseMatrix tmp_Z = new DenseMatrix(0);
+
+	private DenseTensor Z;
+
+	private DenseVector T;
 
 	public FullyConnectedLayer() {
 
@@ -92,27 +102,6 @@ public class FullyConnectedLayer extends Layer {
 
 			start += Xm.rowSize();
 
-			// if (use_cosine_norm) {
-			// for (int j = 0; j < Xm.rowSize(); j++) {
-			// DenseVector xm = Xm.row(j);
-			// DenseVector dym = dYm.row(j);
-			// DenseVector nxm = Nxm.row(j);
-			// DenseVector zm = Zm.row(j);
-			//
-			// for (int k = 0; k < xm.size(); k++) {
-			// double v = xm.value(k);
-			// double nx = nxm.value(k);
-			// double nw = Nw.value(k);
-			//
-			// double v2 = v / (nx * nw);
-			// }
-			//
-			// VectorMath.outerProduct(xm, dym, dW, true);
-			// VectorMath.add(dym, db);
-			// }
-			//
-			// VectorMath.productRows(dYm, W, dXm, false);
-			// } else {
 			for (int j = 0; j < Xm.rowSize(); j++) {
 				DenseVector xm = Xm.row(j);
 				DenseVector dym = dYm.row(j);
@@ -121,7 +110,7 @@ public class FullyConnectedLayer extends Layer {
 				VectorMath.add(dym, db);
 			}
 			VectorMath.productRows(dYm, W, dXm, false);
-			// }
+
 			dX.add(dXm);
 		}
 
@@ -133,21 +122,11 @@ public class FullyConnectedLayer extends Layer {
 		return new FullyConnectedLayer(W, b);
 	}
 
-	private boolean use_cosine_norm = true;
-
-	private DenseVector Nw = new DenseVector(0);
-
-	private DenseMatrix Nx = new DenseMatrix(0);
-
-	private DenseMatrix tmp_Nx = new DenseMatrix(0);
-
-	private DenseTensor N;
-
-	private DenseMatrix tmp_Z = new DenseMatrix(0);
-
-	private DenseTensor Z;
-
-	private DenseVector T;
+	@Override
+	public void createGradientHolders() {
+		dW = W.copy(true);
+		db = b.copy(true);
+	}
 
 	@Override
 	public DenseTensor forward(Object I) {
@@ -250,14 +229,8 @@ public class FullyConnectedLayer extends Layer {
 	}
 
 	@Override
-	public void initWeights() {
-		ParameterInitializer.init2(W);
-	}
-
-	@Override
-	public void prepareTraining() {
-		dW = W.copy(true);
-		db = b.copy(true);
+	public void initWeights(ParameterInitializer pi) {
+		pi.init(W);
 	}
 
 	@Override

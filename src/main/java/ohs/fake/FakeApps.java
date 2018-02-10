@@ -2,27 +2,33 @@ package ohs.fake;
 
 import java.io.File;
 import java.text.DecimalFormat;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.math3.analysis.function.Tanh;
+
+import ohs.corpus.type.DocumentCollection;
 import ohs.io.FileUtils;
+import ohs.io.RandomAccessDenseMatrix;
 import ohs.io.TextFileWriter;
+import ohs.ir.search.app.WordSearcher;
 import ohs.math.ArrayUtils;
+import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
-import ohs.ml.eval.Performance;
+import ohs.ml.neuralnet.com.BatchUtils;
 import ohs.ml.neuralnet.com.NeuralNet;
 import ohs.ml.neuralnet.com.NeuralNetParams;
 import ohs.ml.neuralnet.com.NeuralNetTrainer;
+import ohs.ml.neuralnet.com.ParameterInitializer;
 import ohs.ml.neuralnet.com.ParameterUpdater.OptimizerType;
 import ohs.ml.neuralnet.com.TaskType;
 import ohs.ml.neuralnet.layer.ConcatenationLayer;
 import ohs.ml.neuralnet.layer.DropoutLayer;
 import ohs.ml.neuralnet.layer.EmbeddingLayer;
 import ohs.ml.neuralnet.layer.FullyConnectedLayer;
-import ohs.ml.neuralnet.layer.Layer;
 import ohs.ml.neuralnet.layer.MultiWindowConvolutionalLayer;
 import ohs.ml.neuralnet.layer.MultiWindowMaxPoolingLayer;
 import ohs.ml.neuralnet.layer.NonlinearityLayer;
@@ -44,8 +50,232 @@ import ohs.utils.StrUtils;
 
 public class FakeApps {
 
-	public static NewsFeatureExtractor getFeatureExtractor(String extFileName, LDocumentCollection X) throws Exception {
+	public static void main(String[] args) throws Exception {
+		System.out.println("process begins.");
+
+		FakeApps fa = new FakeApps();
+		 fa.runM1();
+//		fa.runM2();
+
+		System.out.println("process ends.");
+	}
+
+	private NeuralNetParams nnp;
+
+	private Indexer<String> labelIdxer;
+
+	private LDocumentCollection C1;
+
+	private LDocumentCollection C2;
+
+	private DenseTensor X = new DenseTensor();
+
+	private DenseTensor Y = new DenseTensor();
+
+	private DenseTensor Xv = new DenseTensor();
+
+	private DenseTensor Yv = new DenseTensor();
+
+	private DenseTensor Xt = new DenseTensor();
+
+	private DenseTensor Yt = new DenseTensor();
+
+	private boolean is_m1 = true;
+
+	public FakeApps() {
+		nnp = getNeuralNetParams();
+
+		labelIdxer = Generics.newIndexer();
+		labelIdxer.add("non-fake");
+		labelIdxer.add("fake");
+
+		{
+			Indexer<String> l = Generics.newIndexer();
+			l.add("word");
+			l.add("pos");
+			LToken.INDEXER = l;
+		}
+	}
+
+	private DenseTensor apply(NeuralNet nn, DenseTensor X) {
+		System.out.println("apply to test docs.");
+		DenseTensor Yh = new DenseTensor();
+
+		for (DenseMatrix Xm : Xt) {
+			DenseTensor Ym = (DenseTensor) nn.forward(Xm.toDenseTensor());
+			Yh.addAll(Ym.copy(false));
+		}
+
+		return Yh;
+	}
+
+	private void buildData() {
+		IntegerMatrix M = new IntegerMatrix();
+		IntegerArray N = new IntegerArray();
+
+		for (int i = 0; i < C1.size(); i++) {
+			LDocument d = C1.get(i);
+			String label = d.getAttrMap().get("label");
+			int l = labelIdxer.indexOf(label);
+
+			M.add(l, i);
+			N.add(l);
+		}
+
+		IntegerMatrix T = DataSplitter.splitGroupsByLabels(M, new double[] { 0.9, 0.1 });
+
+		X = new DenseTensor();
+		Y = new DenseTensor();
+
+		Xv = new DenseTensor();
+		Yv = new DenseTensor();
+
+		Xt = new DenseTensor();
+		Yt = new DenseTensor();
+
+		for (int i = 0; i < T.size(); i++) {
+			IntegerArray L = T.get(i);
+			for (int loc : L) {
+				LDocument d = C1.get(loc);
+				String label = d.getAttrMap().get("label");
+				int lb = labelIdxer.indexOf(label);
+
+				LSentence s = d.getTokens();
+
+				DenseMatrix Xm = new DenseMatrix();
+				Xm.ensureCapacity(s.size());
+
+				for (LToken t : s) {
+					Xm.add(t.getFeatureVector());
+				}
+
+				if (i == 0) {
+					X.add(Xm);
+					Y.add(new DenseVector(new int[] { lb }).toDenseMatrix());
+				} else {
+					Xv.add(Xm);
+					Yv.add(new DenseVector(new int[] { lb }).toDenseMatrix());
+				}
+			}
+		}
+
+		X.trimToSize();
+		Y.trimToSize();
+
+		Xv.trimToSize();
+		Yv.trimToSize();
+
+		Xt = new DenseTensor();
+		Yt = new DenseTensor();
+
+		for (LDocument d : C2) {
+			String label = d.getAttrMap().get("label");
+
+			LSentence s = d.getTokens();
+
+			DenseMatrix Xm = new DenseMatrix();
+			Xm.ensureCapacity(s.size());
+
+			for (LToken t : s) {
+				Xm.add(t.getFeatureVector());
+			}
+
+			Xt.add(Xm);
+			int lb = labelIdxer.indexOf(label);
+			if (lb >= 0) {
+				Yt.add(new DenseVector(new int[] { lb }).toDenseMatrix());
+			}
+		}
+
+		Xt.trimToSize();
+		Yt.trimToSize();
+	}
+
+	private void createCNN(NeuralNet nn, NewsFeatureExtractor ext, boolean is_m1, boolean use_pretrained)
+			throws Exception {
+		ConcatenationLayer l = null;
+
+		int word_emb_size = 50;
+		int feat_emb_size = 5;
+		int output_size = 2;
+
+		{
+			Indexer<String> featIdxer = ext.getFeatureIndexer();
+			List<Indexer<String>> valIdxers = ext.getValueIndexers();
+
+			int feat_size = featIdxer.size();
+
+			List<EmbeddingLayer> L = Generics.newArrayList(feat_size);
+
+			for (int i = 0; i < feat_size; i++) {
+				String feat = featIdxer.getObject(i);
+				Indexer<String> valIdxer = valIdxers.get(i);
+				int emb_size = feat_emb_size;
+
+				if (feat.equals("word")) {
+					emb_size = word_emb_size;
+				} else {
+					emb_size = feat_emb_size;
+				}
+
+				if (feat.equals("word") && use_pretrained) {
+					DenseMatrix E = readPretrainedEmbeddings(new Vocab(valIdxer));
+					EmbeddingLayer ll = new EmbeddingLayer(E, true, i);
+					ll.setSkipInitWeights(true);
+
+					L.add(ll);
+					// L.add(new EmbeddingLayer(E.copy(), true, i));
+					// L.add(new EmbeddingLayer(valIdxer.size(), emb_size, true, i));
+				} else {
+					EmbeddingLayer ll = new EmbeddingLayer(valIdxer.size(), emb_size, true, i);
+					L.add(ll);
+				}
+			}
+
+			l = new ConcatenationLayer(L);
+
+			nn.add(l);
+		}
+
+		int num_filters = 100;
+		int[] window_sizes = new int[] { 1 };
+		int l2 = 20;
+
+		if (is_m1) {
+			window_sizes = new int[] { 2, 4 };
+		} else {
+			window_sizes = new int[] { 2, 4 };
+		}
+
+		nn.add(new MultiWindowConvolutionalLayer(nn.get(nn.size() - 1).getOutputSize(), window_sizes, num_filters));
+		// nn.add(new ConvolutionalLayer(emb_size, 4, num_filters));
+		nn.add(new NonlinearityLayer(new ReLU()));
+		// nn.add(new MaxPoolingLayer(num_filters));
+		nn.add(new MultiWindowMaxPoolingLayer(num_filters, window_sizes));
+		nn.add(new DropoutLayer());
+		// nn.add(new BatchNormalizationLayer(num_filters * window_sizes.length));
+		nn.add(new FullyConnectedLayer(num_filters * window_sizes.length, l2));
+		nn.add(new NonlinearityLayer(new ReLU()));
+		nn.add(new FullyConnectedLayer(l2, output_size));
+		nn.add(new SoftmaxLayer(output_size));
+		nn.createGradientHolders();
+		nn.initWeights(new ParameterInitializer());
+	}
+
+	private Set<String> filter(Set<String> dict) {
+		Set<String> ret = Generics.newHashSet(dict.size());
+		for (String s : dict) {
+			if (s.length() > 1) {
+				ret.add(s);
+			}
+		}
+		return ret;
+	}
+
+	private NewsFeatureExtractor getFeatureExtractor(String extFileName, LDocumentCollection X, boolean is_m1)
+			throws Exception {
 		NewsFeatureExtractor ext = new NewsFeatureExtractor();
+		ext.setIsTraining(true);
 
 		if (extFileName != null) {
 			ext.readObject(extFileName);
@@ -57,16 +287,31 @@ public class FakeApps {
 				String dirName = "../../data/fake_news/dict/";
 				pers = FileUtils.readStringHashSetFromText(dirName + "pers.txt");
 				orgs = FileUtils.readStringHashSetFromText(dirName + "orgs.txt");
+
+				pers = filter(pers);
+				orgs = filter(orgs);
+
 			}
 
 			Set<String> pol = Generics.newHashSet();
 			Set<String> eco = Generics.newHashSet();
+			Set<String> its = Generics.newHashSet();
 
-			{
-				String dirName = "../../data/fake_news/dict_topic/";
-				pol = FileUtils.readStringCounterFromText(dirName + "정치.txt").keySet();
-				eco = FileUtils.readStringCounterFromText(dirName + "경제.txt").keySet();
-			}
+			// {
+			// String dirName = "../../data/fake_news/dict_topic2/";
+			// Counter<String> c1 = FileUtils.readStringCounterFromText(dirName + "정치.txt");
+			// Counter<String> c2 = FileUtils.readStringCounterFromText(dirName + "경제.txt");
+			// Counter<String> c3 = FileUtils.readStringCounterFromText(dirName +
+			// "IT-과학.txt");
+			//
+			// c1.keepTopNKeys(2000);
+			// c2.keepTopNKeys(2000);
+			// c3.keepTopNKeys(2000);
+			//
+			// pol = filter(c1.keySet());
+			// eco = filter(c2.keySet());
+			// its = filter(c3.keySet());
+			// }
 
 			Set<String> poss = Generics.newHashSet(X.getTokenStrings(1));
 			Set<String> prefixes = Generics.newHashSet();
@@ -99,211 +344,55 @@ public class FakeApps {
 			}
 
 			ext.addPosFeatures(poss);
-			// ext.addCapitalFeatures();
-			// ext.addPuctuationFeatures();
-			// ext.addShapeOneFeatures();
-			// ext.addShapeTwoFeatures();
-			// ext.addShapeThreeFeatures();
-			// ext.addSuffixFeatures(suffixes);
-			// ext.addPrefixFeatures(prefixes);
-			// ext.addGazeteerFeatures("per", pers);
-			// ext.addGazeteerFeatures("org", orgs);
-			// ext.addGazeteerFeatures("pol", pol);
-			// ext.addGazeteerFeatures("eco", eco);
-			// ext.addTitleWordFeatures();
-			// ext.addTopicFeatures(llw);
 
+			if (is_m1) {
+				// ext.addCapitalFeatures();
+				// ext.addPuctuationFeatures();
+				// ext.addShapeOneFeatures();
+				// ext.addShapeTwoFeatures();
+				// ext.addShapeThreeFeatures();
+				// ext.addSuffixFeatures(suffixes);
+				// ext.addPrefixFeatures(prefixes);
+				// ext.addGazeteerFeatures("per", pers);
+				// ext.addGazeteerFeatures("org", orgs);
+				// ext.addGazeteerFeatures("pol", pol);
+				// ext.addGazeteerFeatures("eco", eco);
+				ext.addWordSectionFeatures();
+				ext.addTopicFeatures(llw);
+			} else {
+				// ext.addCapitalFeatures();
+				// ext.addPuctuationFeatures();
+				// ext.addShapeOneFeatures();
+				// ext.addShapeTwoFeatures();
+				// ext.addShapeThreeFeatures();
+				// ext.addSuffixFeatures(suffixes);
+				// ext.addPrefixFeatures(prefixes);
+				// ext.addGazeteerFeatures("per", pers);
+				// ext.addGazeteerFeatures("org", orgs);
+				// ext.addGazeteerFeatures("pol", pol);
+				// ext.addGazeteerFeatures("eco", eco);
+				// ext.addGazeteerFeatures("its", its);
+				ext.addWordSectionFeatures();
+				ext.addTopicFeatures(llw);
+			}
 		}
 
 		return ext;
-	}
-
-	public static void main(String[] args) throws Exception {
-		System.out.println("process begins.");
-
-		FakeApps fa = new FakeApps();
-		fa.runM1();
-		// fa.runM2();
-
-		System.out.println("process ends.");
-	}
-
-	private NeuralNetParams nnp;
-
-	private Indexer<String> labelIdxer;
-
-	private LDocumentCollection C1;
-
-	private LDocumentCollection C2;
-
-	private DenseTensor X = new DenseTensor();
-
-	private DenseMatrix Y = new DenseMatrix();
-
-	private DenseTensor Xv = new DenseTensor();
-
-	private DenseMatrix Yv = new DenseMatrix();
-
-	private DenseTensor Xt = new DenseTensor();
-
-	private DenseMatrix Yt = new DenseMatrix();
-
-	public FakeApps() {
-		nnp = getNeuralNetParams();
-
-		labelIdxer = Generics.newIndexer();
-		labelIdxer.add("non-fake");
-		labelIdxer.add("fake");
-
-		{
-			Indexer<String> l = Generics.newIndexer();
-			l.add("word");
-			l.add("pos");
-			LToken.INDEXER = l;
-		}
-	}
-
-	private void createCNN(NeuralNet nn, NewsFeatureExtractor ext) {
-		ConcatenationLayer l = null;
-
-		int word_emb_size = 50;
-		int feat_emb_size = 5;
-		int output_size = 2;
-		{
-			Indexer<String> featIdxer = ext.getFeatureIndexer();
-			List<Indexer<String>> valIdxers = ext.getValueIndexers();
-
-			int feat_size = featIdxer.size();
-
-			Map<Integer, Layer> L = Generics.newHashMap(featIdxer.size());
-
-			for (int i = 0; i < feat_size; i++) {
-				String feat = featIdxer.getObject(i);
-				Indexer<String> valIdxer = valIdxers.get(i);
-				int emb_size = feat_emb_size;
-
-				if (feat.equals("word")) {
-					emb_size = word_emb_size;
-				} else {
-					emb_size = feat_emb_size;
-				}
-
-				EmbeddingLayer ll = new EmbeddingLayer(valIdxer.size(), emb_size, true, i);
-				L.put(i, ll);
-			}
-
-			l = new ConcatenationLayer(featIdxer.size(), L);
-
-			nn.add(l);
-		}
-
-		int num_filters = 100;
-		int[] window_sizes = new int[] { 2, 4 };
-
-		nn.add(new MultiWindowConvolutionalLayer(nn.get(nn.size() - 1).getOutputSize(), window_sizes, num_filters));
-		// nn.add(new ConvolutionalLayer(emb_size, 4, num_filters));
-		nn.add(new NonlinearityLayer(new ReLU()));
-		// nn.add(new MaxPoolingLayer(num_filters));
-		nn.add(new MultiWindowMaxPoolingLayer(num_filters, window_sizes));
-		nn.add(new DropoutLayer());
-		nn.add(new FullyConnectedLayer(num_filters * window_sizes.length, output_size));
-		nn.add(new SoftmaxLayer(output_size));
-		nn.prepareTraining();
-		nn.initWeights();
-	}
-
-	private void buildData() {
-		IntegerMatrix M = new IntegerMatrix();
-		IntegerArray N = new IntegerArray();
-
-		for (int i = 0; i < C1.size(); i++) {
-			LDocument d = C1.get(i);
-			String label = d.getAttrMap().get("label");
-			int l = labelIdxer.indexOf(label);
-
-			M.add(l, i);
-			N.add(l);
-		}
-
-		IntegerMatrix T = DataSplitter.splitGroupsByLabels(M, new double[] { 0.9, 0.1 });
-
-		X = new DenseTensor();
-		Y = new DenseMatrix();
-
-		Xv = new DenseTensor();
-		Yv = new DenseMatrix();
-
-		Xt = new DenseTensor();
-		Yt = new DenseMatrix();
-
-		for (int i = 0; i < T.size(); i++) {
-			IntegerArray L = T.get(i);
-			for (int loc : L) {
-				LDocument d = C1.get(loc);
-				String label = d.getAttrMap().get("label");
-				int lb = labelIdxer.indexOf(label);
-
-				LSentence s = d.getTokens();
-
-				DenseMatrix Xm = new DenseMatrix();
-				Xm.ensureCapacity(s.size());
-
-				for (LToken t : s) {
-					Xm.add(t.getFeatureVector());
-				}
-
-				if (i == 0) {
-					X.add(Xm);
-					Y.add(new DenseVector(new int[] { lb }));
-				} else {
-					Xv.add(Xm);
-					Yv.add(new DenseVector(new int[] { lb }));
-				}
-			}
-		}
-
-		for (LDocument d : C2) {
-			String label = d.getAttrMap().get("label");
-
-			LSentence s = d.getTokens();
-
-			DenseMatrix Xm = new DenseMatrix();
-			Xm.ensureCapacity(s.size());
-
-			for (LToken t : s) {
-				Xm.add(t.getFeatureVector());
-			}
-
-			Xt.add(Xm);
-			int lb = labelIdxer.indexOf(label);
-			if (lb >= 0) {
-				Yt.add(new DenseVector(new int[] { lb }));
-			}
-		}
-
-		X.trimToSize();
-		Y.trimToSize();
-
-		Xv.trimToSize();
-		Yv.trimToSize();
-
-		Xt.trimToSize();
-		Yt.trimToSize();
 	}
 
 	private NeuralNetParams getNeuralNetParams() {
 		NeuralNetParams nnp = new NeuralNetParams();
 
 		nnp.setLearnRate(0.001);
-		nnp.setLearnRateDecay(0.9);
+		nnp.setLearnRateDecay(1);
 		nnp.setLearnRateDecaySize(100);
 		nnp.setL2WeightDecay(1);
 		nnp.setGradientDecay(1);
 		nnp.setRegLambda(0.001);
 		nnp.setGradientClipCutoff(Double.MAX_VALUE);
 
-		nnp.setThreadSize(5);
-		nnp.setBatchSize(5);
+		nnp.setThreadSize(6);
+		nnp.setBatchSize(8);
 		nnp.setGradientAccumulatorResetSize(1000);
 
 		nnp.setIsFullSequenceBatch(true);
@@ -316,40 +405,39 @@ public class FakeApps {
 		return nnp;
 	}
 
-	private LDocumentCollection readExtraData(boolean is_m1) throws Exception {
-		LDocumentCollection ret = new LDocumentCollection();
-		for (File file : FileUtils.getFilesUnder(FNPath.DATA_DIR + "data_pos")) {
-			String name = file.getName();
+	private void readData() throws Exception {
+		C1 = readTrainData(is_m1);
+		C2 = readTestData(is_m1);
 
-			if (is_m1) {
-				if (name.startsWith("M1_train-3")) {
-					for (String line : FileUtils.readLinesFromText(file)) {
-						List<String> ps = StrUtils.split("\t", line);
-						ps = StrUtils.unwrap(ps);
+		Collections.shuffle(C1);
 
-						String label = "non-fake";
-						LDocument d = LDocument.newDocument(ps.get(2));
-						d.getAttrMap().put("label", label);
+		showLabelCounts();
 
-						ret.add(d);
-					}
-				}
-			} else {
-				if (name.startsWith("M2_train-3")) {
-					for (String line : FileUtils.readLinesFromText(file)) {
-						List<String> ps = StrUtils.split("\t", line);
-						ps = StrUtils.unwrap(ps);
+		C1.doPadding();
+		C2.doPadding();
+	}
 
-						String label = "non-fake";
-						LDocument d = LDocument.newDocument(ps.get(2));
-						d.getAttrMap().put("label", label);
+	private DenseMatrix readPretrainedEmbeddings(Vocab nVocab) throws Exception {
+		Vocab vocab = DocumentCollection.readVocab(FNPath.NAVER_NEWS_COL_DC_DIR + "vocab.ser");
+		RandomAccessDenseMatrix E = new RandomAccessDenseMatrix(FNPath.NAVER_DATA_DIR + "/emb/glove_ra.ser");
 
-						ret.add(d);
-					}
-				}
+		WordSearcher ws = new WordSearcher(vocab, E, null);
 
+		DenseMatrix ret = new DenseMatrix(nVocab.size(), E.colSize());
+
+		ParameterInitializer pi = new ParameterInitializer();
+
+		pi.init(ret);
+
+		for (int i = 0; i < nVocab.size(); i++) {
+			String word = nVocab.getObject(i);
+			DenseVector e = ws.getVector(word);
+
+			if (e != null) {
+				VectorUtils.copy(e, ret.row(i));
 			}
 		}
+		ret.unwrapValues();
 
 		return ret;
 	}
@@ -360,7 +448,7 @@ public class FakeApps {
 			String name = file.getName();
 
 			if (is_M1) {
-				if (name.startsWith("M1_train-1")) {
+				if (name.startsWith("M1_test-2")) {
 					for (String line : FileUtils.readLinesFromText(file)) {
 						List<String> ps = StrUtils.unwrap(StrUtils.split("\t", line));
 
@@ -376,7 +464,7 @@ public class FakeApps {
 					}
 				}
 			} else {
-				if (name.startsWith("M2_train-3")) {
+				if (name.startsWith("M2_test-2")) {
 					for (String line : FileUtils.readLinesFromText(file)) {
 						List<String> ps = StrUtils.unwrap(StrUtils.split("\t", line));
 
@@ -403,7 +491,7 @@ public class FakeApps {
 			String name = file.getName();
 
 			if (is_m1_data) {
-				if (name.startsWith("M1_train-3") || name.startsWith("M1_train-2")) {
+				if (name.startsWith("M1_train-1") || name.startsWith("M1_train-2") || name.startsWith("M1_train-3")) {
 					for (String line : FileUtils.readLinesFromText(file)) {
 						List<String> ps = StrUtils.unwrap(StrUtils.split("\t", line));
 
@@ -420,19 +508,20 @@ public class FakeApps {
 						}
 						ret.add(d);
 					}
-				} else if (name.startsWith("M2_train-1")) {
-					for (String line : FileUtils.readLinesFromText(file)) {
-						List<String> ps = StrUtils.unwrap(StrUtils.split("\t", line));
-
-						String id = ps.get(0);
-						String label = "non-fake";
-
-						LDocument d = LDocument.newDocument(ps.get(2));
-						d.getAttrMap().put("id", id);
-						d.getAttrMap().put("label", label);
-
-						ret.add(d);
-					}
+					// } else if (name.startsWith("M2_train-1") || name.startsWith("M2_train-2")
+					// || name.startsWith("M2_train-3")) {
+					// for (String line : FileUtils.readLinesFromText(file)) {
+					// List<String> ps = StrUtils.unwrap(StrUtils.split("\t", line));
+					//
+					// String id = ps.get(0);
+					// String label = "non-fake";
+					//
+					// LDocument d = LDocument.newDocument(ps.get(2));
+					// d.getAttrMap().put("id", id);
+					// d.getAttrMap().put("label", label);
+					//
+					// ret.add(d);
+					// }
 				}
 			} else {
 				if (name.startsWith("M2_train-1") || name.startsWith("M2_train-2")) {
@@ -449,20 +538,21 @@ public class FakeApps {
 
 						ret.add(d);
 					}
-				} else if (name.startsWith("M1_train-1")) {
-					for (String line : FileUtils.readLinesFromText(file)) {
-						List<String> ps = StrUtils.unwrap(StrUtils.split("\t", line));
-
-						String id = ps.get(0);
-						String label = "non-fake";
-
-						LDocument d = LDocument.newDocument(ps.get(2));
-						d.getAttrMap().put("id", id);
-						d.getAttrMap().put("label", label);
-
-						ret.add(d);
-					}
 				}
+				// else if (name.startsWith("M1_train-1")) {
+				// for (String line : FileUtils.readLinesFromText(file)) {
+				// List<String> ps = StrUtils.unwrap(StrUtils.split("\t", line));
+				//
+				// String id = ps.get(0);
+				// String label = "non-fake";
+				//
+				// LDocument d = LDocument.newDocument(ps.get(2));
+				// d.getAttrMap().put("id", id);
+				// d.getAttrMap().put("label", label);
+				//
+				// ret.add(d);
+				// }
+				// }
 			}
 		}
 
@@ -472,204 +562,201 @@ public class FakeApps {
 	public void runM1() throws Exception {
 		System.out.printf("run Mission-1\n");
 
-		C1 = readTrainData(true);
-		C2 = readTestData(true);
+		is_m1 = true;
+		boolean read_model = true;
+		boolean train_model = false;
+		boolean read_ext = true;
+		boolean use_2K = true;
+		int max_iters = 100;
+		boolean use_pretrained = true;
 
-		showLabelCounts();
-
-		C1.doPadding();
-		C2.doPadding();
+		readData();
 
 		String modelFileName = FNPath.DATA_DIR + "m1_model.ser";
 		String extFileName = FNPath.DATA_DIR + "m1_ext.ser";
 
-		NewsFeatureExtractor ext = getFeatureExtractor(null, C1);
+		NewsFeatureExtractor ext = new NewsFeatureExtractor();
 
-		ext.extract(C1);
+		if (read_ext) {
+			ext.readObject(extFileName);
+			ext.setIsTraining(false);
 
-		ext.setIsTraining(false);
-
-		ext.extract(C2);
+			ext.extract(C1);
+			ext.extract(C2);
+		} else {
+			ext = getFeatureExtractor(null, C1, is_m1);
+			ext.extract(C1);
+			ext.setIsTraining(false);
+			ext.extract(C2);
+		}
 
 		buildData();
 
-		boolean read_nn_model = false;
-
 		NeuralNet nn = new NeuralNet(labelIdxer, new Vocab(), TaskType.SEQ_CLASSIFICATION);
 
-		if (read_nn_model) {
+		if (read_model) {
 			nn.readObject(modelFileName);
+			nn.createGradientHolders();
 		} else {
-			createCNN(nn, ext);
+			createCNN(nn, ext, is_m1, use_pretrained);
 		}
 
-		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, nnp);
-		trainer.setCopyBestModel(false);
+		if (train_model) {
+			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, nnp);
+			trainer.setCopyBestModel(false);
 
-		int max_iters = 50;
+			if (use_2K) {
+				IntegerArray L = new IntegerArray(Y.size());
 
-		boolean use_2K = true;
+				for (DenseMatrix Ym : Y) {
+					L.add((int) Ym.value(0, 0));
+				}
 
-		if (use_2K) {
-			IntegerArray L = new IntegerArray(Y.size());
+				IntegerMatrix G = DataSplitter.groupByLabels(L);
+				IntegerArray nonFakeLocs = G.get(0);
+				IntegerArray fakeLocs = G.get(1);
+				int[][] ranges = BatchUtils.getBatchRanges(fakeLocs.size(), 200);
 
-			for (DenseVector Ym : Y) {
-				L.add((int) Ym.value(0));
-			}
+				for (int i = 0; i < max_iters; i++) {
+					ArrayUtils.shuffle(nonFakeLocs.values());
+					ArrayUtils.shuffle(fakeLocs.values());
 
-			IntegerMatrix G = DataSplitter.groupByLabels(L);
-			IntegerArray nonFakeLocs = G.get(0);
-			IntegerArray fakeLocs = G.get(1);
+					for (int j = 0; j < ranges.length; j++) {
+						System.out.printf("[%d/%d, %d/%d]\n", i + 1, max_iters, j + 1, ranges.length);
 
-			for (int i = 0, cnt = 0; i < max_iters; i++) {
-				ArrayUtils.shuffle(nonFakeLocs.values());
-				int fake_size = fakeLocs.size();
+						int[] r = ranges[j];
+						int s = r[0];
+						int e = r[1];
+						int g = e - s;
+						IntegerArray locs = new IntegerArray(g * 2);
 
-				for (int j = 0; j < nonFakeLocs.size();) {
-					int k = Math.min(nonFakeLocs.size(), j + fake_size);
-					IntegerArray locs = new IntegerArray(fake_size * 2);
+						for (int k = s; k < e; k++) {
+							locs.add(fakeLocs.get(k));
+						}
 
-					for (int l = j; l < k; l++) {
-						locs.add(nonFakeLocs.get(l));
-					}
-					j = k;
+						for (int k = 0; k < g; k++) {
+							locs.add(nonFakeLocs.get(s + k));
+						}
 
-					for (int loc : fakeLocs) {
-						locs.add(loc);
-					}
+						DenseTensor _X = X.subTensor(locs.values());
+						DenseTensor _Y = Y.subTensor(locs.values());
 
-					locs.trimToSize();
-
-					DenseTensor _X = X.subTensor(locs.values());
-					DenseMatrix _Y = Y.subMatrix(locs.values());
-
-					if (++cnt % 10 == 0) {
 						trainer.train(_X, _Y, Xv, Yv, 1);
-					} else {
-						trainer.train(_X, _Y, null, null, 1);
 					}
 
 				}
+			} else {
+				trainer.train(X, Y, Xv, Yv, max_iters);
 			}
-		} else {
-			trainer.train(X, Y, Xv, Yv, max_iters);
+
+			trainer.finish();
+
+			nn.writeObject(modelFileName);
+			ext.writeObject(extFileName);
 		}
 
-		if (Yt.size() > 0) {
-			Performance p = trainer.evaluate(Xt, Yt);
-			System.out.println(p);
-			System.out.println();
-
-		}
-
-		trainer.finish();
-
-		nn.writeObject(modelFileName);
-		ext.writeObject(extFileName);
-
-		DenseTensor Yh = new DenseTensor();
-
-		for (DenseMatrix Xm : Xt) {
-			DenseTensor Ym = (DenseTensor) nn.forward(Xm.toDenseTensor());
-			Yh.addAll(Ym);
-		}
+		DenseTensor Yh = apply(nn, Xt);
 
 		write(FNPath.DATA_DIR + "M1_test_out.txt", C2, Yh);
 	}
 
 	public void runM2() throws Exception {
 		System.out.printf("run Mission-2\n");
-		C1 = readTrainData(false);
-		C2 = readTestData(false);
 
-		showLabelCounts();
+		is_m1 = false;
+		boolean read_model = true;
+		boolean train_model = false;
+		boolean read_ext = true;
+		boolean use_2K = true;
+		int max_iters = 100;
+		boolean use_pretrained = false;
 
-		// C1 = new DataGenerator(C1).generate();
-
-		C1.doPadding();
-		C2.doPadding();
+		readData();
 
 		String modelFileName = FNPath.DATA_DIR + "m2_model.ser";
 		String extFileName = FNPath.DATA_DIR + "m2_ext.ser";
 
-		NewsFeatureExtractor ext = getFeatureExtractor(null, C1);
+		NewsFeatureExtractor ext = new NewsFeatureExtractor();
 
-		ext.extract(C1);
+		if (read_ext) {
+			ext.readObject(extFileName);
+			ext.setIsTraining(false);
 
-		ext.setIsTraining(false);
-
-		ext.extract(C2);
+			ext.extract(C1);
+			ext.extract(C2);
+		} else {
+			ext = getFeatureExtractor(null, C1, is_m1);
+			ext.extract(C1);
+			ext.setIsTraining(false);
+			ext.extract(C2);
+		}
 
 		buildData();
 
-		boolean read_nn_model = false;
-
 		NeuralNet nn = new NeuralNet(labelIdxer, new Vocab(), TaskType.SEQ_CLASSIFICATION);
 
-		if (read_nn_model) {
+		if (read_model) {
 			nn.readObject(modelFileName);
+			nn.createGradientHolders();
 		} else {
-			createCNN(nn, ext);
+			createCNN(nn, ext, is_m1, use_pretrained);
 		}
 
-		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, nnp);
-		trainer.setCopyBestModel(false);
+		if (train_model) {
+			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, nnp);
+			trainer.setCopyBestModel(false);
 
-		int max_iters = 10;
+			if (use_2K) {
+				IntegerArray L = new IntegerArray(Y.size());
 
-		boolean use_2K = true;
-
-		if (use_2K) {
-			IntegerArray L = new IntegerArray(Y.size());
-
-			for (DenseVector Ym : Y) {
-				L.add((int) Ym.value(0));
-			}
-
-			IntegerMatrix G = DataSplitter.groupByLabels(L);
-			IntegerArray nonFakeLocs = G.get(0);
-			IntegerArray fakeLocs = G.get(1);
-
-			for (int i = 0; i < max_iters; i++) {
-				ArrayUtils.shuffle(nonFakeLocs.values());
-				int fake_size = fakeLocs.size();
-
-				for (int j = 0; j < nonFakeLocs.size();) {
-					int k = Math.min(nonFakeLocs.size(), j + fake_size);
-					IntegerArray locs = new IntegerArray(fake_size * 2);
-
-					for (int l = j; l < k; l++) {
-						locs.add(nonFakeLocs.get(l));
-					}
-					j = k;
-
-					for (int loc : fakeLocs) {
-						locs.add(loc);
-					}
-
-					locs.trimToSize();
-
-					DenseTensor _X = X.subTensor(locs.values());
-					DenseMatrix _Y = Y.subMatrix(locs.values());
-
-					trainer.train(_X, _Y, Xv, Yv, 1);
+				for (DenseMatrix Ym : Y) {
+					L.add((int) Ym.value(0, 0));
 				}
+
+				IntegerMatrix G = DataSplitter.groupByLabels(L);
+				IntegerArray nonFakeLocs = G.get(0);
+				IntegerArray fakeLocs = G.get(1);
+				int[][] ranges = BatchUtils.getBatchRanges(fakeLocs.size(), 200);
+
+				for (int i = 0; i < max_iters; i++) {
+					ArrayUtils.shuffle(nonFakeLocs.values());
+					ArrayUtils.shuffle(fakeLocs.values());
+
+					for (int j = 0; j < ranges.length; j++) {
+						System.out.printf("[%d/%d, %d/%d]\n", i + 1, max_iters, j + 1, ranges.length);
+
+						int[] r = ranges[j];
+						int s = r[0];
+						int e = r[1];
+						int g = e - s;
+						IntegerArray locs = new IntegerArray(g * 2);
+
+						for (int k = s; k < e; k++) {
+							locs.add(fakeLocs.get(k));
+						}
+
+						for (int k = 0; k < g; k++) {
+							locs.add(nonFakeLocs.get(s + k));
+						}
+
+						DenseTensor _X = X.subTensor(locs.values());
+						DenseTensor _Y = Y.subTensor(locs.values());
+
+						trainer.train(_X, _Y, Xv, Yv, 1);
+					}
+
+				}
+			} else {
+				trainer.train(X, Y, Xv, Yv, max_iters);
 			}
-		} else {
-			trainer.train(X, Y, Xv, Yv, max_iters);
+
+			trainer.finish();
+
+			nn.writeObject(modelFileName);
+			ext.writeObject(extFileName);
 		}
 
-		trainer.finish();
-
-		nn.writeObject(modelFileName);
-		ext.writeObject(extFileName);
-
-		DenseTensor Yh = new DenseTensor();
-
-		for (DenseMatrix Xm : Xt) {
-			DenseTensor Ym = (DenseTensor) nn.forward(Xm.toDenseTensor());
-			Yh.addAll(Ym);
-		}
+		DenseTensor Yh = apply(nn, Xt);
 
 		write(FNPath.DATA_DIR + "M2_test_out.txt", C2, Yh);
 	}
@@ -696,17 +783,18 @@ public class FakeApps {
 	}
 
 	private void write(String outFileName, LDocumentCollection C, DenseTensor Y) {
+		System.out.printf("write at [%s]\n", outFileName);
+
 		TextFileWriter writer = new TextFileWriter(outFileName);
 		DecimalFormat df = new DecimalFormat("0.##########");
 
 		for (int i = 0; i < Y.size(); i++) {
-			DenseVector yh = Y.row(i).row(0);
+			DenseVector yh = Y.get(i).row(0);
 			LDocument d = C.get(i);
 			String id = d.getAttrMap().get("id");
-			writer.write(String.format("%s\t%s\n", id, df.format(yh.value(1))));
+			writer.write(String.format("%s,%s\n", id, df.format(yh.value(1))));
 		}
 		writer.close();
-
 	}
 
 }

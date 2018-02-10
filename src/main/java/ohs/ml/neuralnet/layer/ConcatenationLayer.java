@@ -3,13 +3,12 @@ package ohs.ml.neuralnet.layer;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 
 import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
+import ohs.ml.neuralnet.com.ParameterInitializer;
 import ohs.utils.Generics;
 
 public class ConcatenationLayer extends Layer {
@@ -23,32 +22,26 @@ public class ConcatenationLayer extends Layer {
 
 	private DenseTensor Y;
 
+	private DenseTensor A;
+
+	private List<DenseTensor> Zs;
+
+	private List<EmbeddingLayer> L;
+
 	private DenseMatrix tmp_Y = new DenseMatrix(0);
 
 	private List<DenseMatrix> tmp_dZs = Generics.newArrayList();
 
-	private List<DenseTensor> Zs;
-
-	private Map<Integer, Layer> L;
-
 	private int output_size;
 
-	private DenseTensor A;
+	public ConcatenationLayer() {
 
-	private int feat_size;
+	}
 
-	public ConcatenationLayer(int feat_size, Map<Integer, Layer> L) {
-		this.feat_size = feat_size;
+	public ConcatenationLayer(List<EmbeddingLayer> L) {
 		this.L = L;
-
-		for (int i = 0; i < feat_size; i++) {
-			Layer l = L.get(i);
-
-			if (l == null) {
-				output_size++;
-			} else {
-				output_size += l.getOutputSize();
-			}
+		for (EmbeddingLayer l : L) {
+			output_size += l.getOutputSize();
 		}
 	}
 
@@ -61,8 +54,8 @@ public class ConcatenationLayer extends Layer {
 		DenseTensor dY = (DenseTensor) I;
 
 		if (tmp_dZs.size() == 0) {
-			tmp_dZs = Generics.newArrayList(feat_size);
-			for (int i = 0; i < feat_size; i++) {
+			tmp_dZs = Generics.newArrayList(L.size());
+			for (int i = 0; i < L.size(); i++) {
 				tmp_dZs.add(new DenseMatrix(0));
 			}
 		}
@@ -70,7 +63,7 @@ public class ConcatenationLayer extends Layer {
 		{
 			int row_size = dY.sizeOfInnerVectors();
 
-			for (int i = 0; i < feat_size; i++) {
+			for (int i = 0; i < L.size(); i++) {
 				DenseMatrix tmp_dZ = tmp_dZs.get(i);
 				Layer l = L.get(i);
 
@@ -82,7 +75,7 @@ public class ConcatenationLayer extends Layer {
 			}
 		}
 
-		for (int i = 0, s = 0; i < feat_size; i++) {
+		for (int i = 0, s = 0; i < L.size(); i++) {
 			Layer l = L.get(i);
 
 			if (l == null) {
@@ -121,15 +114,20 @@ public class ConcatenationLayer extends Layer {
 	}
 
 	public ConcatenationLayer copy() {
-		Map<Integer, Layer> C = Generics.newHashMap(L.size());
-		for (Entry<Integer, Layer> e : L.entrySet()) {
-			int feat_idx = e.getKey();
-			Layer l = e.getValue();
-			C.put(feat_idx, l.copy());
+		List<EmbeddingLayer> C = Generics.newArrayList(L.size());
+		for (EmbeddingLayer l : L) {
+			C.add(l.copy());
 		}
 
-		ConcatenationLayer l = new ConcatenationLayer(feat_size, C);
+		ConcatenationLayer l = new ConcatenationLayer(C);
 		return l;
+	}
+
+	@Override
+	public void createGradientHolders() {
+		for (Layer l : L) {
+			l.createGradientHolders();
+		}
 	}
 
 	@Override
@@ -142,14 +140,9 @@ public class ConcatenationLayer extends Layer {
 
 		VectorUtils.enlarge(tmp_Y, X.sizeOfInnerVectors(), output_size);
 
-		for (int i = 0; i < feat_size; i++) {
+		for (int i = 0; i < L.size(); i++) {
 			Layer l = L.get(i);
-
-			if (l == null) {
-				Zs.add(null);
-			} else {
-				Zs.add((DenseTensor) l.forward(X));
-			}
+			Zs.add((DenseTensor) l.forward(X));
 		}
 
 		int start = 0;
@@ -194,7 +187,7 @@ public class ConcatenationLayer extends Layer {
 	@Override
 	public DenseTensor getB() {
 		DenseTensor B = new DenseTensor();
-		for (Layer l : L.values()) {
+		for (Layer l : L) {
 			if (l.getB() != null) {
 				B.addAll(l.getB());
 			}
@@ -206,7 +199,7 @@ public class ConcatenationLayer extends Layer {
 	@Override
 	public DenseTensor getDB() {
 		DenseTensor dB = new DenseTensor();
-		for (Layer l : L.values()) {
+		for (Layer l : L) {
 			if (l.getDB() != null) {
 				dB.addAll(l.getDB());
 			}
@@ -218,13 +211,17 @@ public class ConcatenationLayer extends Layer {
 	@Override
 	public DenseTensor getDW() {
 		DenseTensor dW = new DenseTensor();
-		for (Layer l : L.values()) {
+		for (Layer l : L) {
 			if (l.getDW() != null) {
 				dW.addAll(l.getDW());
 			}
 		}
 
 		return dW;
+	}
+
+	public List<EmbeddingLayer> getInnerLayers() {
+		return L;
 	}
 
 	@Override
@@ -235,7 +232,7 @@ public class ConcatenationLayer extends Layer {
 	@Override
 	public DenseTensor getW() {
 		DenseTensor W = new DenseTensor();
-		for (Layer l : L.values()) {
+		for (Layer l : L) {
 			if (l.getW() != null) {
 				W.addAll(l.getW());
 			}
@@ -245,45 +242,35 @@ public class ConcatenationLayer extends Layer {
 	}
 
 	@Override
-	public void initWeights() {
-		for (Layer l : L.values()) {
-			l.initWeights();
-		}
-	}
-
-	@Override
-	public void prepareTraining() {
-		for (Layer l : L.values()) {
-			l.prepareTraining();
+	public void initWeights(ParameterInitializer pi) {
+		for (Layer l : L) {
+			l.initWeights(pi);
 		}
 	}
 
 	@Override
 	public void readObject(ObjectInputStream ois) throws Exception {
-		feat_size = ois.readInt();
 		int size = ois.readInt();
+		L = Generics.newArrayList(size);
 
-		L = Generics.newHashMap(size);
+		output_size = 0;
 
 		for (int i = 0; i < size; i++) {
-			int feat_idx = ois.readInt();
 			String name = ois.readUTF();
-
 			Class c = Class.forName(name);
-			Layer l = (Layer) c.getDeclaredConstructor().newInstance();
+			EmbeddingLayer l = (EmbeddingLayer) c.getDeclaredConstructor().newInstance();
 			l.readObject(ois);
-			L.put(feat_idx, l);
+			L.add(l);
+
+			output_size += l.getOutputSize();
 		}
+
 	}
 
 	@Override
 	public void writeObject(ObjectOutputStream oos) throws Exception {
-		oos.writeInt(feat_size);
 		oos.writeInt(L.size());
-		for (Entry<Integer, Layer> e : L.entrySet()) {
-			int feat_idx = e.getKey();
-			Layer l = e.getValue();
-			oos.writeInt(feat_idx);
+		for (EmbeddingLayer l : L) {
 			oos.writeUTF(l.getClass().getName());
 			l.writeObject(oos);
 		}

@@ -17,6 +17,7 @@ import ohs.matrix.DenseVector;
 import ohs.ml.neuralnet.com.NeuralNet;
 import ohs.ml.neuralnet.com.NeuralNetParams;
 import ohs.ml.neuralnet.com.NeuralNetTrainer;
+import ohs.ml.neuralnet.com.ParameterInitializer;
 import ohs.ml.neuralnet.layer.BatchNormalizationLayer;
 import ohs.ml.neuralnet.layer.FullyConnectedLayer;
 import ohs.ml.neuralnet.layer.NonlinearityLayer;
@@ -579,8 +580,8 @@ public class PhraseClassification {
 		nn.add(new FullyConnectedLayer(l2_size, output_size));
 		nn.add(new SoftmaxLayer(output_size));
 
-		nn.prepareTraining();
-		nn.initWeights();
+		nn.createGradientHolders();
+		nn.initWeights(new ParameterInitializer());
 
 		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param);
 		trainer.train(X, Y, Xt, new DenseVector(Yt.values()), 100);
@@ -686,7 +687,7 @@ public class PhraseClassification {
 		// nn.add(new DropoutLayer(l2_size));
 		nn.add(new FullyConnectedLayer(l2_size, output_size));
 		nn.add(new SoftmaxLayer(output_size));
-		nn.prepareTraining();
+		nn.createGradientHolders();
 		nn.initWeights();
 
 		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param);
@@ -796,7 +797,7 @@ public class PhraseClassification {
 		// nn.add(new DropoutLayer(l2_size));
 		nn.add(new FullyConnectedLayer(l2_size, output_size));
 		nn.add(new SoftmaxLayer(output_size));
-		nn.prepareTraining();
+		nn.createGradientHolders();
 		nn.initWeights();
 
 		NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param);

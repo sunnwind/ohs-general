@@ -92,11 +92,11 @@ public class CrossEntropyCostFunction implements CostFunction {
 		return D;
 	}
 
-	public DenseTensor evaluate(DenseTensor Yh, DenseMatrix Y) {
+	public DenseTensor evaluate(DenseTensor Yh, DenseTensor Y) {
 		cost = 0;
 		cor_cnt = 0;
 
-		VectorUtils.enlarge(tmp_D, Yh.sizeOfInnerVectors(), Yh.row(0).colSize());
+		VectorUtils.enlarge(tmp_D, Yh.sizeOfInnerVectors(), Yh.get(0).colSize());
 
 		DenseTensor D = new DenseTensor();
 		D.ensureCapacity(Yh.size());
@@ -110,14 +110,15 @@ public class CrossEntropyCostFunction implements CostFunction {
 
 			start += Yhm.rowSize();
 
-			DenseVector Ym = Y.row(i);
+			DenseMatrix Ym = Y.get(i);
 
 			for (int j = 0; j < Yhm.rowSize(); j++) {
 				DenseVector yhm = Yhm.row(j);
+				DenseVector ym = Ym.row(j);
 				DenseVector dm = Dm.row(j);
 
 				int pred = yhm.argMax();
-				int ans = (int) Ym.value(j);
+				int ans = (int) ym.value(0);
 
 				if (pred == ans) {
 					cor_cnt++;

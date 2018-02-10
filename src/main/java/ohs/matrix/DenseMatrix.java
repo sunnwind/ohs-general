@@ -3,6 +3,7 @@ package ohs.matrix;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
@@ -35,6 +36,10 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 	public DenseMatrix() {
 	}
 
+	public DenseMatrix(DenseVector[] a) {
+		this(Arrays.asList(a));
+	}
+
 	public DenseMatrix(double[][] vals) {
 		ensureCapacity(vals.length);
 
@@ -48,12 +53,17 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 		this(new double[size][size]);
 	}
 
-	public DenseMatrix(int row_size, int col_size) {
-		this(new double[row_size][col_size]);
+	public DenseMatrix(int size1, int size2) {
+		this(new double[size1][size2]);
 	}
 
-	public DenseMatrix(List<DenseVector> rows) {
-		this(rows.toArray(new DenseVector[rows.size()]));
+	public DenseMatrix(int[] sizes) {
+		this(sizes[0], sizes[1]);
+	}
+
+	public DenseMatrix(List<DenseVector> a) {
+		addAll(a);
+		unwrapValues();
 	}
 
 	public DenseMatrix(ObjectInputStream ois) throws Exception {
@@ -62,14 +72,6 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 
 	public DenseMatrix(String fileName) throws Exception {
 		readObject(fileName);
-	}
-
-	public DenseMatrix(Vector[] rows) {
-		ensureCapacity(rows.length);
-		for (int i = 0; i < rows.length; i++) {
-			add((DenseVector) rows[i]);
-		}
-		unwrapValues();
 	}
 
 	@Override
@@ -416,7 +418,10 @@ public class DenseMatrix extends ArrayList<DenseVector> implements Matrix {
 	}
 
 	public void unwrapValues() {
-		vals = new double[size()][];
+		if (vals == null || vals.length != size()) {
+			vals = new double[size()][];
+		}
+
 		for (int i = 0; i < vals.length; i++) {
 			vals[i] = get(i).values();
 		}

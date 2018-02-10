@@ -8,6 +8,7 @@ import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
+import ohs.ml.neuralnet.com.ParameterInitializer;
 
 /**
  * https://kratzert.github.io/2016/02/12/understanding-the-gradient-flow-through-the-batch-normalization-layer.html
@@ -93,10 +94,10 @@ public class BatchNormalizationLayer extends Layer {
 		DenseTensor dX = new DenseTensor();
 		dX.ensureCapacity(dY.size());
 
-		VectorUtils.enlarge(tmp_dX, dY.sizeOfInnerVectors(), dY.row(0).colSize());
-		VectorUtils.enlarge(tmp_dXC, dY.sizeOfInnerVectors(), dY.row(0).colSize());
-		VectorUtils.enlarge(tmp_dXN, dY.sizeOfInnerVectors(), dY.row(0).colSize());
-		VectorUtils.enlarge(tmp_T, dY.sizeOfInnerVectors(), dY.row(0).colSize());
+		VectorUtils.enlarge(tmp_dX, dY.sizeOfInnerVectors(), dY.get(0).colSize());
+		VectorUtils.enlarge(tmp_dXC, dY.sizeOfInnerVectors(), dY.get(0).colSize());
+		VectorUtils.enlarge(tmp_dXN, dY.sizeOfInnerVectors(), dY.get(0).colSize());
+		VectorUtils.enlarge(tmp_T, dY.sizeOfInnerVectors(), dY.get(0).colSize());
 
 		int start = 0;
 
@@ -172,13 +173,13 @@ public class BatchNormalizationLayer extends Layer {
 
 		this.X = X;
 
-		VectorUtils.enlarge(tmp_Y, X.sizeOfInnerVectors(), X.row(0).colSize());
+		VectorUtils.enlarge(tmp_Y, X.sizeOfInnerVectors(), X.get(0).colSize());
 
-		if (!is_testing) {
+		if (is_training) {
 			int size = X.sizeOfInnerVectors();
-			VectorUtils.enlarge(tmp_T, size, X.row(0).colSize());
-			VectorUtils.enlarge(tmp_XC, size, X.row(0).colSize());
-			VectorUtils.enlarge(tmp_XN, size, X.row(0).colSize());
+			VectorUtils.enlarge(tmp_T, size, X.get(0).colSize());
+			VectorUtils.enlarge(tmp_XC, size, X.get(0).colSize());
+			VectorUtils.enlarge(tmp_XN, size, X.get(0).colSize());
 		}
 
 		if (mu.size() == 0) {
@@ -190,23 +191,7 @@ public class BatchNormalizationLayer extends Layer {
 		int start = 0;
 
 		for (DenseMatrix Xm : X) {
-			if (is_testing) {
-				DenseMatrix Ym = tmp_Y.subMatrix(start, Xm.rowSize());
-				Ym.setAll(0);
-
-				start += Xm.rowSize();
-
-				DenseVector std = runVars.copy();
-				std.add(eps);
-
-				VectorMath.sqrt(std, std);
-				VectorMath.subtract(Xm, runMeans, Ym);
-				VectorMath.divide(Ym, std, Ym);
-				VectorMath.multiply(Ym, gamma, Ym);
-				VectorMath.add(Ym, beta, Ym);
-
-				Y.add(Ym);
-			} else {
+			if (is_training) {
 				DenseMatrix Ym = tmp_Y.subMatrix(start, Xm.rowSize());
 				DenseMatrix Tm = tmp_T.subMatrix(start, Xm.rowSize());
 				DenseMatrix XCm = tmp_XC.subMatrix(start, Xm.rowSize());
@@ -252,6 +237,22 @@ public class BatchNormalizationLayer extends Layer {
 				Y.add(Ym);
 				XN.add(XNm);
 				XC.add(XCm);
+			} else {
+				DenseMatrix Ym = tmp_Y.subMatrix(start, Xm.rowSize());
+				Ym.setAll(0);
+
+				start += Xm.rowSize();
+
+				DenseVector std = runVars.copy();
+				std.add(eps);
+
+				VectorMath.sqrt(std, std);
+				VectorMath.subtract(Xm, runMeans, Ym);
+				VectorMath.divide(Ym, std, Ym);
+				VectorMath.multiply(Ym, gamma, Ym);
+				VectorMath.add(Ym, beta, Ym);
+
+				Y.add(Ym);
 			}
 		}
 
@@ -305,13 +306,13 @@ public class BatchNormalizationLayer extends Layer {
 	}
 
 	@Override
-	public void initWeights() {
+	public void initWeights(ParameterInitializer pi) {
 		gamma.setAll(1);
 		runVars.setAll(1);
 	}
 
 	@Override
-	public void prepareTraining() {
+	public void createGradientHolders() {
 		dgamma = gamma.copy(true);
 		dbeta = gamma.copy(true);
 	}

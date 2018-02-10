@@ -210,7 +210,7 @@ public class ParameterUpdater {
 					DenseVector r2 = R2.row(j);
 
 					// if (g.sum() != 0) {
-					// synchronized (w) {
+					// synchronized (Wm) {
 					sum = 0;
 					if (ot == OptimizerType.SIMPLE) {
 						for (int k = 0; k < dWm.size(); k++) {

@@ -156,8 +156,10 @@ public class PerformanceEvaluator {
 			for (String tag : tagIdxer) {
 				if (!tag.equals("O")) {
 					String[] ps = tag.split("-");
-					String cat = ps[1];
-					c.incrementCount(cat, 1);
+					if (ps.length == 2) {
+						String cat = ps[1];
+						c.incrementCount(cat, 1);
+					}
 				}
 			}
 

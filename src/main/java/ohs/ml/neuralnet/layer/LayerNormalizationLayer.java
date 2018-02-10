@@ -11,6 +11,7 @@ import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
+import ohs.ml.neuralnet.com.ParameterInitializer;
 
 /**
  * http://www.breloff.com/layernorm/
@@ -64,7 +65,8 @@ public class LayerNormalizationLayer extends Layer {
 
 	private double run_var = 0;
 
-	public LayerNormalizationLayer(double run_mu, double run_var, double momentum, DenseVector gamma, DenseVector beta) {
+	public LayerNormalizationLayer(double run_mu, double run_var, double momentum, DenseVector gamma,
+			DenseVector beta) {
 		this.run_mu = run_mu;
 		this.run_var = run_var;
 		this.momentum = momentum;
@@ -86,11 +88,11 @@ public class LayerNormalizationLayer extends Layer {
 		DenseTensor dA = new DenseTensor();
 		dA.ensureCapacity(dY.size());
 
-		VectorUtils.enlarge(tmp_dX, dY.sizeOfInnerVectors(), dY.row(0).colSize());
-		VectorUtils.enlarge(tmp_dZ, dY.sizeOfInnerVectors(), dY.row(0).colSize());
+		VectorUtils.enlarge(tmp_dX, dY.sizeOfInnerVectors(), dY.get(0).colSize());
+		VectorUtils.enlarge(tmp_dZ, dY.sizeOfInnerVectors(), dY.get(0).colSize());
 
 		if (T.size() == 0) {
-			T = new DenseMatrix(dY.row(0).colSize(), dY.row(0).colSize());
+			T = new DenseMatrix(dY.get(0).colSize(), dY.get(0).colSize());
 		}
 
 		int start = 0;
@@ -168,8 +170,8 @@ public class LayerNormalizationLayer extends Layer {
 		Y.ensureCapacity(A.size());
 		Z.ensureCapacity(A.size());
 
-		VectorUtils.enlarge(tmp_Y, A.sizeOfInnerVectors(), A.row(0).colSize());
-		VectorUtils.enlarge(tmp_Z, A.sizeOfInnerVectors(), A.row(0).colSize());
+		VectorUtils.enlarge(tmp_Y, A.sizeOfInnerVectors(), A.get(0).colSize());
+		VectorUtils.enlarge(tmp_Z, A.sizeOfInnerVectors(), A.get(0).colSize());
 
 		DenseMatrix M = new DenseMatrix();
 		DenseMatrix Mrun = new DenseMatrix();
@@ -178,25 +180,7 @@ public class LayerNormalizationLayer extends Layer {
 		int start = 0;
 
 		for (DenseMatrix Am : A) {
-			if (is_testing) {
-				DenseMatrix Ym = tmp_Y.subMatrix(start, Am.rowSize());
-				Ym.setAll(0);
-
-				start += Am.rowSize();
-
-				for (int t = 0; t < Am.rowSize(); t++) {
-					DenseVector am = Am.row(t);
-					DenseVector ym = Ym.row(t);
-
-					double mu = VectorMath.mean(am);
-					double var = VectorMath.variance(am, mu);
-
-					VectorMath.zTransform(am, mu, var, eps, ym);
-					VectorMath.multiply(gamma, ym, ym);
-					VectorMath.add(beta, ym);
-				}
-				Y.add(Ym);
-			} else {
+			if (is_training) {
 				DenseMatrix Ym = tmp_Y.subMatrix(start, Am.rowSize());
 				DenseMatrix Zm = tmp_Z.subMatrix(start, Am.rowSize());
 
@@ -236,6 +220,25 @@ public class LayerNormalizationLayer extends Layer {
 				M.add(mus);
 				Mrun.add(run_mus);
 				Vrun.add(run_vars);
+
+			} else {
+				DenseMatrix Ym = tmp_Y.subMatrix(start, Am.rowSize());
+				Ym.setAll(0);
+
+				start += Am.rowSize();
+
+				for (int t = 0; t < Am.rowSize(); t++) {
+					DenseVector am = Am.row(t);
+					DenseVector ym = Ym.row(t);
+
+					double mu = VectorMath.mean(am);
+					double var = VectorMath.variance(am, mu);
+
+					VectorMath.zTransform(am, mu, var, eps, ym);
+					VectorMath.multiply(gamma, ym, ym);
+					VectorMath.add(beta, ym);
+				}
+				Y.add(Ym);
 			}
 		}
 
@@ -279,12 +282,12 @@ public class LayerNormalizationLayer extends Layer {
 	}
 
 	@Override
-	public void initWeights() {
+	public void initWeights(ParameterInitializer pi) {
 		gamma.setAll(1);
 	}
 
 	@Override
-	public void prepareTraining() {
+	public void createGradientHolders() {
 		dgamma = gamma.copy(true);
 		dbeta = gamma.copy(true);
 	}

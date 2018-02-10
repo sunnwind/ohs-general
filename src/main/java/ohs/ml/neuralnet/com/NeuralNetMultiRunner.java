@@ -32,10 +32,10 @@ public class NeuralNetMultiRunner {
 			while ((range_loc = range_cnt.getAndIncrement()) < ranges.length) {
 				int[] r = ranges[range_loc];
 				DenseTensor Xm = X.subTensor(r[0], r[1]);
-				DenseMatrix Yhm = nn.classify(Xm);
+				DenseTensor Yhm = nn.classify(Xm);
 
-				for (int i = 0; i < Yhm.rowSize(); i++) {
-					Yh.set(r[0] + i, Yhm.row(i));
+				for (int i = 0; i < Yhm.size(); i++) {
+					Yh.set(r[0] + i, Yhm.get(i));
 				}
 			}
 
@@ -58,7 +58,7 @@ public class NeuralNetMultiRunner {
 
 	private DenseTensor X;
 
-	private DenseMatrix Yh;
+	private DenseTensor Yh;
 
 	public NeuralNetMultiRunner(List<NeuralNet> nns) {
 		this.nns = nns;
@@ -73,14 +73,14 @@ public class NeuralNetMultiRunner {
 		}
 	}
 
-	public DenseMatrix classify(DenseTensor X) throws Exception {
+	public DenseTensor classify(DenseTensor X) throws Exception {
 		this.X = X;
 
-		Yh = new DenseMatrix();
+		Yh = new DenseTensor();
 		Yh.ensureCapacity(X.size());
 
 		for (int i = 0; i < X.size(); i++) {
-			Yh.add(new DenseVector());
+			Yh.add(new DenseMatrix());
 		}
 
 		ranges = BatchUtils.getBatchRanges(X.size(), 20);

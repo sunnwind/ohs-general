@@ -1,5 +1,7 @@
 package ohs.ml.neuralnet.layer;
 
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.List;
 
 import org.apache.thrift.server.TExtensibleServlet;
@@ -10,6 +12,7 @@ import ohs.math.VectorUtils;
 import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseTensor;
 import ohs.matrix.DenseVector;
+import ohs.ml.neuralnet.com.ParameterInitializer;
 import ohs.types.generic.Pair;
 import ohs.types.number.IntegerArray;
 import ohs.utils.Generics;
@@ -62,6 +65,10 @@ public class MultiWindowConvolutionalLayer extends Layer {
 	 */
 	private DenseTensor Z;
 
+	public MultiWindowConvolutionalLayer() {
+
+	}
+
 	public MultiWindowConvolutionalLayer(int emb_size, int[] window_sizes, int num_filters) {
 		this.emb_size = emb_size;
 		this.windowSizes = new IntegerArray(window_sizes);
@@ -80,6 +87,29 @@ public class MultiWindowConvolutionalLayer extends Layer {
 
 		for (int i = 0; i < cls.size(); i++) {
 			windowSizes.add(cls.get(i).getWindowSize());
+		}
+
+		this.num_filters = cls.get(0).getNumFilters();
+		this.emb_size = cls.get(0).getEmbeddingSize();
+	}
+
+	public void writeObject(ObjectOutputStream oos) throws Exception {
+		oos.writeInt(windowSizes.size());
+		for (int i = 0; i < windowSizes.size(); i++) {
+			oos.writeInt(windowSizes.get(i));
+			cls.get(i).writeObject(oos);
+		}
+	}
+
+	@Override
+	public void readObject(ObjectInputStream ois) throws Exception {
+		int size = ois.readInt();
+		windowSizes = new IntegerArray(new int[size]);
+		cls = Generics.newArrayList(size);
+
+		for (int i = 0; i < size; i++) {
+			windowSizes.set(i, ois.readInt());
+			cls.add(new ConvolutionalLayer(ois));
 		}
 
 		this.num_filters = cls.get(0).getNumFilters();
@@ -134,8 +164,8 @@ public class MultiWindowConvolutionalLayer extends Layer {
 			DenseTensor dZ = cls.get(i).backward(dC);
 
 			for (int j = 0; j < dZ.size(); j++) {
-				DenseMatrix dZm = dZ.row(j);
-				DenseMatrix dXm = dX.row(j);
+				DenseMatrix dZm = dZ.get(j);
+				DenseMatrix dXm = dX.get(j);
 				VectorMath.add(dZm, dXm);
 			}
 		}
@@ -254,16 +284,16 @@ public class MultiWindowConvolutionalLayer extends Layer {
 	}
 
 	@Override
-	public void initWeights() {
+	public void initWeights(ParameterInitializer pi) {
 		for (Layer l : cls) {
-			l.initWeights();
+			l.initWeights(pi);
 		}
 	}
 
 	@Override
-	public void prepareTraining() {
+	public void createGradientHolders() {
 		for (Layer l : cls) {
-			l.prepareTraining();
+			l.createGradientHolders();
 		}
 	}
 

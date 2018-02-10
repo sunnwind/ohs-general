@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import edu.stanford.nlp.ling.Label;
 import ohs.eden.org.OrganizationDetector.UnivComponent;
 import ohs.eden.org.data.struct.BilingualText;
 import ohs.eden.org.data.struct.Organization;
@@ -16,6 +17,8 @@ import ohs.io.FileUtils;
 import ohs.io.TextFileReader;
 import ohs.io.TextFileWriter;
 import ohs.math.VectorUtils;
+import ohs.matrix.DenseVector;
+import ohs.matrix.SparseMatrix;
 import ohs.matrix.SparseVector;
 import ohs.ml.centroid.CentroidClassifier;
 import ohs.string.search.ppss.Gram;
@@ -29,6 +32,7 @@ import ohs.types.generic.CounterMap;
 import ohs.types.generic.Indexer;
 import ohs.types.generic.ListMap;
 import ohs.types.generic.Pair;
+import ohs.types.number.IntegerArray;
 import ohs.utils.Generics;
 import ohs.utils.StrUtils;
 import ohs.utils.Timer;
@@ -210,7 +214,8 @@ public class OrganizationIdentificationKernel implements Serializable {
 				}
 			}
 
-			CentroidClassifier classifier = CentroidClassifier.train(trainData, trainLabels);
+			CentroidClassifier classifier = CentroidClassifier.train(new SparseMatrix(trainData),
+					new DenseVector(new IntegerArray(trainLabels).values()), null);
 			classifier.setFeatureIndexer(featIndexer);
 
 			// int maxIter = 20;
@@ -218,7 +223,8 @@ public class OrganizationIdentificationKernel implements Serializable {
 			// double learningRate = 0.5;
 			// double minMargin = 0.9;
 			//
-			// CentroidsUpdater updater = new CentroidsUpdater(classifiers, trainData, null, true, false, maxIter, weight, learningRate,
+			// CentroidsUpdater updater = new CentroidsUpdater(classifiers, trainData, null,
+			// true, false, maxIter, weight, learningRate,
 			// minMargin);
 			//
 			// updater.update();
@@ -243,12 +249,14 @@ public class OrganizationIdentificationKernel implements Serializable {
 	}
 
 	/**
-	 * Create two pivotal prefix searchers for English and Korean. If extOrgFileName is given, global gram orders are determined based on
-	 * external organization names.
+	 * Create two pivotal prefix searchers for English and Korean. If extOrgFileName
+	 * is given, global gram orders are determined based on external organization
+	 * names.
 	 * 
 	 * @param extOrgFileName
 	 * 
-	 *            Contains external organization names. They are used to compute global gram orders employed in Searchers.
+	 *            Contains external organization names. They are used to compute
+	 *            global gram orders employed in Searchers.
 	 */
 	public void createSearchers(String extOrgFileName) {
 		Counter<BilingualText> c = null;
@@ -486,7 +494,8 @@ public class OrganizationIdentificationKernel implements Serializable {
 	}
 
 	/**
-	 * Read organization names. The input of ODK is mapped to the a set of organization names.
+	 * Read organization names. The input of ODK is mapped to the a set of
+	 * organization names.
 	 * 
 	 * @param orgFileName
 	 */

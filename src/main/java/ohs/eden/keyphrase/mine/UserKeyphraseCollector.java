@@ -56,7 +56,7 @@ public class UserKeyphraseCollector {
 		// dh.getTrecPmClinicalKeyphrases();
 		// dh.getScopusKeyphrases();
 		// dh.getTrecCdsKeyphrases();
-		// dh.getWikiPhrases();
+		 dh.getWikiPhrases();
 		// dh.mergeKeyphrases();
 		// dh.tokenizeKeyphrases();
 		// dh.filterKeyphrases();

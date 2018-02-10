@@ -295,13 +295,13 @@ public class RnnLayer extends RecurrentLayer {
 	}
 
 	@Override
-	public void initWeights() {
-		ParameterInitializer.init2(Wxh);
+	public void initWeights(ParameterInitializer pi) {
+		pi.init(Wxh);
 		VectorMath.identity(Whh, 1);
 	}
 
 	@Override
-	public void prepareTraining() {
+	public void createGradientHolders() {
 		dWxh = Wxh.copy(true);
 		dWhh = Whh.copy(true);
 		db = b.copy(true);

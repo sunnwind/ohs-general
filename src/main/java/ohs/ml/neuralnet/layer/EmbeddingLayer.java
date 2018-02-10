@@ -34,9 +34,9 @@ public class EmbeddingLayer extends Layer {
 
 	private DenseTensor Y;
 
-	private boolean output_feature_indexes = false;
-
 	private int target_idx = 0;
+
+	private boolean skip_init_weights = false;
 
 	public EmbeddingLayer() {
 
@@ -55,7 +55,7 @@ public class EmbeddingLayer extends Layer {
 	@Override
 	public Object backward(Object I) {
 		if (I != null && learn_embedding) {
-			DenseTensor X = (DenseTensor) this.X;
+			DenseTensor X = this.X;
 			DenseTensor dY = (DenseTensor) I;
 
 			for (int i = 0; i < X.size(); i++) {
@@ -76,8 +76,12 @@ public class EmbeddingLayer extends Layer {
 
 	public EmbeddingLayer copy() {
 		EmbeddingLayer l = new EmbeddingLayer(W, learn_embedding, target_idx);
-		l.setOutputWordIndexes(output_feature_indexes);
 		return l;
+	}
+
+	@Override
+	public void createGradientHolders() {
+		dW = W.copy(true);
 	}
 
 	@Override
@@ -108,12 +112,7 @@ public class EmbeddingLayer extends Layer {
 		}
 
 		this.Y = Y;
-
-		if (output_feature_indexes) {
-			return Generics.newPair(X, Y);
-		} else {
-			return Y;
-		}
+		return Y;
 	}
 
 	@Override
@@ -140,17 +139,14 @@ public class EmbeddingLayer extends Layer {
 	}
 
 	@Override
-	public void initWeights() {
-		ParameterInitializer.init2(W);
+	public void initWeights(ParameterInitializer pi) {
+		if (!skip_init_weights) {
+			pi.init(W);
+		}
 	}
 
 	public boolean isLearnEmbedding() {
 		return learn_embedding;
-	}
-
-	@Override
-	public void prepareTraining() {
-		dW = W.copy(true);
 	}
 
 	@Override
@@ -164,8 +160,8 @@ public class EmbeddingLayer extends Layer {
 		this.learn_embedding = learn_embedding;
 	}
 
-	public void setOutputWordIndexes(boolean output_word_indexes) {
-		this.output_feature_indexes = output_word_indexes;
+	public void setSkipInitWeights(boolean skip_init_weights) {
+		this.skip_init_weights = skip_init_weights;
 	}
 
 	@Override

@@ -98,6 +98,25 @@ public class ConvolutionalLayer extends Layer {
 		num_filters = W.colSize();
 	}
 
+	@Override
+	public void readObject(ObjectInputStream ois) throws Exception {
+		W = new DenseMatrix(ois);
+		b = new DenseVector(ois);
+
+		filter_size = W.rowSize();
+		num_filters = W.colSize();
+		window_size = ois.readInt();
+		emb_size = ois.readInt();
+	}
+
+	@Override
+	public void writeObject(ObjectOutputStream oos) throws Exception {
+		W.writeObject(oos);
+		b.writeObject(oos);
+		oos.writeInt(window_size);
+		oos.writeInt(emb_size);
+	}
+
 	public ConvolutionalLayer(int emb_size, int window_size, int num_filters) {
 		this(new DenseMatrix(window_size * emb_size, num_filters), new DenseVector(num_filters), window_size, emb_size);
 	}
@@ -300,31 +319,14 @@ public class ConvolutionalLayer extends Layer {
 	}
 
 	@Override
-	public void initWeights() {
-		ParameterInitializer.init2(W);
+	public void initWeights(ParameterInitializer pi) {
+		pi.init(W);
 	}
 
 	@Override
-	public void prepareTraining() {
+	public void createGradientHolders() {
 		dW = W.copy(true);
 		db = b.copy(true);
-	}
-
-	@Override
-	public void readObject(ObjectInputStream ois) throws Exception {
-		W = new DenseMatrix(ois);
-		b = new DenseVector(ois);
-
-		filter_size = W.rowSize();
-		num_filters = W.colSize();
-		window_size = ois.readInt();
-	}
-
-	@Override
-	public void writeObject(ObjectOutputStream oos) throws Exception {
-		W.writeObject(oos);
-		b.writeObject(oos);
-		oos.writeInt(window_size);
 	}
 
 }

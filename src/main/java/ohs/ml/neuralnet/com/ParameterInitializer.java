@@ -9,27 +9,60 @@ import ohs.matrix.DenseMatrix;
  * 
  * http://jmlr.org/proceedings/papers/v9/glorot10a/glorot10a.pdf
  * 
+ * http://pythonkim.tistory.com/41
+ * 
  * @author ohs
  */
 public class ParameterInitializer {
 
-	public static void init1(DenseMatrix W) {
+	public static enum Type {
+		BASIC, XAVIER, HE;
+	}
+
+	private static void basic(DenseMatrix W) {
 		int input_size = W.rowSize();
 		double bound = 1d / Math.sqrt(input_size);
 		VectorMath.random(-bound, bound, W);
 	}
 
-	public static void init2(DenseMatrix W) {
-		int input_size = W.rowSize();
-		int output_size = W.colSize();
-		double bound = Math.sqrt(6) / Math.sqrt(input_size + output_size);
-		VectorMath.random(-bound, bound, W);
+	private Type type;
+
+	public ParameterInitializer() {
+		this(Type.HE);
 	}
 
-	public static void init3(DenseMatrix W) {
+	public ParameterInitializer(Type type) {
+		this.type = type;
+	}
+
+	private void He(DenseMatrix W) {
+		VectorMath.randomn(0, 1, W);
+
 		int input_size = W.rowSize();
-		double bound = Math.sqrt(2 / input_size);
-		VectorMath.random(-bound, bound, W);
+		double scale = 1d / Math.sqrt(input_size / 2);
+		W.multiply(scale);
+
+		VectorMath.clip(W, -1, 1, W);
+	}
+
+	public void init(DenseMatrix W) {
+		if (type == Type.BASIC) {
+			basic(W);
+		} else if (type == Type.XAVIER) {
+			Xavier(W);
+		} else if (type == Type.HE) {
+			He(W);
+		}
+	}
+
+	private void Xavier(DenseMatrix W) {
+		VectorMath.randomn(0, 1, W);
+
+		int input_size = W.rowSize();
+		double scale = 1d / Math.sqrt(input_size);
+		W.multiply(scale);
+
+		VectorMath.clip(W, -1, 1, W);
 	}
 
 }

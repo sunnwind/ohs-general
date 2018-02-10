@@ -289,22 +289,23 @@ public class VectorUtils {
 
 	public static Counter<String> toCounter(SparseVector x, Indexer<String> indexer) {
 		Counter<String> ret = new Counter<String>();
-		for (int i = 0; i < x.size(); i++) {
-			int index = x.indexAt(i);
+		if (x != null) {
+			for (int i = 0; i < x.size(); i++) {
+				int index = x.indexAt(i);
 
-			if (index < 0 || index >= indexer.size()) {
-				continue;
+				if (index < 0 || index >= indexer.size()) {
+					continue;
+				}
+
+				double value = x.valueAt(i);
+				String obj = indexer.getObject(index);
+
+				if (obj == null) {
+					continue;
+				}
+				ret.incrementCount(obj, value);
 			}
-
-			double value = x.valueAt(i);
-			String obj = indexer.getObject(index);
-
-			if (obj == null) {
-				continue;
-			}
-			ret.incrementCount(obj, value);
 		}
-
 		return ret;
 	}
 

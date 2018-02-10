@@ -15,19 +15,25 @@ import org.bitbucket.eunjeon.seunjeon.Analyzer;
 import org.bitbucket.eunjeon.seunjeon.LNode;
 import org.bitbucket.eunjeon.seunjeon.Morpheme;
 
+import ohs.corpus.type.DocumentCollection;
 import ohs.io.FileUtils;
+import ohs.io.RandomAccessDenseMatrix;
 import ohs.io.TextFileWriter;
+import ohs.ir.search.app.WordSearcher;
 import ohs.ir.weight.TermWeighting;
 import ohs.math.VectorUtils;
+import ohs.matrix.DenseMatrix;
 import ohs.matrix.DenseVector;
 import ohs.matrix.SparseMatrix;
 import ohs.matrix.SparseVector;
 import ohs.ml.feat.select.ChisquareComputer;
+import ohs.ml.neuralnet.com.ParameterInitializer;
 import ohs.nlp.ling.types.LDocument;
 import ohs.nlp.ling.types.LDocumentCollection;
 import ohs.nlp.ling.types.LSentence;
 import ohs.nlp.ling.types.LToken;
 import ohs.types.generic.Counter;
+import ohs.types.generic.CounterMap;
 import ohs.types.generic.Indexer;
 import ohs.types.generic.ListMap;
 import ohs.types.generic.SetMap;
@@ -163,13 +169,15 @@ public class DataHandler {
 		// dh.makeDicts();
 		// dh.makePersonDict();
 		// dh.makeOrgaizationDict();
-		// dh.makeDicts();
 		// dh.computeChisquares();
+		// dh.makeTopicDicts();
 		// dh.getM2Labels();
 		// dh.test();
 
 		System.out.println("process ends.");
 	}
+	
+
 
 	public void test() throws Exception {
 		String text = FileUtils.readFromText(FNPath.DATA_DIR + "M1_tagging/연예.txt");
@@ -254,47 +262,37 @@ public class DataHandler {
 
 			FileUtils.writeStringCounterAsText(String.format("%s/%s.txt", FNPath.DATA_DIR + "dict_topic", topic), c2);
 		}
-
 	}
 
-	public void makeDicts() throws Exception {
+	public void makeTopicDicts() throws Exception {
+		CounterMap<String, String> cm = Generics.newCounterMap();
 
-		// {
-		// List<String> ins =
-		// FileUtils.readLinesFromText("../../data/dict/171116_authors.txt");
-		// Counter<String> c = Generics.newCounter();
-		//
-		// for (String s : ins) {
-		// String[] ps = s.split("\t");
-		// String name = ps[1].trim();
-		// if (name.length() == 0) {
-		// continue;
-		// }
-		// c.incrementCount(name, 1);
-		// }
-		// c.pruneKeysOverThreshold(5);
-		//
-		// FileUtils.writeStringCollectionAsText(FNPath.DATA_DIR + "pers.txt",
-		// Generics.newTreeSet(c.keySet()));
-		// }
+		List<File> files = FileUtils.getFilesUnder(FNPath.DATA_DIR + "dict_topic");
 
-		{
-			List<String> ins = FileUtils.readLinesFromText("../../data/dict/기관 정보 데이터베이스 제공_교육_의료_기타_171116.txt");
-			Counter<String> c = Generics.newCounter();
+		for (File file : files) {
+			String fileName = file.getName();
+			String topic = fileName.split("\\.")[0];
+			Counter<String> c = FileUtils.readStringCounterFromText(file.getPath());
+			cm.setCounter(topic, c);
+		}
 
-			for (String s : ins) {
-				String[] ps = s.split("\t");
-				String name = ps[1].trim();
-				if (name.length() == 0) {
-					continue;
-				}
-				if (name.startsWith("\"") && name.startsWith("\"")) {
-					name = name.substring(1, name.length() - 1);
-				}
-				c.incrementCount(name, 1);
+		cm = cm.invert();
+
+		List<String> words = Generics.newArrayList(cm.keySet());
+
+		for (int i = 0; i < words.size(); i++) {
+			String word = words.get(i);
+
+			if (cm.getCounter(word).size() == files.size()) {
+				cm.removeKey(word);
 			}
+		}
 
-			FileUtils.writeStringCollectionAsText(FNPath.DATA_DIR + "orgs.txt", Generics.newTreeSet(c.keySet()));
+		cm = cm.invert();
+
+		for (String topic : cm.keySet()) {
+			String outFileName = FNPath.DATA_DIR + "dict_topic2/" + topic + ".txt";
+			FileUtils.writeStringCounterAsText(outFileName, cm.getCounter(topic));
 		}
 	}
 
@@ -855,40 +853,35 @@ public class DataHandler {
 				outs.add(sb.toString());
 			}
 
-			FileUtils.writeAsText(String.format("%s/M1_tagging/%s.txt", FNPath.DATA_DIR, topic),
+			FileUtils.writeAsText(String.format("%s/news_subset/%s.txt", FNPath.DATA_DIR, topic),
 					StrUtils.join("\n\n", outs));
 
 		}
-
 	}
 
 	public void tagPos() throws Exception {
 		for (File inFile : FileUtils.getFilesUnder(FNPath.DATA_DIR + "data")) {
-			boolean is_ext_data = false;
+			int data_type = 0;
 
-			if (!inFile.getName().contains("M1_train-3")) {
+			if (!inFile.getName().contains("test")) {
 				continue;
-			}
-
-			if (inFile.getName().contains("train-3")) {
-				is_ext_data = true;
 			}
 
 			String encoding = "euc-kr";
 			String delim = "\r\n";
 
-			if (is_ext_data) {
+			if (data_type == 1) {
 				encoding = "UTF-8";
 				delim = "\n";
 			}
 
 			File outFile = new File(FNPath.DATA_DIR + "data_pos", inFile.getName().replace(".txt", "_pos.txt"));
-			String input = FileUtils.readFromText(inFile.getPath(), encoding);
+			String input = FileUtils.readFromText(inFile.getPath(), "UTF-8");
 
 			List<String> ins = StrUtils.split(delim, input);
 			List<String> outs = Generics.newLinkedList();
 
-			if (is_ext_data) {
+			if (data_type == 1) {
 				for (int i = 1; i < ins.size(); i++) {
 					String in = ins.get(i);
 					String text = "";
@@ -899,7 +892,7 @@ public class DataHandler {
 					String label = "";
 					String corTitle = "";
 
-					List<String> ps = StrUtils.split("\t", in);
+					List<String> ps = StrUtils.split(",", in);
 
 					// System.out.println(ps.toString());
 
@@ -978,7 +971,7 @@ public class DataHandler {
 					}
 				}
 				FileUtils.writeStringCollectionAsText(outFile.getPath(), outs);
-			} else {
+			} else if (data_type == 0) {
 				Pattern m = Pattern.compile("^\\d_\\d+");
 				for (int i = 1; i < ins.size();) {
 					String in1 = ins.get(i);

@@ -6,12 +6,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import edu.stanford.nlp.sentiment.CollapseUnaryTransformer;
 import ohs.io.FileUtils;
 import ohs.matrix.DenseVector;
-import ohs.nlp.ling.types.LDocumentCollection;
 import ohs.nlp.ling.types.LDocument;
+import ohs.nlp.ling.types.LDocumentCollection;
 import ohs.nlp.ling.types.LSentence;
 import ohs.nlp.ling.types.LToken;
+import ohs.types.generic.CounterMap;
 import ohs.types.generic.Indexer;
 import ohs.types.generic.SetMap;
 import ohs.types.generic.Vocab.SYM;
@@ -78,7 +80,7 @@ public class NERFeatureExtractor {
 		Set<String> newData = Generics.newHashSet(data.size());
 
 		for (String s : data) {
-			newData.add(s.replaceAll("[\\s\u2029]+", "").trim());
+			newData.add(s.replaceAll("[\\s\u2029]+", " ").trim());
 		}
 		gzData.put(feat, newData);
 	}
@@ -137,6 +139,19 @@ public class NERFeatureExtractor {
 		featValIdxer.add(String.format("%s=%s", feat, "noshape"));
 	}
 
+	public void addVowelConsonantFeatures() {
+		String feat = "vc";
+		int idx = featIdxer.getIndex(feat);
+		valIdxerMap.put(idx, Generics.newIndexer());
+
+		Indexer<String> featValIdxer = valIdxerMap.get(idx);
+		featValIdxer.add(String.format("%s=%s", feat, "others"));
+		// featValIdxer.add(String.format("%s=%s", feat, "all-vowels"));
+		// featValIdxer.add(String.format("%s=%s", feat, "all-consanants"));
+		// featValIdxer.add(String.format("%s=%s", feat, "mixed"));
+
+	}
+
 	public void addShapeTwoFeatures() {
 		String feat = "shape2";
 		int idx = featIdxer.getIndex(feat);
@@ -159,15 +174,15 @@ public class NERFeatureExtractor {
 		}
 	}
 
-	public void extract(LDocumentCollection c) {
-		for (LDocument d : c) {
-			extract(d);
-		}
-	}
-
 	public void extract(LDocument d) {
 		for (LSentence s : d) {
 			extract(s);
+		}
+	}
+
+	public void extract(LDocumentCollection c) {
+		for (LDocument d : c) {
+			extract(d);
 		}
 	}
 
@@ -192,14 +207,15 @@ public class NERFeatureExtractor {
 
 			int win_size = 5;
 
+			CounterMap<String, String> cm = Generics.newCounterMap();
+
 			for (int i = 0; i < s.size(); i++) {
 				for (int j = i + 1; j < Math.min(s.size(), i + win_size); j++) {
-					String sub = StrUtils.join("", words, i, j);
+					String sub = StrUtils.join(" ", words, i, j);
 
 					for (int k = 0; k < feats.size(); k++) {
 						String feat = feats.get(k);
 						Set<String> gz = gzData.get(feat);
-
 						if (gz.contains(sub)) {
 							for (int u = i; u < j; u++) {
 								feat_flags[u][k] = true;
@@ -208,6 +224,10 @@ public class NERFeatureExtractor {
 					}
 				}
 			}
+
+			// if (cm.size() > 0) {
+			// System.out.println(cm);
+			// }
 
 			for (int i = 0; i < s.size(); i++) {
 				LToken t = s.get(i);
@@ -256,7 +276,7 @@ public class NERFeatureExtractor {
 
 			} else if (feat.equals("pos")) {
 				int val_idx = valIdxer.indexOf(String.format("%s=%s", feat, "nopos"));
-				if (word.equals(LSentence.START) || word.equals(LSentence.END)) {
+				if (word.equals(LSentence.STARTING) || word.equals(LSentence.ENDING)) {
 
 				} else {
 					String pos = t.getString(1);
@@ -385,6 +405,41 @@ public class NERFeatureExtractor {
 				}
 
 				F.set(feat_idx, val_idx);
+			} else if (feat.equals("vc")) {
+				StringBuffer sb = new StringBuffer();
+				int v_cnt = 0;
+				int c_cnt = 0;
+
+				for (int i = 0; i < word.length(); i++) {
+					char ch1 = word.charAt(i);
+					boolean is_cap = Character.isUpperCase(ch1);
+					char ch2 = 'o';
+
+					if (isVowel(ch1)) {
+						ch2 = 'v';
+						v_cnt++;
+					} else if (isConsanant(ch1)) {
+						ch2 = 'c';
+						c_cnt++;
+					} else {
+						sb.append("o");
+					}
+
+					if (is_cap) {
+						ch2 = Character.toUpperCase(ch2);
+					}
+					sb.append(ch2);
+				}
+
+				String val = sb.toString();
+
+				int val_idx = is_training ? valIdxer.getIndex(val) : valIdxer.indexOf(val);
+
+				if (val_idx < 0) {
+					val_idx = valIdxer.indexOf(String.format("%s=%s", feat, "others"));
+				}
+
+				F.set(feat_idx, val_idx);
 			} else if (feat.equals("ch")) {
 				for (int i = 0; i < word.length(); i++) {
 					String ch = word.charAt(i) + "";
@@ -396,6 +451,26 @@ public class NERFeatureExtractor {
 		}
 
 		t.setFeatureVector(F);
+	}
+
+	public static boolean isVowel(char c) {
+		String vowels = "aeiouAEIOU";
+		return vowels.contains(c + "");
+	}
+
+	public static boolean isConsanant(char c) {
+		String cons = "bcdfghjklmnpqrstvwxyzBCDFGHJKLMNPQRSTVWXYZ";
+		return cons.contains(c + "");
+	}
+
+	public static Set<Character> vowels;
+
+	static {
+		vowels = Generics.newHashSet();
+		vowels.add('a');
+		vowels.add('e');
+		vowels.add('i');
+		vowels.add('o');
 	}
 
 	public Indexer<String> getFeatureIndexer() {

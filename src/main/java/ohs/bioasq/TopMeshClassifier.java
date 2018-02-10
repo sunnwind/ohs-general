@@ -234,7 +234,7 @@ public class TopMeshClassifier {
 			nn.add(new NonlinearityLayer(l2_size, new Tanh()));
 			nn.add(new FullyConnectedLayer(l2_size, output_size));
 			nn.add(new SoftmaxLayer(output_size));
-			nn.prepareTraining();
+			nn.createGradientHolders();
 			nn.initWeights();
 
 			NeuralNetTrainer trainer = new NeuralNetTrainer(nn, param, X.size(), null);

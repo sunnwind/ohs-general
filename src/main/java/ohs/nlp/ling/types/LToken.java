@@ -36,20 +36,11 @@ public class LToken extends ArrayList<Object> {
 		return ret;
 	}
 
-	@Override
-	public LToken clone() {
-		LToken ret = new LToken(size());
-		for (Object obj : this) {
-			ret.add(obj);
-		}
-		ret.setFeatureVector(fv == null ? null : fv.copy());
-		ret.setStart(start);
-		return ret;
-	}
-
 	private DenseVector fv = null;
 
 	protected int start = 0;
+
+	private boolean is_padding = false;
 
 	public LToken() {
 		super();
@@ -70,6 +61,17 @@ public class LToken extends ArrayList<Object> {
 
 	public LToken(String word) {
 		this(0, word);
+	}
+
+	@Override
+	public LToken clone() {
+		LToken ret = new LToken(size());
+		for (Object obj : this) {
+			ret.add(obj);
+		}
+		ret.setFeatureVector(fv == null ? null : fv.copy());
+		ret.setStart(start);
+		return ret;
 	}
 
 	public Object get(String attr) {
@@ -101,6 +103,10 @@ public class LToken extends ArrayList<Object> {
 		return ret;
 	}
 
+	public boolean isPadding() {
+		return is_padding;
+	}
+
 	public void readObject(ObjectInputStream ois) throws Exception {
 		start = ois.readInt();
 		int size = ois.readInt();
@@ -115,6 +121,10 @@ public class LToken extends ArrayList<Object> {
 
 	public void setFeatureVector(DenseVector fv) {
 		this.fv = fv;
+	}
+
+	public void setIsPadding(boolean is_padding) {
+		this.is_padding = is_padding;
 	}
 
 	public void setStart(int start) {
